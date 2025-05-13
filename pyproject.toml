@@ -1,0 +1,16 @@
+[project]
+name = "basketball_stats_tracker"
+version = "0.1.0"
+description = "A simple web app for tracking basketball game statistics."
+authors = ["Your Name <your.email@example.com>"]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+flask = "*"
+sqlalchemy = "*"
+pydantic = ">=2.0"
+python-dotenv = "*"
+alembic = "*"
+pytest = "*"
+tabulate = "*"
+typer = "*" 
