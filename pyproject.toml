@@ -72,6 +72,9 @@ dev = [
 [tool.setuptools]
 packages = ["app"]
 
+[tool.pylint."MESSAGES CONTROL"]
+disable = ["unnecessary-pass"]
+
 # Configuration for Ruff (Linter and Formatter)
 [tool.ruff]
 line-length = 120

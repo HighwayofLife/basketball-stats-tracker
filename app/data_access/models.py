@@ -1,3 +1,4 @@
+# pylint: disable=R0903  # Too few public methods
 """SQLAlchemy ORM models for the basketball stats application."""
 
 from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
