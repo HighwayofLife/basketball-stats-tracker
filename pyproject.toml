@@ -1,16 +1,118 @@
+[build-system]
+requires = ["setuptools>=77.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "basketball_stats_tracker"
 version = "0.1.0"
 description = "A simple web app for tracking basketball game statistics."
-authors = ["Your Name <your.email@example.com>"]
+authors = [
+  { name = "David 'Jedi' Lewis", email = "highwayoflife@gmail.com" }
+]
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Operating System :: OS Independent",
+  "Framework :: Flask",
+  "Framework :: SQLAlchemy",
+  "Framework :: Pydantic",
+]
+keywords = [
+  "basketball",
+  "stats",
+  "tracker",
+  "webapp",
+  "flask",
+  "sqlalchemy",
+  "pydantic",
+]
 
-[tool.poetry.dependencies]
-python = ">=3.9,<4.0"
-flask = "*"
-sqlalchemy = "*"
-pydantic = ">=2.0"
-python-dotenv = "*"
-alembic = "*"
-pytest = "*"
-tabulate = "*"
-typer = "*" 
+dependencies = [
+  # python = ">=3.9,<4.0"
+  # flask = "*"
+  # sqlalchemy = "*"
+  # pydantic = ">=2.0"
+  # python-dotenv = "*"
+  # alembic = "*"
+  # pytest = "*"
+  # tabulate = "*"
+  # typer = "*"
+  "uvicorn[standard]>=0.20.0,<0.31.0", # ASGI server for running the app
+  "SQLAlchemy>=2.0.0,<3.0.0", # ORM for database interactions
+  "pydantic>=2.0,<3.0",
+  "pydantic-settings>=2.0,<3.0", # For settings management
+  "python-dotenv>=1.0,<2.0", # For loading environment variables from .env files
+  "colorama>=0.4.0,<1.0.0", # For colored terminal output
+  "emoji>=2.0,<3.0", # For emoji support
+]
+
+[project.optional-dependencies]
+
+test = [
+  "pytest>=7.0,<8.0", # Testing framework
+  "pytest-cov>=4.0,<5.0", # Coverage reporting
+  "pytest-asyncio>=0.20,<1.0", # Async support for pytest
+  "httpx>=0.24,<1.0", # HTTP client for testing
+  "pytest-httpx>=0.22,<1.0", # Mocking HTTP requests in tests
+  "pytest-mock>=3.10,<4.0", # Mocking library for pytest
+  "coverage>=7.2,<8.0", # Code coverage tool
+  "debugpy>=1.6,<2.0", # Debugging tool
+]
+
+dev = [
+  "ruff>=0.1.0,<1.0", # Linter and formatter
+]
+
+[tool.setuptools]
+packages = ["app"]
+
+# Configuration for Ruff (Linter and Formatter)
+[tool.ruff]
+line-length = 120
+target-version = "py311" # Target the minimum Python version for compatibility checks
+
+[tool.ruff.lint]
+select = [ # Select rule codes to enable (Examples)
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes errors
+    "I",  # isort import sorting
+    "UP", # pyupgrade suggestions
+    "B",  # flake8-bugbear findings
+    "C4", # flake8-comprehensions
+    "SIM",# flake8-simplify
+]
+ignore = [] # Rule codes to ignore (if any specific ones cause issues)
+# fixable = ["ALL"] # Optionally enable auto-fixing for all possible rules
+
+[tool.ruff.format]
+quote-style = "double" # Prefer double quotes
+indent-style = "space"
+
+[tool.flake8]
+max-line-length = 120 # Maximum line length for Flake8
+
+# Configuration for Black (Code Formatter)
+[tool.black]
+line-length = 120
+target-version = ['py311'] # Target the minimum Python version
+# include = '\.pyi?$'
+# exclude = '''
+# /(
+#     \.git
+#   | \.hg
+#   | \.mypy_cache
+#   | \.tox
+#   | \.venv
+#   | _build
+#   | buck-out
+#   | build
+#   | dist
+# )/
+# '''
