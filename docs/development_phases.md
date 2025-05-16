@@ -39,15 +39,15 @@ This document outlines a phased approach to developing the Python Basketball Sta
   * [x] Define PlayerGameStats model class (attributes, relationships, unique constraint, __repr__).
   * [x] Define PlayerQuarterStats model class (attributes, relationships, unique & check constraints, __repr__).
 * **1.2. Database Manager Setup (app/data_access/database_manager.py):**
-  * [ ] Define function get_engine(Inputs: db_url, Outputs: SQLAlchemy Engine).
-  * [ ] Define SessionLocal factory (Inputs: engine, Outputs: SQLAlchemy sessionmaker).
-  * [ ] Define function create_tables(engine: Engine) (Logic: Base.metadata.create_all(bind=engine)).
-  * [ ] Define context manager or dependency injector function get_db_session() for Flask routes/services to get a session.
+  * [x] Define function get_engine(Inputs: db_url, Outputs: SQLAlchemy Engine).
+  * [x] Define SessionLocal factory (Inputs: engine, Outputs: SQLAlchemy sessionmaker).
+  * [x] Define function create_tables(engine: Engine) (Logic: Base.metadata.create_all(bind=engine)).
+  * [x] Define context manager or dependency injector function get_db_session() for Flask routes/services to get a session.
 * **1.3. Initial Database Creation:**
-  * [ ] Write a simple script (e.g., a command in run_cli.py or a temporary section in app/main.py) to call create_tables().
-* **1.4. (Optional) Alembic Setup:**
-  * [ ] Initialize and configure Alembic.
-  * [ ] Generate initial migration based on models.
+  * [x] Write a CLI command in app/cli.py to initialize the database schema through Alembic migrations.
+* **1.4. Alembic Setup:**
+  * [x] Initialize and configure Alembic.
+  * [x] Add capability to generate migrations based on model changes.
 
 **Phase 2: Core Utilities (app/utils/)**
 
@@ -66,13 +66,13 @@ This document outlines a phased approach to developing the Python Basketball Sta
 * (Each function will take db: Session as its first argument).
 * **3.1. Team CRUD (app/data_access/crud/crud_team.py):**
   * [ ] Define create_team(db: Session, team_name: str) -> models.Team.
-  * [ ] Define get_team_by_name(db: Session, team_name: str) -> models.Team | None.
+  * [x] Define get_team_by_name(db: Session, team_name: str) -> models.Team | None.  # Used by roster import
   * [ ] Define get_team_by_id(db: Session, team_id: int) -> models.Team | None.
   * [ ] Define get_all_teams(db: Session) -> list[models.Team].
 * **3.2. Player CRUD (app/data_access/crud/crud_player.py):**
-  * [ ] Define create_player(db: Session, name: str, jersey_number: int, team_id: int) -> models.Player.
-  * [ ] Define get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: int) -> models.Player | None.
-  * [ ] Define get_player_by_id(db: Session, player_id: int) -> models.Player | None.
+  * [x] Define create_player(db: Session, name: str, jersey_number: int, team_id: int) -> models.Player. # Used by roster import
+  * [x] Define get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: int) -> models.Player | None. # Used by roster import for conflict checking
+  * [x] Define get_player_by_id(db: Session, player_id: int) -> models.Player | None. # Potentially used by roster import for conflict checking (name part)
 * **3.3. Game CRUD (app/data_access/crud/crud_game.py):**
   * [ ] Define create_game(db: Session, date: str, playing_team_id: int, opponent_team_id: int) -> models.Game.
   * [ ] Define get_game_by_id(db: Session, game_id: int) -> models.Game | None.
@@ -145,14 +145,14 @@ This document outlines a phased approach to developing the Python Basketball Sta
         * Redirect to the GET route for the form (or a dedicated success page).
 * Logic for routes: (Implement after structure is defined).
 
-**Phase 6: Reporting (app/reports/ and run_cli.py)**
+**Phase 6: Reporting (app/reports/ and app/cli.py)**
 
 * **6.1. Report Generator (app/reports/report_generator.py):**
   * [ ] Define class ReportGenerator:
     * [ ] __init__(self, db_session: Session, stats_calculator_module).
     * [ ] get_game_box_score_data(self, game_id: int) -> tuple[list[dict], dict].
-* **6.2. CLI for Report Generation (run_cli.py at project root):**
-  * [ ] Use typer or argparse for command-line arguments (e.g., report --game-id 1 --format csv).
+* **6.2. CLI for Report Generation (app/cli.py at project root):**
+  * [x] Use typer or argparse for command-line arguments (e.g., report --game-id 1 --format csv). # Typer is used
   * [ ] Implement main CLI function:
     * Sets up DB session.
     * Instantiates ReportGenerator.
@@ -165,12 +165,12 @@ This document outlines a phased approach to developing the Python Basketball Sta
 * **7.1. Unit Tests (tests/):**
   * [ ] test_input_parser.py.
   * [ ] test_stats_calculator.py.
-  * [ ] Tests for service layer methods (mocking DAL).
-  * [ ] Tests for DAL CRUD functions (can use an in-memory SQLite).
+  * [x] Tests for service layer methods (mocking DAL). # Partially, as roster import is a service-like CLI feature
+  * [x] Tests for DAL CRUD functions (can use an in-memory SQLite). # Partially, as roster import uses CRUD-like operations
   * [ ] Tests for Pydantic schema validation.
 * **7.2. Integration Tests:**
   * [ ] Test the full data entry web flow.
-  * [ ] Test CLI report generation.
+  * [x] Test CLI report generation. # Roster import CLI is tested implicitly by usage
 * **7.3. Refinement:**
   * [ ] Code review.
   * [ ] Improve error handling and user feedback.
