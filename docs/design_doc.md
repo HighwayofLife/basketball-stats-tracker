@@ -3,39 +3,41 @@
 **1\. Introduction**
 
 * 1.1. Purpose:  
-  To develop a simple Python application with a basic web UI for tracking basketball game statistics for a small league. The application will allow users to input game details, individual player performance per quarter (fouls and a simplified shot string) via a web form, store this data persistently using SQLAlchemy, validate data with Pydantic v2, and generate game summary reports.  
+  To develop a simple Python application for tracking basketball game statistics for a small league. The application will allow users to input game details, individual player performance per quarter (fouls and a simplified shot string) via **a CSV file import mechanism**, store this data persistently using SQLAlchemy, validate data with Pydantic v2, and generate game summary reports.  
 * **1.2. Goals:**  
-  * **Simplicity (KISS):** Focus on core functionality, straightforward data structures, and a simple web UI (Flask) for data entry. Avoid over-engineering.  
+  * **Simplicity (KISS):** Focus on core functionality, straightforward data structures, and a simple **CSV import** for data entry. Avoid over-engineering.  
   * **Maintainability (SOLID):** Structure the application with clear separation of concerns.  
-  * **Efficient Data Entry:** Allow for quick input of game stats via a structured web form.  
+  * **Efficient Data Entry:** Allow for quick input of game stats via a structured **CSV file**.  
   * **Accurate Storage:** Persistently store raw makes and attempts for Free Throws (FT), 2-Point Field Goals (2P), and 3-Point Field Goals (3P) by quarter for each player.  
   * **Basic Reporting:** Output game statistics in a clear tabular format or as a CSV file.  
 * **1.3. Scope:**  
-  * **Input:** Game information (teams, date), player fouls, and per-quarter shot strings for each player, entered via a web form. Data validation using Pydantic v2.  
+  * **Input:** Game information (teams, date), player fouls, and per-quarter shot strings for each player, **imported from a CSV file**. Data validation using Pydantic v2.  
   * **Storage:** SQLite database with SQLAlchemy as the ORM.  
   * **Processing:** Parsing shot strings into makes/attempts per quarter, aggregating for game totals.  
   * **Output:** Game box score table.  
-  * **Initial Version:** Focus on data entry via a simple web UI.
+  * **Initial Version:** Focus on data entry via **CSV import, processed by a command-line script invoked via `make` targets**.
 
 **2\. System Architecture**
 
 The application will follow a layered architecture:
 
-* **2.1. Presentation Layer (Simple Web UI \- Flask):**  
-  * A basic HTML form served by Flask.  
-  * Form submission will be handled by Flask routes defined in a dedicated routes module.  
-  * This layer is responsible for rendering the input form and sending the collected data (validated using Pydantic models) to the service layer.  
-  * Files: app/main.py (Flask app initialization), app/web\_ui/routes.py (Flask route definitions), app/web\_ui/templates/form.html. Pydantic models for form data validation reside in app/web\_ui/schemas.py.  
+* **2.1. Input Layer (CSV Import & CLI):**  
+  * Data entry will be performed by preparing a CSV file with a specific format (detailed in Section 5).  
+  * **CLI commands, defined in `app/cli.py` (and run as `basketball-stats ...`), will be responsible for processing these files. These commands are typically executed via `Makefile` targets (e.g., a future `make import-game-stats`).**
+    *   Reading the CSV file.  
+    *   Validating the structure and content of the CSV data using Pydantic models (defined in `app/web_ui/schemas.py` or a dedicated `app/schemas/csv_schemas.py`).  
+    *   Passing the validated data to the service layer for processing and storage.  
+  * While a web UI (Flask) might exist for other purposes (e.g., viewing reports), primary data entry is through CSV. The `app/main.py`, `app/web_ui/routes.py`, and `app/web_ui/templates/` directory will be initially focused on report display or deferred. Pydantic models for CSV data validation will be crucial.
 * **2.2. Service Layer (Business Logic \- app/services/):**  
   * Contains the core application logic.  
-  * Coordinates interactions between the Web UI's backend handler and the Data Access Layer.  
+  * Coordinates interactions between the CSV import process (triggered by a `make` target) and the Data Access Layer.  
 * **2.3. Data Access Layer (DAL \- app/data\_access/):**  
   * Encapsulates all database interactions using SQLAlchemy.  
   * Defines SQLAlchemy models for database tables.  
   * Provides an API for the service layer to interact with the database, with CRUD operations organized per model.  
   * Files: app/data\_access/database\_manager.py (handles SQLAlchemy engine and session setup), app/data\_access/models.py (SQLAlchemy model definitions), and app/data\_access/crud/ (directory containing CRUD operations specific to each model, e.g., crud\_team.py).  
 * **2.4. Utility Layer (app/utils/):**  
-  * input\_parser.py: Parses quarter shot strings.  
+  * input\_parser.py: Parses quarter shot strings **based on a configurable character mapping defined in `app/config.py`**.  
   * stats\_calculator.py: Calculates derived statistics.  
 * **2.5. Database:**  
   * SQLite (data/league\_stats.db) accessed via SQLAlchemy.
@@ -44,15 +46,17 @@ The application will follow a layered architecture:
 
 ```
 basketball\_stats\_tracker/  
+├── Makefile                  # Defines tasks for building, running, testing, and managing the application. Primary user interface for common operations.
 ├── app/  
-│   ├── main.py                 \# Flask app initialization, registers Blueprints  
-│   ├── config.py               \# Application configuration  
+│   ├── cli.py                # Defines CLI commands (e.g., for DB setup, CSV import, report generation), invoked via 'basketball-stats' entry point, typically run using 'make' targets.
+│   ├── main.py               # Flask app initialization (potentially for future UI/report display)
+│   ├── config.py             # Application configuration, **including shot string character mapping.**
 │   │  
-│   ├── web\_ui/  
-│   │   ├── routes.py           \# Flask Blueprint with route definitions  
-│   │   ├── templates/  
-│   │   │   └── form.html       \# HTML template for the data entry form  
-│   │   └── schemas.py          \# Pydantic models for web form data validation  
+│   ├── web\_ui/               # Potentially for report display UI in the future
+│   │   ├── routes.py         # Flask Blueprint with route definitions (if web UI is used for reports)
+│   │   ├── templates/        # HTML templates (if web UI is used for reports)
+│   │   │   └── ...  
+│   │   └── schemas.py        # Pydantic models for data validation (used by CSV import and potentially future web UI)
 │   │  
 │   ├── services/  
 │   │   ├── game\_service.py  
@@ -60,30 +64,29 @@ basketball\_stats\_tracker/
 │   │   └── stats\_entry\_service.py  
 │   │  
 │   ├── data\_access/  
-│   │   ├── database\_manager.py \# SQLAlchemy setup, session management  
-│   │   ├── models.py           \# SQLAlchemy ORM models  
-│   │   └── crud/               \# Directory for CRUD operations per model  
+│   │   ├── database\_manager.py # SQLAlchemy setup, session management  
+│   │   ├── models.py         # SQLAlchemy ORM models  
+│   │   └── crud/             # Directory for CRUD operations per model  
 │   │       ├── crud\_team.py  
 │   │       ├── crud\_player.py  
-│   │       └── ...             \# etc.  
+│   │       └── ...           # etc.  
 │   │  
 │   ├── utils/  
-│   │   ├── input\_parser.py  
+│   │   ├── input\_parser.py   # Parses quarter shot strings
 │   │   └── stats\_calculator.py  
 │   │  
 │   └── reports/  
-│       └── report\_generator.py \# Generates output tables/CSVs  
+│       └── report\_generator.py # Generates output tables/CSVs  
 │  
-├── data/                       \# Directory to store the SQLite database file  
+├── data/                     # Directory to store the SQLite database file  
 │   └── league\_stats.db  
 │  
-├── tests/                      \# Directory for unit/integration tests  
+├── tests/                    # Directory for unit/integration tests  
 │   ├── test\_input\_parser.py  
 │   └── test\_stats\_calculator.py  
 │  
-├── run\_cli.py                  \# Script for CLI tasks (e.g., DB setup, report generation)  
-├── pyproject.toml              \# Project metadata and dependencies  
-└── README.md                   \# Project overview and setup instructions
+├── pyproject.toml            # Project metadata and dependencies  
+└── README.md                 # Project overview and setup instructions
 ```
 
 **4\. Data Model (Database Schema \- SQLAlchemy ORM Models)**
@@ -144,32 +147,96 @@ basketball\_stats\_tracker/
 
 **5\. Input Mechanism & Data Processing**
 
-* **5.1. Web UI Data Entry Form (app/web\_ui/templates/form.html):**  
-  * (Description unchanged)  
-* **5.2. Form Submission Handling (in Flask routes defined in app/web\_ui/routes.py):**  
-  * Receives POST data.  
-  * Validates input data using Pydantic v2 models defined in app/web\_ui/schemas.py.  
-  * If validation fails, re-renders the form with error messages.  
-  * If validation succeeds, extracts game info, calls game\_service.py.  
-  * Iterates validated player data, calls player\_service.py and stats\_entry\_service.py.  
-  * Redirects to a success page or re-renders the form with a success message.  
-* **5.3. Shot String Parsing (in app/utils/input\_parser.py):**  
-  * parse\_quarter\_shot\_string(shot\_string: str) \-\> dict (Logic unchanged).  
-* **5.4. Storing Data (in app/services/stats\_entry\_service.py using CRUD functions from app/data\_access/crud/):**  
-  * (Logic unchanged conceptually, but now calls specific CRUD functions that use SQLAlchemy objects).
+Data will be imported into the system via a CSV file. This CSV file will contain game information and detailed player statistics for each quarter.
+
+* **5.1. CSV Data Input Format:**  
+  The CSV file will be structured to capture game details and then list player stats. A potential structure could involve a few header rows for game information, followed by player data rows.  
+  Alternatively, and more simply for parsing, each row could represent a player's stats for a specific game, with game information repeated or referenced. For simplicity of initial implementation, we'll assume a format where game information is provided once, followed by player rows.  
+  A more robust approach for multiple games in one file, or for clearer separation, would be to have distinct CSVs or sections, but for now, we'll focus on a single game import per CSV.
+
+  **Example CSV Structure (`game_stats_template.csv`):**
+
+  ```csv
+  GAME_INFO_KEY,VALUE
+  Playing Team,Team A
+  Opponent Team,Team B
+  Date,YYYY-MM-DD
+  PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
+  PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
+  PLAYER_DATA,Team A,23,Player Two,3,12,x,-/,22
+  PLAYER_DATA,Team B,5,Player Alpha,1,x,11,,33-
+  PLAYER_DATA,Team B,15,Player Beta,4,2//1,2,x,1
+  ```
+
+  *   **Game Information Section:**
+      *   `Playing Team`: Name of the home/main team.
+      *   `Opponent Team`: Name of the opposing team.
+      *   `Date`: Date of the game (e.g., YYYY-MM-DD).
+  *   **Player Statistics Section (each row starting with `PLAYER_DATA`):**
+      *   `Team Name`: The team the player belongs to (e.g., "Team A").
+      *   `Player Jersey`: Jersey number of the player.
+      *   `Player Name`: Full name of the player. This, in conjunction with jersey number and team, helps identify or create new player records. If a player with the given team and jersey/name doesn't exist, they can be created.
+      *   `Fouls`: Total fouls committed by the player in the game.
+      *   `QT1 Shots`, `QT2 Shots`, `QT3 Shots`, `QT4 Shots`: Shot strings for each quarter.
+          *   An empty string for a quarter (e.g., `,,` in the CSV for QT3 of Player Alpha) indicates no shots or activity recorded for that quarter.
+          *   **Shot String Character Legend (Configurable):** The characters used in the shot strings are defined in the application's configuration (e.g., in `app/config.py`). The following are default examples:
+              *   `-`: Missed 2-point shot
+              *   `/`: Missed 3-point shot
+              *   `x`: Missed Free Throw (1-point)
+              *   `1`: Made Free Throw (1-point)
+              *   `2`: Made 2-point shot
+              *   `3`: Made 3-point shot
+          *   The configuration would map each character to its properties (e.g., shot type: FT, 2P, 3P; outcome: made/missed; point value).
+          *   Example (using default mapping): `22-1x` means two made 2-point shots, one missed 2-point shot, one made free throw, one missed free throw.
+
+* **5.2. CSV Import Process (handled by a CLI command, e.g., `basketball-stats import-game-stats`, invoked via a `Makefile` target like `make import-game-stats`):**  
+  *   The `make` target/CLI command will accept a CSV file path as an argument (e.g., `make import-game-stats GAME_STATS_FILE=path/to/your/game_data.csv`).  
+  *   The underlying CLI command (defined in `app/cli.py`) will read the CSV file, parsing the game information and then each player data row.  
+  *   **Validation:** Pydantic v2 models (e.g., defined in `app/web_ui/schemas.py` or a new `app/schemas/csv_schemas.py`) will be used to validate:
+      *   The overall structure of the CSV (presence of required game info keys, player data headers).
+      *   Each piece of game information (e.g., valid date format, team names not empty).
+      *   Each player data row (e.g., jersey number is an integer, fouls is an integer, shot strings conform to expected patterns if strict validation is applied, or are just passed to the parser).
+  *   If validation fails, the script will output clear error messages indicating the problematic row(s) and field(s).  
+  *   If validation succeeds:
+      *   The script will call `game_service.py` to find or create game, home team, and away team records.
+      *   For each player data row, it will call `player_service.py` to find or create player records.
+      *   It will then call `stats_entry_service.py` to process the fouls and parse the shot strings (using `input_parser.py`) for each quarter, and then store these stats (PlayerGameStats, PlayerQuarterStats).
+  *   The script will provide feedback to the user on successful import or any errors encountered.
+
+* **5.3. Shot String Parsing (in `app/utils/input_parser.py`):**  
+  *   `parse_quarter_shot_string(shot_string: str) -> dict`: This function will take a shot string (e.g., "22-1x/") and return a dictionary with counts of makes and attempts for each shot type (FT, 2P, 3P). **It will use the configurable shot character mapping defined in `app/config.py` to interpret the characters.**
+      *   Example input: `"22-1x/"` (assuming default character mapping)
+      *   Example output: `{'ftm': 1, 'fta': 2, 'fg2m': 2, 'fg2a': 3, 'fg3m': 0, 'fg3a': 1}`
+      *   It must correctly handle empty strings (no shots) by returning all counts as 0.
+* **5.4. Storing Data (in `app/services/stats_entry_service.py` using CRUD functions from `app/data_access/crud/`):**  
+  *   The `stats_entry_service` will receive validated game ID, player ID, total fouls, and the per-quarter parsed shot data (makes/attempts for FT, 2P, 3P).
+  *   It will use CRUD functions to:
+      *   Create or update a `PlayerGameStats` record for the player in that game, including total fouls.
+      *   For each quarter with shot data, create a `PlayerQuarterStats` record linked to the `PlayerGameStats` record, storing the ftm/a, fg2m/a, fg3m/a for that quarter.
+      *   Aggregate the quarter stats to update the total makes/attempts in the `PlayerGameStats` record.
 
 6\. Output Display (Reporting \- app/reports/report\_generator.py)  
-(Unchanged for now. CLI or simple CSV export triggered via run\_cli.py.)  
-7\. Data Management: Output, Caching, Backups, Integrity  
+(Unchanged for now. A CLI command for report generation, e.g., `basketball-stats generate-report`, would be triggered via a `make` target, like `make generate-report`.)  
+7\\. Data Management: Output, Caching, Backups, Integrity  
 (Unchanged)  
-8\. Future Considerations (Beyond Initial KISS Scope)  
-(Unchanged)  
+8\\. Future Considerations (Beyond Initial KISS Scope)  
+  * **Web UI for Data Entry and Reporting:** While the initial version focuses on CSV import for efficiency and simplicity, a future iteration could introduce a web-based user interface (potentially using Flask, as originally considered) for:
+    *   Interactive data entry of game and player statistics, providing an alternative to CSV files.
+    *   Viewing formatted game reports and box scores directly in a browser.
+    *   Managing teams and players.
+  * **Advanced Statistical Analysis:** Incorporate more complex calculations and reports (e.g., player efficiency ratings, team performance trends).
+  * **User Authentication and Roles:** If multiple users need to manage data, implement user accounts and permission levels.
+  * **API for Data Access:** Develop a RESTful API to allow other applications or services to consume the stats data.
+  * **Real-time Updates:** For a more dynamic experience, explore options for real-time score updates during a game (though this significantly increases complexity).
+  * **Database Migrations with Alembic:** Fully integrate Alembic for managing database schema changes as the application evolves.
+  * **Enhanced CLI with Typer/Click:** Make the `basketball-stats` CLI (defined in `app/cli.py`) more robust and user-friendly.
+
 **Dependencies to include in pyproject.toml:**
 
-* Flask (for the web UI)  
+* Flask (for any potential future web UI for report viewing)  
 * SQLAlchemy (for ORM)  
 * Pydantic (version 2.x, for data validation)  
 * python-dotenv (for managing configuration, optional but good practice)  
 * tabulate (for CLI reports)  
 * Alembic (optional, for database migrations if schema evolves significantly)  
-* Typer or Click (optional, for a more structured run\_cli.py)
+* Typer or Click (optional, for a more structured CLI experience via `app/cli.py` and the `basketball-stats` entry point)
