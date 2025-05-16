@@ -124,6 +124,12 @@ local-db-health: ## Check database health locally (without Docker).
 	@echo "${CYAN}Checking database health locally...${NC}"
 	@basketball-stats health-check
 
+.PHONY: local-import-roster
+local-import-roster: ## Import roster from a CSV file locally (without Docker).
+	@echo "${CYAN}Importing roster locally...${NC}"
+	@# Example: make local-import-roster ROSTER_FILE=players_template.csv
+	@basketball-stats import-roster --roster-file $(ROSTER_FILE)
+
 # --- Database Targets ---
 
 .PHONY: init-db
@@ -153,6 +159,15 @@ init-db-seed-data: ensure-running ## Seed the database with sample data for deve
 db-health: ensure-running ## Check database connectivity.
 	@echo "${CYAN}Checking database connectivity...${NC}"
 	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats health-check
+
+.PHONY: import-roster
+import-roster: ensure-running ## Import roster from a CSV file into the container's database.
+	@echo "${CYAN}Importing roster into container...${NC}"
+	@# Example: make import-roster ROSTER_FILE=players_template.csv
+	@# Note: The ROSTER_FILE path must be accessible from where docker compose is run,
+	@# or you might need to adjust volume mounts if the file is inside the container.
+	@# This example assumes the CSV is in the project root and accessible to the 'app' service.
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-roster --roster-file $(ROSTER_FILE)
 
 # --- Cleaning Targets ---
 

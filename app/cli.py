@@ -4,7 +4,9 @@ CLI interface for the Basketball Stats Tracker application.
 Provides commands for database initialization, maintenance, and reporting.
 """
 
+import csv
 import os
+from pathlib import Path
 
 import typer
 from sqlalchemy import text
@@ -73,8 +75,6 @@ def initialize_database(
         typer.echo("Creating new migration based on model changes...")
 
         # Check if versions directory exists, if not create it
-        from pathlib import Path
-
         Path("migrations/versions").mkdir(parents=True, exist_ok=True)
 
         # Create a new migration
@@ -127,6 +127,193 @@ def seed_database():
     seed_all()
 
     typer.echo("Database seeding completed.")
+
+
+@cli.command("import-roster")
+def import_roster(
+    roster_file: str = typer.Option(
+        ...,  # Makes this parameter required
+        "--roster-file",
+        "-r",
+        help="Path to the CSV file containing the roster (team names, player names, jersey numbers)",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        "-d",
+        help="Preview what would be imported without making any changes to the database",
+    ),
+):
+    """
+    Import teams and players from a CSV file.
+
+    The CSV file should have headers and the following columns:
+    - team_name: The name of the team
+    - player_name: The name of the player
+    - jersey_number: The player's jersey number
+
+    Example CSV format:
+    team_name,player_name,jersey_number
+    Warriors,Stephen Curry,30
+    Warriors,Klay Thompson,11
+    Lakers,LeBron James,23
+    """
+    # Check if the file exists
+    roster_path = Path(roster_file)
+    if not roster_path.exists():
+        typer.echo(f"Error: File '{roster_file}' not found.")
+        return False
+
+    # Import here to avoid circular imports
+    # pylint: disable=wrong-import-position
+    # pylint: disable=import-outside-toplevel
+    from app.data_access.models import Player, Team
+
+    # Read the CSV file
+    try:
+        with open(roster_path, newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+
+            # Check required headers
+            required_fields = ["team_name", "player_name", "jersey_number"]
+            missing_fields = [field for field in required_fields if field not in (reader.fieldnames or [])]
+
+            if missing_fields:
+                typer.echo(f"Error: CSV file missing required headers: {', '.join(missing_fields)}")
+                return False
+
+            # Process data
+            team_data = {}
+            player_data = []
+
+            for row in reader:
+                team_name = row["team_name"].strip()
+                player_name = row["player_name"].strip()
+
+                try:
+                    jersey_number = int(row["jersey_number"])
+                except (ValueError, TypeError):
+                    typer.echo(
+                        f"Warning: Invalid jersey number '{row['jersey_number']}' for player '{player_name}'. Skipping."
+                    )
+                    continue
+
+                # Add team to set of unique team names
+                if team_name not in team_data:
+                    team_data[team_name] = {"count": 0}
+                team_data[team_name]["count"] += 1
+
+                # Add player to list
+                player_data.append(
+                    {
+                        "team_name": team_name,
+                        "name": player_name,
+                        "jersey_number": jersey_number,
+                    }
+                )
+
+        # Print summary of what will be imported
+        typer.echo(f"\nRoster import summary from {roster_file}:")
+        typer.echo(f"Found {len(team_data)} teams and {len(player_data)} players.\n")
+
+        for team_name, info in team_data.items():
+            typer.echo(f"Team: {team_name} - {info['count']} players")
+
+        if dry_run:
+            typer.echo("\nDry run mode: No changes were made to the database.")
+            return True
+
+        # Import data to database
+        with db_manager.db_manager.get_db_session() as db:
+            teams_added = 0
+            teams_existing = 0
+            players_added = 0
+            players_existing = 0
+            players_error = 0
+
+            # First, ensure all teams exist
+            team_name_to_id = {}
+            for team_name in team_data:
+                # Check if team exists
+                existing_team = db.query(Team).filter(Team.name == team_name).first()
+
+                if existing_team:
+                    team_name_to_id[team_name] = existing_team.id
+                    teams_existing += 1
+                else:
+                    # Create new team
+                    new_team = Team(name=team_name)
+                    db.add(new_team)
+                    db.flush()  # Need to flush to get the ID
+                    team_name_to_id[team_name] = new_team.id
+                    teams_added += 1
+
+            # Now add all players
+            for player in player_data:
+                team_id = team_name_to_id[player["team_name"]]
+
+                # Check if player already exists (by name and team or by jersey number and team)
+                existing_player = (
+                    db.query(Player)
+                    .filter(
+                        (Player.team_id == team_id)
+                        & ((Player.name == player["name"]) | (Player.jersey_number == player["jersey_number"]))
+                    )
+                    .first()
+                )
+
+                if existing_player:
+                    if (
+                        existing_player.name == player["name"]
+                        and existing_player.jersey_number == player["jersey_number"]
+                    ):
+                        # Exact match - skip
+                        players_existing += 1
+                    else:
+                        # Conflict - either same name but different jersey, or same jersey but different name
+                        conflict_type = "name" if existing_player.name == player["name"] else "jersey number"
+                        typer.echo(
+                            f"Warning: Player conflict for team '{player['team_name']}': "
+                            f"'{player['name']}' (#{player['jersey_number']}) - "
+                            f"A player with the same {conflict_type} already exists. Skipping."
+                        )
+                        players_error += 1
+                else:
+                    # Create new player
+                    new_player = Player(
+                        team_id=team_id,
+                        name=player["name"],
+                        jersey_number=player["jersey_number"],
+                    )
+                    db.add(new_player)
+                    players_added += 1
+
+            # Commit changes
+            db.commit()
+
+            typer.echo("\nRoster import completed:")
+            typer.echo(f"Teams: {teams_added} added, {teams_existing} already existed")
+            typer.echo(
+                f"Players: {players_added} added, {players_existing} already existed, {players_error} errors/conflicts"
+            )
+
+            return True
+
+    except (FileNotFoundError, PermissionError) as e:
+        typer.echo(f"File error: {e}")
+        return False
+    except csv.Error as e:
+        typer.echo(f"CSV parsing error: {e}")
+        return False
+    except ValueError as e:
+        typer.echo(f"Data validation error: {e}")
+        return False
+    except OSError as e:
+        typer.echo(f"I/O error: {e}")
+        return False
+    except Exception as e:  # pylint: disable=broad-except
+        typer.echo(f"Unexpected error importing roster: {e}")
+        return False
 
 
 if __name__ == "__main__":
