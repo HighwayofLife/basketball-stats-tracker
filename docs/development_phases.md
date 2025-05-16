@@ -10,21 +10,22 @@ This document outlines a phased approach to developing the Python Basketball Sta
 
 **Phase 0: Project Setup & Configuration**
 
-* [x] Initialize project directory structure as outlined in the Design Document (reflecting new app/data_access/crud/ and app/web_ui/routes.py).
+* [x] Initialize project directory structure as outlined in the Design Document (reflecting new app/data_access/crud/ and potentially app/schemas/csv_schemas.py).
 * [x] Initialize Git repository.
 * [x] Create pyproject.toml with basic project metadata (name, version, authors).
 * [x] Add initial dependencies to pyproject.toml:
-  * [x] flask
+  * [x] flask (for potential future report UI)
   * [x] sqlalchemy
   * [x] pydantic>=2.0
   * [x] python-dotenv (optional, for config)
-  * [x] alembic (optional, for migrations - can defer)
+  * [x] alembic
   * [x] pytest (for testing)
   * [x] tabulate (for CLI reports)
-  * [x] typer or click (optional, for a more robust CLI in run_cli.py)
+  * [x] typer or click (for CLI in app/cli.py)
 * [x] Create virtual environment and install dependencies.
 * [x] Create app/config.py:
-  * [x] Define class/structure for application settings (e.g., DATABASE_URL, SECRET_KEY for Flask).
+  * [x] Define class/structure for application settings (e.g., DATABASE_URL).
+  * [x] **Define structure for configurable shot string character mapping.**
   * [x] Implement loading settings from environment variables (e.g., using python-dotenv and a .env file).
 * [x] Create basic README.md with project description and setup instructions.
 * [x] Create .gitignore file.
@@ -42,9 +43,9 @@ This document outlines a phased approach to developing the Python Basketball Sta
   * [x] Define function get_engine(Inputs: db_url, Outputs: SQLAlchemy Engine).
   * [x] Define SessionLocal factory (Inputs: engine, Outputs: SQLAlchemy sessionmaker).
   * [x] Define function create_tables(engine: Engine) (Logic: Base.metadata.create_all(bind=engine)).
-  * [x] Define context manager or dependency injector function get_db_session() for Flask routes/services to get a session.
+  * [x] Define context manager or dependency injector function get_db_session() for CLI commands/services to get a session.
 * **1.3. Initial Database Creation:**
-  * [x] Write a CLI command in app/cli.py to initialize the database schema through Alembic migrations.
+  * [x] Write a CLI command in app/cli.py (e.g., `basketball-stats init-db`) to initialize the database schema through Alembic migrations.
 * **1.4. Alembic Setup:**
   * [x] Initialize and configure Alembic.
   * [x] Add capability to generate migrations based on model changes.
@@ -52,7 +53,7 @@ This document outlines a phased approach to developing the Python Basketball Sta
 **Phase 2: Core Utilities (app/utils/)**
 
 * **2.1. Input Parser (app/utils/input_parser.py):**
-  * [ ] Define function parse_quarter_shot_string(shot_string: str) -> dict (Inputs, Outputs, Docblock as before).
+  * [ ] Define function parse_quarter_shot_string(shot_string: str, shot_mapping: dict) -> dict (Inputs: shot_string, configured shot_mapping; Outputs: dict with ftm, fta, fg2m, fg2a, fg3m, fg3a; Docblock).
 * **2.2. Stats Calculator (app/utils/stats_calculator.py):**
   * [ ] Define calculate_percentage(makes: int, attempts: int) -> float | None.
   * [ ] Define calculate_points(ftm: int, fg2m: int, fg3m: int) -> int.
@@ -66,84 +67,69 @@ This document outlines a phased approach to developing the Python Basketball Sta
 * (Each function will take db: Session as its first argument).
 * **3.1. Team CRUD (app/data_access/crud/crud_team.py):**
   * [ ] Define create_team(db: Session, team_name: str) -> models.Team.
-  * [x] Define get_team_by_name(db: Session, team_name: str) -> models.Team | None.  # Used by roster import
+  * [x] Define get_team_by_name(db: Session, team_name: str) -> models.Team | None.  # Used by roster & game stats import
   * [ ] Define get_team_by_id(db: Session, team_id: int) -> models.Team | None.
   * [ ] Define get_all_teams(db: Session) -> list[models.Team].
 * **3.2. Player CRUD (app/data_access/crud/crud_player.py):**
-  * [x] Define create_player(db: Session, name: str, jersey_number: int, team_id: int) -> models.Player. # Used by roster import
-  * [x] Define get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: int) -> models.Player | None. # Used by roster import for conflict checking
-  * [x] Define get_player_by_id(db: Session, player_id: int) -> models.Player | None. # Potentially used by roster import for conflict checking (name part)
+  * [x] Define create_player(db: Session, name: str, jersey_number: int, team_id: int) -> models.Player. # Used by roster & game stats import
+  * [x] Define get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: int) -> models.Player | None. # Used by roster & game stats import for conflict checking
+  * [x] Define get_player_by_id(db: Session, player_id: int) -> models.Player | None. # Potentially used by game stats import
 * **3.3. Game CRUD (app/data_access/crud/crud_game.py):**
-  * [ ] Define create_game(db: Session, date: str, playing_team_id: int, opponent_team_id: int) -> models.Game.
+  * [ ] Define create_game(db: Session, date: str, playing_team_id: int, opponent_team_id: int) -> models.Game. # Used by game stats import
   * [ ] Define get_game_by_id(db: Session, game_id: int) -> models.Game | None.
 * **3.4. PlayerGameStats CRUD (app/data_access/crud/crud_player_game_stats.py):**
-  * [ ] Define create_player_game_stats(db: Session, game_id: int, player_id: int, fouls: int) -> models.PlayerGameStats.
-  * [ ] Define update_player_game_stats_totals(db: Session, player_game_stat_id: int, totals: dict) -> models.PlayerGameStats.
+  * [ ] Define create_player_game_stats(db: Session, game_id: int, player_id: int, fouls: int) -> models.PlayerGameStats. # Used by game stats import
+  * [ ] Define update_player_game_stats_totals(db: Session, player_game_stat_id: int, totals: dict) -> models.PlayerGameStats. # Used by game stats import
   * [ ] Define get_player_game_stats_by_game(db: Session, game_id: int) -> list[models.PlayerGameStats].
 * **3.5. PlayerQuarterStats CRUD (app/data_access/crud/crud_player_quarter_stats.py):**
-  * [ ] Define create_player_quarter_stats(db: Session, player_game_stat_id: int, quarter_number: int, stats: dict) -> models.PlayerQuarterStats.
+  * [ ] Define create_player_quarter_stats(db: Session, player_game_stat_id: int, quarter_number: int, stats: dict) -> models.PlayerQuarterStats. # Used by game stats import
   * [ ] Define get_player_quarter_stats(db: Session, player_game_stat_id: int) -> list[models.PlayerQuarterStats].
 * Logic for all CRUD functions: (Implement after structure is defined).
 
-**Phase 4: Service Layer (app/services/)**
+**Phase 4: Service Layer (app/services/) & CSV Schemas**
 
-* (Pydantic models for service layer inputs/outputs (DTOs) can be defined in app/services/schemas.py if they differ from web schemas, or reuse/extend app/web_ui/schemas.py for KISS).
+* **4.0. Pydantic Schemas for CSV Data (app/web_ui/schemas.py or app/schemas/csv_schemas.py):**
+  * [ ] Define GameInfoSchema(BaseModel): playing_team, opponent_team, date.
+  * [ ] Define PlayerStatsRowSchema(BaseModel): team_name, player_jersey, player_name, fouls, qt1_shots, qt2_shots, qt3_shots, qt4_shots.
+  * [ ] Define GameStatsCSVInputSchema(BaseModel): game_info: GameInfoSchema, player_stats: list[PlayerStatsRowSchema].
+* (Pydantic models for service layer inputs/outputs (DTOs) can be defined in app/services/schemas.py if they differ from CSV schemas, or reuse/extend for KISS).
 * **4.1. Game Service (app/services/game_service.py):**
   * [ ] Define class GameService:
     * [ ] __init__(self, db_session: Session).
-    * [ ] add_game(self, date: str, playing_team_name: str, opponent_team_name: str) -> GameDataSchema.
-    * [ ] get_or_create_team(self, team_name: str) -> TeamDataSchema.
-    * [ ] list_all_teams(self) -> list[TeamDataSchema].
+    * [ ] add_game(self, date: str, playing_team_name: str, opponent_team_name: str) -> GameDataSchema (or models.Game).
+    * [ ] get_or_create_team(self, team_name: str) -> TeamDataSchema (or models.Team).
+    * [ ] list_all_teams(self) -> list[TeamDataSchema] (or list[models.Team]).
 * **4.2. Player Service (app/services/player_service.py):**
   * [ ] Define class PlayerService:
     * [ ] __init__(self, db_session: Session).
-    * [ ] get_or_create_player(self, team_id: int, jersey_number: int, player_name: str | None = None) -> PlayerDataSchema.
+    * [ ] get_or_create_player(self, team_id: int, jersey_number: int, player_name: str | None = None) -> PlayerDataSchema (or models.Player).
 * **4.3. Stats Entry Service (app/services/stats_entry_service.py):**
   * [ ] Define class StatsEntryService:
-    * [ ] __init__(self, db_session: Session, input_parser_func).
-    * [ ] record_player_game_performance(self, game_id: int, player_id: int, fouls: int, quarter_shot_strings: list[str]) -> PlayerGameStatsDataSchema.
-* Logic for all service methods: (Implement after structure is defined).
+    * [ ] __init__(self, db_session: Session, input_parser_func, shot_mapping: dict).
+    * [ ] record_player_game_performance(self, game_id: int, player_id: int, fouls: int, quarter_shot_strings: list[str]) -> PlayerGameStatsDataSchema (or models.PlayerGameStats).
+* Logic for all service methods: (Implement after structure is defined, focusing on use by CSV import CLI).
 
-**Phase 5: Web UI (Flask)**
+**Phase 5: CSV Import CLI (app/cli.py)**
 
-* **5.1. Pydantic Schemas for Form Data (app/web_ui/schemas.py):**
-  * [ ] Define PlayerWebInputSchema(BaseModel): jersey_number (str to allow empty), fouls (int), q1_shots (str), etc. *Consider how to handle empty player rows.*
-  * [ ] Define GameWebInputFormSchema(BaseModel): your_team_name (str), date (str), opponent_team_name (str), players: list[PlayerWebInputSchema | None](list of 10, some can be None or have empty jersey numbers).
-* **5.2. Flask App Initialization (app/main.py):**
-  * [ ] Define function create_app():
-    * Initializes Flask app instance (Flask(__name__, template_folder='web_ui/templates')).
-    * Loads configuration from app/config.py.
-    * Sets up database session handling for requests (e.g., using @app.before_request and @app.teardown_request or a Flask extension).
-    * Imports and registers Blueprints from app/web_ui/routes.py.
-    * Returns the app instance.
-* **5.3. HTML Form (app/web_ui/templates/form.html):**
-  * [ ] Create HTML structure (top-level fields, ~10 player rows).
-  * [ ] Ensure input field names allow for easy parsing by Flask and Pydantic (e.g., players-0-jersey_number).
-  * [ ] Add basic styling.
-  * [ ] Implement display of validation errors passed from the route.
-* **5.4. Flask Routes (app/web_ui/routes.py):**
-  * [ ] Create a Flask Blueprint (e.g., web_ui_bp = Blueprint('web_ui', __name__)).
-  * [ ] Define route / or /enter_stats (GET) attached to the Blueprint:
-    * Logic:
-      * Get DB session.
-      * Instantiate GameService.
-      * Fetch team names using game_service.list_all_teams() for dropdowns.
-      * Render form.html, passing team names and any form data/errors for re-population.
-  * [ ] Define route /submit_stats (POST) attached to the Blueprint:
-    * Logic:
-      * Get DB session.
-      * Parse request.form data. Carefully handle the list of player inputs.
-      * Instantiate GameWebInputFormSchema with parsed data.
-      * If validation fails, re-render form.html with errors and existing form data.
-      * If validation succeeds:
-        * Instantiate GameService, PlayerService, StatsEntryService.
-        * Call game_service.add_game().
-        * Loop through validated player data (ignoring empty player rows):
-          * Call player_service.get_or_create_player().
-          * Call stats_entry_service.record_player_game_performance().
-        * Set flash message for success.
-        * Redirect to the GET route for the form (or a dedicated success page).
-* Logic for routes: (Implement after structure is defined).
+* **5.1. Roster Import Command (`basketball-stats import-roster`):**
+  * [x] Define Typer command for roster import.
+  * [x] Logic to read CSV, validate with Pydantic, use PlayerService/TeamService (or direct CRUD) to add players/teams.
+  * [x] --dry-run option.
+* **5.2. Game Stats Import Command (`basketball-stats import-game-stats`):**
+  * [ ] Define Typer command for game stats import.
+  * [ ] Argument for CSV file path.
+  * [ ] Logic:
+    *   Get DB session.
+    *   Load shot string mapping from `app/config.py`.
+    *   Read and parse CSV file (header for game info, subsequent rows for player stats).
+    *   Validate parsed data using Pydantic schemas (from Phase 4.0).
+    *   Instantiate GameService, PlayerService, StatsEntryService (passing shot_mapping to StatsEntryService).
+    *   Use GameService to add/get game and teams.
+    *   Loop through validated player data:
+        *   Use PlayerService to get/create player.
+        *   Use StatsEntryService to record player game performance (fouls, parsed quarter stats).
+    *   Provide user feedback (success/errors).
+* Logic for CLI commands: (Implement after services and schemas are defined).
 
 **Phase 6: Reporting (app/reports/ and app/cli.py)**
 
@@ -151,8 +137,8 @@ This document outlines a phased approach to developing the Python Basketball Sta
   * [ ] Define class ReportGenerator:
     * [ ] __init__(self, db_session: Session, stats_calculator_module).
     * [ ] get_game_box_score_data(self, game_id: int) -> tuple[list[dict], dict].
-* **6.2. CLI for Report Generation (app/cli.py at project root):**
-  * [x] Use typer or argparse for command-line arguments (e.g., report --game-id 1 --format csv). # Typer is used
+* **6.2. CLI for Report Generation (app/cli.py):**
+  * [x] Use typer for command-line arguments (e.g., `basketball-stats report --game-id 1 --format csv`).
   * [ ] Implement main CLI function:
     * Sets up DB session.
     * Instantiates ReportGenerator.
@@ -163,18 +149,38 @@ This document outlines a phased approach to developing the Python Basketball Sta
 **Phase 7: Testing & Refinement**
 
 * **7.1. Unit Tests (tests/):**
-  * [ ] test_input_parser.py.
+  * [ ] test_input_parser.py (with various shot strings and mappings).
   * [ ] test_stats_calculator.py.
-  * [x] Tests for service layer methods (mocking DAL). # Partially, as roster import is a service-like CLI feature
-  * [x] Tests for DAL CRUD functions (can use an in-memory SQLite). # Partially, as roster import uses CRUD-like operations
-  * [ ] Tests for Pydantic schema validation.
+  * [x] Tests for service layer methods (mocking DAL, focusing on logic for CSV processing).
+  * [x] Tests for DAL CRUD functions (can use an in-memory SQLite).
+  * [ ] Tests for Pydantic schema validation (CSV and internal).
 * **7.2. Integration Tests:**
-  * [ ] Test the full data entry web flow.
-  * [x] Test CLI report generation. # Roster import CLI is tested implicitly by usage
+  * [ ] Test the full CSV import flow for game stats.
+  * [x] Test CLI roster import.
+  * [x] Test CLI report generation.
 * **7.3. Refinement:**
   * [ ] Code review.
   * [ ] Improve error handling and user feedback.
   * [ ] Logging.
   * [ ] Docstrings.
+
+**Phase 8: Future Considerations (Web UI for Reporting)**
+
+* This phase is deferred. If a Web UI is developed, it would likely focus on displaying reports rather than data entry.
+* **8.1. Pydantic Schemas for Web Display (app/web_ui/schemas.py - if different from service DTOs):**
+  * [ ] Define schemas suitable for presenting data in HTML templates.
+* **8.2. Flask App Initialization (app/main.py):**
+  * [ ] Define function create_app():
+    * Initializes Flask app instance (Flask(__name__, template_folder='web_ui/templates')).
+    * Loads configuration from app/config.py.
+    * Sets up database session handling for requests.
+    * Imports and registers Blueprints from app/web_ui/routes.py.
+    * Returns the app instance.
+* **8.3. HTML Templates (app/web_ui/templates/):**
+  * [ ] Create HTML templates for displaying game summaries, leaderboards, etc.
+* **8.4. Flask Routes (app/web_ui/routes.py):**
+  * [ ] Create a Flask Blueprint.
+  * [ ] Define routes for displaying reports (e.g., /games, /games/<game_id>/summary).
+    * Logic: Fetch data using services, render templates.
 
 This refined plan further separates concerns, making each module's responsibility clearer and aligning better with SOLID principles, which should aid AI-assisted development by providing more focused tasks.

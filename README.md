@@ -1,11 +1,12 @@
 # Python Basketball Stats Tracker
 
 A simple web application for tracking basketball game statistics for a small league. Features include:
-- Web UI for entering game and player stats
+- Game and player stats import via CSV files
 - Persistent storage using SQLite and SQLAlchemy
 - Data validation with Pydantic
 - Game summary reports via CLI or CSV export
 - Roster management via CSV import
+- Configurable shot string parsing for flexible data import.
 
 ## Setup Instructions
 
@@ -40,21 +41,24 @@ A simple web application for tracking basketball game statistics for a small lea
    make local-init-db
    
    # Or directly with the CLI
-   python run_cli.py init-db
+   basketball-stats init-db
    ```
 
-5. (Optional) Seed the database with development data:
+6. (Optional) Seed the database with development data:
    ```bash
    make local-seed-db
    ```
 
-6. Import your league's roster from a CSV file:
+7. Import your league's roster from a CSV file:
    ```bash
-   # Using provided template as an example
-   python -m app.cli import-roster --roster-file players_template.csv
+   # Using make (recommended)
+   make local-import-roster ROSTER_FILE=players_template.csv
+
+   # Or directly with the CLI (using provided template as an example)
+   basketball-stats import-roster --roster-file players_template.csv
    
    # Use dry run mode to preview changes without modifying the database
-   python -m app.cli import-roster --roster-file your_roster.csv --dry-run
+   basketball-stats import-roster --roster-file your_roster.csv --dry-run
    ```
 
    The CSV file must include these columns:
@@ -88,14 +92,14 @@ Run `make help` to see all available commands. Key commands include:
 #### Local Development
 - `make local-init-db` - Apply Alembic migrations to update the database schema
 - `make local-reset-db` - Reset the database, destroying all data
-- `make local-make-migration` - Create a new Alembic migration based on model changes
+- `make local-init-db-migration` - Create a new Alembic migration based on model changes
 - `make local-seed-db` - Seed the database with sample data for development
 - `make local-db-health` - Check database connectivity
 
 #### Docker Environment
 - `make init-db` - Apply Alembic migrations to update the database schema
 - `make reset-db` - Reset the database, destroying all data
-- `make make-migration` - Create a new Alembic migration based on model changes
+- `make init-db-migration` - Create a new Alembic migration based on model changes
 - `make seed-db` - Seed the database with sample data for development
 - `make db-health` - Check database connectivity
 

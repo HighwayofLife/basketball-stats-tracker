@@ -45,45 +45,45 @@ The application will follow a layered architecture:
 **3\. File Layout**
 
 ```
-basketball\_stats\_tracker/  
+basketball_stats_tracker/  
 ├── Makefile                  # Defines tasks for building, running, testing, and managing the application. Primary user interface for common operations.
 ├── app/  
 │   ├── cli.py                # Defines CLI commands (e.g., for DB setup, CSV import, report generation), invoked via 'basketball-stats' entry point, typically run using 'make' targets.
 │   ├── main.py               # Flask app initialization (potentially for future UI/report display)
 │   ├── config.py             # Application configuration, **including shot string character mapping.**
 │   │  
-│   ├── web\_ui/               # Potentially for report display UI in the future
+│   ├── web_ui/               # Potentially for report display UI in the future
 │   │   ├── routes.py         # Flask Blueprint with route definitions (if web UI is used for reports)
 │   │   ├── templates/        # HTML templates (if web UI is used for reports)
 │   │   │   └── ...  
 │   │   └── schemas.py        # Pydantic models for data validation (used by CSV import and potentially future web UI)
 │   │  
 │   ├── services/  
-│   │   ├── game\_service.py  
-│   │   ├── player\_service.py  
-│   │   └── stats\_entry\_service.py  
+│   │   ├── game_service.py  
+│   │   ├── player_service.py  
+│   │   └── stats_entry_service.py  
 │   │  
-│   ├── data\_access/  
-│   │   ├── database\_manager.py # SQLAlchemy setup, session management  
+│   ├── data_access/  
+│   │   ├── database_manager.py # SQLAlchemy setup, session management  
 │   │   ├── models.py         # SQLAlchemy ORM models  
 │   │   └── crud/             # Directory for CRUD operations per model  
-│   │       ├── crud\_team.py  
-│   │       ├── crud\_player.py  
+│   │       ├── crud_team.py  
+│   │       ├── crud_player.py  
 │   │       └── ...           # etc.  
 │   │  
 │   ├── utils/  
-│   │   ├── input\_parser.py   # Parses quarter shot strings
-│   │   └── stats\_calculator.py  
+│   │   ├── input_parser.py   # Parses quarter shot strings
+│   │   └── stats_calculator.py  
 │   │  
 │   └── reports/  
-│       └── report\_generator.py # Generates output tables/CSVs  
+│       └── report_generator.py # Generates output tables/CSVs  
 │  
 ├── data/                     # Directory to store the SQLite database file  
-│   └── league\_stats.db  
+│   └── league_stats.db  
 │  
 ├── tests/                    # Directory for unit/integration tests  
-│   ├── test\_input\_parser.py  
-│   └── test\_stats\_calculator.py  
+│   ├── test_input_parser.py  
+│   └── test_stats_calculator.py  
 │  
 ├── pyproject.toml            # Project metadata and dependencies  
 └── README.md                 # Project overview and setup instructions
