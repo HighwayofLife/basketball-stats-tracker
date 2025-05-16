@@ -1,3 +1,70 @@
-# app/data_access/crud/crud_game.py
+"""
+CRUD operations for Game model.
+"""
 
-# Placeholder for Game CRUD operations. 
+from sqlalchemy.orm import Session
+
+from app.data_access.models import Game
+
+
+def create_game(db: Session, date: str, playing_team_id: int, opponent_team_id: int) -> Game:
+    """
+    Create a new game in the database.
+
+    Args:
+        db: SQLAlchemy database session
+        date: Date of the game in YYYY-MM-DD format
+        playing_team_id: ID of the home/playing team
+        opponent_team_id: ID of the away/opponent team
+
+    Returns:
+        The created Game instance
+    """
+    game = Game(date=date, playing_team_id=playing_team_id, opponent_team_id=opponent_team_id)
+    db.add(game)
+    db.commit()
+    db.refresh(game)
+    return game
+
+
+def get_game_by_id(db: Session, game_id: int) -> Game | None:
+    """
+    Get a game by its ID.
+
+    Args:
+        db: SQLAlchemy database session
+        game_id: ID of the game to find
+
+    Returns:
+        Game instance if found, None otherwise
+    """
+    return db.query(Game).filter(Game.id == game_id).first()
+
+
+def get_games_by_team(db: Session, team_id: int) -> list[Game]:
+    """
+    Get all games played by a specific team (either as home or away).
+
+    Args:
+        db: SQLAlchemy database session
+        team_id: ID of the team to get games for
+
+    Returns:
+        List of Game instances involving the team
+    """
+    return db.query(Game).filter((Game.playing_team_id == team_id) | (Game.opponent_team_id == team_id)).all()
+
+
+def get_games_by_date_range(db: Session, start_date: str, end_date: str) -> list[Game]:
+    """
+    Get all games within a date range.
+
+    Args:
+        db: SQLAlchemy database session
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+
+    Returns:
+        List of Game instances within the date range
+    """
+    return db.query(Game).filter(Game.date >= start_date, Game.date <= end_date).all()
