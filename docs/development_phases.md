@@ -141,17 +141,17 @@ This document outlines a phased approach to developing the Python Basketball Sta
 **Phase 6: Reporting (app/reports/ and app/cli.py)**
 
 * **6.1. Report Generator (app/reports/report_generator.py):**
-  * [ ] Define class ReportGenerator:
-    * [ ] __init__(self, db_session: Session, stats_calculator_module).
-    * [ ] get_game_box_score_data(self, game_id: int) -> tuple[list[dict], dict].
+  * [x] Define class ReportGenerator:
+    * [x] __init__(self, db_session: Session, stats_calculator_module).
+    * [x] get_game_box_score_data(self, game_id: int) -> tuple[list[dict], dict].
 * **6.2. CLI for Report Generation (app/cli.py):**
   * [x] Use typer for command-line arguments (e.g., `basketball-stats report --game-id 1 --format csv`).
-  * [ ] Implement main CLI function:
-    * Sets up DB session.
-    * Instantiates ReportGenerator.
-    * Calls get_game_box_score_data().
-    * Outputs to console using tabulate or to CSV file using csv module.
-* Logic for report generation: [Pending Implementation]
+  * [x] Implement main CLI function:
+    * [x] Sets up DB session.
+    * [x] Instantiates ReportGenerator.
+    * [x] Calls get_game_box_score_data().
+    * [x] Outputs to console using tabulate or to CSV file using csv module.
+* Logic for report generation: [Completed]
 
 **Phase 7: Testing & Refinement**
 
