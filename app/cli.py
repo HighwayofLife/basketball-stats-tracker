@@ -4,9 +4,15 @@ CLI interface for the Basketball Stats Tracker application.
 Provides commands for database initialization, maintenance, and reporting.
 """
 
+import csv
+
 import typer
+from tabulate import tabulate  # type: ignore
 
 from app.config import settings
+from app.data_access.database_manager import db_manager  # Corrected import
+from app.reports.report_generator import ReportGenerator
+from app.utils import stats_calculator
 
 cli = typer.Typer(help="Basketball Stats Tracker CLI")
 
@@ -121,6 +127,55 @@ def import_game_stats(
     from app.services.csv_import_service import import_game_stats_from_csv
 
     return import_game_stats_from_csv(game_stats_file, dry_run)
+
+
+@cli.command("report")
+def generate_report(
+    game_id: int = typer.Option(..., "--game-id", "-gid", help="ID of the game to generate the report for"),
+    output_format: str = typer.Option("console", "--format", "-fmt", help="Output format: console or csv"),
+):
+    """
+    Generate a box score report for a specific game.
+    """
+    with db_manager.get_db_session() as db_session:  # Use the imported db_manager
+        try:
+            report_generator = ReportGenerator(db_session, stats_calculator)
+            player_stats, game_summary = report_generator.get_game_box_score_data(game_id)
+
+            if not player_stats:
+                typer.echo(f"No data found for game ID: {game_id}")
+                return
+
+            if output_format == "console":
+                typer.echo(f"Box Score for Game ID: {game_id}")
+                typer.echo("\nPlayer Stats:")
+                typer.echo(tabulate(player_stats, headers="keys", tablefmt="grid"))
+
+                if game_summary:
+                    typer.echo("\nGame Summary:")
+                    for key, value in game_summary.items():
+                        typer.echo(f"{key.replace('_', ' ').title()}: {value}")
+
+            elif output_format == "csv":
+                csv_file_name = f"game_{game_id}_box_score.csv"
+                with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
+                    if player_stats:
+                        writer = csv.DictWriter(csvfile, fieldnames=player_stats[0].keys())
+                        writer.writeheader()
+                        writer.writerows(player_stats)
+                typer.echo(f"Report generated: {csv_file_name}")
+            else:
+                typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+
+        except (ValueError, KeyError, TypeError) as e:
+            typer.echo(f"Data error occurred: {e}")
+        except FileNotFoundError as e:
+            typer.echo(f"File error: {e}")
+        except ImportError as e:
+            typer.echo(f"Module import error: {e}")
+        except Exception as e:  # pylint: disable=broad-except
+            typer.echo(f"Unexpected error: {e}")
+            typer.echo("Please report this issue with the steps to reproduce it")
 
 
 if __name__ == "__main__":
