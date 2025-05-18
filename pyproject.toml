@@ -74,6 +74,11 @@ packages = ["app"]
 [tool.pylint."MESSAGES CONTROL"]
 disable = ["unnecessary-pass"]
 
+# Configuration for Pylint, allow line length up to 120 characters
+[tool.pylint]
+max-line-length = 120
+output-format = "colorized" # Use colorized output for better readability
+
 # Configuration for Ruff (Linter and Formatter)
 [tool.ruff]
 line-length = 120

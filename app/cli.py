@@ -56,9 +56,9 @@ def check_database_health():
     if admin_service.check_connection():
         typer.echo("Database connection successful!")
         return True
-    else:
-        typer.echo("Database connection test failed!")
-        return False
+
+    typer.echo("Database connection test failed!")
+    return False
 
 
 @cli.command("seed-db")
