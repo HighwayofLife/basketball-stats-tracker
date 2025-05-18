@@ -4,13 +4,8 @@ CLI interface for the Basketball Stats Tracker application.
 Provides commands for database initialization, maintenance, and reporting.
 """
 
-import os
-from pathlib import Path
-
 import typer
-from sqlalchemy import text
 
-import app.data_access.database_manager as db_manager
 from app.config import settings
 
 cli = typer.Typer(help="Basketball Stats Tracker CLI")
@@ -33,58 +28,13 @@ def initialize_database(
 ):
     """
     Initialize or upgrade the database schema using Alembic migrations.
-
-    This command is idempotent - it will apply any pending migrations to bring the database
-    schema up to date. If --force is specified, it will drop all tables first.
     """
-    # Ensure the data directory exists
-    db_url = settings.DATABASE_URL
-    if db_url.startswith("sqlite:///"):
-        # Extract the path from the SQLite URL
-        db_path = db_url.replace("sqlite:///", "")
-        data_dir = os.path.dirname(os.path.abspath(db_path))
-
-        # Create data directory if it doesn't exist
-        os.makedirs(data_dir, exist_ok=True)
-
-        typer.echo(f"Ensuring data directory exists: {data_dir}")
-
-    # Import here to avoid circular imports
-    # pylint: disable=wrong-import-position
     # pylint: disable=import-outside-toplevel
-    from alembic import command
-    from alembic.config import Config
+    from app.services.database_admin_service import DatabaseAdminService
 
-    # Get the database engine
-    engine = db_manager.db_manager.get_engine()
-
-    if force:
-        # Drop all tables if force is specified
-        typer.echo("Force flag specified. Dropping all existing tables...")
-        from app.data_access.models import Base
-
-        Base.metadata.drop_all(bind=engine)
-        typer.echo("Tables dropped successfully.")
-
-    # Get Alembic configuration
-    alembic_cfg = Config("alembic.ini")
-
-    if make_migration:
-        # Create a new migration based on the current models
-        typer.echo("Creating new migration based on model changes...")
-
-        # Check if versions directory exists, if not create it
-        Path("migrations/versions").mkdir(parents=True, exist_ok=True)
-
-        # Create a new migration
-        migration_message = "Initial database schema" if force else "Update database schema"
-        command.revision(alembic_cfg, message=migration_message, autogenerate=True)
-        typer.echo("Migration created successfully.")
-
-    # Run the migrations to upgrade the database to the latest version
-    typer.echo(f"Applying migrations to database at {db_url}")
-    command.upgrade(alembic_cfg, "head")
-    typer.echo("Database schema updated successfully.")
+    db_url = settings.DATABASE_URL
+    admin_service = DatabaseAdminService(db_url)
+    admin_service.initialize_schema(force=force, make_migration=make_migration)
 
 
 @cli.command("health-check")
@@ -92,19 +42,16 @@ def check_database_health():
     """
     Check if the database is properly set up and accessible.
     """
-    try:
-        engine = db_manager.db_manager.get_engine()
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT 1")).scalar()
-            if result == 1:
-                typer.echo("Database connection successful!")
-                return True
-            else:
-                typer.echo("Database connection test failed!")
-                return False
-    # pylint: disable=broad-except
-    except Exception as e:
-        typer.echo(f"Error connecting to database: {e}")
+    # pylint: disable=import-outside-toplevel
+    from app.services.database_admin_service import DatabaseAdminService
+
+    db_url = settings.DATABASE_URL
+    admin_service = DatabaseAdminService(db_url)
+    if admin_service.check_connection():
+        typer.echo("Database connection successful!")
+        return True
+    else:
+        typer.echo("Database connection test failed!")
         return False
 
 
@@ -128,6 +75,7 @@ def seed_database():
     typer.echo("Database seeding completed.")
 
 
+@cli.command("import-roster")
 def import_roster(
     roster_file: str = typer.Option(
         ...,  # Makes this parameter required
@@ -151,6 +99,7 @@ def import_roster(
     return import_roster_from_csv(roster_file, dry_run)
 
 
+@cli.command("import-game")
 def import_game_stats(
     game_stats_file: str = typer.Option(
         ...,  # Makes this parameter required

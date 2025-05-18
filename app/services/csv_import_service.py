@@ -129,7 +129,7 @@ def import_roster_from_csv(roster_file: str, dry_run: bool = False) -> bool:
     except OSError as e:
         typer.echo(f"I/O error: {e}")
         return False
-    except Exception as e: # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
         typer.echo(f"Unexpected error importing roster: {e}")
         return False
 
@@ -283,7 +283,6 @@ def import_game_stats_from_csv(game_stats_file: str, dry_run: bool = False) -> b
                         players_error += 1
                     except SQLAlchemyError as e:
                         typer.echo(f"Database error processing player {player_stat.PlayerName}: {e}")
-                        players_error += 1
                         players_error += 1
                 typer.echo(
                     f"Game stats import completed: {players_processed} players processed, {players_error} errors"
