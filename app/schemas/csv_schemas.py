@@ -7,6 +7,7 @@ This module contains schemas for:
 - Individual player statistics rows (jersey, name, fouls, quarter shot strings).
 - The overall structure of a game stats CSV import.
 """
+
 from pydantic import BaseModel, field_validator
 
 
@@ -14,24 +15,27 @@ class GameInfoSchema(BaseModel):
     """
     Pydantic schema for validating the game information part of the CSV.
     """
+
     PlayingTeam: str
     OpponentTeam: str
-    Date: str # Expects YYYY-MM-DD
+    Date: str  # Expects YYYY-MM-DD
 
     @classmethod
-    @field_validator('Date')
+    @field_validator("Date")
     def validate_date_format(cls, value):
         """Validates that the date string is in YYYY-MM-DD format."""
         # Add more sophisticated date validation if needed
         # For now, just checking length and basic structure
-        if not (len(value) == 10 and value[4] == '-' and value[7] == '-'):
-            raise ValueError('Date must be in YYYY-MM-DD format')
+        if not (len(value) == 10 and value[4] == "-" and value[7] == "-"):
+            raise ValueError("Date must be in YYYY-MM-DD format")
         return value
+
 
 class PlayerStatsRowSchema(BaseModel):
     """
     Pydantic schema for validating each player's statistics row in the CSV.
     """
+
     TeamName: str
     PlayerJersey: int
     PlayerName: str
@@ -42,12 +46,13 @@ class PlayerStatsRowSchema(BaseModel):
     QT4Shots: str = ""
 
     @classmethod
-    @field_validator('PlayerJersey', 'Fouls')
+    @field_validator("PlayerJersey", "Fouls")
     def check_non_negative(cls, value):
         """Validates that jersey number and fouls are non-negative."""
         if value < 0:
-            raise ValueError('Jersey number and Fouls must be non-negative')
+            raise ValueError("Jersey number and Fouls must be non-negative")
         return value
+
 
 class GameStatsCSVInputSchema(BaseModel):
     """
@@ -56,8 +61,14 @@ class GameStatsCSVInputSchema(BaseModel):
     into a structure that fits this model (e.g., a dictionary with 'game_info'
     and 'player_stats' keys).
     """
+
     game_info: GameInfoSchema
     player_stats: list[PlayerStatsRowSchema]
+
+    class Config:
+        """Pydantic configuration for the schema."""
+        arbitrary_types_allowed = True  # Allow arbitrary types for better type flexibility
+
 
 # Example of how this might be populated by a CSV parser:
 # parsed_data = {

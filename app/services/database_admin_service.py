@@ -99,8 +99,11 @@ class DatabaseAdminService:
             print("Tables dropped successfully.")
         if make_migration:
             print("Creating new migration based on model changes...")
-            msg = (migration_message if migration_message
-                  else ("Initial database schema" if force else "Update database schema"))
+            msg = (
+                migration_message
+                if migration_message
+                else ("Initial database schema" if force else "Update database schema")
+            )
             self.create_migration(msg)
             print("Migration created successfully.")
         print(f"Applying migrations to database at {self.db_url}")

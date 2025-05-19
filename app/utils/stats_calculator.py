@@ -2,6 +2,7 @@
 Utility for calculating derived basketball statistics from raw data.
 """
 
+
 def calculate_percentage(makes: int, attempts: int) -> float | None:
     """
     Calculate a shooting percentage (makes divided by attempts).

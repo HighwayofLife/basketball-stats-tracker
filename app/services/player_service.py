@@ -44,8 +44,8 @@ class PlayerService:
             # If player doesn't exist, we need a name to create them
             if player_name is None or player_name.strip() == "":
                 raise ValueError(
-                  f"Player with jersey number {jersey_number} doesn't exist "
-                  f"on team {team_id}, and no name was provided for creation."
+                    f"Player with jersey number {jersey_number} doesn't exist "
+                    f"on team {team_id}, and no name was provided for creation."
                 )
 
             # Create the player
