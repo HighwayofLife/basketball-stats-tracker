@@ -1,22 +1,23 @@
 # Python Basketball Stats Tracker
 
-A simple web application for tracking basketball game statistics for a small league. Features include:
+A simple application for tracking basketball game statistics for a small league. This application allows for easy data entry via CSV files and generates statistical reports for games and players.
+
+## Features
+
 - Game and player stats import via CSV files
-- Persistent storage using SQLite and SQLAlchemy
-- Data validation with Pydantic
 - Game summary reports via CLI or CSV export
 - Roster management via CSV import
-- Configurable shot string parsing for flexible data import.
+- Configurable shot string parsing for flexible data entry
+- Team and player performance statistics
 
-## Setup Instructions
+## Quick Start
 
 ### Prerequisites
 
 - Python 3.11 or higher
-- Make (optional, for using Makefile commands)
 - Docker and Docker Compose (optional, for containerized setup)
 
-### Local Development Setup
+### Installation
 
 1. Clone the repository:
    ```bash
@@ -35,74 +36,109 @@ A simple web application for tracking basketball game statistics for a small lea
    pip install -e .
    ```
 
-4. Initialize the database with Alembic migrations:
+4. Initialize the database:
    ```bash
-   # Using make (recommended)
-   make local-init-db
-   
-   # Or directly with the CLI
    basketball-stats init-db
    ```
 
-6. (Optional) Seed the database with development data:
+5. (Optional) Seed the database with sample data:
    ```bash
-   make local-seed-db
+   basketball-stats seed-db
    ```
 
-7. Import your league's roster from a CSV file:
-   ```bash
-   # Using make (recommended)
-   make local-import-roster ROSTER_FILE=players_template.csv
+> **Note:** For Docker setup or development environment instructions, see the [Developer Guide](docs/development.md).
 
-   # Or directly with the CLI (using provided template as an example)
-   basketball-stats import-roster --roster-file players_template.csv
-   
-   # Use dry run mode to preview changes without modifying the database
-   basketball-stats import-roster --roster-file your_roster.csv --dry-run
-   ```
+## Using the Application
 
-   The CSV file must include these columns:
-   - `team_name`: The name of the team
-   - `player_name`: The player's full name
-   - `jersey_number`: The player's jersey number (integer)
+### Importing Team Rosters
 
-### Docker Setup
+Import your league's roster from a CSV file:
+```bash
+basketball-stats import-roster --roster-file players_template.csv
+```
 
-1. Build and start containers:
-   ```bash
-   make run
-   ```
+To preview changes without modifying the database:
+```bash
+basketball-stats import-roster --roster-file players_template.csv --dry-run
+```
 
-2. Initialize the database:
-   ```bash
-   make init-db
-   ```
+The roster CSV file must include these columns:
+- `team_name`: The name of the team
+- `player_name`: The player's full name
+- `jersey_number`: The player's jersey number (integer)
 
-3. Stop containers when done:
-   ```bash
-   make stop
-   ```
+Example structure (`players_template.csv`):
+```
+team_name,player_name,jersey_number
+Warriors,Stephen Curry,30
+Warriors,Klay Thompson,11
+Lakers,LeBron James,23
+```
 
-## Available Commands
+### Importing Game Statistics
 
-Run `make help` to see all available commands. Key commands include:
+Import game statistics from a CSV file:
+```bash
+basketball-stats import-game --game-stats-file game_stats_template.csv
+```
 
-### Database Management
+To preview changes without modifying the database:
+```bash
+basketball-stats import-game --game-stats-file game_stats_template.csv --dry-run
+```
 
-#### Local Development
-- `make local-init-db` - Apply Alembic migrations to update the database schema
-- `make local-reset-db` - Reset the database, destroying all data
-- `make local-init-db-migration` - Create a new Alembic migration based on model changes
-- `make local-seed-db` - Seed the database with sample data for development
-- `make local-db-health` - Check database connectivity
+The game statistics CSV file should have the following structure:
+1. Game information rows (Playing Team, Opponent Team, Date)
+2. Player statistics rows with the `PLAYER_DATA` prefix
 
-#### Docker Environment
-- `make init-db` - Apply Alembic migrations to update the database schema
-- `make reset-db` - Reset the database, destroying all data
-- `make init-db-migration` - Create a new Alembic migration based on model changes
-- `make seed-db` - Seed the database with sample data for development
-- `make db-health` - Check database connectivity
+Example structure (`game_stats_template.csv`):
+```
+GAME_INFO_KEY,VALUE
+Playing Team,Team A
+Opponent Team,Team B
+Date,2025-05-15
+PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
+PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
+PLAYER_DATA,Team A,23,Player Two,3,12,x,-/,22
+```
 
-## Development
+#### Shot String Format
 
-See the documentation in the `docs/` directory for design details and development phases.
+The shot strings represent made/missed shots using the following characters:
+- `1` = made free throw (FT)
+- `x` = missed free throw
+- `2` = made 2-point field goal
+- `-` = missed 2-point field goal
+- `3` = made 3-point field goal
+- `/` = missed 3-point field goal
+
+For example, the shot string `22-1x/` represents:
+- Two made 2-point shots (`22`)
+- One missed 2-point shot (`-`)
+- One made free throw (`1`)
+- One missed free throw (`x`)
+- One missed 3-point shot (`/`)
+
+### Generating Reports
+
+Generate box score reports for games:
+```bash
+# Console output (default)
+basketball-stats report --game-id 1
+
+# CSV output
+basketball-stats report --game-id 1 --format csv
+```
+
+The report includes:
+- Individual player statistics (points, shooting percentages, etc.)
+- Team totals and shooting percentages
+- Game summary information
+
+## Documentation
+
+For more detailed information, please consult:
+
+- [Developer Guide](docs/development.md) - For development setup, database management, and CLI commands
+- [Design Document](docs/design_doc.md) - Technical design and architecture details
+- [Development Phases](docs/development_phases.md) - Project implementation roadmap

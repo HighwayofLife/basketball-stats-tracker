@@ -133,8 +133,8 @@ local-import-roster: ## Import roster from a CSV file locally (without Docker).
 .PHONY: local-import-game-stats
 local-import-game-stats: ## Import game statistics from a CSV file locally (without Docker).
 	@echo "${CYAN}Importing game statistics locally...${NC}"
-	@# Example: make local-import-game-stats GAME_STATS_FILE=game_stats_example.csv
-	@basketball-stats import-game-stats --game-stats-file $(GAME_STATS_FILE)
+	@# Example: make local-import-game-stats GAME_STATS_FILE=game_stats_template.csv
+	@basketball-stats import-game --game-stats-file $(GAME_STATS_FILE)
 
 # --- Database Targets ---
 
@@ -182,7 +182,7 @@ import-game-stats: ensure-running ## Import game statistics from a CSV file into
 	@# Note: The GAME_STATS_FILE path must be accessible from where docker compose is run,
 	@# or you might need to adjust volume mounts if the file is inside the container.
 	@# This example assumes the CSV is in the project root and accessible to the 'app' service.
-	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game-stats --game-stats-file $(GAME_STATS_FILE)
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game --game-stats-file $(GAME_STATS_FILE)
 
 # --- Testing Targets ---
 

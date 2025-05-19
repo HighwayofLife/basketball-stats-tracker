@@ -122,7 +122,7 @@ This document outlines a phased approach to developing the Python Basketball Sta
   * [x] Define Typer command for roster import.
   * [x] Logic to read CSV, validate with Pydantic, use PlayerService/TeamService (or direct CRUD) to add players/teams.
   * [x] --dry-run option.
-* **5.2. Game Stats Import Command (`basketball-stats import-game-stats`):**
+* **5.2. Game Stats Import Command (`basketball-stats import-game`):**
   * [x] Define Typer command for game stats import.
   * [x] Argument for CSV file path.
   * [x] Logic:
