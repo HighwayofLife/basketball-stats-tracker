@@ -61,11 +61,14 @@ test = [
   "debugpy>=1.6,<2.0", # Debugging tool
 ]
 
+# Dev should inherit from test dependencies and install additional tools
 dev = [
+  "basketball_stats_tracker[test]",  # Include all test dependencies
   "ruff>=0.1.0,<1.0", # Linter and formatter
   "pylint>=3.3,<4.0", # Linter
   "black>=25.1,<26.0", # Code formatter
   "mypy>=1.10,<2.0", # Static type checker
+  "autopep8>=2.0,<3.0", # Code formatter
 ]
 
 [tool.setuptools]
@@ -102,6 +105,10 @@ ignore = [] # Rule codes to ignore (if any specific ones cause issues)
 quote-style = "double" # Prefer double quotes
 indent-style = "space"
 
+[tool.autopep8]
+max_line_length = 120
+ignore = []
+
 [tool.flake8]
 max-line-length = 120 # Maximum line length for Flake8
 
@@ -112,21 +119,26 @@ basketball-stats = "app.cli:cli"
 [tool.black]
 line-length = 120
 target-version = ['py311'] # Target the minimum Python version
-# include = '\.pyi?$'
-# exclude = '''
-# /(
-#     \.git
-#   | \.hg
-#   | \.mypy_cache
-#   | \.tox
-#   | \.venv
-#   | _build
-#   | buck-out
-#   | build
-#   | dist
-# )/
-# '''
 
+# Pytest configuration (migrated from pytest.ini)
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+verbose = 2
+xvs = true
+color = "yes"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
+log_cli = true
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+cache_dir = ".pytest_cache"
+addopts = "--no-header"
 
 [tool.alembic]
 script_location = "migrations"
