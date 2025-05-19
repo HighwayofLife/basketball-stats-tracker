@@ -190,7 +190,7 @@ Data will be imported into the system via a CSV file. This CSV file will contain
           *   Example (using default mapping): `22-1x` means two made 2-point shots, one missed 2-point shot, one made free throw, one missed free throw.
 
 * **5.2. CSV Import Process (handled by a CLI command, e.g., `basketball-stats import-game`):**  
-  *   The CLI command will accept a CSV file path as an argument (e.g., `basketball-stats import-game --game-stats-file path/to/your/game_data.csv`).  
+  *   The CLI command will accept a CSV file path as an argument (e.g., `basketball-stats import-game --file path/to/your/game_data.csv` or `-f path/to/your/game_data.csv`).  
   *   The command (defined in `app/cli.py`) will read the CSV file, parsing the game information and then each player data row.  
   *   **Validation:** Pydantic v2 models (e.g., defined in `app/web_ui/schemas.py` or a new `app/schemas/csv_schemas.py`) will be used to validate:
       *   The overall structure of the CSV (presence of required game info keys, player data headers).
@@ -216,7 +216,7 @@ Data will be imported into the system via a CSV file. This CSV file will contain
       *   Aggregate the quarter stats to update the total makes/attempts in the `PlayerGameStats` record.
 
 6. Output Display (Reporting - `app/reports/report_generator.py`)  
-The reporting system uses a direct CLI command, `basketball-stats report`, which provides options for console or CSV output formats. The implementation uses the `ReportGenerator` class to produce formatted box scores and game summaries.
+The reporting system uses a direct CLI command, `basketball-stats report`, which provides options for console or CSV output formats (`--format`/`-f` parameter) and custom output filenames (`--output`/`-o` parameter). The implementation uses the `ReportGenerator` class to produce formatted box scores and game summaries.
 7. Data Management: Output, Caching, Backups, Integrity  
 (Unchanged)  
 8. Future Considerations (Beyond Initial KISS Scope)  

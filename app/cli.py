@@ -83,10 +83,10 @@ def seed_database():
 
 @cli.command("import-roster")
 def import_roster(
-    roster_file: str = typer.Option(
+    file: str = typer.Option(
         ...,  # Makes this parameter required
-        "--roster-file",
-        "-r",
+        "--file",
+        "-f",
         help="Path to the CSV file containing the roster (team names, player names, jersey numbers)",
     ),
     dry_run: bool = typer.Option(
@@ -102,15 +102,15 @@ def import_roster(
     # pylint: disable=import-outside-toplevel
     from app.services.csv_import_service import import_roster_from_csv
 
-    return import_roster_from_csv(roster_file, dry_run)
+    return import_roster_from_csv(file, dry_run)
 
 
 @cli.command("import-game")
 def import_game_stats(
-    game_stats_file: str = typer.Option(
+    file: str = typer.Option(
         ...,  # Makes this parameter required
-        "--game-stats-file",
-        "-g",
+        "--file",
+        "-f",
         help="Path to the CSV file containing the game statistics",
     ),
     dry_run: bool = typer.Option(
@@ -126,13 +126,19 @@ def import_game_stats(
     # pylint: disable=import-outside-toplevel
     from app.services.csv_import_service import import_game_stats_from_csv
 
-    return import_game_stats_from_csv(game_stats_file, dry_run)
+    return import_game_stats_from_csv(file, dry_run)
 
 
 @cli.command("report")
 def generate_report(
-    game_id: int = typer.Option(..., "--game-id", "-gid", help="ID of the game to generate the report for"),
-    output_format: str = typer.Option("console", "--format", "-fmt", help="Output format: console or csv"),
+    game_id: int = typer.Option(..., "--id", "-i", help="ID of the game to generate the report for"),
+    output_format: str = typer.Option("console", "--format", "-f", help="Output format: console or csv"),
+    output_file: str = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="File path for output when using csv format",
+    ),
 ):
     """
     Generate a box score report for a specific game.
@@ -157,7 +163,7 @@ def generate_report(
                         typer.echo(f"{key.replace('_', ' ').title()}: {value}")
 
             elif output_format == "csv":
-                csv_file_name = f"game_{game_id}_box_score.csv"
+                csv_file_name = output_file if output_file else f"game_{game_id}_box_score.csv"
                 with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
                     if player_stats:
                         writer = csv.DictWriter(csvfile, fieldnames=player_stats[0].keys())

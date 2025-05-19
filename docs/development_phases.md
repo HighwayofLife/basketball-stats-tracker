@@ -145,7 +145,7 @@ This document outlines a phased approach to developing the Python Basketball Sta
     * [x] __init__(self, db_session: Session, stats_calculator_module).
     * [x] get_game_box_score_data(self, game_id: int) -> tuple[list[dict], dict].
 * **6.2. CLI for Report Generation (app/cli.py):**
-  * [x] Use typer for command-line arguments (e.g., `basketball-stats report --game-id 1 --format csv`).
+  * [x] Use typer for command-line arguments (e.g., `basketball-stats report --id 1 --format csv --output report.csv`).
   * [x] Implement main CLI function:
     * [x] Sets up DB session.
     * [x] Instantiates ReportGenerator.

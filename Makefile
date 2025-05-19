@@ -128,13 +128,13 @@ local-db-health: ## Check database health locally (without Docker).
 local-import-roster: ## Import roster from a CSV file locally (without Docker).
 	@echo "${CYAN}Importing roster locally...${NC}"
 	@# Example: make local-import-roster ROSTER_FILE=players_template.csv
-	@basketball-stats import-roster --roster-file $(ROSTER_FILE)
+	@basketball-stats import-roster --file $(ROSTER_FILE)
 
 .PHONY: local-import-game-stats
 local-import-game-stats: ## Import game statistics from a CSV file locally (without Docker).
 	@echo "${CYAN}Importing game statistics locally...${NC}"
 	@# Example: make local-import-game-stats GAME_STATS_FILE=game_stats_template.csv
-	@basketball-stats import-game --game-stats-file $(GAME_STATS_FILE)
+	@basketball-stats import-game --file $(GAME_STATS_FILE)
 
 # --- Database Targets ---
 
@@ -173,7 +173,7 @@ import-roster: ensure-running ## Import roster from a CSV file into the containe
 	@# Note: The ROSTER_FILE path must be accessible from where docker compose is run,
 	@# or you might need to adjust volume mounts if the file is inside the container.
 	@# This example assumes the CSV is in the project root and accessible to the 'app' service.
-	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-roster --roster-file $(ROSTER_FILE)
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-roster --file $(ROSTER_FILE)
 
 .PHONY: import-game-stats
 import-game-stats: ensure-running ## Import game statistics from a CSV file into the container's database.
@@ -182,7 +182,7 @@ import-game-stats: ensure-running ## Import game statistics from a CSV file into
 	@# Note: The GAME_STATS_FILE path must be accessible from where docker compose is run,
 	@# or you might need to adjust volume mounts if the file is inside the container.
 	@# This example assumes the CSV is in the project root and accessible to the 'app' service.
-	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game --game-stats-file $(GAME_STATS_FILE)
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game --file $(GAME_STATS_FILE)
 
 # --- Testing Targets ---
 

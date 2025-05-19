@@ -33,9 +33,9 @@ For help on any command:
 ./basketball-stats [command] --help
 
 Example usage:
-./basketball-stats import-roster --roster-file players_template.csv
-./basketball-stats import-game --game-stats-file game_stats_template.csv
-./basketball-stats report --game-id 1
+./basketball-stats import-roster --file players_template.csv
+./basketball-stats import-game --file game_stats_template.csv
+./basketball-stats report --id 1
 
 CSV File Templates
 -----------------

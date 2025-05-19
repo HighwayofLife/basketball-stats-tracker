@@ -68,12 +68,14 @@ basketball-stats init-db
 
 Import your league's roster from a CSV file:
 ```bash
-basketball-stats import-roster --roster-file players_template.csv
+basketball-stats import-roster --file players_template.csv
+# Or simply with the short option:
+basketball-stats import-roster -f players_template.csv
 ```
 
 To preview changes without modifying the database:
 ```bash
-basketball-stats import-roster --roster-file players_template.csv --dry-run
+basketball-stats import-roster -f players_template.csv --dry-run
 ```
 
 The roster CSV file must include these columns:
@@ -93,12 +95,14 @@ Lakers,LeBron James,23
 
 Import game statistics from a CSV file:
 ```bash
-basketball-stats import-game --game-stats-file game_stats_template.csv
+basketball-stats import-game --file game_stats_template.csv
+# Or simply with the short option:
+basketball-stats import-game -f game_stats_template.csv
 ```
 
 To preview changes without modifying the database:
 ```bash
-basketball-stats import-game --game-stats-file game_stats_template.csv --dry-run
+basketball-stats import-game -f game_stats_template.csv --dry-run
 ```
 
 The game statistics CSV file should have the following structure:
@@ -138,10 +142,15 @@ For example, the shot string `22-1x/` represents:
 Generate box score reports for games:
 ```bash
 # Console output (default)
-basketball-stats report --game-id 1
+basketball-stats report --id 1
+# Or with the short option:
+basketball-stats report -i 1
 
-# CSV output
-basketball-stats report --game-id 1 --format csv
+# CSV output with default filename (game_1_box_score.csv)
+basketball-stats report -i 1 --format csv
+
+# CSV output with custom filename
+basketball-stats report -i 1 -f csv -o my_report.csv
 ```
 
 The report includes:

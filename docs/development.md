@@ -117,19 +117,23 @@ The application is designed to be used primarily through CLI commands rather tha
 Import team rosters:
 ```bash
 # Basic usage
-basketball-stats import-roster --roster-file players_template.csv
+basketball-stats import-roster --file players_template.csv
+# Or with short option:
+basketball-stats import-roster -f players_template.csv
 
 # Preview changes without modifying the database
-basketball-stats import-roster --roster-file players_template.csv --dry-run
+basketball-stats import-roster -f players_template.csv --dry-run
 ```
 
 Import game statistics:
 ```bash
 # Basic usage
-basketball-stats import-game --game-stats-file game_stats_template.csv
+basketball-stats import-game --file game_stats_template.csv
+# Or with short option:
+basketball-stats import-game -f game_stats_template.csv
 
 # Preview changes without modifying the database
-basketball-stats import-game --game-stats-file game_stats_template.csv --dry-run
+basketball-stats import-game -f game_stats_template.csv --dry-run
 ```
 
 ### Database Management
@@ -150,10 +154,13 @@ basketball-stats seed-db
 Generate box score reports:
 ```bash
 # Console output (default)
-basketball-stats report --game-id 1
+basketball-stats report --id 1
 
 # CSV output
-basketball-stats report --game-id 1 --format csv
+basketball-stats report --id 1 --format csv
+
+# CSV output with custom filename
+basketball-stats report --id 1 --format csv --output report.csv
 ```
 
 ## Available Make Commands
