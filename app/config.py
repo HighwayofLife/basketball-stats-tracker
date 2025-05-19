@@ -1,12 +1,25 @@
 """
 Configuration module for the Basketball Stats Tracker application.
 Loads environment variables and provides configuration classes for different environments.
+Handles both development and bundled (PyInstaller) environments.
 """
 
 import os
+import sys
+from pathlib import Path
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
+
+# Determine if running as bundled app
+IS_BUNDLED = getattr(sys, "frozen", False)
+
+# Get base directory (different for PyInstaller bundle vs. development)
+# We use a bit of linter silencing since sys._MEIPASS is a special PyInstaller attribute
+# that only exists at runtime in the bundled application
+# ruff: noqa: SIM108
+# pylint: disable=protected-access
+BASE_DIR = Path(sys._MEIPASS) if IS_BUNDLED else Path(__file__).parent.parent  # type: ignore
 
 # Define shot string mapping
 # This maps each character in a shot string to a dictionary indicating the shot type and outcome
@@ -30,7 +43,8 @@ class Settings(BaseSettings):
         SECRET_KEY (Optional[str]): Secret key for Flask session security.
     """
 
-    DATABASE_URL: str = "sqlite:///data/league_stats.db"
+    # Handle database path differently in bundled vs development environments
+    DATABASE_URL: str = os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'league_stats.db'}")
     SECRET_KEY: str | None = None
     DEBUG: bool = False
 

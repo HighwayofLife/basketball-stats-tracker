@@ -219,6 +219,27 @@ clean: ## Remove temporary files (pycache, pytest cache, coverage reports, build
 	@find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete -o -type d -name .pytest_cache -delete
 	@rm -rf htmlcov/ reports/ build/ dist/ *.egg-info/ .coverage
 
+# --- Package Application ---
+
+.PHONY: install-build-deps
+install-build-deps: ## Install build dependencies for packaging the application.
+	@echo "${CYAN}Installing build dependencies...${NC}"
+	@pip install -e ".[build]"
+
+.PHONY: bundle
+bundle: install-build-deps ## Bundle the application into a standalone executable using PyInstaller.
+	@echo "${CYAN}Building standalone executable with PyInstaller...${NC}"
+	@chmod +x build_standalone.sh
+	@./build_standalone.sh
+	@echo "${GREEN}Build complete! Executable is in ./dist/basketball-stats${NC}"
+
+.PHONY: clean-bundle
+clean-bundle: ## Clean up PyInstaller build artifacts.
+	@echo "${YELLOW}Cleaning up PyInstaller build artifacts...${NC}"
+	@rm -rf build/basketball-stats build/basketball-stats-cli
+	@rm -rf dist/basketball-stats dist/basketball-stats-cli
+	@echo "${GREEN}PyInstaller build artifacts removed.${NC}"
+
 # --- Help Target ---
 
 ########################################################################

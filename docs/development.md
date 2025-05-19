@@ -8,8 +8,8 @@ This document provides detailed instructions for development and database manage
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/highwayoflife/league-stats.git
-   cd league-stats
+   git clone https://github.com/highwayoflife/basketball-stats-tracker.git
+   cd basketball-stats-tracker
    ```
 
 2. Create and activate a virtual environment:
@@ -159,6 +159,59 @@ basketball-stats report --game-id 1 --format csv
 ## Available Make Commands
 
 While CLI commands are preferred for end-users, developers can use Make commands for convenience. Run `make help` to see all available commands in the project's Makefile.
+
+## Building the Standalone Executable
+
+You can create a standalone executable using PyInstaller, which will bundle the application and all its dependencies into a single package that can be run without Python installed.
+
+### Prerequisites for Building
+
+- Python 3.11 or higher
+- PyInstaller (installed automatically by the build process)
+
+### Building Process
+
+1. Install build dependencies:
+   ```bash
+   pip install -e ".[build]"
+   ```
+
+2. Using the make command:
+   ```bash
+   make bundle
+   ```
+   
+   Or manually:
+   ```bash
+   chmod +x build_standalone.sh
+   ./build_standalone.sh
+   ```
+
+3. The build process will:
+   - Detect your operating system
+   - Build the executable with PyInstaller
+   - Create a ZIP archive for distribution
+   - Output results to the `dist/` directory
+
+The output includes:
+- `dist/basketball-stats/` - Directory containing the executable and all required files
+- `dist/basketball-stats-{OS}.zip` - ZIP archive ready for distribution
+
+### Build Configuration
+
+The PyInstaller build is configured in:
+- `basketball_stats.spec` - Main PyInstaller specification file
+- `hooks/pyinstaller_hook.py` - Runtime adjustments for bundled app
+- `bundle_app.py` - Entry point for the bundled application
+
+For more details on the PyInstaller bundling process, see [PyInstaller Bundle Documentation](pyinstaller_bundle.md).
+
+### Distributing the Executable
+
+1. Share the ZIP archive with users
+2. Users can extract the ZIP and run the application without installing Python:
+   - Windows: double-click `start.bat` or `basketball-stats.exe`
+   - macOS/Linux: `./start.sh` or `./basketball-stats`
 
 ## Further Documentation
 

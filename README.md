@@ -9,44 +9,58 @@ A simple application for tracking basketball game statistics for a small league.
 - Roster management via CSV import
 - Configurable shot string parsing for flexible data entry
 - Team and player performance statistics
+- Standalone executable available (no Python installation required)
 
 ## Quick Start
 
-### Prerequisites
+Choose the option that works best for you:
 
-- Python 3.11 or higher
-- Docker and Docker Compose (optional, for containerized setup)
+1. **Standalone Application** - Download and run, no installation required
+2. **Python Package** - If you already use Python
 
 ### Installation
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/highwayoflife/league-stats.git
-   cd league-stats
-   ```
+Using pip:
 
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate
-   ```
+```bash
+# Install from PyPI
+pip install basketball-stats-tracker
 
-3. Install dependencies:
-   ```bash
-   pip install -e .
-   ```
+# Initialize the database
+basketball-stats init-db
 
-4. Initialize the database:
-   ```bash
-   basketball-stats init-db
-   ```
+# Optional: Add sample data
+basketball-stats seed-db
+```
 
-5. (Optional) Seed the database with sample data:
-   ```bash
-   basketball-stats seed-db
-   ```
+That's it! The application is ready to use.
 
 > **Note:** For Docker setup or development environment instructions, see the [Developer Guide](docs/development.md).
+
+## Installation Options
+
+### Option 1: Standalone Executable (Recommended for Most Users)
+
+No Python installation required! Just download and run:
+
+1. Download the latest release for your OS from the [Releases page](https://github.com/highwayoflife/basketball-stats-tracker/releases)
+2. Extract the ZIP file
+3. Run the application:
+   - **Windows**: Double-click `start.bat` or run `basketball-stats.exe`
+   - **macOS**: Use `./start.sh` or `./basketball-stats` in Terminal
+   - **Linux**: Use `./start.sh` or `./basketball-stats` in terminal
+
+### Option 2: Python Package
+
+If you already use Python (version 3.11+):
+
+```bash
+# Install from PyPI
+pip install basketball-stats-tracker
+
+# Initialize the database
+basketball-stats init-db
+```
 
 ## Using the Application
 
@@ -142,3 +156,14 @@ For more detailed information, please consult:
 - [Developer Guide](docs/development.md) - For development setup, database management, and CLI commands
 - [Design Document](docs/design_doc.md) - Technical design and architecture details
 - [Development Phases](docs/development_phases.md) - Project implementation roadmap
+
+## For Developers
+
+If you're interested in contributing to the project or building the standalone executable yourself, please see the [Developer Guide](docs/development.md) for detailed instructions on:
+
+- Setting up a development environment
+- Running tests
+- Building the standalone executable
+- Project architecture
+
+The developer documentation also contains information about the [PyInstaller bundling process](docs/pyinstaller_bundle.md) used to create the standalone executables.

@@ -71,6 +71,11 @@ dev = [
   "autopep8>=2.0,<3.0", # Code formatter
 ]
 
+# Build dependencies for creating standalone executables
+build = [
+  "pyinstaller>=6.0,<7.0", # For creating standalone executables
+]
+
 [tool.setuptools]
 packages = ["app"]
 
