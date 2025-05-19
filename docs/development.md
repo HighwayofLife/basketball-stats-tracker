@@ -37,23 +37,101 @@ This document provides detailed instructions for development and database manage
 
 ## Database Management
 
-### CLI Commands (Recommended for All Environments)
+### First-Time Setup (Important!)
+
+When setting up the project for the first time or after a clean, you **must** initialize the database with migrations:
 
 ```bash
-# Initialize or update database schema
-basketball-stats init-db
+# Create an initial migration AND apply it
+python -m app.cli init-db --migration
+```
+
+Without this step, the database will have no tables and commands like `import-game` will fail with an error like "no such table: teams".
+
+You can also use the Makefile command:
+```bash
+make local-first-time-setup
+```
+
+#### Recommended Workflow for New Developers
+
+1. Clone the repository
+2. Create and activate virtual environment: `python -m venv venv && source venv/bin/activate`
+3. Install dependencies: `pip install -e .`
+4. Initialize database with migrations: `make local-first-time-setup`
+5. Import example data: `basketball-stats import-game --file game_stats_template.csv`
+6. Run tests to verify setup: `pytest`
+
+### Regular CLI Commands
+
+```bash
+# Initialize or update database schema with existing migrations
+python -m app.cli init-db
 
 # Initialize database with force option (resets all data)
-basketball-stats init-db --force
+python -m app.cli init-db --force
 
 # Create a new migration for schema changes
-basketball-stats init-db --migration
+python -m app.cli init-db --migration
+
+# Check database health
+python -m app.cli health-check
+```
+
+### Troubleshooting Database Issues
+
+If you encounter errors like "no such table" when running commands, check:
+
+1. Verify the database has tables:
+   ```bash
+   sqlite3 data/league_stats.db ".tables"
+   ```
+   
+2. If only `alembic_version` exists but no application tables, you need to create migrations:
+   ```bash
+   python -m app.cli init-db --migration
+   ```
+
+3. If you want to start fresh:
+   ```bash
+   python -m app.cli init-db --force
+   ```
+
+4. Common error messages and solutions:
+
+   - **"Error: No such file or directory: 'data/league_stats.db'"**:
+     The `data` directory doesn't exist or the database hasn't been created.
+     ```bash
+     mkdir -p data
+     python -m app.cli init-db --migration
+     ```
+
+   - **"Error: no such table: teams"**:
+     Database exists but tables haven't been created.
+     ```bash
+     python -m app.cli init-db --migration
+     ```
+
+   - **"Error: UNIQUE constraint failed"**:
+     You're trying to import data that conflicts with existing records.
+     ```bash
+     python -m app.cli init-db --force  # Warning: Deletes all data
+     ```
+
+   - **"No such module 'fastapi'"**:
+     Missing dependencies for the MCP server.
+     ```bash
+     pip install fastapi uvicorn
+     ```
 
 # Seed database with development data
 basketball-stats seed-db
 
 # Check database connectivity
 basketball-stats health-check
+
+# Start the MCP server for SQL and NL queries
+basketball-stats mcp-server
 ```
 
 ### Make Commands (For Development Convenience)
@@ -76,15 +154,97 @@ basketball-stats health-check
 
 ## Testing
 
-Run all tests:
+### Running Tests
+
 ```bash
-make test
+# Run all tests
+python -m pytest tests/
+
+# Run only unit tests
+python -m pytest tests/unit/
+
+# Run only integration tests
+python -m pytest tests/integration/
+
+# Run tests with verbose output
+python -m pytest tests/ -v
+
+# Run a specific test file
+python -m pytest tests/integration/test_import_game_command.py
+
+# Run tests with coverage reporting
+python -m pytest --cov=app --cov-report=term tests/
 ```
 
-Run tests with coverage reporting:
-```bash
-make test-coverage
+### Test Structure
+
+1. **Unit Tests**: Located in `tests/unit/`, test individual components in isolation
+2. **Integration Tests**: Located in `tests/integration/`, test multiple components working together
+3. **Test Fixtures**: Common test setup code is in `tests/conftest.py`
+
+### Testing Best Practices
+
+1. **Database Tests**: Use the `db_session` fixture for database operations
+2. **CLI Tests**: Use the `cli_runner` fixture for testing CLI commands
+3. **Patching External Services**: Use `monkeypatch` to replace services like the database manager
+
+### Example: Testing CSV Import
+
+To test the `import-game` command, we:
+1. Create a test database in memory
+2. Mock the database session to use our test session
+3. Run the CLI command with a sample CSV file
+4. Verify the database contains the expected data
+
+```python
+def test_import_game_template(cli_runner, template_csv_path, db_session, monkeypatch):
+    """Test importing the game_stats_template.csv file via the CLI."""
+    # Mock the db_manager to use our test session
+    @contextmanager
+    def mock_get_db_session():
+        try:
+            yield db_session
+        finally:
+            pass
+    
+    # Apply the monkeypatch
+    import app.data_access.database_manager
+    monkeypatch.setattr(app.data_access.database_manager.db_manager,
+                       "get_db_session", mock_get_db_session)
+
+    # Run the CLI command
+    result = cli_runner.invoke(cli, ["import-game", "--file", template_csv_path])
+    
+    # Verify results
+    assert result.exit_code == 0
+    assert "Import completed successfully" in result.stdout
 ```
+
+### Running Tests with VSCode
+
+VS Code provides a convenient interface for running and debugging tests:
+
+1. **Test Explorer**: Access it by clicking the flask icon in the sidebar
+2. **Run Tests**: Click the play button next to any test or test file
+3. **Debug Tests**: Click the debug icon next to any test to run with debugger
+4. **Filter Tests**: Use the search box to find specific tests
+5. **View Output**: Test results appear directly in the Test Explorer
+
+### Debug Configurations
+
+The project includes several VS Code debug configurations:
+
+1. **Python: Current File** - Run the currently open file
+2. **Python: All Tests** - Run all tests with the debugger
+3. **Python: Unit Tests** - Run only unit tests
+4. **Python: Integration Tests** - Run only integration tests
+5. **Python: Import Game Data** - Run the import game command
+6. **Python: Debug MCP Server** - Run the MCP server in debug mode
+
+To use these configurations:
+1. Open the Run and Debug panel (Ctrl+Shift+D or Cmd+Shift+D)
+2. Select a configuration from the dropdown
+3. Click the green play button or press F5
 
 ## Project Structure
 
@@ -219,6 +379,104 @@ For more details on the PyInstaller bundling process, see [PyInstaller Bundle Do
 2. Users can extract the ZIP and run the application without installing Python:
    - Windows: double-click `start.bat` or `basketball-stats.exe`
    - macOS/Linux: `./start.sh` or `./basketball-stats`
+
+## Model Context Protocol (MCP) Server
+
+The application includes an MCP server that provides SQL and natural language access to the basketball stats database via an HTTP API.
+
+### Starting the Server
+
+```bash
+# Start the MCP server
+python -m app.cli mcp-server
+```
+
+The server will start on http://localhost:8000 by default.
+
+### API Endpoints
+
+1. **SQL Query**: `POST /api/query`
+   - Execute a SQL query against the database
+   - Request body: `{ "query": "SELECT * FROM teams", "parameters": {} }`
+
+2. **Natural Language Query**: `POST /api/nl_query`
+   - Process a natural language question
+   - Request body: `{ "query": "Show me all teams" }`
+
+3. **List Tables**: `GET /api/tables`
+   - Get a list of all tables in the database
+
+4. **Table Schema**: `GET /api/schema/{table}`
+   - Get the schema for a specific table
+
+5. **Health Check**: `GET /api/health`
+   - Check if the server and database are healthy
+
+### Example Queries
+
+1. **SQL Query**:
+   ```bash
+   curl -X POST http://localhost:8000/api/query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "SELECT * FROM players"}'
+   ```
+
+2. **Natural Language Query**:
+   ```bash
+   curl -X POST http://localhost:8000/api/nl_query \
+     -H "Content-Type: application/json" \
+     -d '{"query": "Show me player stats for Player One"}'
+   ```
+
+3. **Table Schema**:
+   ```bash
+   curl http://localhost:8000/api/schema/teams
+   ```
+
+### Using with VSCode Copilot
+
+The MCP server can be used with VSCode Copilot to provide natural language queries over your basketball stats data. Set up:
+
+1. Start the server: `python -m app.cli mcp-server`
+2. Configure Copilot to use the MCP endpoint at http://localhost:8000
+3. Ask questions like "Show me all teams in the database" or "Get stats for Player One"
+
+## VSCode Integration
+
+The project includes VSCode configurations for easier development and testing.
+
+### Running Tests in VSCode
+
+1. Install the Python extension for VSCode
+2. Open the Testing panel (flask icon in the sidebar)
+3. Click the "Play" button to run all tests
+4. Hover over individual tests to run them specifically
+
+### Debug Configurations
+
+The following debug configurations are available (F5 or Run → Start Debugging):
+
+1. **Python: Current File** - Run and debug the currently open file
+2. **Python: All Tests** - Run all tests with the debugger
+3. **Python: Unit Tests** - Run only unit tests
+4. **Python: Integration Tests** - Run only integration tests
+5. **Python: Current Test File** - Run tests in the currently open file
+6. **Python: Debug MCP Server** - Start the MCP server in debug mode
+
+### Shortcuts
+
+1. Run a single test: Click the "Play" button next to the test function
+2. Debug a single test: Click the "Debug" button next to the test function
+3. Set breakpoints: Click in the margin to the left of a line number
+4. Step through code: Use the debug controls in the floating debug toolbar
+
+### Recommended Extensions
+
+1. **Python** - Microsoft's Python extension
+2. **Pylance** - Microsoft's Python language server
+3. **Python Test Explorer** - Better test discovery and execution UI
+4. **Black Formatter** - Auto-format code on save
+5. **Ruff** - Fast Python linter
 
 ## Further Documentation
 

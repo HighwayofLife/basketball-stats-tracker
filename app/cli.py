@@ -184,5 +184,19 @@ def generate_report(
             typer.echo("Please report this issue with the steps to reproduce it")
 
 
+@cli.command("mcp-server")
+def start_mcp_server():
+    """
+    Start the Model Context Protocol (MCP) server for SQL queries and natural language processing.
+
+    This server provides API access to the basketball stats database via HTTP endpoints.
+    """
+    typer.echo("Starting MCP Server...")
+    # pylint: disable=import-outside-toplevel
+    from app.mcp_server import start
+
+    start()
+
+
 if __name__ == "__main__":
     cli()

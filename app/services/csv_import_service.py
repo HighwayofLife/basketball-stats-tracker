@@ -443,6 +443,7 @@ def _process_game_stats_import(validated_data: GameStatsCSVInputSchema) -> bool:
         )
 
         typer.echo(f"Game stats import completed: {players_processed} players processed, {players_error} errors")
+        typer.echo("Import completed successfully")
         return True
 
 

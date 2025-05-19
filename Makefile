@@ -99,7 +99,7 @@ debug: ## Start the application with the debugger attached (listening on port 56
 .PHONY: local-init-db
 local-init-db: ## Initialize database locally (without Docker).
 	@echo "${CYAN}Initializing database locally...${NC}"
-	@basketball-stats init-db
+	@python -m app.cli init-db
 
 .PHONY: local-reset-db
 local-reset-db: ## Reset database locally (without Docker). WARNING: Destroys all data.
@@ -107,12 +107,18 @@ local-reset-db: ## Reset database locally (without Docker). WARNING: Destroys al
 	@echo "${RED}Press Ctrl+C to cancel or Enter to continue...${NC}"
 	@read
 	@echo "${CYAN}Resetting database locally...${NC}"
-	@basketball-stats init-db --force
+	@python -m app.cli init-db --force
 
 .PHONY: local-init-db-migration
 local-init-db-migration: ## Create a new Alembic migration locally (without Docker).
 	@echo "${CYAN}Creating new database migration locally...${NC}"
-	@basketball-stats init-db --migration
+	@python -m app.cli init-db --migration
+
+.PHONY: local-first-time-setup
+local-first-time-setup: ## First-time setup: Create migrations and initialize database (required for new projects).
+	@echo "${CYAN}Performing first-time database setup...${NC}"
+	@python -m app.cli init-db --migration
+	@echo "${GREEN}Database initialized with migrations. Now you can import data.${NC}"
 
 .PHONY: local-init-db-seed-data
 local-init-db-seed-data: ## Seed the database locally with sample data for development.
@@ -210,6 +216,11 @@ test-coverage: ## Run tests with coverage report
 test-watch: ## Run tests in watch mode, rerunning on file changes
 	@echo "${CYAN}Running tests in watch mode...${NC}"
 	@pytest-watch -- -v tests/
+
+.PHONY: mcp-server
+mcp-server: ## Run the Model Context Protocol server for easier database access
+	@echo "${CYAN}Starting MCP server...${NC}"
+	@python -m app.cli mcp-server
 
 # --- Cleaning Targets ---
 
