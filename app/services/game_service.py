@@ -25,7 +25,7 @@ class GameService:
         Args:
             db_session: SQLAlchemy session for database operations
         """
-        self.db = db_session
+        self._db_session = db_session
 
     def add_game(self, date: str, playing_team_name: str, opponent_team_name: str) -> Game:
         """
@@ -44,7 +44,7 @@ class GameService:
         opponent_team = self.get_or_create_team(opponent_team_name)
 
         # Create the game
-        return create_game(self.db, date, playing_team.id, opponent_team.id)
+        return create_game(self._db_session, date, playing_team.id, opponent_team.id)
 
     def get_or_create_team(self, team_name: str) -> Team:
         """
@@ -56,9 +56,9 @@ class GameService:
         Returns:
             The retrieved or created Team instance
         """
-        team = get_team_by_name(self.db, team_name)
+        team = get_team_by_name(self._db_session, team_name)
         if team is None:
-            team = create_team(self.db, team_name)
+            team = create_team(self._db_session, team_name)
         return team
 
     def list_all_teams(self) -> list[Team]:
@@ -68,4 +68,4 @@ class GameService:
         Returns:
             List of all Team instances
         """
-        return get_all_teams(self.db)
+        return get_all_teams(self._db_session)

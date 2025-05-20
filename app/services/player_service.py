@@ -20,7 +20,7 @@ class PlayerService:
         Args:
             db_session: SQLAlchemy session for database operations
         """
-        self.db = db_session
+        self._db_session = db_session
 
     def get_or_create_player(self, team_id: int, jersey_number: int, player_name: str | None = None) -> Player:
         """
@@ -38,7 +38,7 @@ class PlayerService:
             ValueError: If player doesn't exist and name isn't provided for creation
         """
         # Try to find the player by team and jersey
-        player = get_player_by_team_and_jersey(self.db, team_id, jersey_number)
+        player = get_player_by_team_and_jersey(self._db_session, team_id, jersey_number)
 
         if player is None:
             # If player doesn't exist, we need a name to create them
@@ -49,10 +49,12 @@ class PlayerService:
                 )
 
             # Create the player
-            player = create_player(self.db, player_name, jersey_number, team_id)
+            player = create_player(self._db_session, player_name, jersey_number, team_id)
 
-        # If the player exists but the name was provided and differs, we could update
-        # the name here if that's desired behavior.
+        # If the player exists but the name was provided and differs, update the name
+        if player is not None and player_name and player.name != player_name:
+            player.name = player_name
+            self._db_session.commit()
 
         return player
 
@@ -66,7 +68,7 @@ class PlayerService:
         Returns:
             The Player instance if found, None otherwise
         """
-        return get_player_by_id(self.db, player_id)
+        return get_player_by_id(self._db_session, player_id)
 
     def get_team_roster(self, team_id: int) -> list[Player]:
         """
@@ -78,4 +80,4 @@ class PlayerService:
         Returns:
             List of Player instances
         """
-        return get_players_by_team(self.db, team_id)
+        return get_players_by_team(self._db_session, team_id)

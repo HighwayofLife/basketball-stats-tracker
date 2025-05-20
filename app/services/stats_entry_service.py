@@ -28,7 +28,7 @@ class StatsEntryService:
             input_parser_func: Function to parse quarter shot strings
             shot_mapping: Dictionary mapping shot characters to their properties
         """
-        self.db = db_session
+        self._db_session = db_session
         self.parse_quarter_shot_string = input_parser_func
         self.shot_mapping = shot_mapping
 
@@ -48,7 +48,7 @@ class StatsEntryService:
             The created PlayerGameStats instance with updated totals
         """
         # Create the basic player game stats record with fouls
-        player_game_stats = create_player_game_stats(self.db, game_id, player_id, fouls)
+        player_game_stats = create_player_game_stats(self._db_session, game_id, player_id, fouls)
 
         # Initialize aggregated totals
         totals = {"total_ftm": 0, "total_fta": 0, "total_2pm": 0, "total_2pa": 0, "total_3pm": 0, "total_3pa": 0}
@@ -63,7 +63,7 @@ class StatsEntryService:
 
             # Record quarter stats in the database
             create_player_quarter_stats(
-                self.db,
+                self._db_session,
                 player_game_stats.id,
                 quarter_num,
                 {
@@ -85,6 +85,6 @@ class StatsEntryService:
             totals["total_3pa"] += quarter_stats["fg3a"]
 
         # Update player game stats with totals
-        updated_stats = update_player_game_stats_totals(self.db, player_game_stats.id, totals)
+        updated_stats = update_player_game_stats_totals(self._db_session, player_game_stats.id, totals)
 
         return updated_stats

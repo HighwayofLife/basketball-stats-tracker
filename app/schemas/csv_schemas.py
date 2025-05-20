@@ -8,7 +8,7 @@ This module contains schemas for:
 - The overall structure of a game stats CSV import.
 """
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, Field, field_validator
 
 
 class GameInfoSchema(BaseModel):
@@ -18,17 +18,7 @@ class GameInfoSchema(BaseModel):
 
     PlayingTeam: str
     OpponentTeam: str
-    Date: str  # Expects YYYY-MM-DD
-
-    @classmethod
-    @field_validator("Date")
-    def validate_date_format(cls, value):
-        """Validates that the date string is in YYYY-MM-DD format."""
-        # Add more sophisticated date validation if needed
-        # For now, just checking length and basic structure
-        if not (len(value) == 10 and value[4] == "-" and value[7] == "-"):
-            raise ValueError("Date must be in YYYY-MM-DD format")
-        return value
+    Date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date must be in YYYY-MM-DD format")
 
 
 class PlayerStatsRowSchema(BaseModel):
@@ -37,9 +27,9 @@ class PlayerStatsRowSchema(BaseModel):
     """
 
     TeamName: str
-    PlayerJersey: int
+    PlayerJersey: int = Field(ge=0, description="Player jersey number must be non-negative")
     PlayerName: str
-    Fouls: int
+    Fouls: int = Field(ge=0, description="Fouls must be non-negative")
     QT1Shots: str = ""
     QT2Shots: str = ""
     QT3Shots: str = ""
@@ -47,10 +37,11 @@ class PlayerStatsRowSchema(BaseModel):
 
     @classmethod
     @field_validator("PlayerJersey", "Fouls")
-    def check_non_negative(cls, value):
+    def check_non_negative(cls, value, info):
         """Validates that jersey number and fouls are non-negative."""
         if value < 0:
-            raise ValueError("Jersey number and Fouls must be non-negative")
+            field_name = info.field_name
+            raise ValueError("Input should be greater than or equal to 0", field_name)
         return value
 
 
@@ -65,8 +56,17 @@ class GameStatsCSVInputSchema(BaseModel):
     game_info: GameInfoSchema
     player_stats: list[PlayerStatsRowSchema]
 
+    @field_validator("player_stats")
+    @classmethod
+    def validate_player_stats_not_empty(cls, value):
+        """Validates that player_stats list is not empty."""
+        if not value:
+            raise ValueError("List should have at least 1 item")
+        return value
+
     class Config:
         """Pydantic configuration for the schema."""
+
         arbitrary_types_allowed = True  # Allow arbitrary types for better type flexibility
 
 
