@@ -110,7 +110,7 @@ class TestStatsEntryService:
                     mock_update_player_game_stats_totals.assert_called_once()
                     args, kwargs = mock_update_player_game_stats_totals.call_args
                     assert args[0] == db_session
-                    assert args[1] == 1  # player_game_stat_id
+                    assert kwargs["player_game_stat_id"] == 1
                     assert "totals" in kwargs
                     totals = kwargs["totals"]
                     assert totals["total_ftm"] == 3

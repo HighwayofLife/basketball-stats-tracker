@@ -64,14 +64,14 @@ PLAYER_DATA,Team B,15,Player Beta,4,//-,2-,11x,3
         mock_path.exists.return_value = True
 
         # Run import with mocked database manager and file content
+
         with (
             patch("app.services.csv_import_service._check_file_exists", return_value=mock_path),
             patch("builtins.open", create=True) as mock_open,
         ):
-            mock_open.return_value.__enter__.return_value.read.return_value = valid_csv_content
-            result = import_game_stats_from_csv(
-                "valid_path.csv"  # This path doesn't matter due to mocking
-            )
+            # Patch file iteration for csv.reader compatibility
+            mock_open.return_value.__enter__.return_value.__iter__.return_value = iter(valid_csv_content.splitlines())
+            result = import_game_stats_from_csv("valid_path.csv")  # This path doesn't matter due to mocking
 
         # Assertions for successful import
         assert result is True
@@ -124,9 +124,7 @@ PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
             patch("builtins.open", create=True) as mock_open,
         ):
             mock_open.return_value.__enter__.return_value.read.return_value = invalid_csv_content
-            result = import_game_stats_from_csv(
-                "invalid_path.csv"  # This path doesn't matter due to mocking
-            )
+            result = import_game_stats_from_csv("invalid_path.csv")  # This path doesn't matter due to mocking
 
             # Assertions for failed import
             assert result is False

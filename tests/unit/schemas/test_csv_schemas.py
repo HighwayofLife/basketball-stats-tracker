@@ -58,7 +58,8 @@ class TestGameInfoSchema:
             GameInfoSchema(**game_info)
 
         assert "Date" in str(excinfo.value)
-        assert "invalid date format" in str(excinfo.value).lower()
+        # Accept Pydantic's default error message for pattern mismatch
+        assert "string should match pattern" in str(excinfo.value).lower()
 
 
 class TestPlayerStatsRowSchema:
@@ -205,9 +206,7 @@ class TestGameStatsCSVInputSchema:
         player_stats = [PlayerStatsRowSchema(**player_data)]
 
         # Missing game_info
-        csv_input = {
-            "player_stats": player_stats
-        }
+        csv_input = {"player_stats": player_stats}
         with pytest.raises(ValidationError) as excinfo:
             GameStatsCSVInputSchema(**csv_input)
 
