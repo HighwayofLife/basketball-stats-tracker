@@ -132,6 +132,16 @@ def import_game_stats(
 @cli.command("report")
 def generate_report(
     game_id: int = typer.Option(..., "--id", "-i", help="ID of the game to generate the report for"),
+    report_type: str = typer.Option(
+        "box-score",
+        "--type",
+        "-t",
+        help="Type of report: box-score, player-performance, team-efficiency, scoring-analysis, or game-flow",
+    ),
+    player_id: int = typer.Option(None, "--player", "-p", help="Player ID (required for player-performance report)"),
+    team_id: int = typer.Option(
+        None, "--team", "--team-id", help="Team ID (required for team-efficiency and scoring-analysis reports)"
+    ),
     output_format: str = typer.Option("console", "--format", "-f", help="Output format: console or csv"),
     output_file: str = typer.Option(
         None,
@@ -141,34 +151,84 @@ def generate_report(
     ),
 ):
     """
-    Generate a box score report for a specific game.
+    Generate a statistical report for a specific game.
+
+    Several report types are available:
+    - box-score: Traditional box score with player and team stats
+    - player-performance: Detailed analysis of a single player's performance
+    - team-efficiency: Analysis of a team's offensive efficiency
+    - scoring-analysis: Breakdown of how a team generated points
+    - game-flow: Quarter-by-quarter analysis of game momentum
     """
     with db_manager.get_db_session() as db_session:  # Use the imported db_manager
         try:
             report_generator = ReportGenerator(db_session, stats_calculator)
-            player_stats, game_summary = report_generator.get_game_box_score_data(game_id)
 
-            if not player_stats:
-                typer.echo(f"No data found for game ID: {game_id}")
+            # Generate the appropriate report based on type
+            if report_type == "box-score":
+                player_stats, game_summary = report_generator.get_game_box_score_data(game_id)
+                report_data = {"player_stats": player_stats, "game_summary": game_summary}
+
+            elif report_type == "player-performance":
+                if not player_id:
+                    typer.echo("Error: Player ID is required for player-performance report.")
+                    return
+                report_data = report_generator.generate_player_performance_report(player_id, game_id)
+
+            elif report_type == "team-efficiency":
+                if not team_id:
+                    typer.echo("Error: Team ID is required for team-efficiency report.")
+                    return
+                report_data = report_generator.generate_team_efficiency_report(team_id, game_id)
+
+            elif report_type == "scoring-analysis":
+                if not team_id:
+                    typer.echo("Error: Team ID is required for scoring-analysis report.")
+                    return
+                report_data = report_generator.generate_scoring_analysis_report(team_id, game_id)
+
+            elif report_type == "game-flow":
+                report_data = report_generator.generate_game_flow_report(game_id)
+
+            else:
+                typer.echo(f"Error: Unknown report type '{report_type}'")
                 return
 
-            if output_format == "console":
-                typer.echo(f"Box Score for Game ID: {game_id}")
-                typer.echo("\nPlayer Stats:")
-                typer.echo(tabulate(player_stats, headers="keys", tablefmt="grid"))
+            if not report_data:
+                typer.echo(f"No data found for {report_type} with game ID: {game_id}")
+                return
 
-                if game_summary:
-                    typer.echo("\nGame Summary:")
-                    for key, value in game_summary.items():
-                        typer.echo(f"{key.replace('_', ' ').title()}: {value}")
+            # Output the report in the requested format
+            if output_format == "console":
+                typer.echo(f"{report_type.title()} Report for Game ID: {game_id}")
+
+                if report_type == "box-score":
+                    # Box score has special formatting with player stats and game summary
+                    typer.echo("\nPlayer Stats:")
+                    typer.echo(tabulate(report_data["player_stats"], headers="keys", tablefmt="grid"))
+
+                    if report_data["game_summary"]:
+                        typer.echo("\nGame Summary:")
+                        if isinstance(report_data["game_summary"], dict):
+                            for key, value in report_data["game_summary"].items():
+                                typer.echo(f"{key.replace('_', ' ').title()}: {value}")
+                        else:
+                            # Handle non-dictionary game summary
+                            typer.echo(str(report_data["game_summary"]))
+                else:
+                    # For other report types, format based on data structure
+                    _display_report_console(report_data)
 
             elif output_format == "csv":
-                csv_file_name = output_file if output_file else f"game_{game_id}_box_score.csv"
+                csv_file_name = output_file if output_file else f"game_{game_id}_{report_type}.csv"
                 with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                    if player_stats:
-                        writer = csv.DictWriter(csvfile, fieldnames=player_stats[0].keys())
+                    if report_type == "box-score" and report_data["player_stats"] and len(report_data["player_stats"]) > 0:
+                        writer = csv.DictWriter(csvfile, fieldnames=report_data["player_stats"][0].keys())
                         writer.writeheader()
-                        writer.writerows(player_stats)
+                        writer.writerows(report_data["player_stats"])
+                    else:
+                        _write_report_to_csv(report_data, csvfile)
+
                 typer.echo(f"Report generated: {csv_file_name}")
             else:
                 typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
@@ -196,6 +256,122 @@ def start_mcp_server():
     from app.mcp_server import start
 
     start()
+
+
+def _display_report_console(report_data):
+    """
+    Display a report in the console.
+
+    Args:
+        report_data: Dictionary containing the report data
+    """
+    # Recursively print nested dictionaries and lists
+    _print_nested_data(report_data)
+
+
+def _print_nested_data(data, indent=0):
+    """
+    Recursively print nested dictionaries and lists with proper indentation.
+
+    Args:
+        data: Data to print (dictionary, list, or scalar value)
+        indent: Current indentation level
+    """
+    indent_str = "  " * indent
+
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, dict | list):
+                typer.echo(f"{indent_str}{key.replace('_', ' ').title()}:")
+                _print_nested_data(value, indent + 1)
+            else:
+                # Format special values
+                if key.endswith("_pct") and value is not None:
+                    value = f"{value:.3f}"
+                typer.echo(f"{indent_str}{key.replace('_', ' ').title()}: {value}")
+    elif isinstance(data, list):
+        # Special handling for lists of dictionaries - use tabulate if they have the same keys
+        if data and all(isinstance(item, dict) for item in data) and len({tuple(item.keys()) for item in data}) == 1:
+            typer.echo(tabulate(data, headers="keys", tablefmt="grid"))
+            return
+
+        # Otherwise, just print each item with indentation
+        for i, item in enumerate(data):
+            if isinstance(item, dict | list):
+                typer.echo(f"{indent_str}Item {i + 1}:")
+                _print_nested_data(item, indent + 1)
+            else:
+                typer.echo(f"{indent_str}- {item}")
+    else:
+        typer.echo(f"{indent_str}{data}")
+
+
+def _write_report_to_csv(report_data, csvfile):
+    """
+    Write a report to a CSV file.
+
+    Args:
+        report_data: Dictionary containing the report data
+        csvfile: File object to write to
+    """
+    # Handle different report structures
+    writer = csv.writer(csvfile)
+
+    if isinstance(report_data, dict):
+        # Write a header row with "Field" and "Value"
+        writer.writerow(["Field", "Value"])
+        _write_dict_to_csv(report_data, writer)
+    elif isinstance(report_data, list):
+        # If it's a list of dictionaries with the same keys, write as a table
+        if (
+            report_data
+            and all(isinstance(item, dict) for item in report_data)
+            and len({tuple(item.keys()) for item in report_data}) == 1
+        ):
+            dict_writer = csv.DictWriter(csvfile, fieldnames=report_data[0].keys())
+            dict_writer.writeheader()
+            dict_writer.writerows(report_data)
+            return
+
+        # Otherwise, just write each item
+        for item in report_data:
+            _write_value_to_csv(item, writer)
+
+
+def _write_dict_to_csv(data, writer, prefix=""):
+    """
+    Recursively write a dictionary to a CSV writer.
+
+    Args:
+        data: Dictionary to write
+        writer: CSV writer object
+        prefix: Prefix for nested keys
+    """
+    for key, value in data.items():
+        full_key = f"{prefix}.{key}" if prefix else key
+        _write_value_to_csv(value, writer, full_key)
+
+
+def _write_value_to_csv(value, writer, key=None):
+    """
+    Write a value to a CSV writer.
+
+    Args:
+        value: Value to write
+        writer: CSV writer object
+        key: Key for the value (if any)
+    """
+    key_str = "" if key is None else key
+
+    if isinstance(value, dict):
+        _write_dict_to_csv(value, writer, key_str)
+    elif isinstance(value, list):
+        for i, item in enumerate(value):
+            item_key = f"{key_str}[{i}]" if key_str else f"Item {i + 1}"
+            _write_value_to_csv(item, writer, item_key)
+    else:
+        if key_str:
+            writer.writerow([key_str.replace("_", " ").title(), value])
 
 
 if __name__ == "__main__":

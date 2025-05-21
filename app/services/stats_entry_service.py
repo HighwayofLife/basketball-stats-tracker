@@ -29,8 +29,8 @@ class StatsEntryService:
             shot_mapping: Dictionary mapping shot characters to their properties
         """
         self._db_session = db_session
-        self.parse_quarter_shot_string = input_parser_func
-        self.shot_mapping = shot_mapping
+        self._parse_shot_string = input_parser_func
+        self._shot_mapping = shot_mapping
 
     def record_player_game_performance(
         self, game_id: int, player_id: int, fouls: int, quarter_shot_strings: list[str]
@@ -48,18 +48,25 @@ class StatsEntryService:
             The created PlayerGameStats instance with updated totals
         """
         # Create the basic player game stats record with fouls
-        player_game_stats = create_player_game_stats(self._db_session, game_id, player_id, fouls)
+        player_game_stats = create_player_game_stats(
+            self._db_session,
+            game_id=game_id,
+            player_id=player_id,
+            fouls=fouls,
+        )
 
         # Initialize aggregated totals
         totals = {"total_ftm": 0, "total_fta": 0, "total_2pm": 0, "total_2pa": 0, "total_3pm": 0, "total_3pa": 0}
 
-        # Process each quarter's shot string
-        for quarter_num, shot_string in enumerate(quarter_shot_strings, start=1):
-            if not shot_string:
-                continue  # Skip empty quarters
+        # Always process 4 quarters, fill missing with empty string
+        for quarter_num in range(1, 5):
+            try:
+                shot_string = quarter_shot_strings[quarter_num - 1]
+            except IndexError:
+                shot_string = ""
 
-            # Parse the shot string
-            quarter_stats = self.parse_quarter_shot_string(shot_string, self.shot_mapping)
+            # Parse the shot string (empty string yields all zeros)
+            quarter_stats = self._parse_shot_string(shot_string, self._shot_mapping)
 
             # Record quarter stats in the database
             create_player_quarter_stats(
@@ -85,6 +92,10 @@ class StatsEntryService:
             totals["total_3pa"] += quarter_stats["fg3a"]
 
         # Update player game stats with totals
-        updated_stats = update_player_game_stats_totals(self._db_session, player_game_stats.id, totals)
+        updated_stats = update_player_game_stats_totals(
+            self._db_session,
+            player_game_stat_id=player_game_stats.id,
+            totals=totals,
+        )
 
         return updated_stats
