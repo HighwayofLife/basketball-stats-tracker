@@ -1,6 +1,5 @@
-"""
-Web UI module for the application.
+"""Web UI package for Basketball Stats Tracker."""
 
-This module contains the necessary components and functionality for the web-based user interface
-of the application.
-"""
+from .api import app
+
+__all__ = ["app"]

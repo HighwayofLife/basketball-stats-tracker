@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="filters">
+    <div class="filter-group">
+        <label for="team-filter">Filter by Team:</label>
+        <select id="team-filter" class="filter-select">
+            <option value="">All Teams</option>
+            <!-- Team options will be populated via JavaScript -->
+        </select>
+    </div>
+</div>
+
+<div class="games-list card">
+    <table class="data-table games-table">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Away Team</th>
+                <th>Score</th>
+                <th>Home Team</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="games-table-body">
+            <!-- Game rows will be populated via JavaScript -->
+            <tr>
+                <td colspan="5" class="loading-message">Loading games...</td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="pagination" id="games-pagination">
+        <!-- Pagination controls will be added via JavaScript -->
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Game listing logic
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch and populate teams for filter
+        fetch('/v1/teams')
+            .then(response => response.json())
+            .then(teams => {
+                const teamSelect = document.getElementById('team-filter');
+                teams.forEach(team => {
+                    const option = document.createElement('option');
+                    option.value = team.id;
+                    option.textContent = team.name;
+                    teamSelect.appendChild(option);
+                });
+            });
+
+        // Load initial games list
+        loadGames();
+
+        // Set up event listeners
+        document.getElementById('team-filter').addEventListener('change', loadGames);
+    });
+
+    function loadGames(page = 1) {
+        const limit = 20;
+        const offset = (page - 1) * limit;
+        const teamId = document.getElementById('team-filter').value;
+
+        let url = `/v1/games?limit=${limit}&offset=${offset}`;
+        if (teamId) {
+            url += `&team_id=${teamId}`;
+        }
+
+        fetch(url)
+            .then(response => response.json())
+            .then(games => {
+                const tableBody = document.getElementById('games-table-body');
+                tableBody.innerHTML = '';
+
+                if (games.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = '<td colspan="5">No games found.</td>';
+                    tableBody.appendChild(row);
+                } else {
+                    games.forEach(game => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>${formatDate(game.date)}</td>
+                            <td>${game.away_team}</td>
+                            <td class="score">${game.away_score} - ${game.home_score}</td>
+                            <td>${game.home_team}</td>
+                            <td>
+                                <a href="/games/${game.id}" class="btn btn-sm">View</a>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error loading games:', error);
+                const tableBody = document.getElementById('games-table-body');
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="error-message">
+                            Failed to load games. Please try again.
+                        </td>
+                    </tr>
+                `;
+            });
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString();
+    }
+</script>
+{% endblock %}

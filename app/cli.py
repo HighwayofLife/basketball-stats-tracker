@@ -5,8 +5,10 @@ Provides commands for database initialization, maintenance, and reporting.
 """
 
 import csv
+import logging
 
 import typer
+import uvicorn
 from tabulate import tabulate  # type: ignore
 
 from app.config import settings
@@ -222,7 +224,12 @@ def generate_report(
             elif output_format == "csv":
                 csv_file_name = output_file if output_file else f"game_{game_id}_{report_type}.csv"
                 with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                    if report_type == "box-score" and report_data["player_stats"] and len(report_data["player_stats"]) > 0:
+                    if (
+                        report_type == "box-score"
+                        and report_data["player_stats"]
+                        and isinstance(report_data["player_stats"], list)
+                        and len(report_data["player_stats"]) > 0
+                    ):
                         writer = csv.DictWriter(csvfile, fieldnames=report_data["player_stats"][0].keys())
                         writer.writeheader()
                         writer.writerows(report_data["player_stats"])
@@ -256,6 +263,32 @@ def start_mcp_server():
     from app.mcp_server import start
 
     start()
+
+
+@cli.command("web-server")
+def web_server(
+    host: str = "127.0.0.1",
+    port: int = 8000,
+    reload: bool = False,
+):
+    """
+    Start the web UI server with FastAPI.
+
+    Args:
+        host: The host IP to bind the server to
+        port: The port to run the server on
+        reload: Whether to reload the server on code changes (development only)
+    """
+    logging.info(f"Starting web UI server on {host}:{port}")
+
+    # Start the server
+    uvicorn.run(
+        "app.web_ui.app:app",
+        host=host,
+        port=port,
+        reload=reload,
+        log_level="info",
+    )
 
 
 def _display_report_console(report_data):

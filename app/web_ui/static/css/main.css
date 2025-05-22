@@ -1,0 +1,366 @@
+/* Basketball Stats Tracker - Main Stylesheet */
+
+:root {
+  --primary-color: #ff6b00;
+  --secondary-color: #294c70;
+  --accent-color: #ff9e00;
+  --text-color: #333;
+  --light-text: #fff;
+  --background-color: #f5f5f5;
+  --card-background: #fff;
+  --border-color: #ddd;
+  --success-color: #28a745;
+  --error-color: #dc3545;
+  --warning-color: #ffc107;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+.container {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Header */
+.site-header {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  padding: 15px 0;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.site-header .container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.site-title a {
+  color: var(--light-text);
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.main-nav ul {
+  display: flex;
+  list-style: none;
+}
+
+.main-nav li {
+  margin-left: 20px;
+}
+
+.main-nav a {
+  color: var(--light-text);
+  text-decoration: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.main-nav a:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Main Content */
+.site-content {
+  padding: 40px 0;
+}
+
+.page-title {
+  margin-bottom: 30px;
+  color: var(--secondary-color);
+}
+
+/* Cards */
+.card {
+  background-color: var(--card-background);
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.card h2 {
+  margin-bottom: 15px;
+  color: var(--secondary-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 10px;
+}
+
+.card-footer {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid var(--border-color);
+  text-align: right;
+}
+
+/* Tables */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.data-table th,
+.data-table td {
+  padding: 12px 15px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.data-table thead th {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  font-weight: bold;
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.data-table .score {
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Buttons */
+.btn, .action-btn {
+  display: inline-block;
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  padding: 8px 16px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  transition: background-color 0.2s;
+}
+
+.btn:hover {
+  background-color: var(--accent-color);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 0.85rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 20px;
+  text-align: center;
+}
+
+.action-btn .icon {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+/* Dashboard */
+.dashboard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+.dashboard-section h2 {
+  margin-bottom: 20px;
+  color: var(--secondary-color);
+}
+
+/* Game Detail */
+.game-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.game-header h2 {
+  font-size: 2rem;
+  color: var(--secondary-color);
+}
+
+.game-date {
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.game-score {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--secondary-color);
+}
+
+.box-score-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+/* Tabs */
+.tab-container {
+  margin-top: 20px;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+
+.tab-btn {
+  padding: 10px 20px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+  color: var(--text-color);
+  border-bottom: 3px solid transparent;
+}
+
+.tab-btn.active {
+  color: var(--primary-color);
+  border-bottom: 3px solid var(--primary-color);
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+/* Charts */
+.chart-container {
+  height: 400px;
+  margin: 20px 0;
+}
+
+/* Filters */
+.filters {
+  margin-bottom: 20px;
+}
+
+.filter-group {
+  margin-bottom: 15px;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  max-width: 300px;
+}
+
+/* Pagination */
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.pagination button {
+  padding: 5px 12px;
+  margin: 0 5px;
+  border: 1px solid var(--border-color);
+  background-color: var(--card-background);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.pagination button.active {
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  border-color: var(--primary-color);
+}
+
+/* Messages */
+.loading-message {
+  text-align: center;
+  padding: 20px;
+  color: #777;
+}
+
+.error-message {
+  text-align: center;
+  padding: 20px;
+  color: var(--error-color);
+}
+
+/* Footer */
+.site-footer {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  padding: 20px 0;
+  text-align: center;
+  margin-top: 40px;
+}
+
+/* Responsive */
+@media (min-width: 768px) {
+  .dashboard {
+    grid-template-columns: 3fr 1fr;
+  }
+
+  .box-score-container {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .site-header .container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .main-nav {
+    margin-top: 15px;
+    width: 100%;
+  }
+
+  .main-nav ul {
+    flex-wrap: wrap;
+  }
+
+  .main-nav li {
+    margin: 5px 10px 5px 0;
+  }
+
+  .action-buttons {
+    justify-content: center;
+  }
+}
