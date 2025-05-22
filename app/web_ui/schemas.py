@@ -2,7 +2,6 @@
 
 """Pydantic schemas for the Basketball Stats Tracker API."""
 
-from datetime import date
 from typing import Any
 
 from pydantic import BaseModel
@@ -12,7 +11,7 @@ class GameSummary(BaseModel):
     """Basic information about a basketball game."""
 
     id: int
-    date: date
+    date: str  # Using string since that's what the model uses
     home_team: str
     home_team_id: int
     away_team: str
@@ -43,6 +42,6 @@ class BoxScoreResponse(BaseModel):
     """Full box score for a basketball game."""
 
     game_id: int
-    game_date: date
+    game_date: str  # Using string since that's what the model uses
     home_team: TeamStats
     away_team: TeamStats
