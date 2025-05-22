@@ -41,12 +41,28 @@ The application will follow a layered architecture:
   * `stats_calculator.py`: Calculates derived statistics.  
 * **2.5. Database:**  
   * SQLite (`data/league_stats.db`) accessed via SQLAlchemy.
+* **2.6. Containerization:**  
+  * **Multi-stage Docker Build:**
+    * Builder stage for compilation and dependency installation
+    * Final stage with minimal runtime dependencies
+    * Non-root user for security
+    * Direct uvicorn execution for optimal performance
+  * **Development Environment:**
+    * Docker Compose for local development
+    * Hot-reload enabled for faster development
+    * Volume mounts for code changes
+  * **Production Environment:**
+    * Optimized single container deployment
+    * Environment variable configuration
+    * Proper security practices (non-root user, minimal dependencies)
 
 **3. File Layout**
 
 ```
 basketball_stats_tracker/  
-├── Makefile                  # Defines tasks for building, running, testing, and managing the application. Primary user interface for common operations.
+├── Dockerfile             # Multi-stage production Docker build
+├── docker-compose.yml     # Development environment setup
+├── Makefile              # Build and deployment automation
 ├── app/  
 │   ├── cli.py                # Defines CLI commands (e.g., for DB setup, CSV import, report generation), invoked via 'basketball-stats' entry point, typically run using 'make' targets.
 │   ├── main.py               # Flask app initialization (potentially for future UI/report display)

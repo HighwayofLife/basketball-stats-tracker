@@ -27,12 +27,31 @@ This document provides detailed instructions for development and database manage
 
 1. Build and start containers:
    ```bash
+   # Build the production image
+   make docker-build
+
+   # Or build the development image (includes dev dependencies)
+   make docker-build-dev
+
+   # Run the container
+   make docker-run
+
+   # For development with docker-compose
    make run
    ```
 
 2. Stop containers when done:
    ```bash
+   # For standalone container
+   docker stop basketball-stats-tracker
+
+   # For docker-compose
    make stop
+   ```
+
+3. Clean up Docker resources:
+   ```bash
+   make docker-clean
    ```
 
 ## Database Management

@@ -1,9 +1,10 @@
-# Git
-.git
+# Version Control
+.git/
 .gitignore
 .gitattributes
+.github/
 
-# CI
+# CI/CD
 .codeclimate.yml
 .travis.yml
 .taskcluster.yml
@@ -11,27 +12,23 @@
 # Docker
 docker-compose.yml
 Dockerfile
-.docker
+.docker/
 .dockerignore
 
-# Byte-compiled / optimized / DLL files
+# Python & Bytecode
 **/__pycache__/
-__pycache__/
 **/*.py[cod]
-*.py[cod]
 *$py.class
-
-# C extensions
 *.so
 
-# Distribution / packaging
+# Distribution & Packaging
 .Python
-env/
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
+.eggs/
 lib/
 lib64/
 parts/
@@ -42,75 +39,55 @@ var/
 *.egg
 
 # PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
 *.manifest
 *.spec
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.cache
-nosetests.xml
-coverage.xml
-.pytest_cache/
-.nox/
-.hypothesis/
-.mypy_cache/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
-*.log
-
-# Sphinx documentation
-docs/_build/
-
-# PyBuilder
-target/
-
-# Virtual environment
+# Virtual Environments
 .env
 .venv/
 venv/
 env/
 ENV/
+.env.*
 
-# IDE files
-.idea
-.idea/
-.vscode/
-*.swp
-*.swo
+# Testing & Coverage
+tests/
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.pytest_cache/
+.nox/
+.hypothesis/
+.mypy_cache/
 
-# Python mode for VIM
-.ropeproject
-**/.ropeproject
-
-# Vim swap files
-**/*.swp
-
-# VS Code
-.vscode/
+# Documentation
+docs/
+docs/_build/
+*.md
 
 # Logs
 logs/
 *.log
+pip-log.txt
+pip-delete-this-directory.txt
 
-# OS specific files
+# IDE & Editor
+.idea/
+.vscode/
+.ropeproject/
+**/*.swp
+**/*.swo
+
+# OS Specific
 .DS_Store
 Thumbs.db
 
-# Project specific
-tests/
-.env
-docs/
-*.md
-.github
+# Project Specific
+target/
+*.mo
+*.pot

@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  database:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=basketball
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=basketball_stats
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basketball"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://basketball:password@database:5432/basketball_stats
+    volumes:
+      # Mount for development to allow code changes without rebuilding
+      - .:/app
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

@@ -39,7 +39,38 @@ That's it! The application is ready to use.
 
 ## Installation Options
 
-### Option 1: Standalone Executable (Recommended for Most Users)
+### Option 1: Docker (Recommended for Production)
+
+The easiest way to run the application in a production environment:
+
+```bash
+# Build the image
+make docker-build
+
+# Run the container
+make docker-run
+```
+
+The application will be available at `http://localhost:8000`.
+
+For development with Docker Compose (includes PostgreSQL database):
+```bash
+# Build and run with docker-compose
+make run
+
+# Access logs
+make logs
+
+# Open a shell in the container
+make shell
+
+# Stop the containers
+make stop
+```
+
+The Docker implementation uses a multi-stage build for optimal image size and includes security best practices like running as a non-root user.
+
+### Option 2: Standalone Executable (Recommended for Most Users)
 
 No Python installation required! Just download and run:
 
@@ -50,7 +81,7 @@ No Python installation required! Just download and run:
    - **macOS**: Use `./start.sh` or `./basketball-stats` in Terminal
    - **Linux**: Use `./start.sh` or `./basketball-stats` in terminal
 
-### Option 2: Python Package
+### Option 3: Python Package
 
 If you already use Python (version 3.11+):
 
