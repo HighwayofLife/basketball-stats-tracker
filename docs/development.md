@@ -25,34 +25,110 @@ This document provides detailed instructions for development and database manage
 
 ### Docker Development Environment
 
+#### Using Docker Compose (Recommended for Development)
+
+Docker Compose provides a complete development environment with a PostgreSQL database:
+
 1. Build and start containers:
    ```bash
-   # Build the production image
-   make docker-build
-
-   # Or build the development image (includes dev dependencies)
-   make docker-build-dev
-
-   # Run the container
-   make docker-run
-
-   # For development with docker-compose
+   # Build and run with docker-compose
    make run
    ```
 
-2. Stop containers when done:
+2. Check logs:
    ```bash
-   # For standalone container
-   docker stop basketball-stats-tracker
+   # Follow the logs
+   make logs
+   ```
 
-   # For docker-compose
+3. Access a shell in the container:
+   ```bash
+   # Open a shell for running commands
+   make shell
+   ```
+
+4. Stop containers when done:
+   ```bash
+   # Stop the containers
    make stop
    ```
 
-3. Clean up Docker resources:
+#### Using Standalone Docker (Simpler, SQLite-based)
+
+For a simpler environment with the built-in SQLite database:
+
+1. Build the production image:
    ```bash
+   make docker-build
+   ```
+
+2. Run a standalone container:
+   ```bash
+   make docker-run
+   ```
+
+3. Clean up resources:
+   ```bash
+   # Remove Docker containers and images
    make docker-clean
    ```
+
+#### Common Docker Commands
+
+| Command | Description |
+|---------|-------------|
+| `make run` | Build and run with docker-compose |
+| `make stop` | Stop docker-compose containers |
+| `make logs` | View logs from containers |
+| `make shell` | Open a shell in the web container |
+| `make docker-build` | Build standalone Docker image |
+| `make docker-run` | Run standalone Docker container |
+| `make docker-clean` | Clean up Docker resources |
+| `make docker-compose-build` | Build images with docker-compose |
+
+## Docker Architecture
+
+The Basketball Stats Tracker application uses Docker for both development and production environments.
+
+### Docker Implementation
+
+#### Multi-Stage Dockerfile
+
+The project uses a multi-stage build process in the root `Dockerfile`:
+
+1. **Builder Stage**:
+   - Uses Python 3.11 slim as the base
+   - Installs build dependencies
+   - Prepares Python packages
+
+2. **Final Stage**:
+   - Uses a minimal Python 3.11 slim image
+   - Copies only necessary dependencies from the builder stage
+   - Runs with a non-root user for security
+   - Uses uvicorn directly for optimal performance
+
+#### Development with Docker Compose
+
+The `docker-compose.yml` file provides a complete development environment:
+
+- **PostgreSQL Database**: Runs in a separate container
+- **Web Application**: Built from the same Dockerfile
+- **Volume Mounts**: For live code changes without rebuilding
+- **Health Checks**: Ensures dependencies are ready before starting the app
+
+### Docker vs. Local Development
+
+Both environments have their advantages:
+
+| Feature | Docker | Local |
+|---------|--------|-------|
+| Setup Difficulty | Easier (just Docker required) | More involved (Python, venv, etc.) |
+| Database | PostgreSQL (production-like) | SQLite (simpler) |
+| Isolation | Complete environment isolation | Depends on local setup |
+| Performance | Slightly slower | Native speed |
+| Resource Usage | Higher (Docker overhead) | Lower |
+
+Choose the approach that best fits your workflow and system resources.
 
 ## Database Management
 
@@ -105,7 +181,7 @@ If you encounter errors like "no such table" when running commands, check:
    ```bash
    sqlite3 data/league_stats.db ".tables"
    ```
-   
+
 2. If only `alembic_version` exists but no application tables, you need to create migrations:
    ```bash
    python -m app.cli init-db --migration
@@ -225,7 +301,7 @@ def test_import_game_template(cli_runner, template_csv_path, db_session, monkeyp
             yield db_session
         finally:
             pass
-    
+
     # Apply the monkeypatch
     import app.data_access.database_manager
     monkeypatch.setattr(app.data_access.database_manager.db_manager,
@@ -233,7 +309,7 @@ def test_import_game_template(cli_runner, template_csv_path, db_session, monkeyp
 
     # Run the CLI command
     result = cli_runner.invoke(cli, ["import-game", "--file", template_csv_path])
-    
+
     # Verify results
     assert result.exit_code == 0
     assert "Import completed successfully" in result.stdout
@@ -268,8 +344,8 @@ To use these configurations:
 ## Project Structure
 
 ```
-basketball_stats_tracker/  
-├── app/  
+basketball_stats_tracker/
+├── app/
 │   ├── cli.py                # CLI commands definition
 │   ├── config.py             # Application configuration, including shot mapping
 │   ├── data_access/          # Database access layer
@@ -366,7 +442,7 @@ You can create a standalone executable using PyInstaller, which will bundle the 
    ```bash
    make bundle
    ```
-   
+
    Or manually:
    ```bash
    chmod +x build_standalone.sh
