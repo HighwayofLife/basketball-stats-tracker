@@ -22,7 +22,7 @@ def create_app(test_config=None):
         Flask application instance.
     """
     # Create and configure the app
-    app = Flask(__name__, template_folder=str(Path(__file__).parent / "web_ui" / "templates"))
+    app = Flask(__name__, template_folder=str(Path(__file__).parent / "web_ui" / "templates"))  # pylint: disable=redefined-outer-name
 
     # Load configuration
     if test_config is None:
@@ -41,7 +41,7 @@ def create_app(test_config=None):
         pass  # Will implement later when routes are added
 
     @app.teardown_request
-    def close_db_session(exception=None):
+    def close_db_session(exception=None):  # pylint: disable=unused-argument
         pass  # Will implement later when routes are added
 
     # Import and register blueprints

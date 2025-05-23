@@ -279,7 +279,7 @@ def web_server(
         port: The port to run the server on
         reload: Whether to reload the server on code changes (development only)
     """
-    logging.info(f"Starting web UI server on {host}:{port}")
+    logging.info("Starting web UI server on %s:%d", host, port)
 
     # Start the server
     uvicorn.run(
@@ -405,6 +405,238 @@ def _write_value_to_csv(value, writer, key=None):
     else:
         if key_str:
             writer.writerow([key_str.replace("_", " ").title(), value])
+
+
+@cli.command("season-report")
+def generate_season_report(
+    season: str = typer.Option(
+        None,
+        "--season",
+        "-s",
+        help="Season to generate report for (e.g., '2024-2025'). If not specified, uses current season.",
+    ),
+    report_type: str = typer.Option(
+        "standings",
+        "--type",
+        "-t",
+        help="Type of report: standings, player-leaders, team-stats, or player-season",
+    ),
+    stat_category: str = typer.Option(
+        "ppg",
+        "--stat",
+        help="Stat category for player-leaders: ppg, fpg, ft_pct, fg_pct, fg3_pct, efg_pct",
+    ),
+    player_id: int = typer.Option(None, "--player", "-p", help="Player ID (required for player-season report)"),
+    team_id: int = typer.Option(None, "--team", help="Team ID (optional for filtering)"),
+    limit: int = typer.Option(10, "--limit", "-l", help="Number of players to show in leaderboards"),
+    min_games: int = typer.Option(1, "--min-games", help="Minimum games played for leaderboards"),
+    output_format: str = typer.Option("console", "--format", "-f", help="Output format: console or csv"),
+    output_file: str = typer.Option(None, "--output", "-o", help="File path for output when using csv format"),
+):
+    """
+    Generate season-long statistical reports.
+
+    Several report types are available:
+    - standings: Team standings with win/loss records
+    - player-leaders: Top players in various statistical categories
+    - team-stats: Detailed team statistics for the season
+    - player-season: Individual player's season statistics
+    """
+    # pylint: disable=import-outside-toplevel
+    from app.services.season_stats_service import SeasonStatsService
+    from app.utils.stats_calculator import calculate_efg, calculate_percentage
+
+    with db_manager.get_db_session() as db_session:
+        try:
+            season_service = SeasonStatsService(db_session)
+
+            # Generate the appropriate report based on type
+            if report_type == "standings":
+                report_data = season_service.get_team_standings(season)
+                report_title = f"Team Standings{f' - {season}' if season else ''}"
+
+            elif report_type == "player-leaders":
+                report_data = season_service.get_player_rankings(
+                    stat_category=stat_category, season=season, limit=limit, min_games=min_games
+                )
+                stat_name = {
+                    "ppg": "Points Per Game",
+                    "fpg": "Fouls Per Game",
+                    "ft_pct": "Free Throw Percentage",
+                    "fg_pct": "Field Goal Percentage",
+                    "fg3_pct": "3-Point Percentage",
+                    "efg_pct": "Effective Field Goal Percentage",
+                }.get(stat_category, stat_category)
+                report_title = f"Player Leaders - {stat_name}{f' ({season})' if season else ''}"
+
+            elif report_type == "team-stats":
+                if team_id:
+                    # pylint: disable=import-outside-toplevel
+                    from app.data_access.crud import get_team_season_stats
+
+                    team_stats = get_team_season_stats(db_session, team_id, season)
+                    if team_stats:
+                        report_data = [
+                            {
+                                "team_id": team_stats.team_id,
+                                "team_name": team_stats.team.name,
+                                "season": team_stats.season,
+                                "games_played": team_stats.games_played,
+                                "wins": team_stats.wins,
+                                "losses": team_stats.losses,
+                                "win_pct": (
+                                    team_stats.wins / team_stats.games_played if team_stats.games_played > 0 else 0
+                                ),
+                                "ppg": (
+                                    team_stats.total_points_for / team_stats.games_played
+                                    if team_stats.games_played > 0
+                                    else 0
+                                ),
+                                "opp_ppg": (
+                                    team_stats.total_points_against / team_stats.games_played
+                                    if team_stats.games_played > 0
+                                    else 0
+                                ),
+                                "ft_pct": calculate_percentage(team_stats.total_ftm, team_stats.total_fta),
+                                "fg_pct": calculate_percentage(
+                                    team_stats.total_2pm + team_stats.total_3pm,
+                                    team_stats.total_2pa + team_stats.total_3pa,
+                                ),
+                                "fg3_pct": calculate_percentage(team_stats.total_3pm, team_stats.total_3pa),
+                            }
+                        ]
+                    else:
+                        report_data = []
+                else:
+                    # Get all team stats for the season
+                    # pylint: disable=import-outside-toplevel
+                    from app.data_access.crud.crud_team_season_stats import get_season_teams
+
+                    all_team_stats: list = get_season_teams(db_session, season)
+                    report_data = []
+                    for ts in all_team_stats:
+                        report_data.append(
+                            {
+                                "team_id": ts.team_id,
+                                "team_name": ts.team.name,
+                                "games_played": ts.games_played,
+                                "wins": ts.wins,
+                                "losses": ts.losses,
+                                "win_pct": ts.wins / ts.games_played if ts.games_played > 0 else 0,
+                                "ppg": ts.total_points_for / ts.games_played if ts.games_played > 0 else 0,
+                                "opp_ppg": ts.total_points_against / ts.games_played if ts.games_played > 0 else 0,
+                            }
+                        )
+                report_title = f"Team Statistics{f' - {season}' if season else ''}"
+
+            elif report_type == "player-season":
+                if not player_id:
+                    typer.echo("Error: Player ID is required for player-season report.")
+                    return
+
+                # pylint: disable=import-outside-toplevel
+                from app.data_access.crud import get_player_by_id, get_player_season_stats
+
+                player = get_player_by_id(db_session, player_id)
+                if not player:
+                    typer.echo(f"Error: Player with ID {player_id} not found.")
+                    return
+
+                player_stats = get_player_season_stats(db_session, player_id, season)
+                if player_stats:
+                    total_points = player_stats.total_ftm + (player_stats.total_2pm * 2) + (player_stats.total_3pm * 3)
+                    report_data = [
+                        {
+                            "player_name": player.name,
+                            "team_name": player.team.name,
+                            "season": player_stats.season,
+                            "games_played": player_stats.games_played,
+                            "total_points": total_points,
+                            "ppg": total_points / player_stats.games_played if player_stats.games_played > 0 else 0,
+                            "total_fouls": player_stats.total_fouls,
+                            "fpg": (
+                                player_stats.total_fouls / player_stats.games_played
+                                if player_stats.games_played > 0
+                                else 0
+                            ),
+                            "ft_pct": calculate_percentage(player_stats.total_ftm, player_stats.total_fta),
+                            "fg_pct": calculate_percentage(
+                                player_stats.total_2pm + player_stats.total_3pm,
+                                player_stats.total_2pa + player_stats.total_3pa,
+                            ),
+                            "fg3_pct": calculate_percentage(player_stats.total_3pm, player_stats.total_3pa),
+                            "efg_pct": calculate_efg(
+                                player_stats.total_2pm + player_stats.total_3pm,
+                                player_stats.total_3pm,
+                                player_stats.total_2pa + player_stats.total_3pa,
+                            ),
+                        }
+                    ]
+                else:
+                    report_data = []
+                report_title = f"{player.name} - Season Statistics{f' ({season})' if season else ''}"
+
+            else:
+                typer.echo(f"Error: Unknown report type '{report_type}'")
+                return
+
+            if not report_data:
+                typer.echo(f"No data found for {report_type} report{f' for season {season}' if season else ''}")
+                return
+
+            # Output the report in the requested format
+            if output_format == "console":
+                typer.echo(f"\n{report_title}")
+                typer.echo("=" * len(report_title))
+                if report_data:
+                    typer.echo(tabulate(report_data, headers="keys", tablefmt="grid", floatfmt=".3f"))
+
+            elif output_format == "csv":
+                csv_file_name = output_file if output_file else f"season_{report_type}_{season or 'current'}.csv"
+                with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
+                    if report_data and isinstance(report_data, list) and len(report_data) > 0:
+                        writer = csv.DictWriter(csvfile, fieldnames=report_data[0].keys())
+                        writer.writeheader()
+                        writer.writerows(report_data)
+                typer.echo(f"Report generated: {csv_file_name}")
+            else:
+                typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+
+        except Exception as e:  # pylint: disable=broad-except
+            typer.echo(f"Error generating season report: {e}")
+            typer.echo("Please check that the database has been initialized and contains data.")
+
+
+@cli.command("update-season-stats")
+def update_season_stats(
+    season: str = typer.Option(
+        None,
+        "--season",
+        "-s",
+        help="Season to update (e.g., '2024-2025'). If not specified, updates current season.",
+    ),
+):
+    """
+    Update season statistics for all players and teams.
+
+    This command recalculates all season statistics based on game data.
+    """
+    # pylint: disable=import-outside-toplevel
+    from app.services.season_stats_service import SeasonStatsService
+
+    typer.echo(f"Updating season statistics{f' for {season}' if season else ' for current season'}...")
+
+    with db_manager.get_db_session() as db_session:
+        try:
+            season_service = SeasonStatsService(db_session)
+
+            season_service.update_all_season_stats(season)
+
+            typer.echo("Season statistics updated successfully!")
+
+        except Exception as e:  # pylint: disable=broad-except
+            typer.echo(f"Error updating season statistics: {e}")
+            typer.echo("Please check that the database has been initialized and contains game data.")
 
 
 if __name__ == "__main__":

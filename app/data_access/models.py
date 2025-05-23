@@ -1,4 +1,4 @@
-# pylint: disable=R0903  # Too few public methods
+# pylint: disable=R0903,E1136  # Too few public methods, unsubscriptable-object (SQLAlchemy Mapped)
 """SQLAlchemy ORM models for the basketball stats application."""
 
 import datetime as dt
