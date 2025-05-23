@@ -33,7 +33,7 @@ def create_app(test_config=None):
         app.config.from_mapping(test_config)
 
     # Initialize database if needed
-    engine = db_manager.get_engine()
+    db_manager.get_engine()
 
     # Database session management for Flask requests
     @app.before_request

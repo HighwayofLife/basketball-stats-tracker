@@ -226,5 +226,101 @@ class PlayerResponse(BaseModel):
     is_active: bool = True
 
 
+# Season Statistics Schemas
+
+
+class PlayerSeasonStatsResponse(BaseModel):
+    """Response schema for player season statistics."""
+
+    player_id: int
+    player_name: str
+    team_name: str
+    season: str
+    games_played: int
+    total_points: int
+    ppg: float  # Points per game
+    total_fouls: int
+    fpg: float  # Fouls per game
+    ftm: int
+    fta: int
+    ft_pct: float | None
+    fg2m: int
+    fg2a: int
+    fg2_pct: float | None
+    fg3m: int
+    fg3a: int
+    fg3_pct: float | None
+    fgm: int  # Total field goals made (2P + 3P)
+    fga: int  # Total field goals attempted
+    fg_pct: float | None  # Overall field goal percentage
+    efg_pct: float | None  # Effective field goal percentage
+
+
+class TeamSeasonStatsResponse(BaseModel):
+    """Response schema for team season statistics."""
+
+    team_id: int
+    team_name: str
+    season: str
+    games_played: int
+    wins: int
+    losses: int
+    win_pct: float
+    ppg: float  # Points per game
+    opp_ppg: float  # Opponent points per game
+    point_diff: float  # Average point differential
+    ftm: int
+    fta: int
+    ft_pct: float | None
+    fg2m: int
+    fg2a: int
+    fg2_pct: float | None
+    fg3m: int
+    fg3a: int
+    fg3_pct: float | None
+    fgm: int
+    fga: int
+    fg_pct: float | None
+    efg_pct: float | None
+
+
+class PlayerRankingResponse(BaseModel):
+    """Response schema for player rankings/leaderboards."""
+
+    rank: int
+    player_id: int
+    player_name: str
+    team_name: str
+    value: float
+    games_played: int
+
+
+class TeamStandingsResponse(BaseModel):
+    """Response schema for team standings."""
+
+    rank: int
+    team_id: int
+    team_name: str
+    wins: int
+    losses: int
+    win_pct: float
+    games_back: float | None
+    ppg: float
+    opp_ppg: float
+    point_diff: float
+    streak: str  # e.g., "W3", "L2"
+    last_10: str  # e.g., "7-3"
+
+
+class SeasonSummaryResponse(BaseModel):
+    """Response schema for season summary information."""
+
+    season: str
+    total_games: int
+    top_scorers: list[PlayerRankingResponse]
+    team_standings: list[TeamStandingsResponse]
+    league_leaders: dict[str, list[PlayerRankingResponse]]  # Category -> Rankings
+
+
 # Forward reference for circular dependency
 TeamDetailResponse.model_rebuild()

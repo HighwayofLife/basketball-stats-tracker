@@ -1,7 +1,6 @@
 """CRUD operations for audit logs."""
 
 from datetime import datetime
-from typing import Optional, List
 
 from sqlalchemy import desc
 from sqlalchemy.orm import Session
@@ -14,11 +13,11 @@ def create_audit_log(
     entity_type: str,
     entity_id: int,
     action: str,
-    old_values: Optional[dict] = None,
-    new_values: Optional[dict] = None,
-    user_id: Optional[int] = None,
-    command_id: Optional[str] = None,
-    description: Optional[str] = None,
+    old_values: dict | None = None,
+    new_values: dict | None = None,
+    user_id: int | None = None,
+    command_id: str | None = None,
+    description: str | None = None,
 ) -> AuditLog:
     """Create a new audit log entry.
 
@@ -51,7 +50,7 @@ def create_audit_log(
     return audit_log
 
 
-def get_audit_log(db: Session, audit_log_id: int) -> Optional[AuditLog]:
+def get_audit_log(db: Session, audit_log_id: int) -> AuditLog | None:
     """Get an audit log entry by ID.
 
     Args:
@@ -64,7 +63,7 @@ def get_audit_log(db: Session, audit_log_id: int) -> Optional[AuditLog]:
     return db.query(AuditLog).filter(AuditLog.id == audit_log_id).first()
 
 
-def get_audit_logs_by_command(db: Session, command_id: str) -> List[AuditLog]:
+def get_audit_logs_by_command(db: Session, command_id: str) -> list[AuditLog]:
     """Get all audit logs for a specific command.
 
     Args:
@@ -79,7 +78,7 @@ def get_audit_logs_by_command(db: Session, command_id: str) -> List[AuditLog]:
 
 def get_audit_logs_by_entity(
     db: Session, entity_type: str, entity_id: int, include_undone: bool = False
-) -> List[AuditLog]:
+) -> list[AuditLog]:
     """Get all audit logs for a specific entity.
 
     Args:
@@ -94,7 +93,7 @@ def get_audit_logs_by_entity(
     query = db.query(AuditLog).filter(AuditLog.entity_type == entity_type, AuditLog.entity_id == entity_id)
 
     if not include_undone:
-        query = query.filter(AuditLog.is_undone == False)
+        query = query.filter(not AuditLog.is_undone)
 
     return query.order_by(desc(AuditLog.timestamp)).all()
 
@@ -102,10 +101,10 @@ def get_audit_logs_by_entity(
 def get_recent_audit_logs(
     db: Session,
     limit: int = 50,
-    entity_type: Optional[str] = None,
-    user_id: Optional[int] = None,
+    entity_type: str | None = None,
+    user_id: int | None = None,
     include_undone: bool = False,
-) -> List[AuditLog]:
+) -> list[AuditLog]:
     """Get recent audit logs with optional filters.
 
     Args:
@@ -121,7 +120,7 @@ def get_recent_audit_logs(
     query = db.query(AuditLog)
 
     if not include_undone:
-        query = query.filter(AuditLog.is_undone == False)
+        query = query.filter(not AuditLog.is_undone)
 
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)
@@ -132,7 +131,7 @@ def get_recent_audit_logs(
     return query.order_by(desc(AuditLog.timestamp)).limit(limit).all()
 
 
-def mark_audit_log_as_undone(db: Session, audit_log_id: int) -> Optional[AuditLog]:
+def mark_audit_log_as_undone(db: Session, audit_log_id: int) -> AuditLog | None:
     """Mark an audit log entry as undone.
 
     Args:
