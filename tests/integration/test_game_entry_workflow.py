@@ -235,19 +235,20 @@ class TestGameEntryWorkflow:
             "players_out": [lakers_player_ids[2]],  # Westbrook out
             "players_in": [lakers_player_ids[3]],  # Carmelo in
         }
-        sub_response = test_client.post(f"/v1/games/{game_id}/events/substitution", json=sub_data)
+        sub_response = test_client.post(f"/v1/games/{game_id}/players/substitute", json=sub_data)
         assert sub_response.status_code == 200
 
         # Step 7: End the quarter
-        quarter_response = test_client.post(f"/v1/games/{game_id}/quarter/end")
+        quarter_response = test_client.post(f"/v1/games/{game_id}/end-quarter")
         assert quarter_response.status_code == 200
 
         # Verify quarter advanced
+        db_session.expire_all()  # Refresh all objects from database
         game_state = db_session.query(GameState).filter(GameState.game_id == game_id).first()
         assert game_state.current_quarter == 2
 
         # Step 8: Get live game state
-        state_response = test_client.get(f"/v1/games/{game_id}/state")
+        state_response = test_client.get(f"/v1/games/{game_id}/live")
         assert state_response.status_code == 200
         state_data = state_response.json()
         assert state_data["game_state"]["current_quarter"] == 2
@@ -262,6 +263,7 @@ class TestGameEntryWorkflow:
         assert "away_score" in final_data
 
         # Verify game state was finalized
+        db_session.expire_all()  # Refresh all objects from database
         game_state = db_session.query(GameState).filter(GameState.game_id == game_id).first()
         assert game_state.is_live is False
         assert game_state.is_final is True

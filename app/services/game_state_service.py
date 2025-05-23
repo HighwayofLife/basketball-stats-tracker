@@ -525,7 +525,17 @@ class GameStateService:
         )
 
         if not stats:
-            stats = PlayerGameStats(game_id=game_id, player_id=player_id)
+            stats = PlayerGameStats(
+                game_id=game_id,
+                player_id=player_id,
+                fouls=0,
+                total_ftm=0,
+                total_fta=0,
+                total_2pm=0,
+                total_2pa=0,
+                total_3pm=0,
+                total_3pa=0,
+            )
             self.session.add(stats)
             self.session.flush()
 
@@ -552,6 +562,12 @@ class GameStateService:
             quarter_stats = PlayerQuarterStats(
                 player_game_stat_id=game_stats.id,
                 quarter_number=quarter,
+                ftm=0,
+                fta=0,
+                fg2m=0,
+                fg2a=0,
+                fg3m=0,
+                fg3a=0,
             )
             self.session.add(quarter_stats)
 
