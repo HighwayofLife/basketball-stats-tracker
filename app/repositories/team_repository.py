@@ -1,6 +1,5 @@
 """Repository for team-related database operations."""
 
-
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Game, Player, Team
@@ -29,9 +28,7 @@ class TeamRepository(BaseRepository[Team]):
         result = []
 
         for team in teams:
-            player_count = (
-                self.session.query(Player).filter(Player.team_id == team.id, Player.is_active == True).count()
-            )
+            player_count = self.session.query(Player).filter(Player.team_id == team.id, Player.is_active).count()
             result.append({"id": team.id, "name": team.name, "player_count": player_count})
 
         return result
@@ -69,4 +66,4 @@ class TeamRepository(BaseRepository[Team]):
         Returns:
             List of deleted teams
         """
-        return self.session.query(Team).filter(Team.is_deleted == True).order_by(Team.deleted_at.desc()).all()
+        return self.session.query(Team).filter(Team.is_deleted).order_by(Team.deleted_at.desc()).all()

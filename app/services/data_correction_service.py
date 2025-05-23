@@ -249,7 +249,7 @@ class DataCorrectionService:
         if entity_type == "team":
             from app.data_access.models import Team
 
-            query = self.db.query(Team).filter(Team.is_deleted == True)
+            query = self.db.query(Team).filter(Team.is_deleted)
             if start_date and end_date:
                 query = query.filter(Team.deleted_at >= start_date, Team.deleted_at <= end_date)
 
@@ -263,11 +263,11 @@ class DataCorrectionService:
         elif entity_type == "player":
             from app.data_access.models import Player
 
-            query = self.db.query(Player).filter(Player.is_deleted == True)
+            player_query = self.db.query(Player).filter(Player.is_deleted)
             if start_date and end_date:
-                query = query.filter(Player.deleted_at >= start_date, Player.deleted_at <= end_date)
+                player_query = player_query.filter(Player.deleted_at >= start_date, Player.deleted_at <= end_date)
 
-            players = query.all()
+            players = player_query.all()
             for player in players:
                 player.is_deleted = False
                 player.deleted_at = None
@@ -278,11 +278,11 @@ class DataCorrectionService:
         elif entity_type == "game":
             from app.data_access.models import Game
 
-            query = self.db.query(Game).filter(Game.is_deleted == True)
+            game_query = self.db.query(Game).filter(Game.is_deleted)
             if start_date and end_date:
-                query = query.filter(Game.deleted_at >= start_date, Game.deleted_at <= end_date)
+                game_query = game_query.filter(Game.deleted_at >= start_date, Game.deleted_at <= end_date)
 
-            games = query.all()
+            games = game_query.all()
             for game in games:
                 game.is_deleted = False
                 game.deleted_at = None

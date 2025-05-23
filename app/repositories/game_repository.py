@@ -62,7 +62,7 @@ class GameRepository(BaseRepository[Game]):
         Returns:
             List of deleted games
         """
-        return self.session.query(Game).filter(Game.is_deleted == True).order_by(Game.deleted_at.desc()).all()
+        return self.session.query(Game).filter(Game.is_deleted).order_by(Game.deleted_at.desc()).all()
 
     def get_recent_games(self, limit: int = 5) -> list[Game]:
         """Get the most recent games.

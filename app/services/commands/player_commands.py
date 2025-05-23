@@ -286,7 +286,8 @@ class ChangeJerseyNumberCommand(Command):
             raise ValueError(f"Player with ID {self.player_id} not found")
 
         # Restore old jersey number
-        player.jersey_number = self.old_jersey_number
+        if self.old_jersey_number is not None:
+            player.jersey_number = self.old_jersey_number
 
         # Log the undo
         self.audit_service.log_update(

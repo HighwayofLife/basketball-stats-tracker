@@ -331,7 +331,7 @@ class SeasonStatsService:
         # Sort by value (descending) and add rank
         rankings.sort(
             key=lambda x: (
-                float(x["value"]) if x["value"] is not None and isinstance(x["value"], (int, float, str)) else -1.0
+                float(x["value"]) if x["value"] is not None and isinstance(x["value"], int | float | str) else -1.0
             ),
             reverse=True,
         )
@@ -357,7 +357,7 @@ class SeasonStatsService:
             else:
                 return []
 
-        standings = []
+        standings: list[dict] = []
         team_stats = (
             self.db_session.query(TeamSeasonStats)
             .join(Team)
@@ -388,7 +388,7 @@ class SeasonStatsService:
             )
 
         # Sort by win percentage
-        standings.sort(key=lambda x: x["win_pct"], reverse=True)
+        standings.sort(key=lambda x: float(x["win_pct"]), reverse=True)
 
         # Add rank and games back
         if standings:
@@ -401,7 +401,7 @@ class SeasonStatsService:
                 if i == 0:
                     team["games_back"] = None
                 else:
-                    gb = ((leader_wins - team["wins"]) + (team["losses"] - leader_losses)) / 2
+                    gb = ((leader_wins - int(team["wins"])) + (int(team["losses"]) - leader_losses)) / 2
                     team["games_back"] = gb
 
         return standings

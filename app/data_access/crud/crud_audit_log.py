@@ -93,7 +93,7 @@ def get_audit_logs_by_entity(
     query = db.query(AuditLog).filter(AuditLog.entity_type == entity_type, AuditLog.entity_id == entity_id)
 
     if not include_undone:
-        query = query.filter(not AuditLog.is_undone)
+        query = query.filter(AuditLog.is_undone.is_(False))
 
     return query.order_by(desc(AuditLog.timestamp)).all()
 
@@ -120,7 +120,7 @@ def get_recent_audit_logs(
     query = db.query(AuditLog)
 
     if not include_undone:
-        query = query.filter(not AuditLog.is_undone)
+        query = query.filter(AuditLog.is_undone.is_(False))
 
     if entity_type:
         query = query.filter(AuditLog.entity_type == entity_type)

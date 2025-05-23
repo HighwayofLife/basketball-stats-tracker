@@ -1,6 +1,5 @@
 """Repository for player-related database operations."""
 
-
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Player, PlayerGameStats, Team
@@ -30,9 +29,7 @@ class PlayerRepository(BaseRepository[Player]):
         """
         return self.session.query(Player).filter(Player.id == player_id).first()
 
-    def get_players_with_teams(
-        self, team_id: int | None = None, active_only: bool = True
-    ) -> list[tuple[Player, Team]]:
+    def get_players_with_teams(self, team_id: int | None = None, active_only: bool = True) -> list[tuple[Player, Team]]:
         """Get players with their team information.
 
         Args:
@@ -48,9 +45,9 @@ class PlayerRepository(BaseRepository[Player]):
             query = query.filter(Player.team_id == team_id)
 
         if active_only:
-            query = query.filter(Player.is_active == True)
+            query = query.filter(Player.is_active)
 
-        return query.order_by(Team.name, Player.jersey_number).all()
+        return query.order_by(Team.name, Player.jersey_number).all()  # type: ignore[return-value]
 
     def get_by_jersey_number(self, team_id: int, jersey_number: int) -> Player | None:
         """Get a player by team and jersey number.
@@ -67,7 +64,7 @@ class PlayerRepository(BaseRepository[Player]):
             .filter(
                 Player.team_id == team_id,
                 Player.jersey_number == jersey_number,
-                Player.is_active == True,
+                Player.is_active,
             )
             .first()
         )
@@ -97,7 +94,7 @@ class PlayerRepository(BaseRepository[Player]):
         query = self.session.query(Player).filter(Player.team_id == team_id)
 
         if active_only:
-            query = query.filter(Player.is_active == True)
+            query = query.filter(Player.is_active)
 
         return query.order_by(Player.jersey_number).all()
 
@@ -107,7 +104,7 @@ class PlayerRepository(BaseRepository[Player]):
         Returns:
             List of deleted players
         """
-        return self.session.query(Player).filter(Player.is_deleted == True).order_by(Player.deleted_at.desc()).all()
+        return self.session.query(Player).filter(Player.is_deleted).order_by(Player.deleted_at.desc()).all()
 
     def deactivate(self, player_id: int) -> bool:
         """Deactivate a player instead of deleting.
