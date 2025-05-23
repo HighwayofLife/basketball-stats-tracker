@@ -1,3 +1,6 @@
+# pytest: disable=unused-variable
+# pylint: disable=unused-argument
+# pylint: disable=protected-access
 """
 Unit tests for csv_import_service module.
 """
@@ -138,8 +141,8 @@ Without proper structure"""
         with patch("builtins.open", mock_open(read_data=invalid_roster_csv_content)):
             team_data, player_data = csv_import_service._read_and_validate_roster_csv(Path("/path/to/roster.csv"))
 
-            assert team_data == {}
-            assert player_data == []
+            assert not team_data
+            assert not player_data
             mock_echo.assert_called_once()
 
     @patch("typer.echo")

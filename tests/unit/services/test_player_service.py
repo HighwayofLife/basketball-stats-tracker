@@ -14,6 +14,7 @@ class TestPlayerService:
     def test_init(self, db_session):
         """Test initializing the player service."""
         service = PlayerService(db_session)
+        # pylint: disable=protected-access
         assert service._db_session == db_session
 
     def test_get_or_create_player_existing(self, db_session):

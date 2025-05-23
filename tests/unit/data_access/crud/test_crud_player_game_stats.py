@@ -86,7 +86,7 @@ class TestCrudPlayerGameStats:
         mock_db_session.refresh.assert_called_once_with(sample_player_game_stats)
 
         # Verify the stats were updated
-        for key, value in totals.items():
+        for key, _value in totals.items():
             assert hasattr(sample_player_game_stats, key)
 
     def test_update_player_game_stats_totals_not_found(self, mock_db_session):

@@ -150,8 +150,10 @@ class TestDatabaseAdminService:
         mock_config.return_value = Mock()
 
         service = DatabaseAdminService("postgresql://user:pass@localhost/db")
-        with patch.object(service, "ensure_data_dir") as mock_ensure_dir, \
-             patch.object(service, "upgrade_to_head") as mock_upgrade:
+        with (
+            patch.object(service, "ensure_data_dir") as mock_ensure_dir,
+            patch.object(service, "upgrade_to_head") as mock_upgrade,
+        ):
             mock_ensure_dir.return_value = None
 
             service.initialize_schema()
@@ -167,9 +169,11 @@ class TestDatabaseAdminService:
         mock_config.return_value = Mock()
 
         service = DatabaseAdminService("sqlite:///test.db")
-        with patch.object(service, "ensure_data_dir") as mock_ensure_dir, \
-             patch.object(service, "drop_all_tables") as mock_drop, \
-             patch.object(service, "upgrade_to_head") as mock_upgrade:
+        with (
+            patch.object(service, "ensure_data_dir") as mock_ensure_dir,
+            patch.object(service, "drop_all_tables") as mock_drop,
+            patch.object(service, "upgrade_to_head") as mock_upgrade,
+        ):
             mock_ensure_dir.return_value = "/data/dir"
 
             service.initialize_schema(force=True)
@@ -186,9 +190,11 @@ class TestDatabaseAdminService:
         mock_config.return_value = Mock()
 
         service = DatabaseAdminService("sqlite:///test.db")
-        with patch.object(service, "ensure_data_dir") as mock_ensure_dir, \
-             patch.object(service, "create_migration") as mock_create_migration, \
-             patch.object(service, "upgrade_to_head") as mock_upgrade:
+        with (
+            patch.object(service, "ensure_data_dir") as mock_ensure_dir,
+            patch.object(service, "create_migration") as mock_create_migration,
+            patch.object(service, "upgrade_to_head") as mock_upgrade,
+        ):
             mock_ensure_dir.return_value = None
 
             service.initialize_schema(make_migration=True, migration_message="Custom message")
@@ -205,10 +211,12 @@ class TestDatabaseAdminService:
         mock_config.return_value = Mock()
 
         service = DatabaseAdminService("sqlite:///test.db")
-        with patch.object(service, "ensure_data_dir") as mock_ensure_dir, \
-             patch.object(service, "drop_all_tables") as mock_drop, \
-             patch.object(service, "create_migration") as mock_create_migration, \
-             patch.object(service, "upgrade_to_head") as mock_upgrade:
+        with (
+            patch.object(service, "ensure_data_dir") as mock_ensure_dir,
+            patch.object(service, "drop_all_tables") as mock_drop,
+            patch.object(service, "create_migration") as mock_create_migration,
+            patch.object(service, "upgrade_to_head") as mock_upgrade,
+        ):
             mock_ensure_dir.return_value = "/data/dir"
 
             service.initialize_schema(force=True, make_migration=True, migration_message="Full test")
@@ -226,9 +234,11 @@ class TestDatabaseAdminService:
         mock_config.return_value = Mock()
 
         service = DatabaseAdminService("sqlite:///test.db")
-        with patch.object(service, "ensure_data_dir") as mock_ensure_dir, \
-             patch.object(service, "create_migration") as mock_create_migration, \
-             patch.object(service, "upgrade_to_head") as mock_upgrade:
+        with (
+            patch.object(service, "ensure_data_dir") as mock_ensure_dir,
+            patch.object(service, "create_migration") as mock_create_migration,
+            patch.object(service, "upgrade_to_head") as _mock_upgrade,
+        ):
             mock_ensure_dir.return_value = None
 
             # Test with force=True and no custom message

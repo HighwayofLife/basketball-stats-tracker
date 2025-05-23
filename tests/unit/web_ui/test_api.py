@@ -88,6 +88,7 @@ class TestAPIEndpoints:
         mock_query.all.return_value = [sample_game]
 
         # Set up template mock
+        # pylint: disable=import-outside-toplevel
         from fastapi.responses import HTMLResponse
 
         mock_templates.TemplateResponse.return_value = HTMLResponse(
@@ -386,6 +387,7 @@ class TestAPIEndpoints:
     def test_games_page(self, mock_templates, client):
         """Test the games HTML page endpoint."""
         # Set up mock
+        # pylint: disable=import-outside-toplevel
         from fastapi.responses import HTMLResponse
 
         mock_templates.TemplateResponse.return_value = HTMLResponse(content="<html>Games Page</html>", status_code=200)
@@ -411,6 +413,7 @@ class TestAPIEndpoints:
         mock_query.filter.return_value = mock_filter
         mock_filter.first.return_value = sample_game
 
+        # pylint: disable=import-outside-toplevel
         from fastapi.responses import HTMLResponse
 
         mock_templates.TemplateResponse.return_value = HTMLResponse(content="<html>Game Detail</html>", status_code=200)

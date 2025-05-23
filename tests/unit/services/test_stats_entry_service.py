@@ -1,3 +1,4 @@
+# pylint: disable=protected-access
 """
 Test module for the StatsEntryService.
 """
@@ -17,7 +18,7 @@ class TestStatsEntryService:
     def mock_input_parser(self):
         """Mock the input parser function."""
 
-        def parse_shot_string(shot_string, mapping):
+        def parse_shot_string(shot_string, _mapping):
             # Return mock parsed stats based on the fixture data
             mock_stats = {
                 "22-1x": {"ftm": 1, "fta": 2, "fg2m": 2, "fg2a": 3, "fg3m": 0, "fg3a": 0},

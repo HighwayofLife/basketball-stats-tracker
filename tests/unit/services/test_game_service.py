@@ -15,6 +15,7 @@ class TestGameService:
     def test_init(self, db_session):
         """Test initializing the game service."""
         service = GameService(db_session)
+        # pylint: disable=protected-access
         assert service._db_session == db_session
 
     def test_get_or_create_team_existing(self, db_session):
@@ -104,7 +105,7 @@ class TestGameService:
         test_date = datetime.strptime("2025-05-01", "%Y-%m-%d").date()
         mock_create_game = MagicMock(return_value=Game(id=1, date=test_date, playing_team_id=1, opponent_team_id=2))
 
-        def mock_get_team_side_effect(db_session, team_name):
+        def mock_get_team_side_effect(_db_session, team_name):
             if team_name == "Team A":
                 return mock_get_team_a.return_value
             elif team_name == "Team B":
