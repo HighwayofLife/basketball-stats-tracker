@@ -20,7 +20,7 @@ def get_db() -> Generator[Session, None, None]:
         yield session
 
 
-def get_team_repository(db: Session = Depends(get_db)) -> TeamRepository:
+def get_team_repository(db: Session = Depends(get_db)) -> TeamRepository:  # noqa: B008
     """Get team repository dependency.
 
     Args:
@@ -32,7 +32,7 @@ def get_team_repository(db: Session = Depends(get_db)) -> TeamRepository:
     return TeamRepository(db)
 
 
-def get_player_repository(db: Session = Depends(get_db)) -> PlayerRepository:
+def get_player_repository(db: Session = Depends(get_db)) -> PlayerRepository:  # noqa: B008
     """Get player repository dependency.
 
     Args:
@@ -44,7 +44,7 @@ def get_player_repository(db: Session = Depends(get_db)) -> PlayerRepository:
     return PlayerRepository(db)
 
 
-def get_game_repository(db: Session = Depends(get_db)) -> GameRepository:
+def get_game_repository(db: Session = Depends(get_db)) -> GameRepository:  # noqa: B008
     """Get game repository dependency.
 
     Args:
@@ -56,7 +56,7 @@ def get_game_repository(db: Session = Depends(get_db)) -> GameRepository:
     return GameRepository(db)
 
 
-def get_game_state_service(db: Session = Depends(get_db)) -> GameStateService:
+def get_game_state_service(db: Session = Depends(get_db)) -> GameStateService:  # noqa: B008
     """Get game state service dependency.
 
     Args:

@@ -441,10 +441,7 @@ async def get_deleted_games():
     try:
         with get_db_session() as session:
             deleted_games = (
-                session.query(models.Game)
-                .filter(models.Game.is_deleted == True)
-                .order_by(models.Game.deleted_at.desc())
-                .all()
+                session.query(models.Game).filter(models.Game.is_deleted).order_by(models.Game.deleted_at.desc()).all()
             )
 
             return [

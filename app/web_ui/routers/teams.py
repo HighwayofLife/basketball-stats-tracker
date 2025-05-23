@@ -5,6 +5,7 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.data_access.models import Team
 from app.repositories import PlayerRepository, TeamRepository
 from app.services.audit_log_service import AuditLogService
 
@@ -16,10 +17,10 @@ router = APIRouter(prefix="/v1/teams", tags=["teams"])
 
 
 @router.get("", response_model=list[dict[str, Any]])
-async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)):
+async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get a list of all teams."""
     try:
-        teams = team_repo.get_all()
+        teams: list = team_repo.get_all()
         return [
             {
                 "id": team.id,
@@ -33,7 +34,7 @@ async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)):
 
 
 @router.get("/detail", response_model=list[TeamResponse])
-async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_repository)):
+async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get a list of all teams with player counts."""
     try:
         teams_with_counts = team_repo.get_with_player_count()
@@ -49,8 +50,8 @@ async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_re
 @router.get("/{team_id}", response_model=dict[str, Any])
 async def get_team(
     team_id: int,
-    team_repo: TeamRepository = Depends(get_team_repository),
-    player_repo: PlayerRepository = Depends(get_player_repository),
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    player_repo: PlayerRepository = Depends(get_player_repository),  # noqa: B008
 ):
     """Get detailed information about a specific team."""
     try:
@@ -83,8 +84,8 @@ async def get_team(
 @router.get("/{team_id}/detail", response_model=TeamDetailResponse)
 async def get_team_detail(
     team_id: int,
-    team_repo: TeamRepository = Depends(get_team_repository),
-    player_repo: PlayerRepository = Depends(get_player_repository),
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    player_repo: PlayerRepository = Depends(get_player_repository),  # noqa: B008
 ):
     """Get detailed information about a specific team including players."""
     try:
@@ -119,7 +120,7 @@ async def get_team_detail(
 
 
 @router.post("/new", response_model=TeamResponse)
-async def create_team(team_data: TeamCreateRequest, team_repo: TeamRepository = Depends(get_team_repository)):
+async def create_team(team_data: TeamCreateRequest, team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Create a new team."""
     try:
         # Check if team name already exists
@@ -127,7 +128,7 @@ async def create_team(team_data: TeamCreateRequest, team_repo: TeamRepository = 
         if existing_team:
             raise HTTPException(status_code=400, detail="Team name already exists")
 
-        team = team_repo.create(name=team_data.name)
+        team: Team = team_repo.create(name=team_data.name)
         return TeamResponse(id=team.id, name=team.name, player_count=0)
     except HTTPException:
         raise
@@ -138,7 +139,9 @@ async def create_team(team_data: TeamCreateRequest, team_repo: TeamRepository = 
 
 @router.put("/{team_id}", response_model=TeamResponse)
 async def update_team(
-    team_id: int, team_data: TeamUpdateRequest, team_repo: TeamRepository = Depends(get_team_repository)
+    team_id: int,
+    team_data: TeamUpdateRequest,
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
 ):
     """Update a team."""
     try:
@@ -169,7 +172,7 @@ async def update_team(
 
 
 @router.delete("/{team_id}")
-async def delete_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository)):
+async def delete_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Delete a team and all its players."""
     try:
         team = team_repo.get_by_id(team_id)
@@ -192,7 +195,7 @@ async def delete_team(team_id: int, team_repo: TeamRepository = Depends(get_team
 
 
 @router.get("/deleted", response_model=list[dict[str, Any]])
-async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_repository)):
+async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get all soft-deleted teams."""
     try:
         deleted_teams = team_repo.get_deleted_teams()
@@ -210,7 +213,7 @@ async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_reposit
 
 
 @router.post("/{team_id}/restore")
-async def restore_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository), db=Depends(get_db)):
+async def restore_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository), db=Depends(get_db)):  # noqa: B008
     """Restore a soft-deleted team."""
     try:
         team = team_repo.get_by_id(team_id)

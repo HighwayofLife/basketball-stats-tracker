@@ -24,7 +24,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True):
                 query = query.filter(models.Player.team_id == team_id)
 
             if active_only:
-                query = query.filter(models.Player.is_active == True)
+                query = query.filter(models.Player.is_active)
 
             players_teams = query.order_by(models.Team.name, models.Player.jersey_number).all()
 
@@ -66,7 +66,7 @@ async def create_player(player_data: PlayerCreateRequest):
                 .filter(
                     models.Player.team_id == player_data.team_id,
                     models.Player.jersey_number == player_data.jersey_number,
-                    models.Player.is_active == True,
+                    models.Player.is_active,
                 )
                 .first()
             )
@@ -162,7 +162,7 @@ async def update_player(player_id: int, player_data: PlayerUpdateRequest):
                         models.Player.team_id == team_id,
                         models.Player.jersey_number == player_data.jersey_number,
                         models.Player.id != player_id,
-                        models.Player.is_active == True,
+                        models.Player.is_active,
                     )
                     .first()
                 )
@@ -241,7 +241,7 @@ async def get_deleted_players():
         with get_db_session() as session:
             deleted_players = (
                 session.query(models.Player)
-                .filter(models.Player.is_deleted == True)
+                .filter(models.Player.is_deleted)
                 .order_by(models.Player.deleted_at.desc())
                 .all()
             )

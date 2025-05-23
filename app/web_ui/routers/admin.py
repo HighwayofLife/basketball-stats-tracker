@@ -166,8 +166,14 @@ async def bulk_restore(data: dict):
     try:
         with get_db_session() as session:
             entity_type = data.get("entity_type")
-            start_date = datetime.strptime(data.get("start_date"), "%Y-%m-%d").date()
-            end_date = datetime.strptime(data.get("end_date"), "%Y-%m-%d").date()
+            start_date_str = data.get("start_date")
+            end_date_str = data.get("end_date")
+
+            if not entity_type or not start_date_str or not end_date_str:
+                raise HTTPException(status_code=400, detail="Missing required fields")
+
+            start_date = datetime.strptime(start_date_str, "%Y-%m-%d").date()
+            end_date = datetime.strptime(end_date_str, "%Y-%m-%d").date()
 
             correction_service = DataCorrectionService(session)
             count = correction_service.restore_deleted_items(
