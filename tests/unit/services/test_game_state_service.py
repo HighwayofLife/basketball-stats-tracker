@@ -20,22 +20,28 @@ from app.data_access.models import (
 from app.services.game_state_service import GameStateService
 
 
+@pytest.fixture
+def mock_db_session():
+    """Create a mock database session for unit testing."""
+    return MagicMock()
+
+
 class TestGameStateService:
     """Tests for the GameStateService."""
 
-    def test_init(self, db_session):
+    def test_init(self, mock_db_session):
         """Test initializing the game state service."""
-        service = GameStateService(db_session)
-        assert service.session == db_session
+        service = GameStateService(mock_db_session)
+        assert service.session == mock_db_session
 
-    def test_create_game(self, db_session):
+    def test_create_game(self, mock_db_session):
         """Test creating a new game."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock database operations
-        db_session.add = MagicMock()
-        db_session.flush = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.flush = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         game = service.create_game("2025-05-01", 1, 2, "Home Court", "19:00", "Test game")
 
@@ -48,18 +54,18 @@ class TestGameStateService:
         assert game.notes == "Test game"
 
         # Verify database calls
-        assert db_session.add.call_count == 2  # Game and GameState
-        db_session.flush.assert_called_once()
-        db_session.commit.assert_called_once()
+        assert mock_db_session.add.call_count == 2  # Game and GameState
+        mock_db_session.flush.assert_called_once()
+        mock_db_session.commit.assert_called_once()
 
-    def test_create_game_minimal(self, db_session):
+    def test_create_game_minimal(self, mock_db_session):
         """Test creating a game with minimal required fields."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock database operations
-        db_session.add = MagicMock()
-        db_session.flush = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.flush = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         game = service.create_game("2025-05-01", 1, 2)
 
@@ -70,18 +76,22 @@ class TestGameStateService:
         assert game.scheduled_time is None
         assert game.notes is None
 
-    def test_start_game(self, db_session):
+    def test_start_game(self):
         """Test starting a game."""
-        service = GameStateService(db_session)
+        # Create a mock session
+        mock_session = MagicMock()
+        service = GameStateService(mock_session)
 
         # Mock game and game state
         mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
         mock_game_state = GameState(game_id=1, is_live=False, is_final=False)
 
-        # Mock queries
-        db_session.query.return_value.filter.return_value.first.side_effect = [mock_game, mock_game_state]
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        # Configure the mock query chain
+        mock_query = MagicMock()
+        mock_filter = MagicMock()
+        mock_query.filter.return_value = mock_filter
+        mock_filter.first.side_effect = [mock_game, mock_game_state]
+        mock_session.query.return_value = mock_query
 
         # Mock helper methods
         service._check_in_players = MagicMock()
@@ -92,48 +102,52 @@ class TestGameStateService:
         assert result.current_quarter == 1
         service._check_in_players.assert_any_call(1, 1, [1, 2, 3, 4, 5], is_starter=True)
         service._check_in_players.assert_any_call(1, 2, [6, 7, 8, 9, 10], is_starter=True)
-        db_session.add.assert_called()  # For GameEvent
-        db_session.commit.assert_called_once()
+        mock_session.add.assert_called()  # For GameEvent
+        mock_session.commit.assert_called_once()
 
-    def test_start_game_not_found(self, db_session):
+    def test_start_game_not_found(self):
         """Test starting a game that doesn't exist."""
-        service = GameStateService(db_session)
+        # Create a mock session
+        mock_session = MagicMock()
+        service = GameStateService(mock_session)
 
-        # Mock empty query result
-        db_session.query.return_value.filter.return_value.first.return_value = None
+        # Configure mock to return None (game not found)
+        mock_session.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="Game 1 not found"):
             service.start_game(1, [1, 2, 3, 4, 5], [6, 7, 8, 9, 10])
 
-    def test_start_game_already_live(self, db_session):
+    def test_start_game_already_live(self):
         """Test starting a game that's already in progress."""
-        service = GameStateService(db_session)
+        # Create a mock session
+        mock_session = MagicMock()
+        service = GameStateService(mock_session)
 
         # Mock game and game state
         mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
         mock_game_state = GameState(game_id=1, is_live=True, is_final=False)
 
-        db_session.query.return_value.filter.return_value.first.side_effect = [mock_game, mock_game_state]
+        mock_session.query.return_value.filter.return_value.first.side_effect = [mock_game, mock_game_state]
 
         with pytest.raises(ValueError, match="Game is already in progress"):
             service.start_game(1, [1, 2, 3, 4, 5], [6, 7, 8, 9, 10])
 
-    def test_start_game_already_final(self, db_session):
+    def test_start_game_already_final(self, mock_db_session):
         """Test starting a game that's already finished."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game and game state
         mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
         mock_game_state = GameState(game_id=1, is_live=False, is_final=True)
 
-        db_session.query.return_value.filter.return_value.first.side_effect = [mock_game, mock_game_state]
+        mock_db_session.query.return_value.filter.return_value.first.side_effect = [mock_game, mock_game_state]
 
         with pytest.raises(ValueError, match="Game has already ended"):
             service.start_game(1, [1, 2, 3, 4, 5], [6, 7, 8, 9, 10])
 
-    def test_record_shot_made(self, db_session):
+    def test_record_shot_made(self, mock_db_session):
         """Test recording a made shot."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=1)
@@ -141,8 +155,8 @@ class TestGameStateService:
         service._get_player_team_id = MagicMock(return_value=1)
         service._update_player_stats = MagicMock()
 
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.record_shot(1, 5, "2pt", True)
 
@@ -152,12 +166,12 @@ class TestGameStateService:
         assert result["quarter"] == 1
 
         service._update_player_stats.assert_called_once_with(1, 5, 1, "2pt", True)
-        db_session.add.assert_called()
-        db_session.commit.assert_called_once()
+        mock_db_session.add.assert_called()
+        mock_db_session.commit.assert_called_once()
 
-    def test_record_shot_game_not_live(self, db_session):
+    def test_record_shot_game_not_live(self, mock_db_session):
         """Test recording a shot when game is not live."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state that's not live
         mock_game_state = GameState(game_id=1, is_live=False, current_quarter=1)
@@ -166,9 +180,9 @@ class TestGameStateService:
         with pytest.raises(ValueError, match="Game is not in progress"):
             service.record_shot(1, 5, "2pt", True)
 
-    def test_record_foul(self, db_session):
+    def test_record_foul(self, mock_db_session):
         """Test recording a foul."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=2)
@@ -179,8 +193,8 @@ class TestGameStateService:
         mock_stats = PlayerGameStats(game_id=1, player_id=5, fouls=1)
         service._get_or_create_player_game_stats = MagicMock(return_value=mock_stats)
 
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.record_foul(1, 5, "technical")
 
@@ -190,9 +204,9 @@ class TestGameStateService:
         assert result["total_fouls"] == 2  # Was 1, now 2
         assert mock_stats.fouls == 2
 
-    def test_substitute_players(self, db_session):
+    def test_substitute_players(self, mock_db_session):
         """Test substituting players."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=3)
@@ -201,10 +215,10 @@ class TestGameStateService:
 
         # Mock active roster entry
         mock_roster = ActiveRoster(game_id=1, player_id=5, checked_out_at=None)
-        db_session.query.return_value.filter.return_value.first.return_value = mock_roster
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_roster
 
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.substitute_players(1, 1, [5], [15])
 
@@ -217,26 +231,26 @@ class TestGameStateService:
         assert mock_roster.checked_out_at is not None
         service._check_in_players.assert_called_once_with(1, 1, [15])
 
-    def test_end_quarter(self, db_session):
+    def test_end_quarter(self, mock_db_session):
         """Test ending a quarter."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=2)
         service._get_game_state = MagicMock(return_value=mock_game_state)
 
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.end_quarter(1)
 
         assert result.current_quarter == 3
-        db_session.add.assert_called()  # For GameEvent
-        db_session.commit.assert_called_once()
+        mock_db_session.add.assert_called()  # For GameEvent
+        mock_db_session.commit.assert_called_once()
 
-    def test_end_quarter_past_fourth(self, db_session):
+    def test_end_quarter_past_fourth(self, mock_db_session):
         """Test ending quarter when already in 4th quarter."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state in 4th quarter
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=4)
@@ -245,9 +259,9 @@ class TestGameStateService:
         with pytest.raises(ValueError, match="Cannot advance past 4th quarter"):
             service.end_quarter(1)
 
-    def test_finalize_game(self, db_session):
+    def test_finalize_game(self, mock_db_session):
         """Test finalizing a game."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state and game
         mock_game_state = GameState(game_id=1, is_live=True, is_final=False, current_quarter=4)
@@ -260,9 +274,9 @@ class TestGameStateService:
         service._get_game_state = MagicMock(return_value=mock_game_state)
         service._calculate_team_score = MagicMock(side_effect=[85, 78])
 
-        db_session.query.return_value.filter.return_value.first.return_value = mock_game
-        db_session.add = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_game
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.finalize_game(1)
 
@@ -276,9 +290,9 @@ class TestGameStateService:
         assert mock_game_state.is_live is False
         assert mock_game_state.is_final is True
 
-    def test_finalize_game_already_final(self, db_session):
+    def test_finalize_game_already_final(self, mock_db_session):
         """Test finalizing a game that's already final."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state that's already final
         mock_game_state = GameState(game_id=1, is_live=False, is_final=True)
@@ -287,9 +301,9 @@ class TestGameStateService:
         with pytest.raises(ValueError, match="Game is already finalized"):
             service.finalize_game(1)
 
-    def test_get_live_game_state(self, db_session):
+    def test_get_live_game_state(self, mock_db_session):
         """Test getting live game state."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock game state and game
         mock_game_state = GameState(
@@ -321,8 +335,8 @@ class TestGameStateService:
             details={"shot_type": "2pt", "made": True},
         )
 
-        db_session.query.return_value.filter.return_value.first.return_value = mock_game
-        db_session.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_game
+        mock_db_session.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value = [
             mock_event
         ]
 
@@ -338,77 +352,77 @@ class TestGameStateService:
         assert len(result["recent_events"]) == 1
         assert result["recent_events"][0]["type"] == "shot"
 
-    def test_undo_last_event_shot(self, db_session):
+    def test_undo_last_event_shot(self, mock_db_session):
         """Test undoing a shot event."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock last event
         mock_event = GameEvent(
             id=1, game_id=1, event_type="shot", player_id=5, quarter=2, details={"shot_type": "2pt", "made": True}
         )
 
-        db_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = mock_event
+        mock_db_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = mock_event
         service._undo_shot = MagicMock()
 
-        db_session.add = MagicMock()
-        db_session.delete = MagicMock()
-        db_session.commit = MagicMock()
+        mock_db_session.add = MagicMock()
+        mock_db_session.delete = MagicMock()
+        mock_db_session.commit = MagicMock()
 
         result = service.undo_last_event(1)
 
         service._undo_shot.assert_called_once_with(mock_event)
-        db_session.delete.assert_called_once_with(mock_event)
+        mock_db_session.delete.assert_called_once_with(mock_event)
         assert result["undone_event"]["id"] == 1
         assert result["undone_event"]["type"] == "shot"
 
-    def test_undo_last_event_no_events(self, db_session):
+    def test_undo_last_event_no_events(self, mock_db_session):
         """Test undoing when there are no events."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
-        db_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = None
+        mock_db_session.query.return_value.filter.return_value.order_by.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="No events to undo"):
             service.undo_last_event(1)
 
-    def test_get_game_state_not_found(self, db_session):
+    def test_get_game_state_not_found(self, mock_db_session):
         """Test getting game state that doesn't exist."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
-        db_session.query.return_value.filter.return_value.first.return_value = None
+        mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="Game state for game 1 not found"):
             service._get_game_state(1)
 
-    def test_get_player_team_id(self, db_session):
+    def test_get_player_team_id(self, mock_db_session):
         """Test getting player team ID."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         mock_player = Player(id=5, team_id=1)
-        db_session.query.return_value.filter.return_value.first.return_value = mock_player
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_player
 
         team_id = service._get_player_team_id(5)
         assert team_id == 1
 
-    def test_get_player_team_id_not_found(self, db_session):
+    def test_get_player_team_id_not_found(self, mock_db_session):
         """Test getting team ID for non-existent player."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
-        db_session.query.return_value.filter.return_value.first.return_value = None
+        mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="Player 5 not found"):
             service._get_player_team_id(5)
 
-    def test_update_player_stats_2pt_made(self, db_session):
+    def test_update_player_stats_2pt_made(self, mock_db_session):
         """Test updating player stats for a made 2-pointer."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock stats objects
         mock_game_stats = PlayerGameStats(id=1, total_2pm=0, total_2pa=0)
         mock_quarter_stats = PlayerQuarterStats(player_game_stat_id=1, quarter_number=1, fg2m=0, fg2a=0)
 
         service._get_or_create_player_game_stats = MagicMock(return_value=mock_game_stats)
-        db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
-        db_session.add = MagicMock()
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
+        mock_db_session.add = MagicMock()
 
         service._update_player_stats(1, 5, 1, "2pt", True)
 
@@ -417,17 +431,17 @@ class TestGameStateService:
         assert mock_quarter_stats.fg2m == 1
         assert mock_quarter_stats.fg2a == 1
 
-    def test_update_player_stats_3pt_missed(self, db_session):
+    def test_update_player_stats_3pt_missed(self, mock_db_session):
         """Test updating player stats for a missed 3-pointer."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock stats objects
         mock_game_stats = PlayerGameStats(id=1, total_3pm=0, total_3pa=0)
         mock_quarter_stats = PlayerQuarterStats(player_game_stat_id=1, quarter_number=2, fg3m=0, fg3a=0)
 
         service._get_or_create_player_game_stats = MagicMock(return_value=mock_game_stats)
-        db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
-        db_session.add = MagicMock()
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
+        mock_db_session.add = MagicMock()
 
         service._update_player_stats(1, 5, 2, "3pt", False)
 
@@ -436,17 +450,17 @@ class TestGameStateService:
         assert mock_quarter_stats.fg3m == 0
         assert mock_quarter_stats.fg3a == 1
 
-    def test_update_player_stats_ft_made(self, db_session):
+    def test_update_player_stats_ft_made(self, mock_db_session):
         """Test updating player stats for a made free throw."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock stats objects
         mock_game_stats = PlayerGameStats(id=1, total_ftm=0, total_fta=0)
         mock_quarter_stats = PlayerQuarterStats(player_game_stat_id=1, quarter_number=3, ftm=0, fta=0)
 
         service._get_or_create_player_game_stats = MagicMock(return_value=mock_game_stats)
-        db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
-        db_session.add = MagicMock()
+        mock_db_session.query.return_value.filter.return_value.first.return_value = mock_quarter_stats
+        mock_db_session.add = MagicMock()
 
         service._update_player_stats(1, 5, 3, "ft", True)
 
@@ -455,9 +469,9 @@ class TestGameStateService:
         assert mock_quarter_stats.ftm == 1
         assert mock_quarter_stats.fta == 1
 
-    def test_calculate_team_score(self, db_session):
+    def test_calculate_team_score(self, mock_db_session):
         """Test calculating team score."""
-        service = GameStateService(db_session)
+        service = GameStateService(mock_db_session)
 
         # Mock players
         mock_players = [Player(id=1, team_id=1), Player(id=2, team_id=1)]
@@ -468,7 +482,7 @@ class TestGameStateService:
             PlayerGameStats(id=2, player_id=2, total_ftm=1, total_2pm=3, total_3pm=1),
         ]
 
-        db_session.query.return_value.filter.return_value.all.side_effect = [mock_players, mock_stats]
+        mock_db_session.query.return_value.filter.return_value.all.side_effect = [mock_players, mock_stats]
 
         score = service._calculate_team_score(1, 1)
 

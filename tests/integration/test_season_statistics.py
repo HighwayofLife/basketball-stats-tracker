@@ -16,7 +16,6 @@ from app.data_access.crud import (
     get_team_season_stats,
 )
 from app.services.season_stats_service import SeasonStatsService
-from app.utils.stats_calculator import StatsCalculator
 
 
 @pytest.fixture
@@ -42,111 +41,129 @@ class TestSeasonStatisticsIntegration:
         player4 = create_player(db_session, team2.id, "Klay Thompson", 11)
 
         # Create games
-        game1 = create_game(db_session, date(2024, 11, 1), team1.id, team2.id)
-        game2 = create_game(db_session, date(2024, 11, 5), team2.id, team1.id)
+        game1 = create_game(db_session, "2024-11-01", team1.id, team2.id)
+        game2 = create_game(db_session, "2024-11-05", team2.id, team1.id)
 
         # Create game stats for game 1 (Lakers home)
         # Lakers players
-        create_player_game_stats(
+        from app.data_access.crud import update_player_game_stats_totals
+
+        # Create player1 stats
+        p1_stats = create_player_game_stats(db_session, game1.id, player1.id, fouls=3)
+        update_player_game_stats_totals(
             db_session,
-            game1.id,
-            player1.id,
-            fouls=3,
-            total_ftm=8,
-            total_fta=10,
-            total_2pm=10,
-            total_2pa=15,
-            total_3pm=2,
-            total_3pa=6,
+            p1_stats.id,
+            {
+                "total_ftm": 8,
+                "total_fta": 10,
+                "total_2pm": 10,
+                "total_2pa": 15,
+                "total_3pm": 2,
+                "total_3pa": 6,
+            },
         )
-        create_player_game_stats(
+        # Create player2 stats
+        p2_stats = create_player_game_stats(db_session, game1.id, player2.id, fouls=2)
+        update_player_game_stats_totals(
             db_session,
-            game1.id,
-            player2.id,
-            fouls=2,
-            total_ftm=6,
-            total_fta=8,
-            total_2pm=12,
-            total_2pa=18,
-            total_3pm=0,
-            total_3pa=2,
+            p2_stats.id,
+            {
+                "total_ftm": 6,
+                "total_fta": 8,
+                "total_2pm": 12,
+                "total_2pa": 18,
+                "total_3pm": 0,
+                "total_3pa": 2,
+            },
         )
         # Warriors players
-        create_player_game_stats(
+        # Create player3 stats
+        p3_stats = create_player_game_stats(db_session, game1.id, player3.id, fouls=2)
+        update_player_game_stats_totals(
             db_session,
-            game1.id,
-            player3.id,
-            fouls=2,
-            total_ftm=10,
-            total_fta=10,
-            total_2pm=6,
-            total_2pa=10,
-            total_3pm=8,
-            total_3pa=14,
+            p3_stats.id,
+            {
+                "total_ftm": 10,
+                "total_fta": 10,
+                "total_2pm": 6,
+                "total_2pa": 10,
+                "total_3pm": 8,
+                "total_3pa": 14,
+            },
         )
-        create_player_game_stats(
+        # Create player4 stats
+        p4_stats = create_player_game_stats(db_session, game1.id, player4.id, fouls=4)
+        update_player_game_stats_totals(
             db_session,
-            game1.id,
-            player4.id,
-            fouls=4,
-            total_ftm=4,
-            total_fta=6,
-            total_2pm=8,
-            total_2pa=12,
-            total_3pm=5,
-            total_3pa=10,
+            p4_stats.id,
+            {
+                "total_ftm": 4,
+                "total_fta": 6,
+                "total_2pm": 8,
+                "total_2pa": 12,
+                "total_3pm": 5,
+                "total_3pa": 10,
+            },
         )
 
         # Create game stats for game 2 (Warriors home)
         # Lakers players
-        create_player_game_stats(
+        # Create player1 stats for game2
+        p1_g2_stats = create_player_game_stats(db_session, game2.id, player1.id, fouls=4)
+        update_player_game_stats_totals(
             db_session,
-            game2.id,
-            player1.id,
-            fouls=4,
-            total_ftm=6,
-            total_fta=8,
-            total_2pm=12,
-            total_2pa=18,
-            total_3pm=3,
-            total_3pa=8,
+            p1_g2_stats.id,
+            {
+                "total_ftm": 6,
+                "total_fta": 8,
+                "total_2pm": 12,
+                "total_2pa": 18,
+                "total_3pm": 3,
+                "total_3pa": 8,
+            },
         )
-        create_player_game_stats(
+        # Create player2 stats for game2
+        p2_g2_stats = create_player_game_stats(db_session, game2.id, player2.id, fouls=3)
+        update_player_game_stats_totals(
             db_session,
-            game2.id,
-            player2.id,
-            fouls=3,
-            total_ftm=8,
-            total_fta=10,
-            total_2pm=10,
-            total_2pa=14,
-            total_3pm=1,
-            total_3pa=3,
+            p2_g2_stats.id,
+            {
+                "total_ftm": 8,
+                "total_fta": 10,
+                "total_2pm": 10,
+                "total_2pa": 14,
+                "total_3pm": 1,
+                "total_3pa": 3,
+            },
         )
         # Warriors players
-        create_player_game_stats(
+        # Create player3 stats for game2
+        p3_g2_stats = create_player_game_stats(db_session, game2.id, player3.id, fouls=1)
+        update_player_game_stats_totals(
             db_session,
-            game2.id,
-            player3.id,
-            fouls=1,
-            total_ftm=8,
-            total_fta=8,
-            total_2pm=8,
-            total_2pa=12,
-            total_3pm=10,
-            total_3pa=16,
+            p3_g2_stats.id,
+            {
+                "total_ftm": 8,
+                "total_fta": 8,
+                "total_2pm": 8,
+                "total_2pa": 12,
+                "total_3pm": 10,
+                "total_3pa": 16,
+            },
         )
-        create_player_game_stats(
+        # Create player4 stats for game2
+        p4_g2_stats = create_player_game_stats(db_session, game2.id, player4.id, fouls=3)
+        update_player_game_stats_totals(
             db_session,
-            game2.id,
-            player4.id,
-            fouls=3,
-            total_ftm=2,
-            total_fta=4,
-            total_2pm=6,
-            total_2pa=10,
-            total_3pm=6,
-            total_3pa=12,
+            p4_g2_stats.id,
+            {
+                "total_ftm": 2,
+                "total_fta": 4,
+                "total_2pm": 6,
+                "total_2pa": 10,
+                "total_3pm": 6,
+                "total_3pa": 12,
+            },
         )
 
         return {
@@ -157,8 +174,7 @@ class TestSeasonStatisticsIntegration:
 
     def test_update_season_stats_integration(self, db_session: Session, setup_test_data):
         """Test updating season statistics for all players and teams."""
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
 
         # Update all season stats
         season_service.update_all_season_stats("2024-2025")
@@ -187,8 +203,7 @@ class TestSeasonStatisticsIntegration:
 
     def test_player_rankings_integration(self, db_session: Session, setup_test_data):
         """Test player rankings functionality."""
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
 
         # Update season stats first
         season_service.update_all_season_stats("2024-2025")
@@ -206,8 +221,7 @@ class TestSeasonStatisticsIntegration:
 
     def test_team_standings_integration(self, db_session: Session, setup_test_data):
         """Test team standings functionality."""
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
 
         # Update season stats first
         season_service.update_all_season_stats("2024-2025")
@@ -233,8 +247,7 @@ class TestSeasonStatisticsIntegration:
     def test_cli_season_report_standings(self, db_session: Session, setup_test_data, cli_runner: CliRunner):
         """Test CLI season report for standings."""
         # Update season stats first
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
         season_service.update_all_season_stats("2024-2025")
 
         # Run CLI command
@@ -250,8 +263,7 @@ class TestSeasonStatisticsIntegration:
     def test_cli_season_report_player_leaders(self, db_session: Session, setup_test_data, cli_runner: CliRunner):
         """Test CLI season report for player leaders."""
         # Update season stats first
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
         season_service.update_all_season_stats("2024-2025")
 
         # Run CLI command for PPG leaders
@@ -280,8 +292,7 @@ class TestSeasonStatisticsIntegration:
 
     def test_season_detection(self, db_session: Session):
         """Test automatic season detection based on game dates."""
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
 
         # Test various dates
         assert season_service.get_season_from_date(date(2024, 10, 1)) == "2024-2025"
@@ -293,8 +304,7 @@ class TestSeasonStatisticsIntegration:
     def test_csv_export_season_report(self, db_session: Session, setup_test_data, cli_runner: CliRunner, tmp_path):
         """Test CSV export of season reports."""
         # Update season stats first
-        stats_calculator = StatsCalculator()
-        season_service = SeasonStatsService(db_session, stats_calculator)
+        season_service = SeasonStatsService(db_session)
         season_service.update_all_season_stats("2024-2025")
 
         # Export standings to CSV

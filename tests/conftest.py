@@ -23,6 +23,19 @@ def test_db_url() -> str:
 
 
 @pytest.fixture
+def test_db_file_url() -> Generator[str, None, None]:
+    """
+    Returns a database URL for a temporary file-based SQLite database.
+    Use this for integration tests with FastAPI TestClient.
+    """
+    with tempfile.NamedTemporaryFile(suffix=".db", delete=False) as temp_db:
+        db_url = f"sqlite:///{temp_db.name}"
+        yield db_url
+        # Clean up the temp file
+        os.unlink(temp_db.name)
+
+
+@pytest.fixture
 def test_shot_mapping() -> dict[str, dict[str, Any]]:
     """
     Returns a shot mapping for testing.
@@ -54,6 +67,36 @@ def db_session(db_engine) -> Generator[Session, None, None]:
     Creates a SQLAlchemy session for database operations during tests.
     """
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=db_engine)
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
+
+
+@pytest.fixture
+def test_db_file_engine(test_db_file_url: str):
+    """
+    Creates a SQLAlchemy engine for a file-based database.
+    Use this for integration tests with FastAPI TestClient.
+    """
+
+    engine = create_engine(test_db_file_url, connect_args={"check_same_thread": False})
+
+    # Create all tables using metadata (includes soft delete columns)
+    Base.metadata.drop_all(engine)  # Clean slate
+    Base.metadata.create_all(engine)
+
+    yield engine
+    Base.metadata.drop_all(engine)
+
+
+@pytest.fixture
+def test_db_file_session(test_db_file_engine) -> Generator[Session, None, None]:
+    """
+    Creates a SQLAlchemy session for file-based database operations during integration tests.
+    """
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_db_file_engine)
     session = SessionLocal()
     try:
         yield session

@@ -671,7 +671,9 @@ class TestReportGenerator:
 
         # Set up player game stats mock
         mock_crud_pgs.get_player_game_stats_by_game.return_value = [
-            pgs for pgs in mock_game_data["player_game_stats"] if pgs.player_id in (1, 2)  # Team A players
+            pgs
+            for pgs in mock_game_data["player_game_stats"]
+            if pgs.player_id in (1, 2)  # Team A players
         ]
 
         # Set up quarter stats mock
@@ -736,7 +738,9 @@ class TestReportGenerator:
 
         # Set up player game stats mock
         team_a_player_stats = [
-            pgs for pgs in mock_game_data["player_game_stats"] if pgs.player_id in (1, 2)  # Team A players
+            pgs
+            for pgs in mock_game_data["player_game_stats"]
+            if pgs.player_id in (1, 2)  # Team A players
         ]
         mock_crud_pgs.get_player_game_stats_by_game.return_value = team_a_player_stats
 

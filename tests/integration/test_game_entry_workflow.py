@@ -4,7 +4,7 @@ Integration tests for the complete game entry workflow.
 
 from contextlib import contextmanager
 from datetime import date
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
@@ -30,15 +30,29 @@ def test_client():
 
 
 @pytest.fixture
-def mock_db_manager(db_session):
+def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
     """Mock the database manager to use the test session."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    # Ensure database is created with proper schema
+    from app.data_access.models import Base
+
+    Base.metadata.create_all(test_db_file_engine)
 
     @contextmanager
     def get_db_session_mock():
+        # Always create a new engine with the same URL to ensure consistent schema
+        engine = create_engine(test_db_file_url, connect_args={"check_same_thread": False})
+
+        # Debug logging removed - mock is working correctly
+
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        session = SessionLocal()
         try:
-            yield db_session
+            yield session
         finally:
-            pass
+            session.close()
 
     # Create a mock of the database manager
     mock_manager = MagicMock()
@@ -48,9 +62,24 @@ def mock_db_manager(db_session):
     original_manager = db_manager.db_manager
     db_manager.db_manager = mock_manager
 
-    # Patch the get_db_session function in the API module
-    with patch("app.web_ui.api.get_db_session", get_db_session_mock):
-        yield mock_manager
+    # Patch get_db_session in all the places where it's used
+    from app.data_access import db_session
+    from app.web_ui import dependencies
+    from app.web_ui.routers import admin, games, pages, players
+
+    # Patch the original module
+    monkeypatch.setattr(db_session, "get_db_session", get_db_session_mock)
+
+    # Patch in dependencies
+    monkeypatch.setattr(dependencies, "get_db_session", get_db_session_mock)
+
+    # Patch in all router modules that have already imported it
+    monkeypatch.setattr(players, "get_db_session", get_db_session_mock)
+    monkeypatch.setattr(games, "get_db_session", get_db_session_mock)
+    monkeypatch.setattr(admin, "get_db_session", get_db_session_mock)
+    monkeypatch.setattr(pages, "get_db_session", get_db_session_mock)
+
+    yield mock_manager
 
     # Restore the original database manager
     db_manager.db_manager = original_manager
@@ -59,8 +88,12 @@ def mock_db_manager(db_session):
 class TestGameEntryWorkflow:
     """Integration tests for the complete game entry workflow."""
 
-    def test_complete_team_player_game_workflow(self, db_session, test_client, mock_db_manager):
+    def test_complete_team_player_game_workflow(self, test_db_file_engine, test_client, mock_db_manager):
         """Test the complete workflow from creating teams to entering game data."""
+        from sqlalchemy.orm import Session
+
+        # Create a session for database verification queries
+        db_session = Session(bind=test_db_file_engine)
 
         # Step 1: Create teams
         team1_response = test_client.post("/v1/teams/new", json={"name": "Lakers"})
@@ -151,6 +184,7 @@ class TestGameEntryWorkflow:
         assert start_response_data["current_quarter"] == 1
 
         # Verify game state was updated
+        db_session.expire_all()  # Refresh all objects from database
         game_state = db_session.query(GameState).filter(GameState.game_id == game_id).first()
         assert game_state.is_live is True
 
@@ -289,8 +323,9 @@ class TestGameEntryWorkflow:
         assert lebron_q1_stats.fg2m == 1
         assert lebron_q1_stats.fg2a == 1
 
-    def test_team_management_workflow(self, db_session, test_client, mock_db_manager):
+    def test_team_management_workflow(self, test_db_file_session, test_client, mock_db_manager):
         """Test the team management workflow including CRUD operations."""
+        db_session = test_db_file_session  # Use file-based session for database queries
 
         # Create a team
         team_response = test_client.post("/v1/teams/new", json={"name": "Test Team"})
@@ -365,8 +400,9 @@ class TestGameEntryWorkflow:
         team_check = db_session.query(Team).filter(Team.id == team_id).first()
         assert team_check is None
 
-    def test_game_state_service_integration(self, db_session):
+    def test_game_state_service_integration(self, test_db_file_session):
         """Test the GameStateService integration with the database."""
+        db_session = test_db_file_session  # Use file-based session for database queries
 
         # Create teams and players directly in the database
         team1 = Team(name="Home Team")
@@ -433,8 +469,9 @@ class TestGameEntryWorkflow:
         assert final_state.is_live is False
         assert final_state.is_final is True
 
-    def test_error_handling_workflow(self, db_session, test_client, mock_db_manager):
+    def test_error_handling_workflow(self, test_db_file_session, test_client, mock_db_manager):
         """Test error handling in various workflow scenarios."""
+        db_session = test_db_file_session  # Use file-based session for database queries
 
         # Try to create player for non-existent team
         player_data = {"name": "Test Player", "team_id": 999, "jersey_number": 1}

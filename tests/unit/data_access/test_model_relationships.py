@@ -183,9 +183,9 @@ class TestModelRelationships:
 
         # Test backward relationships
         assert game_stats in player.game_stats
-        assert game_stats in game.player_stats
+        assert game_stats in game.player_game_stats
         assert len(player.game_stats) == 1
-        assert len(game.player_stats) == 1
+        assert len(game.player_game_stats) == 1
 
     def test_player_quarter_stats_relationships(self, db_session):
         """Test the relationships for PlayerQuarterStats."""
