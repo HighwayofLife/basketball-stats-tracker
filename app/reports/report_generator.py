@@ -313,7 +313,7 @@ class ReportGenerator:
 
         # Fill in with actual data
         for qs in quarter_stats:
-            quarter_map[qs.quarter] = qs
+            quarter_map[qs.quarter_number] = qs
 
         # Create dummy stats for missing quarters
         for q in range(1, quarters + 1):
@@ -322,7 +322,7 @@ class ReportGenerator:
                 dummy_stat = type(
                     "DummyQuarterStat",
                     (),
-                    {"quarter": q, "ftm": 0, "fta": 0, "fg2m": 0, "fg2a": 0, "fg3m": 0, "fg3a": 0},
+                    {"quarter_number": q, "ftm": 0, "fta": 0, "fg2m": 0, "fg2a": 0, "fg3m": 0, "fg3a": 0},
                 )
                 quarter_map[q] = dummy_stat
 
@@ -479,7 +479,7 @@ class ReportGenerator:
             # Add the quarter's stats to the breakdown
             quarter_breakdown.append(
                 {
-                    "quarter": qs.quarter,
+                    "quarter": qs.quarter_number,
                     "ftm": qs.ftm,
                     "fta": qs.fta,
                     "ft_pct": self.stats_calculator.calculate_percentage(qs.ftm, qs.fta),
@@ -676,50 +676,28 @@ class ReportGenerator:
                 continue
 
             quarter_stats = crud_player_quarter_stats.get_player_quarter_stats(self.db_session, pgs.id)
-            quarter_stats = self._handle_missing_quarter_data(quarter_stats)
+            quarter_stats_dict = self._handle_missing_quarter_data(quarter_stats)
 
             # Calculate player box score
             player_box_score, total_fgm, total_fga = self._calculate_player_box_score(
-                player, pgs, quarter_stats, playing_team, opponent_team
+                player, pgs, quarter_stats_dict, playing_team, opponent_team
             )
 
             # Calculate per-quarter points for this player
             quarter_points = {}
 
-            # Handle quarter_stats whether it's a list of objects or a dict with integer keys
-            if isinstance(quarter_stats, dict):
-                # If quarter_stats is a dictionary, iterate over its items
-                for quarter_num, qs in quarter_stats.items():
-                    # Get values, handling both object attributes and direct values
-                    ftm = getattr(qs, "ftm", qs) if hasattr(qs, "ftm") else 0
-                    fg2m = getattr(qs, "fg2m", qs) if hasattr(qs, "fg2m") else 0
-                    fg3m = getattr(qs, "fg3m", qs) if hasattr(qs, "fg3m") else 0
+            # quarter_stats_dict is always a dict after _handle_missing_quarter_data processing
+            for quarter_num, qs in quarter_stats_dict.items():
+                # Get values from the quarter stats object
+                ftm = getattr(qs, "ftm", 0)
+                fg2m = getattr(qs, "fg2m", 0)
+                fg3m = getattr(qs, "fg3m", 0)
 
-                    points = ftm + (fg2m * 2) + (fg3m * 3)
-                    quarter_points[quarter_num] = points
+                points = ftm + (fg2m * 2) + (fg3m * 3)
+                quarter_points[quarter_num] = points
 
-                    # Add to team quarter totals
-                    quarter_scoring[quarter_num] = quarter_scoring.get(quarter_num, 0) + points
-            else:
-                # If quarter_stats is a list of objects
-                for qs in quarter_stats:
-                    ftm = qs.ftm if hasattr(qs, "ftm") else 0
-                    fg2m = qs.fg2m if hasattr(qs, "fg2m") else 0
-                    fg3m = qs.fg3m if hasattr(qs, "fg3m") else 0
-
-                    points = ftm + (fg2m * 2) + (fg3m * 3)
-                    # Get quarter number, checking different possible attribute names
-                    if hasattr(qs, "quarter"):
-                        quarter_number = qs.quarter
-                    elif hasattr(qs, "quarter_number"):
-                        quarter_number = qs.quarter_number
-                    else:
-                        quarter_number = 0
-
-                    quarter_points[quarter_number] = points
-
-                    # Add to team quarter totals
-                    quarter_scoring[quarter_number] = quarter_scoring.get(quarter_number, 0) + points
+                # Add to team quarter totals
+                quarter_scoring[quarter_num] = quarter_scoring.get(quarter_num, 0) + points
 
             # Add player scoring data
             ft_points = player_box_score["ftm"]

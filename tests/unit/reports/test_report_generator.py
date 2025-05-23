@@ -238,7 +238,7 @@ class TestReportGenerator:
 
         # Set up quarter stats
         quarter_stats = [
-            MagicMock(player_game_stats_id=pgs.id, quarter=q, ftm=1, fta=2, fg2m=2, fg2a=4, fg3m=1, fg3a=2)
+            MagicMock(player_game_stats_id=pgs.id, quarter_number=q, ftm=1, fta=2, fg2m=2, fg2a=4, fg3m=1, fg3a=2)
             for q in range(1, 5)
         ]
         mock_crud_pqs.get_player_quarter_stats.return_value = quarter_stats
@@ -355,8 +355,8 @@ class TestReportGenerator:
 
             # Mock quarter stats retrieval - make sure it's not empty
             mock_crud_pqs.get_player_quarter_stats.return_value = [
-                MagicMock(quarter=1, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2),
-                MagicMock(quarter=2, ftm=0, fta=0, fg2m=1, fg2a=2, fg3m=0, fg3a=1),
+                MagicMock(quarter_number=1, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2),
+                MagicMock(quarter_number=2, ftm=0, fta=0, fg2m=1, fg2a=2, fg3m=0, fg3a=1),
             ]
 
             # Override the calculation method to ensure it returns data
@@ -552,7 +552,7 @@ class TestReportGenerator:
         mock_crud_pgs.get_player_game_stats.return_value = pgs
         # Provide MagicMock objects for all four quarters for the player
         mock_quarters = [
-            MagicMock(player_game_stats_id=pgs.id, quarter=q, ftm=1, fta=2, fg2m=2, fg2a=4, fg3m=1, fg3a=2)
+            MagicMock(player_game_stats_id=pgs.id, quarter_number=q, ftm=1, fta=2, fg2m=2, fg2a=4, fg3m=1, fg3a=2)
             for q in range(1, 5)
         ]
         mock_crud_pqs.get_player_quarter_stats.return_value = mock_quarters
@@ -671,16 +671,14 @@ class TestReportGenerator:
 
         # Set up player game stats mock
         mock_crud_pgs.get_player_game_stats_by_game.return_value = [
-            pgs
-            for pgs in mock_game_data["player_game_stats"]
-            if pgs.player_id in (1, 2)  # Team A players
+            pgs for pgs in mock_game_data["player_game_stats"] if pgs.player_id in (1, 2)  # Team A players
         ]
 
         # Set up quarter stats mock
         def mock_get_quarter_stats(session, pgs_id):
             # Create some mock quarter stats data for all four quarters
             quarters = [
-                MagicMock(player_game_stats_id=pgs_id, quarter=q, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2)
+                MagicMock(player_game_stats_id=pgs_id, quarter_number=q, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2)
                 for q in range(1, 5)
             ]
             return quarters
@@ -738,9 +736,7 @@ class TestReportGenerator:
 
         # Set up player game stats mock
         team_a_player_stats = [
-            pgs
-            for pgs in mock_game_data["player_game_stats"]
-            if pgs.player_id in (1, 2)  # Team A players
+            pgs for pgs in mock_game_data["player_game_stats"] if pgs.player_id in (1, 2)  # Team A players
         ]
         mock_crud_pgs.get_player_game_stats_by_game.return_value = team_a_player_stats
 
@@ -748,7 +744,7 @@ class TestReportGenerator:
         def mock_get_quarter_stats(session, pgs_id):
             # Create some mock quarter stats data for all four quarters
             quarters = [
-                MagicMock(player_game_stats_id=pgs_id, quarter=q, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2)
+                MagicMock(player_game_stats_id=pgs_id, quarter_number=q, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2)
                 for q in range(1, 5)
             ]
             return quarters
@@ -805,3 +801,47 @@ class TestReportGenerator:
             # Verify that we called the correct methods
             mock_fetch.assert_called_once_with(game.id)
             mock_crud_pgs.get_player_game_stats_by_game.assert_called_once_with(db_session, game.id)
+
+    def test_quarter_stats_with_correct_attribute_names(self, db_session, mock_stats_calculator, mock_game_data):
+        """Test that quarter stats work with actual model attribute names (quarter_number, not quarter)."""
+        # This test would have caught the bug where the code referenced qs.quarter instead of qs.quarter_number
+
+        # Create mock quarter stats that only have quarter_number (like the real model)
+        quarter_stats = []
+        for q in range(1, 5):
+            qs = MagicMock(spec=PlayerQuarterStats)
+            qs.player_game_stat_id = 1
+            qs.quarter_number = q  # Only quarter_number, not quarter
+            # Remove quarter attribute to match real model
+            if hasattr(qs, "quarter"):
+                delattr(qs, "quarter")
+            qs.ftm = 1
+            qs.fta = 2
+            qs.fg2m = 2
+            qs.fg2a = 4
+            qs.fg3m = 1
+            qs.fg3a = 2
+            quarter_stats.append(qs)
+
+        report_generator = ReportGenerator(db_session, mock_stats_calculator)
+
+        # Test _handle_missing_quarter_data with actual model-like objects
+        result = report_generator._handle_missing_quarter_data(quarter_stats)
+
+        # Should return a dict with quarter numbers as keys
+        assert isinstance(result, dict)
+        assert len(result) == 4
+        for q in range(1, 5):
+            assert q in result
+            assert result[q].quarter_number == q
+
+        # Test _get_quarter_stats_breakdown with these stats
+        breakdown = report_generator._get_quarter_stats_breakdown(quarter_stats)
+
+        # Should complete without AttributeError
+        assert isinstance(breakdown, list)
+        assert len(breakdown) == 4
+        for i, quarter_data in enumerate(breakdown):
+            assert quarter_data["quarter"] == i + 1
+            assert "ftm" in quarter_data
+            assert "points" in quarter_data

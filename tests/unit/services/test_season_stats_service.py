@@ -1,11 +1,11 @@
 """Unit tests for the season statistics service."""
 
 import datetime
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
-from app.data_access.models import Game, PlayerGameStats, PlayerSeasonStats, TeamSeasonStats
+from app.data_access.models import PlayerGameStats, PlayerSeasonStats
 from app.services.season_stats_service import SeasonStatsService
 
 
@@ -133,9 +133,7 @@ class TestSeasonStatsService:
 
         mock_query = MagicMock()
         mock_query.all.return_value = [stats1, stats2]
-        mock_db_session.query.return_value.join.return_value.join.return_value.filter.return_value.options.return_value = (
-            mock_query
-        )
+        mock_db_session.query.return_value.join.return_value.join.return_value.filter.return_value.options.return_value = mock_query
 
         rankings = season_stats_service.get_player_rankings("ppg", limit=2)
 
@@ -169,9 +167,7 @@ class TestSeasonStatsService:
         )
 
         mock_query_result = [stats1, stats2]
-        mock_db_session.query.return_value.join.return_value.filter.return_value.options.return_value.all.return_value = (
-            mock_query_result
-        )
+        mock_db_session.query.return_value.join.return_value.filter.return_value.options.return_value.all.return_value = mock_query_result
 
         standings = season_stats_service.get_team_standings()
 
