@@ -101,7 +101,7 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                 result.append(
                     GameSummary(
                         id=game.id,
-                        date=game.date,
+                        date=game.date.isoformat() if game.date else "",
                         home_team=game.playing_team.name,
                         home_team_id=game.playing_team_id,
                         away_team=game.opponent_team.name,
@@ -136,7 +136,7 @@ async def get_game(game_id: int):
 
             return GameSummary(
                 id=game.id,
-                date=game.date,
+                date=game.date.isoformat() if game.date else "",
                 home_team=game.playing_team.name,
                 home_team_id=game.playing_team_id,
                 away_team=game.opponent_team.name,

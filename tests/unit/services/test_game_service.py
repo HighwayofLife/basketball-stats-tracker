@@ -2,6 +2,7 @@
 Test module for the GameService.
 """
 
+from datetime import date, datetime
 from unittest.mock import MagicMock, patch
 
 from app.data_access.models import Game, Team
@@ -67,7 +68,10 @@ class TestGameService:
         mock_get_team = MagicMock(return_value=None)
         mock_create_team_a = MagicMock(return_value=Team(id=1, name="Team A"))
         mock_create_team_b = MagicMock(return_value=Team(id=2, name="Team B"))
-        mock_create_game = MagicMock(return_value=Game(id=1, date="2025-05-01", playing_team_id=1, opponent_team_id=2))
+
+        # Convert string date to date object for test
+        test_date = datetime.strptime("2025-05-01", "%Y-%m-%d").date()
+        mock_create_game = MagicMock(return_value=Game(id=1, date=test_date, playing_team_id=1, opponent_team_id=2))
 
         with patch("app.services.game_service.get_team_by_name", mock_get_team):
             with patch(
@@ -79,7 +83,7 @@ class TestGameService:
                     game = service.add_game("2025-05-01", "Team A", "Team B")
 
                     assert game.id == 1
-                    assert game.date == "2025-05-01"
+                    assert game.date == test_date
                     assert game.playing_team_id == 1
                     assert game.opponent_team_id == 2
                     mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
@@ -89,7 +93,10 @@ class TestGameService:
         # Mock the CRUD functions
         mock_get_team_a = MagicMock(return_value=Team(id=1, name="Team A"))
         mock_get_team_b = MagicMock(return_value=Team(id=2, name="Team B"))
-        mock_create_game = MagicMock(return_value=Game(id=1, date="2025-05-01", playing_team_id=1, opponent_team_id=2))
+
+        # Convert string date to date object for test
+        test_date = datetime.strptime("2025-05-01", "%Y-%m-%d").date()
+        mock_create_game = MagicMock(return_value=Game(id=1, date=test_date, playing_team_id=1, opponent_team_id=2))
 
         def mock_get_team_side_effect(db_session, team_name):
             if team_name == "Team A":
@@ -104,7 +111,7 @@ class TestGameService:
                 game = service.add_game("2025-05-01", "Team A", "Team B")
 
                 assert game.id == 1
-                assert game.date == "2025-05-01"
+                assert game.date == test_date
                 assert game.playing_team_id == 1
                 assert game.opponent_team_id == 2
                 mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
