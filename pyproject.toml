@@ -34,8 +34,8 @@ keywords = [
 ]
 
 dependencies = [
-  "flask>=2.0.0,<3.0.0", # Web framework
-  "uvicorn[standard]>=0.20.0,<0.31.0", # ASGI server for running the app
+  "flask>=3.0,<4.0", # Web framework
+  "uvicorn[standard]>=0.20.0,<0.35.0", # ASGI server for running the app
   "SQLAlchemy>=2.0.0,<3.0.0", # ORM for database interactions
   "alembic>=1.12.0,<2.0.0", # Database migration tool
   "pydantic>=2.0,<3.0", # Data validation
@@ -54,24 +54,25 @@ dependencies = [
 [project.optional-dependencies]
 
 test = [
-  "pytest>=7.0,<8.0", # Testing framework
-  "pytest-cov>=4.0,<5.0", # Coverage reporting
-  "pytest-asyncio>=0.20,<1.0", # Async support for pytest
-  "httpx>=0.24,<1.0", # HTTP client for testing
-  "pytest-httpx>=0.22,<1.0", # Mocking HTTP requests in tests
-  "pytest-mock>=3.10,<4.0", # Mocking library for pytest
-  "coverage>=7.2,<8.0", # Code coverage tool
-  "debugpy>=1.6,<2.0", # Debugging tool
+  "pytest>=8.0", # Testing framework
+  "pytest-cov>=6.0", # Coverage reporting
+  "pytest-asyncio>=0.20", # Async support for pytest
+  "httpx>=0.24", # HTTP client for testing
+  "pytest-httpx>=0.22", # Mocking HTTP requests in tests
+  "pytest-mock>=3.10", # Mocking library for pytest
+  "coverage>=7.2", # Code coverage tool
+  "debugpy>=1.6", # Debugging tool
 ]
 
 # Dev should inherit from test dependencies and install additional tools
 dev = [
   "basketball_stats_tracker[test]",  # Include all test dependencies
-  "ruff>=0.1.0,<1.0", # Linter and formatter
-  "pylint>=3.3,<4.0", # Linter
-  "black>=25.1,<26.0", # Code formatter
-  "mypy>=1.10,<2.0", # Static type checker
-  "autopep8>=2.0,<3.0", # Code formatter
+  "ruff>=0.1.0", # Linter and formatter
+  "pylint>=3.3", # Linter
+  "black>=25.1", # Code formatter
+  "mypy>=1.10", # Static type checker
+  "autopep8>=2.0", # Code formatter
+  "autopep695>=1.1", # Code formatter
 ]
 
 # Build dependencies for creating standalone executables
