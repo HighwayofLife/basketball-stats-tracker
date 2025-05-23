@@ -269,9 +269,12 @@ class ReportGenerator:
         Returns:
             Dictionary with game summary information
         """
+        # Format date as string for display
+        date_str = game.date.strftime("%Y-%m-%d") if hasattr(game.date, "strftime") else str(game.date)
+
         return {
             "game_id": game.id,
-            "date": game.date,
+            "date": date_str,
             "playing_team": playing_team.name,
             "opponent_team": opponent_team.name,
             "team_points": team_totals["points"],
@@ -433,9 +436,12 @@ class ReportGenerator:
         )
 
         # Add additional details for the performance report
+        # Format date for display
+        date_str = game.date.strftime("%Y-%m-%d") if hasattr(game.date, "strftime") else str(game.date)
+
         performance_report = {
             **player_box_score,  # Include all box score stats
-            "game_date": game.date,
+            "game_date": date_str,
             "opponent": opponent_team.name if player.team_id == playing_team.id else playing_team.name,
             "quarter_breakdown": self._get_quarter_stats_breakdown(quarter_stats),
         }
@@ -584,9 +590,12 @@ class ReportGenerator:
         # Calculate team percentage stats
         self._calculate_team_percentages(team_totals)
 
+        # Format date for display
+        date_str = game.date.strftime("%Y-%m-%d") if hasattr(game.date, "strftime") else str(game.date)
+
         # Create the efficiency report
         efficiency_report = {
-            "game_date": game.date,
+            "game_date": date_str,
             "team_name": selected_team.name,
             "opponent_name": other_team.name,
             "team_points": team_totals["points"],
@@ -744,9 +753,12 @@ class ReportGenerator:
         fg2_points_team = team_totals["fg2m"] * 2
         fg3_points_team = team_totals["fg3m"] * 3
 
+        # Format date for display
+        date_str = game.date.strftime("%Y-%m-%d") if hasattr(game.date, "strftime") else str(game.date)
+
         # Create the scoring analysis report
         scoring_analysis = {
-            "game_date": game.date,
+            "game_date": date_str,
             "team_name": selected_team.name,
             "opponent_name": other_team.name,
             "team_points": team_totals["points"],
@@ -850,9 +862,12 @@ class ReportGenerator:
             quarter: playing_team_quarters[quarter] - opponent_team_quarters[quarter] for quarter in range(1, 5)
         }
 
+        # Format date for display
+        date_str = game.date.strftime("%Y-%m-%d") if hasattr(game.date, "strftime") else str(game.date)
+
         # Create the game flow report
         game_flow_report = {
-            "game_date": game.date,
+            "game_date": date_str,
             "playing_team": {
                 "name": playing_team.name,
                 "quarter_scoring": playing_team_quarters,

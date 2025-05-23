@@ -2,25 +2,29 @@
 CRUD operations for Game model.
 """
 
+from datetime import date, datetime
+
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Game
 
 
-def create_game(db: Session, date: str, playing_team_id: int, opponent_team_id: int) -> Game:
+def create_game(db: Session, date_str: str, playing_team_id: int, opponent_team_id: int) -> Game:
     """
     Create a new game in the database.
 
     Args:
         db: SQLAlchemy database session
-        date: Date of the game in YYYY-MM-DD format
+        date_str: Date of the game in YYYY-MM-DD format
         playing_team_id: ID of the home/playing team
         opponent_team_id: ID of the away/opponent team
 
     Returns:
         The created Game instance
     """
-    game = Game(date=date, playing_team_id=playing_team_id, opponent_team_id=opponent_team_id)
+    # Convert string date to date object
+    game_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    game = Game(date=game_date, playing_team_id=playing_team_id, opponent_team_id=opponent_team_id)
     db.add(game)
     db.commit()
     db.refresh(game)
@@ -67,4 +71,8 @@ def get_games_by_date_range(db: Session, start_date: str, end_date: str) -> list
     Returns:
         List of Game instances within the date range
     """
-    return db.query(Game).filter(Game.date >= start_date, Game.date <= end_date).all()
+    # Convert string dates to date objects
+    start_date_obj = datetime.strptime(start_date, "%Y-%m-%d").date()
+    end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
+
+    return db.query(Game).filter(Game.date >= start_date_obj, Game.date <= end_date_obj).all()

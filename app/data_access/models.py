@@ -1,7 +1,9 @@
 # pylint: disable=R0903  # Too few public methods
 """SQLAlchemy ORM models for the basketball stats application."""
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, String, UniqueConstraint
+from datetime import date
+
+from sqlalchemy import CheckConstraint, Date, ForeignKey, Integer, String, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -61,7 +63,7 @@ class Game(Base):
     __tablename__ = "games"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    date: Mapped[str] = mapped_column(String, nullable=False)  # Could use Date type if preferred
+    date: Mapped[date] = mapped_column(Date, nullable=False)  # Using Date type for better query support
     playing_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
     opponent_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
 

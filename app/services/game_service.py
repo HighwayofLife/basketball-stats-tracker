@@ -43,7 +43,7 @@ class GameService:
         playing_team = self.get_or_create_team(playing_team_name)
         opponent_team = self.get_or_create_team(opponent_team_name)
 
-        # Create the game
+        # Create the game - date string will be converted to date object in create_game
         return create_game(self._db_session, date, playing_team.id, opponent_team.id)
 
     def get_or_create_team(self, team_name: str) -> Team:
