@@ -4,6 +4,7 @@ Integration test for the import-game CLI command to ensure it works with game_st
 
 import os
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 
 import pytest
@@ -70,7 +71,8 @@ def test_import_game_template(cli_runner, template_csv_path, db_session, monkeyp
     # Check the game was created
     games = db_session.query(Game).all()
     assert len(games) == 1
-    assert games[0].date == "2025-05-15"
+    expected_date = datetime.strptime("2025-05-15", "%Y-%m-%d").date()
+    assert games[0].date == expected_date
 
     # Check game stats were created
     player_game_stats = db_session.query(PlayerGameStats).all()

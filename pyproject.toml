@@ -135,9 +135,6 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
-verbose = 2
-xvs = true
-color = "yes"
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
@@ -147,7 +144,7 @@ log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 cache_dir = ".pytest_cache"
-addopts = "--no-header"
+addopts = "--no-header -v --color=yes"
 
 [tool.alembic]
 script_location = "migrations"

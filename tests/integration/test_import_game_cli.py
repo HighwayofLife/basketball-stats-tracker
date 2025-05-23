@@ -5,6 +5,7 @@ Integration test for the import-game CLI command with the real game_stats_templa
 import os
 import shutil
 import tempfile
+from datetime import datetime
 
 import pytest
 from sqlalchemy import create_engine
@@ -106,7 +107,8 @@ class TestImportGameIntegration:
         # 3. Check game
         game = self.db.query(Game).first()
         assert game is not None
-        assert game.date == "2025-05-15"  # Date from the template
+        expected_date = datetime.strptime("2025-05-15", "%Y-%m-%d").date()
+        assert game.date == expected_date
 
         # 4. Check player game stats
         player_game_stats = self.db.query(PlayerGameStats).all()

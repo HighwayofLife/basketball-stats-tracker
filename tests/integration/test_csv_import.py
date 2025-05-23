@@ -3,6 +3,7 @@ Integration tests for the CSV import flow.
 """
 
 from contextlib import contextmanager
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -96,7 +97,8 @@ PLAYER_DATA,Team B,15,Player Beta,4,//-,2-,11x,3
         # Check that the game is created
         game = db_session.query(Game).first()
         assert game is not None
-        assert game.date == "2025-05-01"
+        expected_date = datetime.strptime("2025-05-01", "%Y-%m-%d").date()
+        assert game.date == expected_date
 
         # Check that player game stats are created
         player_game_stats = db_session.query(PlayerGameStats).all()
