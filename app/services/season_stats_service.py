@@ -291,7 +291,7 @@ class SeasonStatsService:
         query = (
             self.db_session.query(PlayerSeasonStats)
             .join(Player)
-            .join(Team)
+            .join(Team, Player.team_id == Team.id)
             .filter(PlayerSeasonStats.season == season, PlayerSeasonStats.games_played >= min_games)
             .options(joinedload(PlayerSeasonStats.player).joinedload(Player.team))
         )
