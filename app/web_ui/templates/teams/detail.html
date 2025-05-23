@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="team-header">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h2 id="team-name">Loading...</h2>
+            <p id="player-count" class="text-muted">0 players</p>
+        </div>
+        <div>
+            <a href="/teams" class="btn btn-secondary">← Back to Teams</a>
+            <button class="btn btn-primary" onclick="showAddPlayerModal()">Add Player</button>
+        </div>
+    </div>
+</div>
+
+<!-- Players Table -->
+<div class="card">
+    <h3>Team Roster</h3>
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Position</th>
+                <th>Height</th>
+                <th>Weight</th>
+                <th>Year</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="players-table-body">
+            <tr>
+                <td colspan="7" class="loading-message">Loading players...</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Add/Edit Player Modal -->
+<div id="player-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="player-modal-title">Add New Player</h3>
+            <span class="close" onclick="closePlayerModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="player-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="player-name">Name *</label>
+                        <input type="text" id="player-name" name="name" required maxlength="100">
+                    </div>
+                    <div class="form-group">
+                        <label for="jersey-number">Jersey # *</label>
+                        <input type="number" id="jersey-number" name="jersey_number" required min="0" max="99">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="position">Position</label>
+                        <select id="position" name="position">
+                            <option value="">Select Position</option>
+                            <option value="PG">Point Guard (PG)</option>
+                            <option value="SG">Shooting Guard (SG)</option>
+                            <option value="SF">Small Forward (SF)</option>
+                            <option value="PF">Power Forward (PF)</option>
+                            <option value="C">Center (C)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="year">Year</label>
+                        <input type="text" id="year" name="year" placeholder="e.g., Freshman, Senior">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="height">Height (inches)</label>
+                        <input type="number" id="height" name="height" min="48" max="96" placeholder="e.g., 72">
+                    </div>
+                    <div class="form-group">
+                        <label for="weight">Weight (lbs)</label>
+                        <input type="number" id="weight" name="weight" min="100" max="400" placeholder="e.g., 180">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Save Player</button>
+                    <button type="button" class="btn btn-secondary" onclick="closePlayerModal()">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Player Modal -->
+<div id="delete-player-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Delete</h3>
+            <span class="close" onclick="closeDeletePlayerModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="delete-player-name"></strong>?</p>
+            <p class="warning">If this player has game statistics, they will be deactivated instead of deleted.</p>
+            <div class="form-actions">
+                <button class="btn btn-danger" onclick="confirmDeletePlayer()">Delete Player</button>
+                <button class="btn btn-secondary" onclick="closeDeletePlayerModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Modal styles (same as teams/index.html) */
+.modal {
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: white;
+    margin: 5% auto;
+    padding: 0;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-header h3 {
+    margin: 0;
+}
+
+.close {
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: #aaa;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.modal-body {
+    padding: 1rem;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.form-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+.text-muted {
+    color: #6c757d;
+    margin: 0;
+}
+
+.warning {
+    color: #dc3545;
+    font-style: italic;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 0.5rem;
+}
+
+@media (max-width: 768px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .modal-content {
+        width: 95%;
+        margin: 5% auto;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+let teamId = null;
+let currentPlayerId = null;
+let deletePlayerId = null;
+
+// Get team ID from URL
+document.addEventListener('DOMContentLoaded', () => {
+    const pathParts = window.location.pathname.split('/');
+    teamId = parseInt(pathParts[2]); // /teams/{team_id}
+    loadTeamDetail();
+});
+
+async function loadTeamDetail() {
+    try {
+        const response = await fetch(`/v1/teams/${teamId}/detail`);
+        if (!response.ok) {
+            throw new Error('Team not found');
+        }
+        
+        const team = await response.json();
+        
+        // Update page header
+        document.getElementById('team-name').textContent = team.name;
+        document.getElementById('player-count').textContent = `${team.players.length} player${team.players.length !== 1 ? 's' : ''}`;
+        
+        // Update players table
+        const tableBody = document.getElementById('players-table-body');
+        tableBody.innerHTML = '';
+        
+        if (team.players.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="7">No players on this team. <a href="#" onclick="showAddPlayerModal()">Add the first player</a>.</td>';
+            tableBody.appendChild(row);
+        } else {
+            team.players.forEach(player => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>#${player.jersey_number}</strong></td>
+                    <td>${player.name}</td>
+                    <td>${player.position || '-'}</td>
+                    <td>${player.height ? formatHeight(player.height) : '-'}</td>
+                    <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
+                    <td>${player.year || '-'}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="showDeletePlayerModal(${player.id}, '${player.name}')">Delete</button>
+                        </div>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error loading team:', error);
+        document.getElementById('team-name').textContent = 'Error loading team';
+        const tableBody = document.getElementById('players-table-body');
+        tableBody.innerHTML = '<tr><td colspan="7" class="error-message">Failed to load team details.</td></tr>';
+    }
+}
+
+function formatHeight(inches) {
+    const feet = Math.floor(inches / 12);
+    const remainingInches = inches % 12;
+    return `${feet}'${remainingInches}"`;
+}
+
+function showAddPlayerModal() {
+    currentPlayerId = null;
+    document.getElementById('player-modal-title').textContent = 'Add New Player';
+    document.getElementById('player-form').reset();
+    document.getElementById('player-modal').style.display = 'block';
+}
+
+async function editPlayer(playerId) {
+    try {
+        const response = await fetch(`/v1/players/${playerId}`);
+        const player = await response.json();
+        
+        currentPlayerId = playerId;
+        document.getElementById('player-modal-title').textContent = 'Edit Player';
+        
+        // Fill form with current data
+        document.getElementById('player-name').value = player.name;
+        document.getElementById('jersey-number').value = player.jersey_number;
+        document.getElementById('position').value = player.position || '';
+        document.getElementById('year').value = player.year || '';
+        document.getElementById('height').value = player.height || '';
+        document.getElementById('weight').value = player.weight || '';
+        
+        document.getElementById('player-modal').style.display = 'block';
+    } catch (error) {
+        console.error('Error loading player:', error);
+        alert('Failed to load player details.');
+    }
+}
+
+function closePlayerModal() {
+    document.getElementById('player-modal').style.display = 'none';
+    currentPlayerId = null;
+}
+
+function showDeletePlayerModal(playerId, playerName) {
+    deletePlayerId = playerId;
+    document.getElementById('delete-player-name').textContent = playerName;
+    document.getElementById('delete-player-modal').style.display = 'block';
+}
+
+function closeDeletePlayerModal() {
+    document.getElementById('delete-player-modal').style.display = 'none';
+    deletePlayerId = null;
+}
+
+// Form submission
+document.getElementById('player-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const playerData = {
+        name: formData.get('name').trim(),
+        team_id: teamId,
+        jersey_number: parseInt(formData.get('jersey_number')),
+        position: formData.get('position') || null,
+        year: formData.get('year') || null,
+        height: formData.get('height') ? parseInt(formData.get('height')) : null,
+        weight: formData.get('weight') ? parseInt(formData.get('weight')) : null
+    };
+    
+    if (!playerData.name) {
+        alert('Player name is required');
+        return;
+    }
+    
+    if (!playerData.jersey_number && playerData.jersey_number !== 0) {
+        alert('Jersey number is required');
+        return;
+    }
+    
+    try {
+        let response;
+        if (currentPlayerId) {
+            // Update existing player
+            response = await fetch(`/v1/players/${currentPlayerId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(playerData)
+            });
+        } else {
+            // Create new player
+            response = await fetch('/v1/players/new', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(playerData)
+            });
+        }
+        
+        if (response.ok) {
+            closePlayerModal();
+            await loadTeamDetail();
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('Error saving player:', error);
+        alert('Failed to save player. Please try again.');
+    }
+});
+
+async function confirmDeletePlayer() {
+    try {
+        const response = await fetch(`/v1/players/${deletePlayerId}`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            closeDeletePlayerModal();
+            await loadTeamDetail();
+            
+            // Show message about deactivation vs deletion
+            if (result.message.includes('deactivated')) {
+                alert('Player has been deactivated (they have existing game statistics).');
+            }
+        } else {
+            const error = await response.json();
+            alert(`Error: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('Error deleting player:', error);
+        alert('Failed to delete player. Please try again.');
+    }
+}
+
+// Close modals when clicking outside
+window.onclick = function(event) {
+    const playerModal = document.getElementById('player-modal');
+    const deleteModal = document.getElementById('delete-player-modal');
+    
+    if (event.target === playerModal) {
+        closePlayerModal();
+    }
+    if (event.target === deleteModal) {
+        closeDeletePlayerModal();
+    }
+}
+</script>
+{% endblock %}

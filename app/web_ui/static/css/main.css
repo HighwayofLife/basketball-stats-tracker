@@ -161,6 +161,26 @@ body {
   font-size: 0.85rem;
 }
 
+.btn-primary {
+  background-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-color);
+}
+
+.btn-success {
+  background-color: var(--success-color);
+}
+
+.btn-success:hover {
+  background-color: #218838;
+}
+
+.btn + .btn {
+  margin-left: 0.5rem;
+}
+
 /* Action Buttons */
 .action-buttons {
   display: flex;

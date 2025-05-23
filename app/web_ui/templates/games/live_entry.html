@@ -1,0 +1,541 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+    .game-header {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .score-display {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 2rem;
+        margin: 1rem 0;
+    }
+    
+    .team-score {
+        font-size: 3rem;
+        font-weight: bold;
+    }
+    
+    .team-name {
+        font-size: 1.2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .quarter-info {
+        font-size: 1.5rem;
+        margin-top: 1rem;
+    }
+    
+    .game-controls {
+        margin: 2rem 0;
+        text-align: center;
+    }
+    
+    .court-view {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+    
+    .team-section {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+    }
+    
+    .team-section h3 {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    
+    .players-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .player-card {
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        padding: 0.5rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-align: center;
+        background: white;
+    }
+    
+    .player-card:hover {
+        border-color: #007bff;
+        background: #e7f3ff;
+    }
+    
+    .player-card.selected {
+        border-color: #28a745;
+        background: #d4edda;
+    }
+    
+    .player-card.starter {
+        font-weight: bold;
+        border-style: solid;
+    }
+    
+    .player-number {
+        font-size: 1.5rem;
+        font-weight: bold;
+    }
+    
+    .player-name {
+        font-size: 0.9rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    .player-stats {
+        font-size: 0.8rem;
+        color: #6c757d;
+        margin-top: 0.25rem;
+    }
+    
+    .bench-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+    
+    .action-panel {
+        position: fixed;
+        right: 20px;
+        top: 100px;
+        width: 250px;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .action-panel h4 {
+        margin-bottom: 1rem;
+    }
+    
+    .action-buttons {
+        display: grid;
+        gap: 0.5rem;
+    }
+    
+    .action-button {
+        padding: 0.75rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .action-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .shot-button {
+        background: #28a745;
+        color: white;
+    }
+    
+    .miss-button {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .foul-button {
+        background: #ffc107;
+        color: #212529;
+    }
+    
+    .sub-button {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .game-log {
+        margin-top: 2rem;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 1rem;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .log-entry {
+        padding: 0.5rem;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .log-entry:last-child {
+        border-bottom: none;
+    }
+    
+    .undo-button {
+        background: #6c757d;
+        color: white;
+        border: none;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+    
+    @media (max-width: 768px) {
+        .court-view {
+            grid-template-columns: 1fr;
+        }
+        
+        .action-panel {
+            position: static;
+            width: 100%;
+            margin-top: 2rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="game-container" data-game-id="{{ game_id }}">
+    <!-- Game Header -->
+    <div class="game-header">
+        <div class="score-display">
+            <div class="home-team">
+                <div class="team-name" id="home-team-name">{{ home_team }}</div>
+                <div class="team-score" id="home-score">0</div>
+            </div>
+            <div>vs</div>
+            <div class="away-team">
+                <div class="team-name" id="away-team-name">{{ away_team }}</div>
+                <div class="team-score" id="away-score">0</div>
+            </div>
+        </div>
+        <div class="quarter-info">
+            Quarter <span id="current-quarter">1</span>
+        </div>
+    </div>
+    
+    <!-- Game Controls -->
+    <div class="game-controls">
+        <button class="btn btn-primary" id="start-game-btn" style="display:none;">Start Game</button>
+        <button class="btn btn-secondary" id="end-quarter-btn" style="display:none;">End Quarter</button>
+        <button class="btn btn-danger" id="end-game-btn" style="display:none;">End Game</button>
+    </div>
+    
+    <!-- Court View -->
+    <div class="court-view">
+        <!-- Home Team -->
+        <div class="team-section">
+            <h3>{{ home_team }}</h3>
+            <h4>On Court</h4>
+            <div class="players-grid" id="home-court-players"></div>
+            
+            <div class="bench-section">
+                <h4>Bench</h4>
+                <div class="players-grid" id="home-bench-players"></div>
+            </div>
+        </div>
+        
+        <!-- Away Team -->
+        <div class="team-section">
+            <h3>{{ away_team }}</h3>
+            <h4>On Court</h4>
+            <div class="players-grid" id="away-court-players"></div>
+            
+            <div class="bench-section">
+                <h4>Bench</h4>
+                <div class="players-grid" id="away-bench-players"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Action Panel -->
+    <div class="action-panel" id="action-panel" style="display:none;">
+        <h4>Selected: <span id="selected-player-name">None</span></h4>
+        <div class="action-buttons">
+            <button class="action-button shot-button" data-shot="2pt" data-made="true">2PT Made</button>
+            <button class="action-button miss-button" data-shot="2pt" data-made="false">2PT Missed</button>
+            <button class="action-button shot-button" data-shot="3pt" data-made="true">3PT Made</button>
+            <button class="action-button miss-button" data-shot="3pt" data-made="false">3PT Missed</button>
+            <button class="action-button shot-button" data-shot="ft" data-made="true">FT Made</button>
+            <button class="action-button miss-button" data-shot="ft" data-made="false">FT Missed</button>
+            <button class="action-button foul-button">Personal Foul</button>
+            <button class="action-button sub-button">Substitute</button>
+        </div>
+    </div>
+    
+    <!-- Game Log -->
+    <div class="game-log">
+        <h3>Game Log</h3>
+        <div id="game-log-entries"></div>
+    </div>
+</div>
+
+<script>
+// Game state
+let gameState = {
+    gameId: document.getElementById('game-container').dataset.gameId,
+    selectedPlayerId: null,
+    selectedPlayerTeam: null,
+    isLive: false,
+    currentQuarter: 1
+};
+
+// API functions
+async function fetchGameState() {
+    try {
+        const response = await fetch(`/v1/games/${gameState.gameId}/live`);
+        const data = await response.json();
+        updateUI(data);
+    } catch (error) {
+        console.error('Error fetching game state:', error);
+    }
+}
+
+async function startGame(homeStarters, awayStarters) {
+    try {
+        const response = await fetch(`/v1/games/${gameState.gameId}/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                home_starters: homeStarters,
+                away_starters: awayStarters
+            })
+        });
+        
+        if (response.ok) {
+            gameState.isLive = true;
+            await fetchGameState();
+        }
+    } catch (error) {
+        console.error('Error starting game:', error);
+    }
+}
+
+async function recordShot(shotType, made) {
+    if (!gameState.selectedPlayerId) return;
+    
+    try {
+        const response = await fetch(`/v1/games/${gameState.gameId}/events/shot`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_id: gameState.selectedPlayerId,
+                shot_type: shotType,
+                made: made
+            })
+        });
+        
+        if (response.ok) {
+            await fetchGameState();
+            addLogEntry(`${gameState.selectedPlayerName} ${made ? 'made' : 'missed'} ${shotType}`);
+        }
+    } catch (error) {
+        console.error('Error recording shot:', error);
+    }
+}
+
+async function recordFoul() {
+    if (!gameState.selectedPlayerId) return;
+    
+    try {
+        const response = await fetch(`/v1/games/${gameState.gameId}/events/foul`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                player_id: gameState.selectedPlayerId,
+                foul_type: 'personal'
+            })
+        });
+        
+        if (response.ok) {
+            await fetchGameState();
+            addLogEntry(`Foul on ${gameState.selectedPlayerName}`);
+        }
+    } catch (error) {
+        console.error('Error recording foul:', error);
+    }
+}
+
+async function undoLastEvent() {
+    try {
+        const response = await fetch(`/v1/games/${gameState.gameId}/events/last`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            await fetchGameState();
+            addLogEntry('Undid last event');
+        }
+    } catch (error) {
+        console.error('Error undoing event:', error);
+    }
+}
+
+// UI update functions
+function updateUI(data) {
+    // Update scores
+    document.getElementById('home-score').textContent = data.game_state.home_score;
+    document.getElementById('away-score').textContent = data.game_state.away_score;
+    document.getElementById('current-quarter').textContent = data.game_state.current_quarter;
+    
+    // Update player lists
+    updatePlayerLists(data.active_players);
+    
+    // Update game controls
+    updateGameControls(data.game_state);
+}
+
+function updatePlayerLists(activePlayers) {
+    // Clear current lists
+    ['home-court-players', 'home-bench-players', 'away-court-players', 'away-bench-players'].forEach(id => {
+        document.getElementById(id).innerHTML = '';
+    });
+    
+    // Add players to appropriate sections
+    activePlayers.home.forEach(player => {
+        const card = createPlayerCard(player, 'home');
+        document.getElementById('home-court-players').appendChild(card);
+    });
+    
+    activePlayers.away.forEach(player => {
+        const card = createPlayerCard(player, 'away');
+        document.getElementById('away-court-players').appendChild(card);
+    });
+}
+
+function createPlayerCard(player, team) {
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    if (player.is_starter) card.classList.add('starter');
+    
+    card.innerHTML = `
+        <div class="player-number">#${player.jersey_number}</div>
+        <div class="player-name">${player.name}</div>
+        <div class="player-stats">0 pts</div>
+    `;
+    
+    card.onclick = () => selectPlayer(player.id, player.name, team);
+    
+    return card;
+}
+
+function selectPlayer(playerId, playerName, team) {
+    // Remove previous selection
+    document.querySelectorAll('.player-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Add selection to clicked player
+    event.target.closest('.player-card').classList.add('selected');
+    
+    // Update game state
+    gameState.selectedPlayerId = playerId;
+    gameState.selectedPlayerName = playerName;
+    gameState.selectedPlayerTeam = team;
+    
+    // Show action panel
+    document.getElementById('action-panel').style.display = 'block';
+    document.getElementById('selected-player-name').textContent = playerName;
+}
+
+function updateGameControls(state) {
+    const startBtn = document.getElementById('start-game-btn');
+    const endQuarterBtn = document.getElementById('end-quarter-btn');
+    const endGameBtn = document.getElementById('end-game-btn');
+    
+    if (!state.is_live && !state.is_final) {
+        startBtn.style.display = 'inline-block';
+        endQuarterBtn.style.display = 'none';
+        endGameBtn.style.display = 'none';
+    } else if (state.is_live) {
+        startBtn.style.display = 'none';
+        endQuarterBtn.style.display = 'inline-block';
+        endGameBtn.style.display = 'inline-block';
+    } else {
+        startBtn.style.display = 'none';
+        endQuarterBtn.style.display = 'none';
+        endGameBtn.style.display = 'none';
+    }
+}
+
+function addLogEntry(message) {
+    const logContainer = document.getElementById('game-log-entries');
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    
+    const time = new Date().toLocaleTimeString();
+    entry.innerHTML = `
+        <span>${time} - ${message}</span>
+        <button class="undo-button" onclick="undoLastEvent()">Undo</button>
+    `;
+    
+    logContainer.insertBefore(entry, logContainer.firstChild);
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+    // Shot buttons
+    document.querySelectorAll('.action-button[data-shot]').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const shotType = e.target.dataset.shot;
+            const made = e.target.dataset.made === 'true';
+            recordShot(shotType, made);
+        });
+    });
+    
+    // Foul button
+    document.querySelector('.foul-button').addEventListener('click', recordFoul);
+    
+    // Game control buttons
+    document.getElementById('start-game-btn').addEventListener('click', () => {
+        // For now, just start with default starters
+        // In a real app, you'd have a UI to select starters
+        alert('Select starters functionality not yet implemented');
+    });
+    
+    document.getElementById('end-quarter-btn').addEventListener('click', async () => {
+        try {
+            await fetch(`/v1/games/${gameState.gameId}/end-quarter`, { method: 'POST' });
+            await fetchGameState();
+        } catch (error) {
+            console.error('Error ending quarter:', error);
+        }
+    });
+    
+    document.getElementById('end-game-btn').addEventListener('click', async () => {
+        if (confirm('Are you sure you want to end the game?')) {
+            try {
+                await fetch(`/v1/games/${gameState.gameId}/finalize`, { method: 'POST' });
+                await fetchGameState();
+            } catch (error) {
+                console.error('Error ending game:', error);
+            }
+        }
+    });
+    
+    // Initial load
+    fetchGameState();
+    
+    // Poll for updates every 5 seconds
+    setInterval(fetchGameState, 5000);
+});
+</script>
+{% endblock %}

@@ -5,6 +5,11 @@
 {% endblock %}
 
 {% block content %}
+<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+    <h2>Basketball Games</h2>
+    <a href="/games/create" class="btn btn-primary">Create New Game</a>
+</div>
+
 <div class="filters">
     <div class="filter-group">
         <label for="team-filter">Filter by Team:</label>
@@ -94,6 +99,9 @@
                             <td>${game.home_team}</td>
                             <td>
                                 <a href="/games/${game.id}" class="btn btn-sm">View</a>
+                                ${game.home_score === 0 && game.away_score === 0 ? 
+                                  `<a href="/games/${game.id}/live" class="btn btn-sm btn-success">Live Entry</a>` : 
+                                  ''}
                             </td>
                         `;
                         tableBody.appendChild(row);
