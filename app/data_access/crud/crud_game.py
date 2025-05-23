@@ -2,7 +2,7 @@
 CRUD operations for Game model.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 
 from sqlalchemy.orm import Session
 
