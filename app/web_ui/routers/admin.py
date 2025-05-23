@@ -1,0 +1,202 @@
+"""Admin router for Basketball Stats Tracker."""
+
+import logging
+from datetime import datetime
+
+from fastapi import APIRouter, HTTPException
+
+from app.data_access import models
+from app.data_access.crud.crud_audit_log import get_recent_audit_logs
+from app.data_access.db_session import get_db_session
+from app.services.data_correction_service import DataCorrectionService
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/v1", tags=["admin"])
+
+
+@router.get("/player-game-stats/{stats_id}/quarters")
+async def get_player_quarter_stats(stats_id: int):
+    """Get quarter breakdown for a player's game stats."""
+    try:
+        with get_db_session() as session:
+            game_stats = session.query(models.PlayerGameStats).filter_by(id=stats_id).first()
+
+            if not game_stats:
+                raise HTTPException(status_code=404, detail="Stats not found")
+
+            quarters = []
+            for quarter_stats in game_stats.quarter_stats:
+                quarters.append(
+                    {
+                        "number": quarter_stats.quarter_number,
+                        "ftm": quarter_stats.ftm,
+                        "fta": quarter_stats.fta,
+                        "fg2m": quarter_stats.fg2m,
+                        "fg2a": quarter_stats.fg2a,
+                        "fg3m": quarter_stats.fg3m,
+                        "fg3a": quarter_stats.fg3a,
+                    }
+                )
+
+            return {"statsId": stats_id, "quarters": quarters}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting quarter stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get quarter stats") from e
+
+
+@router.put("/player-game-stats/{stats_id}/quarters")
+async def update_player_quarter_stats(stats_id: int, data: dict):
+    """Update quarter stats for a player with automatic total recalculation."""
+    try:
+        with get_db_session() as session:
+            correction_service = DataCorrectionService(session)
+
+            # Get the game stats
+            game_stats = session.query(models.PlayerGameStats).filter_by(id=stats_id).first()
+            if not game_stats:
+                raise HTTPException(status_code=404, detail="Stats not found")
+
+            # Update each quarter
+            quarters_data = data.get("quarters", {})
+            for quarter_num_str, quarter_updates in quarters_data.items():
+                quarter_num = int(quarter_num_str)
+
+                # Find the quarter stats
+                quarter_stats = (
+                    session.query(models.PlayerQuarterStats)
+                    .filter_by(player_game_stat_id=stats_id, quarter_number=quarter_num)
+                    .first()
+                )
+
+                if quarter_stats:
+                    correction_service.update_player_quarter_stats(quarter_stats.id, quarter_updates)
+
+            # Return updated totals
+            session.refresh(game_stats)
+            return {
+                "total_ftm": game_stats.total_ftm,
+                "total_fta": game_stats.total_fta,
+                "total_2pm": game_stats.total_2pm,
+                "total_2pa": game_stats.total_2pa,
+                "total_3pm": game_stats.total_3pm,
+                "total_3pa": game_stats.total_3pa,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating quarter stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update quarter stats") from e
+
+
+@router.post("/data-corrections/undo")
+async def undo_last_correction():
+    """Undo the last data correction."""
+    try:
+        with get_db_session() as session:
+            correction_service = DataCorrectionService(session)
+            success = correction_service.undo()
+
+            return {"success": success, "can_undo": correction_service.can_undo()}
+
+    except Exception as e:
+        logger.error(f"Error undoing correction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to undo correction") from e
+
+
+@router.post("/data-corrections/redo")
+async def redo_last_correction():
+    """Redo the last undone data correction."""
+    try:
+        with get_db_session() as session:
+            correction_service = DataCorrectionService(session)
+            success = correction_service.redo()
+
+            return {"success": success, "can_redo": correction_service.can_redo()}
+
+    except Exception as e:
+        logger.error(f"Error redoing correction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to redo correction") from e
+
+
+@router.get("/audit-logs")
+async def get_audit_logs(limit: int = 50, offset: int = 0, entity_type: str | None = None, user_id: int | None = None):
+    """Get audit logs with pagination and filtering."""
+    try:
+        with get_db_session() as session:
+            logs = get_recent_audit_logs(
+                session,
+                limit=limit + 1,  # Get one extra to check if there are more
+                entity_type=entity_type,
+                user_id=user_id,
+            )
+
+            has_more = len(logs) > limit
+            logs = logs[:limit]  # Trim to requested limit
+
+            return {
+                "logs": [
+                    {
+                        "id": log.id,
+                        "entity_type": log.entity_type,
+                        "entity_id": log.entity_id,
+                        "action": log.action,
+                        "timestamp": log.timestamp.isoformat(),
+                        "old_values": log.old_values,
+                        "new_values": log.new_values,
+                        "description": log.description,
+                        "is_undone": log.is_undone,
+                        "undo_timestamp": log.undo_timestamp.isoformat() if log.undo_timestamp else None,
+                    }
+                    for log in logs
+                ],
+                "hasMore": has_more,
+            }
+    except Exception as e:
+        logger.error(f"Error getting audit logs: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get audit logs") from e
+
+
+@router.post("/data-corrections/bulk-restore")
+async def bulk_restore(data: dict):
+    """Bulk restore deleted items of a specific type within a date range."""
+    try:
+        with get_db_session() as session:
+            entity_type = data.get("entity_type")
+            start_date = datetime.strptime(data.get("start_date"), "%Y-%m-%d").date()
+            end_date = datetime.strptime(data.get("end_date"), "%Y-%m-%d").date()
+
+            correction_service = DataCorrectionService(session)
+            count = correction_service.restore_deleted_items(
+                entity_type=entity_type, start_date=start_date, end_date=end_date
+            )
+
+            return {"success": True, "count": count}
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error bulk restoring: {e}")
+        raise HTTPException(status_code=500, detail="Failed to bulk restore") from e
+
+
+@router.get("/data-corrections/history")
+async def get_command_history():
+    """Get command history for undo/redo operations."""
+    try:
+        with get_db_session() as session:
+            correction_service = DataCorrectionService(session)
+            history = correction_service.get_history()
+
+            return {
+                "history": history,
+                "can_undo": correction_service.can_undo(),
+                "can_redo": correction_service.can_redo(),
+            }
+
+    except Exception as e:
+        logger.error(f"Error getting command history: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get command history") from e
