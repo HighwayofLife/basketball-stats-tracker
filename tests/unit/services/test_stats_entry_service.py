@@ -73,52 +73,52 @@ class TestStatsEntryService:
             )
         )
 
-        with patch("app.services.stats_entry_service.create_player_game_stats", mock_create_player_game_stats):
-            with patch(
-                "app.services.stats_entry_service.create_player_quarter_stats", mock_create_player_quarter_stats
-            ):
-                with patch(
-                    "app.services.stats_entry_service.update_player_game_stats_totals",
-                    mock_update_player_game_stats_totals,
-                ):
-                    service = StatsEntryService(db_session, mock_input_parser, shot_mapping_fixture)
+        with (
+            patch("app.services.stats_entry_service.create_player_game_stats", mock_create_player_game_stats),
+            patch("app.services.stats_entry_service.create_player_quarter_stats", mock_create_player_quarter_stats),
+            patch(
+                "app.services.stats_entry_service.update_player_game_stats_totals",
+                mock_update_player_game_stats_totals,
+            ),
+        ):
+            service = StatsEntryService(db_session, mock_input_parser, shot_mapping_fixture)
 
-                    # Record performance with quarter shot strings
-                    result = service.record_player_game_performance(
-                        game_id=1, player_id=1, fouls=2, quarter_shot_strings=["22-1x", "3/2", "11", ""]
-                    )
+            # Record performance with quarter shot strings
+            result = service.record_player_game_performance(
+                game_id=1, player_id=1, fouls=2, quarter_shot_strings=["22-1x", "3/2", "11", ""]
+            )
 
-                    # Verify result
-                    assert result.id == 1
-                    assert result.game_id == 1
-                    assert result.player_id == 1
-                    assert result.fouls == 2
-                    assert result.total_ftm == 3
-                    assert result.total_fta == 4
-                    assert result.total_2pm == 3
-                    assert result.total_2pa == 4
-                    assert result.total_3pm == 1
-                    assert result.total_3pa == 2
+            # Verify result
+            assert result.id == 1
+            assert result.game_id == 1
+            assert result.player_id == 1
+            assert result.fouls == 2
+            assert result.total_ftm == 3
+            assert result.total_fta == 4
+            assert result.total_2pm == 3
+            assert result.total_2pa == 4
+            assert result.total_3pm == 1
+            assert result.total_3pa == 2
 
-                    # Verify CRUD function calls
-                    mock_create_player_game_stats.assert_called_once_with(db_session, game_id=1, player_id=1, fouls=2)
+            # Verify CRUD function calls
+            mock_create_player_game_stats.assert_called_once_with(db_session, game_id=1, player_id=1, fouls=2)
 
-                    # Should be called 4 times, once for each quarter
-                    assert mock_create_player_quarter_stats.call_count == 4
+            # Should be called 4 times, once for each quarter
+            assert mock_create_player_quarter_stats.call_count == 4
 
-                    # Verify the update totals call
-                    mock_update_player_game_stats_totals.assert_called_once()
-                    args, kwargs = mock_update_player_game_stats_totals.call_args
-                    assert args[0] == db_session
-                    assert kwargs["player_game_stat_id"] == 1
-                    assert "totals" in kwargs
-                    totals = kwargs["totals"]
-                    assert totals["total_ftm"] == 3
-                    assert totals["total_fta"] == 4
-                    assert totals["total_2pm"] == 3
-                    assert totals["total_2pa"] == 4
-                    assert totals["total_3pm"] == 1
-                    assert totals["total_3pa"] == 2
+            # Verify the update totals call
+            mock_update_player_game_stats_totals.assert_called_once()
+            args, kwargs = mock_update_player_game_stats_totals.call_args
+            assert args[0] == db_session
+            assert kwargs["player_game_stat_id"] == 1
+            assert "totals" in kwargs
+            totals = kwargs["totals"]
+            assert totals["total_ftm"] == 3
+            assert totals["total_fta"] == 4
+            assert totals["total_2pm"] == 3
+            assert totals["total_2pa"] == 4
+            assert totals["total_3pm"] == 1
+            assert totals["total_3pa"] == 2
 
     def test_record_player_game_performance_empty_quarters(self, db_session, mock_input_parser, shot_mapping_fixture):
         """Test recording a player's game performance with empty quarter strings."""

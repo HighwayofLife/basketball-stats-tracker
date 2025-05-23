@@ -2,8 +2,7 @@
 Unit tests for the import-game CLI command.
 """
 
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from typer.testing import CliRunner

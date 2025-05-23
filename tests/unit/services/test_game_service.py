@@ -2,7 +2,7 @@
 Test module for the GameService.
 """
 
-from datetime import date, datetime
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 from app.data_access.models import Game, Team
@@ -36,15 +36,17 @@ class TestGameService:
         mock_get_team = MagicMock(return_value=None)
         mock_create_team = MagicMock(return_value=Team(id=2, name="New Team"))
 
-        with patch("app.services.game_service.get_team_by_name", mock_get_team):
-            with patch("app.services.game_service.create_team", mock_create_team):
-                service = GameService(db_session)
-                team = service.get_or_create_team("New Team")
+        with (
+            patch("app.services.game_service.get_team_by_name", mock_get_team),
+            patch("app.services.game_service.create_team", mock_create_team),
+        ):
+            service = GameService(db_session)
+            team = service.get_or_create_team("New Team")
 
-                assert team.id == 2
-                assert team.name == "New Team"
-                mock_get_team.assert_called_once_with(db_session, "New Team")
-                mock_create_team.assert_called_once_with(db_session, "New Team")
+            assert team.id == 2
+            assert team.name == "New Team"
+            mock_get_team.assert_called_once_with(db_session, "New Team")
+            mock_create_team.assert_called_once_with(db_session, "New Team")
 
     def test_list_all_teams(self, db_session):
         """Test listing all teams."""
@@ -73,20 +75,24 @@ class TestGameService:
         test_date = datetime.strptime("2025-05-01", "%Y-%m-%d").date()
         mock_create_game = MagicMock(return_value=Game(id=1, date=test_date, playing_team_id=1, opponent_team_id=2))
 
-        with patch("app.services.game_service.get_team_by_name", mock_get_team):
-            with patch(
+        with (
+            patch("app.services.game_service.get_team_by_name", mock_get_team),
+            patch(
                 "app.services.game_service.create_team",
                 side_effect=[mock_create_team_a.return_value, mock_create_team_b.return_value],
-            ):
-                with patch("app.services.game_service.create_game", mock_create_game):
-                    service = GameService(db_session)
-                    game = service.add_game("2025-05-01", "Team A", "Team B")
+            ),
+            patch("app.services.game_service.create_game", mock_create_game),
+        ):
+            service = GameService(db_session)
+            game = service.add_game("2025-05-01", "Team A", "Team B")
 
-                    assert game.id == 1
-                    assert game.date == test_date
-                    assert game.playing_team_id == 1
-                    assert game.opponent_team_id == 2
-                    mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
+            assert game.id == 1
+            assert game.date == test_date
+            assert game.playing_team_id == 1
+            assert game.opponent_team_id == 2
+            mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
+            assert game.opponent_team_id == 2
+            mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
 
     def test_add_game_existing_teams(self, db_session):
         """Test adding a game with existing teams."""
@@ -105,13 +111,15 @@ class TestGameService:
                 return mock_get_team_b.return_value
             return None
 
-        with patch("app.services.game_service.get_team_by_name", side_effect=mock_get_team_side_effect):
-            with patch("app.services.game_service.create_game", mock_create_game):
-                service = GameService(db_session)
-                game = service.add_game("2025-05-01", "Team A", "Team B")
+        with (
+            patch("app.services.game_service.get_team_by_name", side_effect=mock_get_team_side_effect),
+            patch("app.services.game_service.create_game", mock_create_game),
+        ):
+            service = GameService(db_session)
+            game = service.add_game("2025-05-01", "Team A", "Team B")
 
-                assert game.id == 1
-                assert game.date == test_date
-                assert game.playing_team_id == 1
-                assert game.opponent_team_id == 2
-                mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)
+            assert game.id == 1
+            assert game.date == test_date
+            assert game.playing_team_id == 1
+            assert game.opponent_team_id == 2
+            mock_create_game.assert_called_once_with(db_session, "2025-05-01", 1, 2)

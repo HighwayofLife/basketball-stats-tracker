@@ -37,17 +37,19 @@ class TestPlayerService:
         mock_get_player = MagicMock(return_value=None)
         mock_create_player = MagicMock(return_value=Player(id=2, name="New Player", jersey_number=10, team_id=1))
 
-        with patch("app.services.player_service.get_player_by_team_and_jersey", mock_get_player):
-            with patch("app.services.player_service.create_player", mock_create_player):
-                service = PlayerService(db_session)
-                player = service.get_or_create_player(1, 10, "New Player")
+        with (
+            patch("app.services.player_service.get_player_by_team_and_jersey", mock_get_player),
+            patch("app.services.player_service.create_player", mock_create_player),
+        ):
+            service = PlayerService(db_session)
+            player = service.get_or_create_player(1, 10, "New Player")
 
-                assert player.id == 2
-                assert player.name == "New Player"
-                assert player.jersey_number == 10
-                assert player.team_id == 1
-                mock_get_player.assert_called_once_with(db_session, 1, 10)
-                mock_create_player.assert_called_once_with(db_session, "New Player", 10, 1)
+            assert player.id == 2
+            assert player.name == "New Player"
+            assert player.jersey_number == 10
+            assert player.team_id == 1
+            mock_get_player.assert_called_once_with(db_session, 1, 10)
+            mock_create_player.assert_called_once_with(db_session, "New Player", 10, 1)
 
     def test_get_or_create_player_existing_different_name(self, db_session):
         """Test getting an existing player by team and jersey when name is different."""
@@ -76,6 +78,7 @@ class TestPlayerService:
             service = PlayerService(db_session)
             player = service.get_player_details(1)
 
+            assert player is not None
             assert player.id == 1
             assert player.name == "Test Player"
             mock_get_player.assert_called_once_with(db_session, 1)

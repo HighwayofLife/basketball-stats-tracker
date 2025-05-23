@@ -76,7 +76,7 @@ class TestReportGenerator:
             "opponent_team": team_b,
             "teams": [team_a, team_b],
             "players": [player_a1, player_a2],
-            "player_game_stats": [pgs_a1, pgs_a2]
+            "player_game_stats": [pgs_a1, pgs_a2],
         }
 
     @pytest.fixture
@@ -250,7 +250,9 @@ class TestReportGenerator:
         mock_stats_calculator.calculate_ts.return_value = 0.6
         mock_stats_calculator.calculate_ppsa.return_value = 1.2
         mock_stats_calculator.calculate_scoring_distribution.return_value = {
-            "ft_pct": 0.2, "fg2_pct": 0.6, "fg3_pct": 0.2
+            "ft_pct": 0.2,
+            "fg2_pct": 0.6,
+            "fg3_pct": 0.2,
         }
 
         # Create the report generator and call the method
@@ -295,7 +297,6 @@ class TestReportGenerator:
                 return_value=mock_player_stats["quarter_stats"][mock_player_stats["player_game_stats"][0].id],
             ),
         ):
-
             # Create report generator and call method
             report_generator = ReportGenerator(mock_db_session, stats_calculator)
             report = report_generator.generate_player_performance_report(player_id, game_id)
@@ -343,7 +344,7 @@ class TestReportGenerator:
             mock_fetch.return_value = (
                 mock_game_data["game"],
                 mock_game_data["playing_team"],
-                mock_game_data["opponent_team"]
+                mock_game_data["opponent_team"],
             )
 
             # Mock player retrieval
@@ -355,7 +356,7 @@ class TestReportGenerator:
             # Mock quarter stats retrieval - make sure it's not empty
             mock_crud_pqs.get_player_quarter_stats.return_value = [
                 MagicMock(quarter=1, ftm=1, fta=2, fg2m=2, fg2a=3, fg3m=1, fg3a=2),
-                MagicMock(quarter=2, ftm=0, fta=0, fg2m=1, fg2a=2, fg3m=0, fg3a=1)
+                MagicMock(quarter=2, ftm=0, fta=0, fg2m=1, fg2a=2, fg3m=0, fg3a=1),
             ]
 
             # Override the calculation method to ensure it returns data
@@ -377,10 +378,10 @@ class TestReportGenerator:
                         "team": "Team A",
                         "ts_pct": 0.6,
                         "ppsa": 1.2,
-                        "scoring_distribution": {"ft_pct": 0.2, "fg2_pct": 0.6, "fg3_pct": 0.2}
+                        "scoring_distribution": {"ft_pct": 0.2, "fg2_pct": 0.6, "fg3_pct": 0.2},
                     },
                     5,  # total_fgm
-                    10  # total_fga
+                    10,  # total_fga
                 )
 
                 # Actually call the method we're testing
@@ -388,24 +389,26 @@ class TestReportGenerator:
 
                 # Manually add a player_stats entry to pass the test
                 if len(player_stats) == 0:
-                    player_stats = [{
-                        "name": "Player One",
-                        "jersey": 10,
-                        "points": 20,
-                        "ft_pct": 0.8,
-                        "efg": 0.55,
-                        "ftm": 5,
-                        "fta": 6,
-                        "fg2m": 6,
-                        "fg2a": 8,
-                        "fg3m": 2,
-                        "fg3a": 4,
-                        "fouls": 2,
-                        "team": "Team A",
-                        "ts_pct": 0.6,
-                        "ppsa": 1.2,
-                        "scoring_distribution": {"ft_pct": 0.2, "fg2_pct": 0.6, "fg3_pct": 0.2}
-                    }]
+                    player_stats = [
+                        {
+                            "name": "Player One",
+                            "jersey": 10,
+                            "points": 20,
+                            "ft_pct": 0.8,
+                            "efg": 0.55,
+                            "ftm": 5,
+                            "fta": 6,
+                            "fg2m": 6,
+                            "fg2a": 8,
+                            "fg3m": 2,
+                            "fg3a": 4,
+                            "fouls": 2,
+                            "team": "Team A",
+                            "ts_pct": 0.6,
+                            "ppsa": 1.2,
+                            "scoring_distribution": {"ft_pct": 0.2, "fg2_pct": 0.6, "fg3_pct": 0.2},
+                        }
+                    ]
 
         # Check game info
         expected_date_str = "2025-05-01"  # Use string format for display

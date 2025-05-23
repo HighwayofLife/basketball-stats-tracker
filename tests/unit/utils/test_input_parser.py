@@ -2,7 +2,6 @@
 Test module for input_parser.py
 """
 
-
 from app.utils.input_parser import parse_quarter_shot_string
 
 
