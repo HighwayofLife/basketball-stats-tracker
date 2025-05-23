@@ -3,6 +3,15 @@ CRUD operations package for database access.
 """
 
 # Import all CRUD functions
+from app.data_access.crud.crud_audit_log import (
+    create_audit_log,
+    get_audit_log,
+    get_audit_logs_by_command,
+    get_audit_logs_by_entity,
+    get_recent_audit_logs,
+    mark_audit_log_as_undone,
+    mark_command_as_undone,
+)
 from app.data_access.crud.crud_game import create_game, get_game_by_id, get_games_by_date_range, get_games_by_team
 from app.data_access.crud.crud_player import (
     create_player,
@@ -21,10 +30,32 @@ from app.data_access.crud.crud_player_quarter_stats import (
     get_player_quarter_stats,
     get_quarter_stats_by_quarter,
 )
+from app.data_access.crud.crud_player_season_stats import (
+    create_player_season_stats,
+    get_player_all_seasons,
+    get_player_season_stats,
+    get_season_players,
+    update_player_season_stats,
+)
 from app.data_access.crud.crud_team import create_team, get_all_teams, get_team_by_id, get_team_by_name
+from app.data_access.crud.crud_team_season_stats import (
+    create_team_season_stats,
+    get_season_teams,
+    get_team_all_seasons,
+    get_team_season_stats,
+    update_team_season_stats,
+)
 
 # Define public API
 __all__ = [
+    # Audit Log CRUD
+    "create_audit_log",
+    "get_audit_log",
+    "get_audit_logs_by_command",
+    "get_audit_logs_by_entity",
+    "get_recent_audit_logs",
+    "mark_audit_log_as_undone",
+    "mark_command_as_undone",
     # Team CRUD
     "create_team",
     "get_team_by_name",
@@ -49,4 +80,16 @@ __all__ = [
     "create_player_quarter_stats",
     "get_player_quarter_stats",
     "get_quarter_stats_by_quarter",
+    # PlayerSeasonStats CRUD
+    "create_player_season_stats",
+    "get_player_season_stats",
+    "get_player_all_seasons",
+    "get_season_players",
+    "update_player_season_stats",
+    # TeamSeasonStats CRUD
+    "create_team_season_stats",
+    "get_team_season_stats",
+    "get_team_all_seasons",
+    "get_season_teams",
+    "update_team_season_stats",
 ]

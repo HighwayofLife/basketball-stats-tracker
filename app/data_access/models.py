@@ -26,7 +26,15 @@ class Base(DeclarativeBase):
     pass
 
 
-class Team(Base):
+class SoftDeleteMixin:
+    """Mixin to add soft delete functionality to models."""
+
+    is_deleted: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    deleted_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Future user reference
+
+
+class Team(Base, SoftDeleteMixin):
     """Represents a basketball team in the league."""
 
     __tablename__ = "teams"
@@ -45,8 +53,11 @@ class Team(Base):
     def __repr__(self):
         return f"<Team(id={self.id}, name='{self.name}')>"
 
+    def __str__(self):
+        return self.name
 
-class Player(Base):
+
+class Player(Base, SoftDeleteMixin):
     """Represents a player in a team."""
 
     __tablename__ = "players"
@@ -80,8 +91,11 @@ class Player(Base):
     def __repr__(self):
         return f"<Player(id={self.id}, name='{self.name}', jersey_number={self.jersey_number}, team_id={self.team_id})>"
 
+    def __str__(self):
+        return f"{self.name} (#{self.jersey_number})"
 
-class Game(Base):
+
+class Game(Base, SoftDeleteMixin):
     """Represents a game played between two teams."""
 
     __tablename__ = "games"
@@ -114,6 +128,9 @@ class Game(Base):
             f"playing_team_id={self.playing_team_id}, "
             f"opponent_team_id={self.opponent_team_id})>"
         )
+
+    def __str__(self):
+        return f"Game on {self.date}"
 
 
 class PlayerGameStats(Base):
@@ -259,4 +276,95 @@ class ActiveRoster(Base):
         return (
             f"<ActiveRoster(id={self.id}, game_id={self.game_id}, "
             f"player_id={self.player_id}, is_starter={self.is_starter})>"
+        )
+
+
+class PlayerSeasonStats(Base):
+    """Aggregated statistics for a player across an entire season."""
+
+    __tablename__ = "player_season_stats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), nullable=False)
+    season: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g., "2024-2025"
+    games_played: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_fouls: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_ftm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_fta: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_2pm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_2pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_3pm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_3pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_updated: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    player: Mapped["Player"] = relationship("Player")
+
+    __table_args__ = (UniqueConstraint("player_id", "season", name="uq_player_season"),)
+
+    def __repr__(self):
+        return (
+            f"<PlayerSeasonStats(id={self.id}, player_id={self.player_id}, "
+            f"season='{self.season}', games={self.games_played})>"
+        )
+
+
+class TeamSeasonStats(Base):
+    """Aggregated statistics for a team across an entire season."""
+
+    __tablename__ = "team_season_stats"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
+    season: Mapped[str] = mapped_column(String(20), nullable=False)  # e.g., "2024-2025"
+    games_played: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    wins: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    losses: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_points_for: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_points_against: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_ftm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_fta: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_2pm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_2pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_3pm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    total_3pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    last_updated: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    team: Mapped["Team"] = relationship("Team")
+
+    __table_args__ = (UniqueConstraint("team_id", "season", name="uq_team_season"),)
+
+    def __repr__(self):
+        return (
+            f"<TeamSeasonStats(id={self.id}, team_id={self.team_id}, "
+            f"season='{self.season}', record={self.wins}-{self.losses})>"
+        )
+
+
+class AuditLog(Base):
+    """Tracks all data changes for audit trail and undo/redo functionality."""
+
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    entity_type: Mapped[str] = mapped_column(String(50), nullable=False)  # 'game', 'player', 'team', 'stats'
+    entity_id: Mapped[int] = mapped_column(Integer, nullable=False)
+    action: Mapped[str] = mapped_column(String(20), nullable=False)  # 'create', 'update', 'delete', 'restore'
+    user_id: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Future user reference
+    timestamp: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    old_values: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    new_values: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    command_id: Mapped[str | None] = mapped_column(String(36), nullable=True)  # UUID for grouping related changes
+    is_undone: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    undo_timestamp: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    def __repr__(self):
+        return (
+            f"<AuditLog(id={self.id}, entity_type='{self.entity_type}', "
+            f"entity_id={self.entity_id}, action='{self.action}', "
+            f"timestamp='{self.timestamp}')>"
         )
