@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% if title %}{{ title }} - {% endif %}Basketball Stats Tracker</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/main.css') }}">
     {% block extra_head %}{% endblock %}
 </head>
@@ -15,8 +19,10 @@
                 <ul>
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/games">Games</a></li>
+                    <li><a href="/scorebook">Scorebook Entry</a></li>
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
+                    <li><a href="/admin/data-corrections">Admin</a></li>
                 </ul>
             </nav>
         </div>
@@ -36,6 +42,8 @@
         </div>
     </footer>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
     {% block extra_scripts %}{% endblock %}
 </body>

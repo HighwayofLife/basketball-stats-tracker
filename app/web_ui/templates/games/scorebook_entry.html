@@ -1,0 +1,566 @@
+{% extends "base.html" %}
+
+{% block title %}Scorebook Entry{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="fas fa-clipboard-list me-2"></i>
+                    Scorebook Entry
+                </h1>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary me-2" onclick="clearForm()">
+                        <i class="fas fa-trash"></i> Clear All
+                    </button>
+                    <button type="button" class="btn btn-success" onclick="saveGame()">
+                        <i class="fas fa-save"></i> Save Game
+                    </button>
+                </div>
+            </div>
+
+            <!-- Game Information -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Game Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="homeTeam" class="form-label">Home Team</label>
+                                <select class="form-select" id="homeTeam" required>
+                                    <option value="">Select home team...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="awayTeam" class="form-label">Away Team</label>
+                                <select class="form-select" id="awayTeam" required>
+                                    <option value="">Select away team...</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="gameDate" class="form-label">Game Date</label>
+                                <input type="date" class="form-control" id="gameDate" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="location" class="form-label">Location (Optional)</label>
+                                <input type="text" class="form-control" id="location" placeholder="Enter game location">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="notes" class="form-label">Notes (Optional)</label>
+                                <input type="text" class="form-control" id="notes" placeholder="Enter any notes">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scoring Notation Guide -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Scoring Notation Guide
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Shot Types:</h6>
+                            <ul class="list-unstyled">
+                                <li><code>1</code> = Made Free Throw</li>
+                                <li><code>x</code> = Missed Free Throw</li>
+                                <li><code>2</code> = Made 2-Point Shot</li>
+                                <li><code>-</code> = Missed 2-Point Shot</li>
+                                <li><code>3</code> = Made 3-Point Shot</li>
+                                <li><code>/</code> = Missed 3-Point Shot</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Examples:</h6>
+                            <ul class="list-unstyled">
+                                <li><code>22-1x</code> = 2 made 2pts, 1 missed 2pt, 1 made FT, 1 missed FT</li>
+                                <li><code>3/2</code> = 1 made 3pt, 1 missed 3pt, 1 made 2pt</li>
+                                <li><code>11</code> = 2 made free throws</li>
+                                <li><code>-/</code> = 1 missed 2pt, 1 missed 3pt</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Player Stats Entry -->
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Player Statistics</h5>
+                    <button type="button" class="btn btn-primary btn-sm" onclick="addPlayerRow()">
+                        <i class="fas fa-plus"></i> Add Player
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="playerStatsTable">
+                            <thead>
+                                <tr>
+                                    <th style="width: 200px;">Player Name</th>
+                                    <th style="width: 100px;">Team</th>
+                                    <th style="width: 80px;">Jersey #</th>
+                                    <th style="width: 80px;">Fouls</th>
+                                    <th style="width: 150px;">Q1 Scoring</th>
+                                    <th style="width: 150px;">Q2 Scoring</th>
+                                    <th style="width: 150px;">Q3 Scoring</th>
+                                    <th style="width: 150px;">Q4 Scoring</th>
+                                    <th style="width: 100px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerStatsBody">
+                                <!-- Player rows will be added dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-muted mt-3">
+                        <small>
+                            <i class="fas fa-info-circle me-1"></i>
+                            Enter scoring using the notation guide above. Players from both teams can be mixed in any order.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Summary -->
+            <div class="card mt-4" id="gameSummary" style="display: none;">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>
+                        Game Summary
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 id="homeTeamSummary">Home Team: 0</h6>
+                            <div id="homeTeamStats"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 id="awayTeamSummary">Away Team: 0</h6>
+                            <div id="awayTeamStats"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Player Row Template -->
+<template id="playerRowTemplate">
+    <tr class="player-row">
+        <td>
+            <select class="form-select player-select" onchange="updatePlayerInfo(this)" required>
+                <option value="">Select player...</option>
+            </select>
+        </td>
+        <td>
+            <span class="team-display text-muted">-</span>
+        </td>
+        <td>
+            <span class="jersey-display text-muted">-</span>
+        </td>
+        <td>
+            <input type="number" class="form-control fouls-input" min="0" max="10" value="0" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., 22-1x" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., 3/2" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., 11" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., -/" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePlayerRow(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<style>
+.scoring-input {
+    font-family: 'Courier New', monospace;
+    text-align: center;
+}
+
+.jersey-display, .team-display {
+    font-weight: 500;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+}
+
+code {
+    background-color: #f8f9fa;
+    padding: 2px 4px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+.btn-group-sm > .btn, .btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+
+.table-responsive {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.85rem;
+    }
+    
+    .scoring-input {
+        min-width: 80px;
+    }
+}
+</style>
+
+<script>
+let teamsData = [];
+let playersData = [];
+
+// Initialize the page
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeamsAndPlayers();
+    setDefaultDate();
+    addPlayerRow(); // Add first row by default
+});
+
+function setDefaultDate() {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('gameDate').value = today;
+}
+
+async function loadTeamsAndPlayers() {
+    try {
+        // Load teams
+        const teamsResponse = await fetch('/v1/teams/detail');
+        teamsData = await teamsResponse.json();
+        
+        // Load players
+        const playersResponse = await fetch('/v1/players/list');
+        playersData = await playersResponse.json();
+        
+        populateTeamSelects();
+        
+    } catch (error) {
+        console.error('Error loading teams and players:', error);
+        showAlert('Error loading teams and players. Please refresh the page.', 'danger');
+    }
+}
+
+function populateTeamSelects() {
+    const homeTeamSelect = document.getElementById('homeTeam');
+    const awayTeamSelect = document.getElementById('awayTeam');
+    
+    // Clear existing options except the first one
+    homeTeamSelect.innerHTML = '<option value="">Select home team...</option>';
+    awayTeamSelect.innerHTML = '<option value="">Select away team...</option>';
+    
+    teamsData.forEach(team => {
+        const option1 = new Option(team.name, team.id);
+        const option2 = new Option(team.name, team.id);
+        homeTeamSelect.add(option1);
+        awayTeamSelect.add(option2);
+    });
+}
+
+function addPlayerRow() {
+    const template = document.getElementById('playerRowTemplate');
+    const clone = template.content.cloneNode(true);
+    const playerSelect = clone.querySelector('.player-select');
+    
+    // Populate player options
+    playerSelect.innerHTML = '<option value="">Select player...</option>';
+    playersData.forEach(player => {
+        const option = new Option(
+            `${player.name} (#${player.jersey_number}) - ${player.team_name}`,
+            player.id
+        );
+        option.dataset.teamId = player.team_id;
+        option.dataset.teamName = player.team_name;
+        option.dataset.jerseyNumber = player.jersey_number;
+        playerSelect.add(option);
+    });
+    
+    document.getElementById('playerStatsBody').appendChild(clone);
+}
+
+function removePlayerRow(button) {
+    const row = button.closest('tr');
+    row.remove();
+    updateGameSummary();
+}
+
+function updatePlayerInfo(select) {
+    const row = select.closest('tr');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        row.querySelector('.team-display').textContent = selectedOption.dataset.teamName;
+        row.querySelector('.jersey-display').textContent = selectedOption.dataset.jerseyNumber;
+    } else {
+        row.querySelector('.team-display').textContent = '-';
+        row.querySelector('.jersey-display').textContent = '-';
+    }
+    
+    updateGameSummary();
+}
+
+function updateGameSummary() {
+    const homeTeamId = document.getElementById('homeTeam').value;
+    const awayTeamId = document.getElementById('awayTeam').value;
+    
+    if (!homeTeamId || !awayTeamId) {
+        document.getElementById('gameSummary').style.display = 'none';
+        return;
+    }
+    
+    const homeTeamName = document.getElementById('homeTeam').options[document.getElementById('homeTeam').selectedIndex].text;
+    const awayTeamName = document.getElementById('awayTeam').options[document.getElementById('awayTeam').selectedIndex].text;
+    
+    let homeScore = 0;
+    let awayScore = 0;
+    let homeStats = { players: 0, fouls: 0 };
+    let awayStats = { players: 0, fouls: 0 };
+    
+    // Calculate scores and stats for each player
+    document.querySelectorAll('.player-row').forEach(row => {
+        const playerSelect = row.querySelector('.player-select');
+        const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+        
+        if (selectedOption.value) {
+            const teamId = selectedOption.dataset.teamId;
+            const fouls = parseInt(row.querySelector('.fouls-input').value) || 0;
+            
+            // Calculate scoring for all quarters
+            let playerScore = 0;
+            row.querySelectorAll('.scoring-input').forEach(input => {
+                playerScore += parseScoring(input.value);
+            });
+            
+            if (teamId === homeTeamId) {
+                homeScore += playerScore;
+                homeStats.players++;
+                homeStats.fouls += fouls;
+            } else if (teamId === awayTeamId) {
+                awayScore += playerScore;
+                awayStats.players++;
+                awayStats.fouls += fouls;
+            }
+        }
+    });
+    
+    // Update summary display
+    document.getElementById('homeTeamSummary').textContent = `${homeTeamName}: ${homeScore}`;
+    document.getElementById('awayTeamSummary').textContent = `${awayTeamName}: ${awayScore}`;
+    
+    document.getElementById('homeTeamStats').innerHTML = `
+        <small class="text-muted">Players: ${homeStats.players} | Team Fouls: ${homeStats.fouls}</small>
+    `;
+    document.getElementById('awayTeamStats').innerHTML = `
+        <small class="text-muted">Players: ${awayStats.players} | Team Fouls: ${awayStats.fouls}</small>
+    `;
+    
+    document.getElementById('gameSummary').style.display = 'block';
+}
+
+function parseScoring(scoringString) {
+    if (!scoringString) return 0;
+    
+    let points = 0;
+    for (let char of scoringString) {
+        switch (char) {
+            case '1':
+                points += 1; // Made free throw
+                break;
+            case '2':
+                points += 2; // Made 2-pointer
+                break;
+            case '3':
+                points += 3; // Made 3-pointer
+                break;
+            // Misses (x, -, /) don't add points
+        }
+    }
+    return points;
+}
+
+function clearForm() {
+    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        document.getElementById('homeTeam').value = '';
+        document.getElementById('awayTeam').value = '';
+        document.getElementById('location').value = '';
+        document.getElementById('notes').value = '';
+        setDefaultDate();
+        
+        // Remove all player rows
+        document.getElementById('playerStatsBody').innerHTML = '';
+        
+        // Add one empty row
+        addPlayerRow();
+        
+        // Hide summary
+        document.getElementById('gameSummary').style.display = 'none';
+    }
+}
+
+async function saveGame() {
+    try {
+        // Validate form
+        const homeTeamId = document.getElementById('homeTeam').value;
+        const awayTeamId = document.getElementById('awayTeam').value;
+        const gameDate = document.getElementById('gameDate').value;
+        
+        if (!homeTeamId || !awayTeamId || !gameDate) {
+            showAlert('Please fill in all required fields (teams and date).', 'warning');
+            return;
+        }
+        
+        if (homeTeamId === awayTeamId) {
+            showAlert('Home and away teams must be different.', 'warning');
+            return;
+        }
+        
+        // Collect player data
+        const playerStats = [];
+        let hasPlayerData = false;
+        
+        document.querySelectorAll('.player-row').forEach(row => {
+            const playerSelect = row.querySelector('.player-select');
+            const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+            
+            if (selectedOption.value) {
+                hasPlayerData = true;
+                const fouls = parseInt(row.querySelector('.fouls-input').value) || 0;
+                const quarters = [];
+                
+                row.querySelectorAll('.scoring-input').forEach(input => {
+                    quarters.push(input.value || '');
+                });
+                
+                playerStats.push({
+                    player_id: parseInt(selectedOption.value),
+                    player_name: selectedOption.text.split(' (')[0],
+                    jersey_number: parseInt(selectedOption.dataset.jerseyNumber),
+                    team_id: parseInt(selectedOption.dataset.teamId),
+                    fouls: fouls,
+                    qt1_shots: quarters[0],
+                    qt2_shots: quarters[1],
+                    qt3_shots: quarters[2],
+                    qt4_shots: quarters[3]
+                });
+            }
+        });
+        
+        if (!hasPlayerData) {
+            showAlert('Please add at least one player with statistics.', 'warning');
+            return;
+        }
+        
+        // Prepare game data
+        const gameData = {
+            date: gameDate,
+            home_team_id: parseInt(homeTeamId),
+            away_team_id: parseInt(awayTeamId),
+            location: document.getElementById('location').value || null,
+            notes: document.getElementById('notes').value || null,
+            player_stats: playerStats
+        };
+        
+        // Save the game
+        showAlert('Saving game...', 'info');
+        
+        const response = await fetch('/v1/games/scorebook', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(gameData)
+        });
+        
+        if (response.ok) {
+            const result = await response.json();
+            showAlert('Game saved successfully!', 'success');
+            
+            // Optionally redirect to game detail page
+            setTimeout(() => {
+                window.location.href = `/games/${result.game_id}`;
+            }, 2000);
+        } else {
+            const error = await response.json();
+            showAlert(`Error saving game: ${error.detail}`, 'danger');
+        }
+        
+    } catch (error) {
+        console.error('Error saving game:', error);
+        showAlert('Error saving game. Please try again.', 'danger');
+    }
+}
+
+function showAlert(message, type) {
+    // Remove existing alerts
+    document.querySelectorAll('.alert').forEach(alert => alert.remove());
+    
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+    
+    // Auto-dismiss info and success alerts
+    if (type === 'info' || type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,507 @@
+{% extends "base.html" %}
+{% set title = "Edit Game Stats" %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="mb-6 flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Edit Game Stats</h1>
+        <a href="{{ url_for('games.detail', game_id=game.id) }}" class="btn btn-secondary">
+            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to Game
+        </a>
+    </div>
+
+    <!-- Game Info -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">Game Information</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <p class="text-gray-600">Date</p>
+                <p class="font-medium">{{ game.date.strftime('%B %d, %Y') }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Teams</p>
+                <p class="font-medium">{{ game.playing_team.name }} vs {{ game.opponent_team.name }}</p>
+            </div>
+            <div>
+                <p class="text-gray-600">Final Score</p>
+                <p class="font-medium">{{ home_score }} - {{ away_score }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Undo/Redo Controls -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 class="text-xl font-semibold mb-4">History Controls</h2>
+        <div class="flex gap-4">
+            <button id="undoBtn" class="btn btn-secondary" disabled>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                </svg>
+                Undo
+            </button>
+            <button id="redoBtn" class="btn btn-secondary" disabled>
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path>
+                </svg>
+                Redo
+            </button>
+            <button id="saveBtn" class="btn btn-primary ml-auto">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                </svg>
+                Save All Changes
+            </button>
+        </div>
+    </div>
+
+    <!-- Player Stats Edit Form -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-semibold mb-4">Player Statistics</h2>
+        
+        <!-- Team Tabs -->
+        <div class="border-b border-gray-200 mb-6">
+            <nav class="-mb-px flex space-x-8">
+                <button class="team-tab py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600" 
+                        data-team="playing">
+                    {{ game.playing_team.name }}
+                </button>
+                <button class="team-tab py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                        data-team="opponent">
+                    {{ game.opponent_team.name }}
+                </button>
+            </nav>
+        </div>
+
+        <!-- Playing Team Stats -->
+        <div id="playing-team-stats" class="team-stats">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-2">Player</th>
+                        <th class="text-center py-2">FTM</th>
+                        <th class="text-center py-2">FTA</th>
+                        <th class="text-center py-2">2PM</th>
+                        <th class="text-center py-2">2PA</th>
+                        <th class="text-center py-2">3PM</th>
+                        <th class="text-center py-2">3PA</th>
+                        <th class="text-center py-2">Fouls</th>
+                        <th class="text-center py-2">Points</th>
+                        <th class="text-center py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stats in playing_team_stats %}
+                    <tr class="border-b player-stats-row" data-stats-id="{{ stats.id }}">
+                        <td class="py-2">
+                            <span class="font-medium">{{ stats.player.name }}</span>
+                            <span class="text-gray-500">#{{ stats.player.jersey_number }}</span>
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_ftm" value="{{ stats.total_ftm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_fta" value="{{ stats.total_fta }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_2pm" value="{{ stats.total_2pm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_2pa" value="{{ stats.total_2pa }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_3pm" value="{{ stats.total_3pm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_3pa" value="{{ stats.total_3pa }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" max="6" class="stat-input w-16 text-center" 
+                                   data-field="fouls" value="{{ stats.fouls }}">
+                        </td>
+                        <td class="text-center py-2 font-medium">
+                            <span class="points-display">{{ stats.total_ftm + stats.total_2pm * 2 + stats.total_3pm * 3 }}</span>
+                        </td>
+                        <td class="text-center py-2">
+                            <button class="edit-quarters-btn text-blue-600 hover:text-blue-800" 
+                                    data-stats-id="{{ stats.id }}">
+                                Edit Quarters
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Opponent Team Stats -->
+        <div id="opponent-team-stats" class="team-stats hidden">
+            <table class="w-full">
+                <thead>
+                    <tr class="border-b">
+                        <th class="text-left py-2">Player</th>
+                        <th class="text-center py-2">FTM</th>
+                        <th class="text-center py-2">FTA</th>
+                        <th class="text-center py-2">2PM</th>
+                        <th class="text-center py-2">2PA</th>
+                        <th class="text-center py-2">3PM</th>
+                        <th class="text-center py-2">3PA</th>
+                        <th class="text-center py-2">Fouls</th>
+                        <th class="text-center py-2">Points</th>
+                        <th class="text-center py-2">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stats in opponent_team_stats %}
+                    <tr class="border-b player-stats-row" data-stats-id="{{ stats.id }}">
+                        <td class="py-2">
+                            <span class="font-medium">{{ stats.player.name }}</span>
+                            <span class="text-gray-500">#{{ stats.player.jersey_number }}</span>
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_ftm" value="{{ stats.total_ftm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_fta" value="{{ stats.total_fta }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_2pm" value="{{ stats.total_2pm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_2pa" value="{{ stats.total_2pa }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_3pm" value="{{ stats.total_3pm }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" class="stat-input w-16 text-center" 
+                                   data-field="total_3pa" value="{{ stats.total_3pa }}">
+                        </td>
+                        <td class="text-center py-2">
+                            <input type="number" min="0" max="6" class="stat-input w-16 text-center" 
+                                   data-field="fouls" value="{{ stats.fouls }}">
+                        </td>
+                        <td class="text-center py-2 font-medium">
+                            <span class="points-display">{{ stats.total_ftm + stats.total_2pm * 2 + stats.total_3pm * 3 }}</span>
+                        </td>
+                        <td class="text-center py-2">
+                            <button class="edit-quarters-btn text-blue-600 hover:text-blue-800" 
+                                    data-stats-id="{{ stats.id }}">
+                                Edit Quarters
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Quarter Stats Edit Modal -->
+<div id="quarterStatsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden overflow-y-auto h-full w-full">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <h3 class="text-lg font-bold mb-4">Edit Quarter Statistics</h3>
+        <div id="quarterStatsForm">
+            <!-- Quarter stats will be loaded here dynamically -->
+        </div>
+        <div class="mt-4 flex justify-end gap-2">
+            <button class="btn btn-secondary" onclick="closeQuarterModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="saveQuarterStats()">Save</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Track changes for undo/redo
+let changeHistory = [];
+let currentHistoryIndex = -1;
+let originalValues = {};
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Store original values
+    document.querySelectorAll('.stat-input').forEach(input => {
+        const statsId = input.closest('.player-stats-row').dataset.statsId;
+        const field = input.dataset.field;
+        if (!originalValues[statsId]) {
+            originalValues[statsId] = {};
+        }
+        originalValues[statsId][field] = input.value;
+    });
+
+    // Tab switching
+    document.querySelectorAll('.team-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Update tab styles
+            document.querySelectorAll('.team-tab').forEach(t => {
+                t.classList.remove('border-blue-500', 'text-blue-600');
+                t.classList.add('border-transparent', 'text-gray-500');
+            });
+            this.classList.remove('border-transparent', 'text-gray-500');
+            this.classList.add('border-blue-500', 'text-blue-600');
+
+            // Show/hide team stats
+            const team = this.dataset.team;
+            document.querySelectorAll('.team-stats').forEach(stats => {
+                stats.classList.add('hidden');
+            });
+            document.getElementById(`${team}-team-stats`).classList.remove('hidden');
+        });
+    });
+
+    // Handle stat input changes
+    document.querySelectorAll('.stat-input').forEach(input => {
+        input.addEventListener('change', function() {
+            const row = this.closest('.player-stats-row');
+            const statsId = row.dataset.statsId;
+            const field = this.dataset.field;
+            const newValue = this.value;
+            const oldValue = originalValues[statsId][field];
+
+            if (newValue !== oldValue) {
+                recordChange(statsId, field, oldValue, newValue);
+                updatePointsDisplay(row);
+            }
+        });
+    });
+
+    // Edit quarters buttons
+    document.querySelectorAll('.edit-quarters-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const statsId = this.dataset.statsId;
+            loadQuarterStats(statsId);
+        });
+    });
+
+    // Save button
+    document.getElementById('saveBtn').addEventListener('click', saveAllChanges);
+
+    // Undo/Redo buttons
+    document.getElementById('undoBtn').addEventListener('click', undo);
+    document.getElementById('redoBtn').addEventListener('click', redo);
+});
+
+function recordChange(statsId, field, oldValue, newValue) {
+    // Remove any changes after current index
+    changeHistory = changeHistory.slice(0, currentHistoryIndex + 1);
+    
+    // Add new change
+    changeHistory.push({
+        statsId: statsId,
+        field: field,
+        oldValue: oldValue,
+        newValue: newValue
+    });
+    
+    currentHistoryIndex++;
+    updateHistoryButtons();
+}
+
+function updateHistoryButtons() {
+    document.getElementById('undoBtn').disabled = currentHistoryIndex < 0;
+    document.getElementById('redoBtn').disabled = currentHistoryIndex >= changeHistory.length - 1;
+}
+
+function undo() {
+    if (currentHistoryIndex >= 0) {
+        const change = changeHistory[currentHistoryIndex];
+        applyChange(change.statsId, change.field, change.oldValue);
+        currentHistoryIndex--;
+        updateHistoryButtons();
+    }
+}
+
+function redo() {
+    if (currentHistoryIndex < changeHistory.length - 1) {
+        currentHistoryIndex++;
+        const change = changeHistory[currentHistoryIndex];
+        applyChange(change.statsId, change.field, change.newValue);
+        updateHistoryButtons();
+    }
+}
+
+function applyChange(statsId, field, value) {
+    const row = document.querySelector(`[data-stats-id="${statsId}"]`);
+    const input = row.querySelector(`[data-field="${field}"]`);
+    input.value = value;
+    updatePointsDisplay(row);
+}
+
+function updatePointsDisplay(row) {
+    const ftm = parseInt(row.querySelector('[data-field="total_ftm"]').value) || 0;
+    const fgm2 = parseInt(row.querySelector('[data-field="total_2pm"]').value) || 0;
+    const fgm3 = parseInt(row.querySelector('[data-field="total_3pm"]').value) || 0;
+    const points = ftm + (fgm2 * 2) + (fgm3 * 3);
+    row.querySelector('.points-display').textContent = points;
+}
+
+function loadQuarterStats(statsId) {
+    // Make API call to get quarter stats
+    fetch(`/api/player-game-stats/${statsId}/quarters`)
+        .then(response => response.json())
+        .then(data => {
+            displayQuarterStats(data);
+            document.getElementById('quarterStatsModal').classList.remove('hidden');
+        });
+}
+
+function displayQuarterStats(data) {
+    const form = document.getElementById('quarterStatsForm');
+    form.innerHTML = '';
+    form.dataset.statsId = data.statsId;
+    
+    data.quarters.forEach(quarter => {
+        form.innerHTML += `
+            <div class="mb-4 p-3 border rounded">
+                <h4 class="font-medium mb-2">Quarter ${quarter.number}</h4>
+                <div class="grid grid-cols-3 gap-2">
+                    <div>
+                        <label class="text-sm">FT</label>
+                        <input type="number" min="0" class="quarter-stat w-full" 
+                               data-quarter="${quarter.number}" data-field="ftm" value="${quarter.ftm}">
+                        <input type="number" min="0" class="quarter-stat w-full mt-1" 
+                               data-quarter="${quarter.number}" data-field="fta" value="${quarter.fta}">
+                    </div>
+                    <div>
+                        <label class="text-sm">2PT</label>
+                        <input type="number" min="0" class="quarter-stat w-full" 
+                               data-quarter="${quarter.number}" data-field="fg2m" value="${quarter.fg2m}">
+                        <input type="number" min="0" class="quarter-stat w-full mt-1" 
+                               data-quarter="${quarter.number}" data-field="fg2a" value="${quarter.fg2a}">
+                    </div>
+                    <div>
+                        <label class="text-sm">3PT</label>
+                        <input type="number" min="0" class="quarter-stat w-full" 
+                               data-quarter="${quarter.number}" data-field="fg3m" value="${quarter.fg3m}">
+                        <input type="number" min="0" class="quarter-stat w-full mt-1" 
+                               data-quarter="${quarter.number}" data-field="fg3a" value="${quarter.fg3a}">
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function closeQuarterModal() {
+    document.getElementById('quarterStatsModal').classList.add('hidden');
+}
+
+function saveQuarterStats() {
+    const form = document.getElementById('quarterStatsForm');
+    const statsId = form.dataset.statsId;
+    const updates = {};
+    
+    form.querySelectorAll('.quarter-stat').forEach(input => {
+        const quarter = input.dataset.quarter;
+        const field = input.dataset.field;
+        if (!updates[quarter]) {
+            updates[quarter] = {};
+        }
+        updates[quarter][field] = parseInt(input.value) || 0;
+    });
+    
+    // Make API call to update quarter stats
+    fetch(`/api/player-game-stats/${statsId}/quarters`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ quarters: updates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update the main stats display
+        const row = document.querySelector(`[data-stats-id="${statsId}"]`);
+        row.querySelector('[data-field="total_ftm"]').value = data.total_ftm;
+        row.querySelector('[data-field="total_fta"]').value = data.total_fta;
+        row.querySelector('[data-field="total_2pm"]').value = data.total_2pm;
+        row.querySelector('[data-field="total_2pa"]').value = data.total_2pa;
+        row.querySelector('[data-field="total_3pm"]').value = data.total_3pm;
+        row.querySelector('[data-field="total_3pa"]').value = data.total_3pa;
+        updatePointsDisplay(row);
+        
+        closeQuarterModal();
+        showNotification('Quarter stats updated successfully');
+    });
+}
+
+function saveAllChanges() {
+    const updates = {};
+    
+    // Collect all changed values
+    document.querySelectorAll('.player-stats-row').forEach(row => {
+        const statsId = row.dataset.statsId;
+        const changes = {};
+        let hasChanges = false;
+        
+        row.querySelectorAll('.stat-input').forEach(input => {
+            const field = input.dataset.field;
+            const currentValue = input.value;
+            const originalValue = originalValues[statsId][field];
+            
+            if (currentValue !== originalValue) {
+                changes[field] = parseInt(currentValue) || 0;
+                hasChanges = true;
+            }
+        });
+        
+        if (hasChanges) {
+            updates[statsId] = changes;
+        }
+    });
+    
+    if (Object.keys(updates).length === 0) {
+        showNotification('No changes to save', 'info');
+        return;
+    }
+    
+    // Make API call to save all changes
+    fetch(`/api/games/{{ game.id }}/stats/batch-update`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ updates: updates })
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Update original values
+        Object.keys(updates).forEach(statsId => {
+            Object.keys(updates[statsId]).forEach(field => {
+                originalValues[statsId][field] = updates[statsId][field].toString();
+            });
+        });
+        
+        // Clear history
+        changeHistory = [];
+        currentHistoryIndex = -1;
+        updateHistoryButtons();
+        
+        showNotification('All changes saved successfully', 'success');
+    })
+    .catch(error => {
+        showNotification('Error saving changes', 'error');
+        console.error(error);
+    });
+}
+
+function showNotification(message, type = 'success') {
+    // TODO: Implement notification system
+    alert(message);
+}
+</script>
+{% endblock %}

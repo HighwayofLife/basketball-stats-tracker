@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+{% set title = "Data Corrections Admin" %}
+
+{% block content %}
+<div class="container mx-auto p-6">
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold mb-2">Data Corrections Admin</h1>
+        <p class="text-gray-600">View audit logs, manage data corrections, and restore deleted items</p>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="border-b border-gray-200 mb-6">
+        <nav class="-mb-px flex space-x-8">
+            <button class="admin-tab py-2 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600" 
+                    data-tab="audit-logs">
+                Audit Logs
+            </button>
+            <button class="admin-tab py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    data-tab="deleted-items">
+                Deleted Items
+            </button>
+            <button class="admin-tab py-2 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    data-tab="command-history">
+                Command History
+            </button>
+        </nav>
+    </div>
+
+    <!-- Audit Logs Tab -->
+    <div id="audit-logs-tab" class="tab-content">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4 flex justify-between items-center">
+                <h2 class="text-xl font-semibold">Recent Audit Logs</h2>
+                <div class="flex gap-2">
+                    <select id="entityTypeFilter" class="form-select">
+                        <option value="">All Entities</option>
+                        <option value="game">Games</option>
+                        <option value="player">Players</option>
+                        <option value="team">Teams</option>
+                        <option value="player_game_stats">Game Stats</option>
+                        <option value="player_quarter_stats">Quarter Stats</option>
+                    </select>
+                    <button onclick="loadAuditLogs()" class="btn btn-secondary">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b">
+                            <th class="text-left py-2">Timestamp</th>
+                            <th class="text-left py-2">Entity</th>
+                            <th class="text-left py-2">Action</th>
+                            <th class="text-left py-2">Description</th>
+                            <th class="text-left py-2">Old Values</th>
+                            <th class="text-left py-2">New Values</th>
+                            <th class="text-center py-2">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="auditLogsTable">
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-gray-500">Loading audit logs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4 flex justify-center">
+                <button id="loadMoreBtn" onclick="loadMoreAuditLogs()" class="btn btn-secondary" style="display: none;">
+                    Load More
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Deleted Items Tab -->
+    <div id="deleted-items-tab" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold mb-4">Deleted Items</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Deleted Games -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium mb-2">Deleted Games</h3>
+                        <div id="deletedGames" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Deleted Players -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium mb-2">Deleted Players</h3>
+                        <div id="deletedPlayers" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Deleted Teams -->
+                    <div class="border rounded-lg p-4">
+                        <h3 class="font-medium mb-2">Deleted Teams</h3>
+                        <div id="deletedTeams" class="space-y-2">
+                            <p class="text-gray-500 text-sm">Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded">
+                <h3 class="font-medium text-yellow-800 mb-2">Bulk Restore</h3>
+                <p class="text-sm text-yellow-700 mb-3">Restore all deleted items of a specific type within a date range</p>
+                <div class="flex gap-2">
+                    <select id="bulkRestoreType" class="form-select">
+                        <option value="game">Games</option>
+                        <option value="player">Players</option>
+                        <option value="team">Teams</option>
+                    </select>
+                    <input type="date" id="bulkRestoreStartDate" class="form-input">
+                    <input type="date" id="bulkRestoreEndDate" class="form-input">
+                    <button onclick="bulkRestore()" class="btn btn-warning">Restore</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Command History Tab -->
+    <div id="command-history-tab" class="tab-content hidden">
+        <div class="bg-white rounded-lg shadow p-6">
+            <div class="mb-4 flex justify-between items-center">
+                <h2 class="text-xl font-semibold">Command History</h2>
+                <div class="flex gap-2">
+                    <button id="globalUndoBtn" onclick="globalUndo()" class="btn btn-secondary" disabled>
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                        </svg>
+                        Undo
+                    </button>
+                    <button id="globalRedoBtn" onclick="globalRedo()" class="btn btn-secondary" disabled>
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"></path>
+                        </svg>
+                        Redo
+                    </button>
+                </div>
+            </div>
+            
+            <div id="commandHistory" class="space-y-2">
+                <p class="text-gray-500 text-center py-4">No command history available</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentOffset = 0;
+const limit = 50;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching
+    document.querySelectorAll('.admin-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Update tab styles
+            document.querySelectorAll('.admin-tab').forEach(t => {
+                t.classList.remove('border-blue-500', 'text-blue-600');
+                t.classList.add('border-transparent', 'text-gray-500');
+            });
+            this.classList.remove('border-transparent', 'text-gray-500');
+            this.classList.add('border-blue-500', 'text-blue-600');
+
+            // Show/hide tab content
+            const tabName = this.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+            // Load tab-specific data
+            if (tabName === 'audit-logs') {
+                loadAuditLogs();
+            } else if (tabName === 'deleted-items') {
+                loadDeletedItems();
+            } else if (tabName === 'command-history') {
+                loadCommandHistory();
+            }
+        });
+    });
+
+    // Load initial data
+    loadAuditLogs();
+});
+
+function loadAuditLogs() {
+    currentOffset = 0;
+    const entityType = document.getElementById('entityTypeFilter').value;
+    
+    fetch(`/v1/audit-logs?limit=${limit}&offset=0${entityType ? '&entity_type=' + entityType : ''}`)
+        .then(response => response.json())
+        .then(data => {
+            displayAuditLogs(data.logs, false);
+            document.getElementById('loadMoreBtn').style.display = data.hasMore ? 'block' : 'none';
+        });
+}
+
+function loadMoreAuditLogs() {
+    currentOffset += limit;
+    const entityType = document.getElementById('entityTypeFilter').value;
+    
+    fetch(`/v1/audit-logs?limit=${limit}&offset=${currentOffset}${entityType ? '&entity_type=' + entityType : ''}`)
+        .then(response => response.json())
+        .then(data => {
+            displayAuditLogs(data.logs, true);
+            document.getElementById('loadMoreBtn').style.display = data.hasMore ? 'block' : 'none';
+        });
+}
+
+function displayAuditLogs(logs, append = false) {
+    const tbody = document.getElementById('auditLogsTable');
+    
+    if (!append) {
+        tbody.innerHTML = '';
+    }
+    
+    if (logs.length === 0 && !append) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-gray-500">No audit logs found</td></tr>';
+        return;
+    }
+    
+    logs.forEach(log => {
+        const row = document.createElement('tr');
+        row.className = 'border-b hover:bg-gray-50';
+        row.innerHTML = `
+            <td class="py-2 text-sm">${formatDateTime(log.timestamp)}</td>
+            <td class="py-2">
+                <span class="text-sm font-medium">${log.entity_type}</span>
+                <span class="text-xs text-gray-500">#${log.entity_id}</span>
+            </td>
+            <td class="py-2">
+                <span class="px-2 py-1 text-xs rounded-full ${getActionClass(log.action)}">
+                    ${log.action}
+                </span>
+            </td>
+            <td class="py-2 text-sm">${log.description || '-'}</td>
+            <td class="py-2 text-xs">
+                ${log.old_values ? '<pre>' + JSON.stringify(log.old_values, null, 2) + '</pre>' : '-'}
+            </td>
+            <td class="py-2 text-xs">
+                ${log.new_values ? '<pre>' + JSON.stringify(log.new_values, null, 2) + '</pre>' : '-'}
+            </td>
+            <td class="py-2 text-center">
+                ${log.is_undone ? 
+                    '<span class="text-xs text-gray-500">Undone</span>' : 
+                    '<span class="text-xs text-green-600">Active</span>'
+                }
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function loadDeletedItems() {
+    // Load deleted games
+    fetch('/v1/games/deleted')
+        .then(response => response.json())
+        .then(games => {
+            const container = document.getElementById('deletedGames');
+            if (games.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No deleted games</p>';
+            } else {
+                container.innerHTML = games.map(game => `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium">${game.away_team} @ ${game.home_team}</p>
+                            <p class="text-xs text-gray-500">${formatDate(game.date)}</p>
+                        </div>
+                        <button onclick="restoreGame(${game.id})" class="text-blue-600 hover:text-blue-800 text-sm">
+                            Restore
+                        </button>
+                    </div>
+                `).join('');
+            }
+        });
+    
+    // Load deleted players
+    fetch('/v1/players/deleted')
+        .then(response => response.json())
+        .then(players => {
+            const container = document.getElementById('deletedPlayers');
+            if (players.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No deleted players</p>';
+            } else {
+                container.innerHTML = players.map(player => `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium">${player.name} #${player.jersey_number}</p>
+                            <p class="text-xs text-gray-500">${player.team_name}</p>
+                        </div>
+                        <button onclick="restorePlayer(${player.id})" class="text-blue-600 hover:text-blue-800 text-sm">
+                            Restore
+                        </button>
+                    </div>
+                `).join('');
+            }
+        });
+    
+    // Load deleted teams
+    fetch('/v1/teams/deleted')
+        .then(response => response.json())
+        .then(teams => {
+            const container = document.getElementById('deletedTeams');
+            if (teams.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-sm">No deleted teams</p>';
+            } else {
+                container.innerHTML = teams.map(team => `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="text-sm font-medium">${team.name}</p>
+                        </div>
+                        <button onclick="restoreTeam(${team.id})" class="text-blue-600 hover:text-blue-800 text-sm">
+                            Restore
+                        </button>
+                    </div>
+                `).join('');
+            }
+        });
+}
+
+function loadCommandHistory() {
+    fetch('/v1/data-corrections/history')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('commandHistory');
+            
+            if (data.history.length === 0) {
+                container.innerHTML = '<p class="text-gray-500 text-center py-4">No command history available</p>';
+            } else {
+                container.innerHTML = data.history.map((cmd, index) => `
+                    <div class="border rounded p-3 ${cmd.status === 'undone' ? 'bg-gray-50' : ''}">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <p class="font-medium">${cmd.description || 'Command #' + (index + 1)}</p>
+                                <p class="text-sm text-gray-500">
+                                    ${cmd.type} - ${formatDateTime(cmd.executed_at)}
+                                    ${cmd.undone_at ? ' (Undone: ' + formatDateTime(cmd.undone_at) + ')' : ''}
+                                </p>
+                            </div>
+                            <span class="text-xs px-2 py-1 rounded ${
+                                cmd.status === 'executed' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                            }">
+                                ${cmd.status}
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            // Update undo/redo buttons
+            document.getElementById('globalUndoBtn').disabled = !data.can_undo;
+            document.getElementById('globalRedoBtn').disabled = !data.can_redo;
+        });
+}
+
+function restoreGame(gameId) {
+    if (confirm('Are you sure you want to restore this game?')) {
+        fetch(`/v1/games/${gameId}/restore`, { method: 'POST' })
+            .then(response => response.json())
+            .then(() => {
+                showNotification('Game restored successfully');
+                loadDeletedItems();
+            });
+    }
+}
+
+function restorePlayer(playerId) {
+    if (confirm('Are you sure you want to restore this player?')) {
+        fetch(`/v1/players/${playerId}/restore`, { method: 'POST' })
+            .then(response => response.json())
+            .then(() => {
+                showNotification('Player restored successfully');
+                loadDeletedItems();
+            });
+    }
+}
+
+function restoreTeam(teamId) {
+    if (confirm('Are you sure you want to restore this team?')) {
+        fetch(`/v1/teams/${teamId}/restore`, { method: 'POST' })
+            .then(response => response.json())
+            .then(() => {
+                showNotification('Team restored successfully');
+                loadDeletedItems();
+            });
+    }
+}
+
+function bulkRestore() {
+    const entityType = document.getElementById('bulkRestoreType').value;
+    const startDate = document.getElementById('bulkRestoreStartDate').value;
+    const endDate = document.getElementById('bulkRestoreEndDate').value;
+    
+    if (!startDate || !endDate) {
+        alert('Please select both start and end dates');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to restore all deleted ${entityType}s between ${startDate} and ${endDate}?`)) {
+        fetch('/v1/data-corrections/bulk-restore', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                entity_type: entityType,
+                start_date: startDate,
+                end_date: endDate
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(`Restored ${data.count} ${entityType}(s)`);
+            loadDeletedItems();
+        });
+    }
+}
+
+function globalUndo() {
+    fetch('/v1/data-corrections/undo', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Last action undone');
+                loadCommandHistory();
+                loadAuditLogs();
+            }
+        });
+}
+
+function globalRedo() {
+    fetch('/v1/data-corrections/redo', { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Last action redone');
+                loadCommandHistory();
+                loadAuditLogs();
+            }
+        });
+}
+
+function getActionClass(action) {
+    switch (action) {
+        case 'create':
+            return 'bg-green-100 text-green-800';
+        case 'update':
+            return 'bg-blue-100 text-blue-800';
+        case 'delete':
+            return 'bg-red-100 text-red-800';
+        case 'restore':
+            return 'bg-yellow-100 text-yellow-800';
+        default:
+            return 'bg-gray-100 text-gray-800';
+    }
+}
+
+function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString();
+}
+
+function formatDateTime(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleString();
+}
+
+function showNotification(message, type = 'success') {
+    // TODO: Implement proper notification system
+    alert(message);
+}
+</script>
+{% endblock %}
