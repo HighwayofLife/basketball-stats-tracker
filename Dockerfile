@@ -8,19 +8,23 @@ COPY app ./app
 COPY README.md ./
 COPY LICENSE ./
 
-# Install build dependencies
-RUN pip install --no-cache-dir build wheel setuptools
-
-# Install runtime dependencies to collect them
-RUN pip install --no-cache-dir ".[dev]" --target=/install
+# Install build dependencies and the package
+RUN pip install --no-cache-dir build wheel setuptools && \
+    pip install --no-cache-dir ".[dev]"
 
 # Final stage
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Copy installed packages from builder stage
-COPY --from=builder /install /usr/local/lib/python3.11/site-packages/
+# Install runtime dependencies
+COPY pyproject.toml ./
+COPY app ./app
+COPY README.md ./
+COPY LICENSE ./
+
+RUN pip install --no-cache-dir . && \
+    pip cache purge
 
 # Copy application code
 COPY . .
