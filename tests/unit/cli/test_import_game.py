@@ -19,7 +19,7 @@ def cli_runner():
 @pytest.fixture
 def mock_import_game_stats():
     """Mocks the import_game_stats_from_csv function at the correct import location."""
-    with patch("app.services.csv_import_service.import_game_stats_from_csv") as mock:
+    with patch("app.services.cli_commands.import_commands.import_game_stats_from_csv") as mock:
         yield mock
 
 
