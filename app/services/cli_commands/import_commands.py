@@ -7,7 +7,7 @@ class ImportCommands:
     """Handles import-related CLI commands."""
 
     @staticmethod
-    def import_roster(file: str, dry_run: bool = False) -> None:
+    def import_roster(file: str, dry_run: bool = False):
         """
         Import teams and players from a CSV file.
 
@@ -18,7 +18,7 @@ class ImportCommands:
         return import_roster_from_csv(file, dry_run)
 
     @staticmethod
-    def import_game_stats(file: str, dry_run: bool = False) -> None:
+    def import_game_stats(file: str, dry_run: bool = False):
         """
         Import game statistics from a CSV file.
 

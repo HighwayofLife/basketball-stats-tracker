@@ -16,54 +16,17 @@ depends_on = None
 
 
 def upgrade():
-    # Create a temporary table with the date column as Date type
-    op.execute('''
-    CREATE TABLE games_temp (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date DATE NOT NULL,
-        playing_team_id INTEGER NOT NULL,
-        opponent_team_id INTEGER NOT NULL,
-        FOREIGN KEY (playing_team_id) REFERENCES teams (id),
-        FOREIGN KEY (opponent_team_id) REFERENCES teams (id)
-    )
-    ''')
-
-    # Copy data from the old table to the new one, converting string dates to date objects
-    op.execute('''
-    INSERT INTO games_temp (id, date, playing_team_id, opponent_team_id)
-    SELECT id, date(date), playing_team_id, opponent_team_id
-    FROM games
-    ''')
-
-    # Drop the old table
-    op.drop_table('games')
-
-    # Rename the new table to the original name
-    op.rename_table('games_temp', 'games')
+    # Use Alembic's alter_column method instead of recreating the table
+    # This is more database-agnostic
+    from sqlalchemy import Date
+    op.alter_column('games', 'date',
+                    type_=Date(),
+                    postgresql_using='date::date')
 
 
 def downgrade():
-    # Create a temporary table with the date column as String type
-    op.execute('''
-    CREATE TABLE games_temp (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        date VARCHAR NOT NULL,
-        playing_team_id INTEGER NOT NULL,
-        opponent_team_id INTEGER NOT NULL,
-        FOREIGN KEY (playing_team_id) REFERENCES teams (id),
-        FOREIGN KEY (opponent_team_id) REFERENCES teams (id)
-    )
-    ''')
-
-    # Copy data from the current table to the temporary one, converting date objects to strings
-    op.execute('''
-    INSERT INTO games_temp (id, date, playing_team_id, opponent_team_id)
-    SELECT id, strftime('%Y-%m-%d', date), playing_team_id, opponent_team_id
-    FROM games
-    ''')
-
-    # Drop the current table
-    op.drop_table('games')
-
-    # Rename the temporary table to the original name
-    op.rename_table('games_temp', 'games')
+    # Use Alembic's alter_column method to revert the column type
+    from sqlalchemy import String
+    op.alter_column('games', 'date',
+                    type_=String(),
+                    postgresql_using='date::text')

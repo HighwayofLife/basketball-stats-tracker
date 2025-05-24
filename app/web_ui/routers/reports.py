@@ -107,10 +107,7 @@ async def get_box_score_report(game_id: int, db: Annotated[Session, Depends(get_
     player_stats_list, game_summary = report_gen.get_game_box_score_data(game_id)
 
     # Transform data into expected format for API response
-    return {
-        "game_summary": game_summary,
-        "player_stats": player_stats_list
-    }
+    return {"game_summary": game_summary, "player_stats": player_stats_list}
 
 
 @router.get("/v1/reports/player-performance/{game_id}", response_model=dict[str, Any])
@@ -134,11 +131,7 @@ async def get_player_performance_report(game_id: int, db: Annotated[Session, Dep
             # Skip players with no stats
             continue
 
-    return {
-        "game_id": game_id,
-        "game_date": game.date.isoformat(),
-        "players": player_reports
-    }
+    return {"game_id": game_id, "game_date": game.date.isoformat(), "players": player_reports}
 
 
 @router.get("/v1/reports/team-efficiency/{game_id}", response_model=dict[str, Any])
@@ -157,7 +150,7 @@ async def get_team_efficiency_report(game_id: int, db: Annotated[Session, Depend
         "game_id": game_id,
         "game_date": game.date.isoformat(),
         "playing_team": playing_team_report,
-        "opponent_team": opponent_team_report
+        "opponent_team": opponent_team_report,
     }
 
 
@@ -177,7 +170,7 @@ async def get_scoring_analysis_report(game_id: int, db: Annotated[Session, Depen
         "game_id": game_id,
         "game_date": game.date.isoformat(),
         "playing_team": playing_team_analysis,
-        "opponent_team": opponent_team_analysis
+        "opponent_team": opponent_team_analysis,
     }
 
 
@@ -216,9 +209,7 @@ async def get_player_season_report(
         stats_service = SeasonStatsService(db)
         stats_service.update_player_season_stats(player_id, season_str)
         season_stats = (
-            crud_player_season_stats.get_player_season_stats(db, player_id, season_str)
-            if season_str
-            else None
+            crud_player_season_stats.get_player_season_stats(db, player_id, season_str) if season_str else None
         )
 
     # Get all games for the player
@@ -232,7 +223,7 @@ async def get_player_season_report(
     if season:
         games = [g for g in games if g.date.year == season]
 
-    game_stats = []
+    game_stats: list[dict[str, Any]] = []
     for game in sorted(games, key=lambda g: g.date):
         player_stats = next((ps for ps in game.player_game_stats if ps.player_id == player_id), None)
         if player_stats:
@@ -279,18 +270,21 @@ async def get_player_season_report(
         )
     else:
         # Calculate from game stats
-        total_points = sum(g["points"] for g in game_stats)
+        total_points = sum(g["points"] for g in game_stats)  # type: ignore[misc]
         ppg = total_points / len(game_stats) if game_stats else 0
         apg = 0
         rpg = 0
         fg_percentage = stats_calculator.calculate_percentage(
-            sum(g["fg_made"] for g in game_stats), sum(g["fg_attempted"] for g in game_stats)
+            sum(g["fg_made"] for g in game_stats),  # type: ignore[misc]
+            sum(g["fg_attempted"] for g in game_stats),  # type: ignore[misc]
         )
         three_pt_percentage = stats_calculator.calculate_percentage(
-            sum(g["three_pt_made"] for g in game_stats), sum(g["three_pt_attempted"] for g in game_stats)
+            sum(g["three_pt_made"] for g in game_stats),  # type: ignore[misc]
+            sum(g["three_pt_attempted"] for g in game_stats),  # type: ignore[misc]
         )
         ft_percentage = stats_calculator.calculate_percentage(
-            sum(g["ft_made"] for g in game_stats), sum(g["ft_attempted"] for g in game_stats)
+            sum(g["ft_made"] for g in game_stats),  # type: ignore[misc]
+            sum(g["ft_attempted"] for g in game_stats),  # type: ignore[misc]
         )
 
     return {
@@ -345,11 +339,7 @@ async def get_team_season_report(
         # Calculate season stats if not cached
         stats_service = SeasonStatsService(db)
         stats_service.update_team_season_stats(team_id, season_str)
-        season_stats = (
-            crud_team_season_stats.get_team_season_stats(db, team_id, season_str)
-            if season_str
-            else None
-        )
+        season_stats = crud_team_season_stats.get_team_season_stats(db, team_id, season_str) if season_str else None
 
     # Get all games for the team
     games = crud_game.get_games_by_team(db, team_id)
@@ -394,13 +384,11 @@ async def get_team_season_report(
 
     # Get player season stats
     players = crud_player.get_players_by_team(db, team_id)
-    player_stats = []
+    player_stats: list[dict[str, Any]] = []
 
     for player in players:
         p_season_stats = (
-            crud_player_season_stats.get_player_season_stats(db, player.id, season_str)
-            if season_str
-            else None
+            crud_player_season_stats.get_player_season_stats(db, player.id, season_str) if season_str else None
         )
         if p_season_stats and p_season_stats.games_played > 0:
             player_total_points = stats_calculator.calculate_points(
@@ -408,8 +396,7 @@ async def get_team_season_report(
             )
             ppg = player_total_points / p_season_stats.games_played if p_season_stats.games_played > 0 else 0
             fg_percentage = stats_calculator.calculate_percentage(
-                p_season_stats.total_2pm + p_season_stats.total_3pm,
-                p_season_stats.total_2pa + p_season_stats.total_3pa
+                p_season_stats.total_2pm + p_season_stats.total_3pm, p_season_stats.total_2pa + p_season_stats.total_3pa
             )
             three_pt_percentage = stats_calculator.calculate_percentage(
                 p_season_stats.total_3pm, p_season_stats.total_3pa
@@ -433,7 +420,7 @@ async def get_team_season_report(
             )
 
     # Sort player stats by PPG
-    player_stats.sort(key=lambda x: x["ppg"], reverse=True)
+    player_stats.sort(key=lambda x: x["ppg"], reverse=True)  # type: ignore[return-value]
 
     # Calculate team averages
     games_played = len(games)
@@ -450,9 +437,11 @@ async def get_team_season_report(
     else:
         # Calculate from all player stats
         total_fgm = sum(
-            p["ppg"] * p["games_played"] * p["fg_percentage"] / 100 for p in player_stats if p["fg_percentage"] > 0
+            p["ppg"] * p["games_played"] * p["fg_percentage"] / 100  # type: ignore[operator]
+            for p in player_stats
+            if p["fg_percentage"] > 0  # type: ignore[operator]
         )
-        total_fga = sum(p["ppg"] * p["games_played"] for p in player_stats)
+        total_fga = sum(p["ppg"] * p["games_played"] for p in player_stats)  # type: ignore[misc]
         fg_percentage = (total_fgm / total_fga * 100) if total_fga > 0 else 0
         three_pt_percentage = 0  # Would need to calculate from individual games
         ft_percentage = 0  # Would need to calculate from individual games
