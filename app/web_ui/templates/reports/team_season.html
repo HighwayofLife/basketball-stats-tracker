@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}{{ team.name }} Season Report - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Team Season Report</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn btn-primary" onclick="exportReport('json')">
+                    <i class="fas fa-file-code"></i> Export JSON
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Info Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="team-logo mb-3">
+                        <i class="fas fa-shield-alt fa-5x text-primary"></i>
+                    </div>
+                    <h2 id="teamName">{{ team.name }}</h2>
+                    <h4 class="text-muted">Season <span id="seasonYear"></span></h4>
+                </div>
+                <div class="col-md-8">
+                    <div class="row text-center">
+                        <div class="col-md-4">
+                            <div class="record-card">
+                                <h2><span id="wins">0</span>-<span id="losses">0</span></h2>
+                                <p class="text-muted">Record</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <h3 id="ppg">0.0</h3>
+                                <p class="text-muted">Points Per Game</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="stat-card">
+                                <h3 id="papg">0.0</h3>
+                                <p class="text-muted">Points Against</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row text-center mt-3">
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="apg">0.0</h4>
+                                <p class="text-muted">APG</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="rpg">0.0</h4>
+                                <p class="text-muted">RPG</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="fgPercentage">0.0%</h4>
+                                <p class="text-muted">FG%</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="threePtPercentage">0.0%</h4>
+                                <p class="text-muted">3P%</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="ftPercentage">0.0%</h4>
+                                <p class="text-muted">FT%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Performance Charts -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Offensive vs Defensive Performance</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="offDefChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Shooting Efficiency</h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="shootingChart" height="150"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Player Statistics -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Player Statistics</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover sortable" id="playerStatsTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Player</th>
+                        <th>Position</th>
+                        <th>GP</th>
+                        <th>PPG</th>
+                        <th>APG</th>
+                        <th>RPG</th>
+                        <th>FG%</th>
+                        <th>3P%</th>
+                        <th>FT%</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="playerStats">
+                    <tr><td colspan="11">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Recent Games -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Recent Games</h4>
+        </div>
+        <div class="card-body">
+            <div id="recentGames" class="list-group">
+                <div class="text-center">Loading...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.stat-card, .record-card {
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.stat-card h3, .stat-card h4, .record-card h2 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.team-logo {
+    display: inline-block;
+}
+
+.sortable th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable th:hover {
+    background-color: #f0f0f0;
+}
+
+.sortable th::after {
+    content: ' ⇅';
+    font-size: 0.8em;
+    color: #999;
+}
+
+.sortable th.sorted-asc::after {
+    content: ' ▲';
+    color: #333;
+}
+
+.sortable th.sorted-desc::after {
+    content: ' ▼';
+    color: #333;
+}
+
+.list-group-item {
+    border-left: 4px solid transparent;
+}
+
+.list-group-item.win {
+    border-left-color: #28a745;
+}
+
+.list-group-item.loss {
+    border-left-color: #dc3545;
+}
+</style>
+
+<script>
+const teamId = {{ team_id }};
+const season = {{ season if season else 'null' }};
+let reportData = null;
+
+// Load report data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeamSeasonReport();
+});
+
+async function loadTeamSeasonReport() {
+    try {
+        let url = `/v1/reports/team-season/${teamId}`;
+        if (season) {
+            url += `?season=${season}`;
+        }
+        
+        const response = await fetch(url);
+        reportData = await response.json();
+        
+        // Update team info
+        document.getElementById('teamName').textContent = reportData.team.name;
+        document.getElementById('seasonYear').textContent = reportData.season !== 'All' ? reportData.season : 'All';
+        
+        // Update team stats
+        const stats = reportData.season_stats;
+        document.getElementById('wins').textContent = stats.wins;
+        document.getElementById('losses').textContent = stats.losses;
+        document.getElementById('ppg').textContent = stats.ppg.toFixed(1);
+        document.getElementById('papg').textContent = stats.papg.toFixed(1);
+        document.getElementById('apg').textContent = stats.apg.toFixed(1);
+        document.getElementById('rpg').textContent = stats.rpg.toFixed(1);
+        document.getElementById('fgPercentage').textContent = stats.fg_percentage.toFixed(1) + '%';
+        document.getElementById('threePtPercentage').textContent = stats.three_pt_percentage.toFixed(1) + '%';
+        document.getElementById('ftPercentage').textContent = stats.ft_percentage.toFixed(1) + '%';
+        
+        // Update player stats table
+        updatePlayerStats(reportData.player_stats);
+        
+        // Draw charts
+        drawOffDefChart(stats);
+        drawShootingChart(stats);
+        
+        // Load recent games
+        loadRecentGames();
+        
+        // Make table sortable
+        makeSortable('playerStatsTable');
+        
+    } catch (error) {
+        console.error('Error loading team season report:', error);
+        alert('Error loading team season data');
+    }
+}
+
+function updatePlayerStats(players) {
+    const tbody = document.getElementById('playerStats');
+    tbody.innerHTML = '';
+    
+    players.forEach(player => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = player.jersey_number;
+        row.insertCell().textContent = player.name;
+        row.insertCell().textContent = player.position;
+        row.insertCell().textContent = player.games_played;
+        row.insertCell().textContent = player.ppg.toFixed(1);
+        row.insertCell().textContent = player.apg.toFixed(1);
+        row.insertCell().textContent = player.rpg.toFixed(1);
+        row.insertCell().textContent = player.fg_percentage.toFixed(1) + '%';
+        row.insertCell().textContent = player.three_pt_percentage.toFixed(1) + '%';
+        row.insertCell().textContent = player.ft_percentage.toFixed(1) + '%';
+        
+        const actionsCell = row.insertCell();
+        actionsCell.innerHTML = `
+            <a href="/reports/player-season/${player.player_id}${season ? '?season=' + season : ''}" 
+               class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-chart-line"></i> View
+            </a>
+        `;
+    });
+}
+
+function drawOffDefChart(stats) {
+    const ctx = document.getElementById('offDefChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Points Scored', 'Points Allowed'],
+            datasets: [{
+                label: 'Per Game Average',
+                data: [stats.ppg, stats.papg],
+                backgroundColor: [
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(255, 99, 132, 0.8)'
+                ],
+                borderColor: [
+                    'rgb(54, 162, 235)',
+                    'rgb(255, 99, 132)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                legend: {
+                    display: false
+                }
+            }
+        }
+    });
+}
+
+function drawShootingChart(stats) {
+    const ctx = document.getElementById('shootingChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['Field Goal %', '3-Point %', 'Free Throw %'],
+            datasets: [{
+                label: reportData.team.name,
+                data: [
+                    stats.fg_percentage,
+                    stats.three_pt_percentage,
+                    stats.ft_percentage
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgb(54, 162, 235)',
+                pointBackgroundColor: 'rgb(54, 162, 235)',
+                pointBorderColor: '#fff',
+                pointHoverBackgroundColor: '#fff',
+                pointHoverBorderColor: 'rgb(54, 162, 235)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+async function loadRecentGames() {
+    try {
+        const response = await fetch(`/v1/reports/games?team_id=${teamId}`);
+        const data = await response.json();
+        
+        const recentGamesDiv = document.getElementById('recentGames');
+        recentGamesDiv.innerHTML = '';
+        
+        // Show last 5 games
+        const recentGames = data.games.slice(0, 5);
+        
+        recentGames.forEach(game => {
+            const isHome = game.home_team.id === teamId;
+            const opponent = isHome ? game.away_team : game.home_team;
+            const teamScore = isHome ? game.home_score : game.away_score;
+            const oppScore = isHome ? game.away_score : game.home_score;
+            const won = teamScore > oppScore;
+            
+            const gameItem = document.createElement('a');
+            gameItem.href = `/reports/box-score/${game.id}`;
+            gameItem.className = `list-group-item list-group-item-action ${won ? 'win' : 'loss'}`;
+            gameItem.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h5 class="mb-1">${isHome ? 'vs' : '@'} ${opponent.name}</h5>
+                    <span class="badge ${won ? 'bg-success' : 'bg-danger'}">
+                        ${won ? 'W' : 'L'} ${teamScore}-${oppScore}
+                    </span>
+                </div>
+                <p class="mb-1 text-muted">${new Date(game.date).toLocaleDateString()}</p>
+            `;
+            recentGamesDiv.appendChild(gameItem);
+        });
+        
+        if (recentGames.length === 0) {
+            recentGamesDiv.innerHTML = '<p class="text-muted text-center">No games found</p>';
+        }
+        
+    } catch (error) {
+        console.error('Error loading recent games:', error);
+    }
+}
+
+function makeSortable(tableId) {
+    const table = document.getElementById(tableId);
+    const headers = table.querySelectorAll('thead th');
+    
+    headers.forEach((header, index) => {
+        if (index < headers.length - 1) { // Skip the Actions column
+            header.addEventListener('click', () => {
+                sortTable(table, index, header);
+            });
+        }
+    });
+}
+
+function sortTable(table, columnIndex, header) {
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.rows);
+    const isAscending = !header.classList.contains('sorted-asc');
+    
+    // Remove sorted classes from all headers
+    table.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    
+    // Add appropriate class to clicked header
+    header.classList.add(isAscending ? 'sorted-asc' : 'sorted-desc');
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aValue = getCellValue(a.cells[columnIndex]);
+        const bValue = getCellValue(b.cells[columnIndex]);
+        
+        if (!isNaN(aValue) && !isNaN(bValue)) {
+            return isAscending ? aValue - bValue : bValue - aValue;
+        } else {
+            return isAscending ? 
+                aValue.localeCompare(bValue) : 
+                bValue.localeCompare(aValue);
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getCellValue(cell) {
+    const text = cell.textContent.trim();
+    
+    // Handle percentage values
+    if (text.includes('%')) {
+        return parseFloat(text.replace('%', ''));
+    }
+    
+    // Try to parse as number
+    const num = parseFloat(text);
+    return isNaN(num) ? text : num;
+}
+
+function exportReport(format) {
+    let url = `/v1/reports/export/team-season/${teamId}?format=${format}`;
+    if (season) {
+        url += `&season=${season}`;
+    }
+    window.location.href = url;
+}
+</script>
+{% endblock %}

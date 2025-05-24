@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}{{ player.name }} Season Report - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Player Season Report</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn btn-primary" onclick="exportReport('json')">
+                    <i class="fas fa-file-code"></i> Export JSON
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Player Info Card -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4 text-center">
+                    <div class="player-avatar">
+                        <i class="fas fa-user-circle fa-5x text-muted"></i>
+                    </div>
+                    <h2 id="playerName">{{ player.name }}</h2>
+                    <p class="text-muted">
+                        #<span id="jerseyNumber">{{ player.jersey_number }}</span> | 
+                        <span id="position">{{ player.position }}</span>
+                    </p>
+                    <p><span id="teamName">{{ player.team.name }}</span></p>
+                </div>
+                <div class="col-md-8">
+                    <h3>Season Summary <span id="seasonYear" class="text-muted"></span></h3>
+                    <div class="row text-center mt-3">
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="ppg">0.0</h4>
+                                <p class="text-muted">PPG</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="apg">0.0</h4>
+                                <p class="text-muted">APG</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="rpg">0.0</h4>
+                                <p class="text-muted">RPG</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="fgPercentage">0.0%</h4>
+                                <p class="text-muted">FG%</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="threePtPercentage">0.0%</h4>
+                                <p class="text-muted">3P%</p>
+                            </div>
+                        </div>
+                        <div class="col">
+                            <div class="stat-card">
+                                <h4 id="ftPercentage">0.0%</h4>
+                                <p class="text-muted">FT%</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Season Totals -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Season Totals</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <p><strong>Games Played:</strong> <span id="gamesPlayed">0</span></p>
+                    <p><strong>Total Points:</strong> <span id="totalPoints">0</span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Total Assists:</strong> <span id="totalAssists">0</span></p>
+                    <p><strong>Total Rebounds:</strong> <span id="totalRebounds">0</span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Field Goals:</strong> <span id="fgMade">0</span>/<span id="fgAttempted">0</span></p>
+                    <p><strong>Three Pointers:</strong> <span id="threeMade">0</span>/<span id="threeAttempted">0</span></p>
+                </div>
+                <div class="col-md-3">
+                    <p><strong>Free Throws:</strong> <span id="ftMade">0</span>/<span id="ftAttempted">0</span></p>
+                    <p><strong>True Shooting %:</strong> <span id="tsPercentage">0.0%</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Performance Chart -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Performance Trend</h4>
+        </div>
+        <div class="card-body">
+            <canvas id="performanceChart" height="100"></canvas>
+        </div>
+    </div>
+    
+    <!-- Game Log -->
+    <div class="card">
+        <div class="card-header">
+            <h4>Game Log</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover sortable" id="gameLogTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Opponent</th>
+                        <th>PTS</th>
+                        <th>AST</th>
+                        <th>REB</th>
+                        <th>FG</th>
+                        <th>FG%</th>
+                        <th>3PT</th>
+                        <th>3P%</th>
+                        <th>FT</th>
+                        <th>FT%</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="gameLog">
+                    <tr><td colspan="12">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns"></script>
+
+<style>
+.stat-card {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.stat-card h4 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.player-avatar {
+    margin-bottom: 15px;
+}
+
+.sortable th {
+    cursor: pointer;
+    user-select: none;
+}
+
+.sortable th:hover {
+    background-color: #f0f0f0;
+}
+
+.sortable th::after {
+    content: ' ⇅';
+    font-size: 0.8em;
+    color: #999;
+}
+
+.sortable th.sorted-asc::after {
+    content: ' ▲';
+    color: #333;
+}
+
+.sortable th.sorted-desc::after {
+    content: ' ▼';
+    color: #333;
+}
+</style>
+
+<script>
+const playerId = {{ player_id }};
+const season = {{ season if season else 'null' }};
+let reportData = null;
+
+// Load report data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadPlayerSeasonReport();
+});
+
+async function loadPlayerSeasonReport() {
+    try {
+        let url = `/v1/reports/player-season/${playerId}`;
+        if (season) {
+            url += `?season=${season}`;
+        }
+        
+        const response = await fetch(url);
+        reportData = await response.json();
+        
+        // Update player info
+        document.getElementById('playerName').textContent = reportData.player.name;
+        document.getElementById('jerseyNumber').textContent = reportData.player.jersey_number;
+        document.getElementById('position').textContent = reportData.player.position;
+        document.getElementById('teamName').textContent = reportData.player.team.name;
+        document.getElementById('seasonYear').textContent = reportData.season !== 'All' ? `(${reportData.season})` : '(All Seasons)';
+        
+        // Update season stats
+        const stats = reportData.season_stats;
+        document.getElementById('ppg').textContent = stats.ppg.toFixed(1);
+        document.getElementById('apg').textContent = stats.apg.toFixed(1);
+        document.getElementById('rpg').textContent = stats.rpg.toFixed(1);
+        document.getElementById('fgPercentage').textContent = stats.fg_percentage.toFixed(1) + '%';
+        document.getElementById('threePtPercentage').textContent = stats.three_pt_percentage.toFixed(1) + '%';
+        document.getElementById('ftPercentage').textContent = stats.ft_percentage.toFixed(1) + '%';
+        
+        // Update season totals
+        document.getElementById('gamesPlayed').textContent = stats.games_played;
+        document.getElementById('totalPoints').textContent = stats.points;
+        document.getElementById('totalAssists').textContent = stats.assists;
+        document.getElementById('totalRebounds').textContent = stats.rebounds;
+        
+        // Calculate additional stats
+        const fgMade = reportData.game_log.reduce((sum, g) => sum + g.fg_made, 0);
+        const fgAttempted = reportData.game_log.reduce((sum, g) => sum + g.fg_attempted, 0);
+        const threeMade = reportData.game_log.reduce((sum, g) => sum + g.three_pt_made, 0);
+        const threeAttempted = reportData.game_log.reduce((sum, g) => sum + g.three_pt_attempted, 0);
+        const ftMade = reportData.game_log.reduce((sum, g) => sum + g.ft_made, 0);
+        const ftAttempted = reportData.game_log.reduce((sum, g) => sum + g.ft_attempted, 0);
+        
+        document.getElementById('fgMade').textContent = fgMade;
+        document.getElementById('fgAttempted').textContent = fgAttempted;
+        document.getElementById('threeMade').textContent = threeMade;
+        document.getElementById('threeAttempted').textContent = threeAttempted;
+        document.getElementById('ftMade').textContent = ftMade;
+        document.getElementById('ftAttempted').textContent = ftAttempted;
+        
+        // Calculate True Shooting Percentage
+        const totalPoints = stats.points;
+        const tsa = fgAttempted + (0.44 * ftAttempted);
+        const tsPercentage = tsa > 0 ? (totalPoints / (2 * tsa)) * 100 : 0;
+        document.getElementById('tsPercentage').textContent = tsPercentage.toFixed(1) + '%';
+        
+        // Update game log
+        updateGameLog(reportData.game_log);
+        
+        // Draw performance chart
+        drawPerformanceChart(reportData.game_log);
+        
+        // Make table sortable
+        makeSortable('gameLogTable');
+        
+    } catch (error) {
+        console.error('Error loading player season report:', error);
+        alert('Error loading player season data');
+    }
+}
+
+function updateGameLog(games) {
+    const tbody = document.getElementById('gameLog');
+    tbody.innerHTML = '';
+    
+    games.forEach(game => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = new Date(game.date).toLocaleDateString();
+        row.insertCell().textContent = game.opponent;
+        row.insertCell().textContent = game.points;
+        row.insertCell().textContent = game.assists;
+        row.insertCell().textContent = game.rebounds;
+        row.insertCell().textContent = `${game.fg_made}/${game.fg_attempted}`;
+        
+        const fgPct = game.fg_attempted > 0 ? (game.fg_made / game.fg_attempted * 100).toFixed(1) : '0.0';
+        row.insertCell().textContent = fgPct + '%';
+        
+        row.insertCell().textContent = `${game.three_pt_made}/${game.three_pt_attempted}`;
+        
+        const threePct = game.three_pt_attempted > 0 ? (game.three_pt_made / game.three_pt_attempted * 100).toFixed(1) : '0.0';
+        row.insertCell().textContent = threePct + '%';
+        
+        row.insertCell().textContent = `${game.ft_made}/${game.ft_attempted}`;
+        
+        const ftPct = game.ft_attempted > 0 ? (game.ft_made / game.ft_attempted * 100).toFixed(1) : '0.0';
+        row.insertCell().textContent = ftPct + '%';
+        
+        const actionsCell = row.insertCell();
+        actionsCell.innerHTML = `
+            <a href="/games/${game.game_id}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-eye"></i> View
+            </a>
+        `;
+    });
+}
+
+function drawPerformanceChart(games) {
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    // Prepare data for chart
+    const dates = games.map(g => new Date(g.date));
+    const points = games.map(g => g.points);
+    const assists = games.map(g => g.assists);
+    const rebounds = games.map(g => g.rebounds);
+    
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'Points',
+                data: points,
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Assists',
+                data: assists,
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.1
+            }, {
+                label: 'Rebounds',
+                data: rebounds,
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    type: 'time',
+                    time: {
+                        unit: 'day'
+                    }
+                },
+                y: {
+                    beginAtZero: true
+                }
+            },
+            plugins: {
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                },
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            }
+        }
+    });
+}
+
+function makeSortable(tableId) {
+    const table = document.getElementById(tableId);
+    const headers = table.querySelectorAll('thead th');
+    
+    headers.forEach((header, index) => {
+        if (index < headers.length - 1) { // Skip the Actions column
+            header.addEventListener('click', () => {
+                sortTable(table, index, header);
+            });
+        }
+    });
+}
+
+function sortTable(table, columnIndex, header) {
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.rows);
+    const isAscending = !header.classList.contains('sorted-asc');
+    
+    // Remove sorted classes from all headers
+    table.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    
+    // Add appropriate class to clicked header
+    header.classList.add(isAscending ? 'sorted-asc' : 'sorted-desc');
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aValue = getCellValue(a.cells[columnIndex]);
+        const bValue = getCellValue(b.cells[columnIndex]);
+        
+        if (!isNaN(aValue) && !isNaN(bValue)) {
+            return isAscending ? aValue - bValue : bValue - aValue;
+        } else {
+            return isAscending ? 
+                aValue.localeCompare(bValue) : 
+                bValue.localeCompare(aValue);
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getCellValue(cell) {
+    const text = cell.textContent.trim();
+    
+    // Handle date values
+    if (text.includes('/') && text.split('/').length === 3) {
+        return new Date(text).getTime();
+    }
+    
+    // Handle percentage values
+    if (text.includes('%')) {
+        return parseFloat(text.replace('%', ''));
+    }
+    
+    // Handle fraction values (e.g., "5/10")
+    if (text.includes('/') && text.split('/').length === 2) {
+        const [made, attempted] = text.split('/').map(n => parseInt(n));
+        return made;
+    }
+    
+    // Try to parse as number
+    const num = parseFloat(text);
+    return isNaN(num) ? text : num;
+}
+
+function exportReport(format) {
+    let url = `/v1/reports/export/player-season/${playerId}?format=${format}`;
+    if (season) {
+        url += `&season=${season}`;
+    }
+    window.location.href = url;
+}
+</script>
+{% endblock %}

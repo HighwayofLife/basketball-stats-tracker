@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}Select Player for Season Report - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Select Player for Season Report</h1>
+        <button class="btn btn-secondary" onclick="window.location.href='/reports'">
+            <i class="fas fa-arrow-left"></i> Back to Reports
+        </button>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <label for="teamFilter" class="form-label">Filter by Team</label>
+                    <select class="form-select" id="teamFilter">
+                        <option value="">All Teams</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label for="seasonFilter" class="form-label">Season</label>
+                    <select class="form-select" id="seasonFilter">
+                        <option value="">All Seasons</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover" id="playersTable">
+                    <thead>
+                        <tr>
+                            <th>Player</th>
+                            <th>Team</th>
+                            <th>Jersey</th>
+                            <th>Position</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playersList">
+                        <tr><td colspan="5" class="text-center">Loading players...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let allPlayers = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeams();
+    loadPlayers();
+});
+
+async function loadTeams() {
+    try {
+        const response = await fetch('/v1/teams');
+        const data = await response.json();
+        
+        const teamFilter = document.getElementById('teamFilter');
+        data.teams.forEach(team => {
+            const option = document.createElement('option');
+            option.value = team.id;
+            option.textContent = team.name;
+            teamFilter.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+async function loadPlayers() {
+    try {
+        const response = await fetch('/v1/players');
+        const data = await response.json();
+        
+        allPlayers = data.players;
+        displayPlayers(allPlayers);
+    } catch (error) {
+        console.error('Error loading players:', error);
+    }
+}
+
+function displayPlayers(players) {
+    const tbody = document.getElementById('playersList');
+    tbody.innerHTML = '';
+    
+    if (players.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">No players found</td></tr>';
+        return;
+    }
+    
+    players.forEach(player => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = player.name;
+        row.insertCell().textContent = player.team.name;
+        row.insertCell().textContent = player.jersey_number;
+        row.insertCell().textContent = player.position;
+        
+        const actionsCell = row.insertCell();
+        const season = document.getElementById('seasonFilter').value;
+        const seasonParam = season ? `?season=${season}` : '';
+        
+        actionsCell.innerHTML = `
+            <a href="/reports/player-season/${player.id}${seasonParam}" 
+               class="btn btn-sm btn-primary">
+                <i class="fas fa-chart-line"></i> View Report
+            </a>
+        `;
+    });
+}
+
+// Filter functionality
+document.getElementById('teamFilter').addEventListener('change', filterPlayers);
+document.getElementById('seasonFilter').addEventListener('change', filterPlayers);
+
+function filterPlayers() {
+    const teamId = document.getElementById('teamFilter').value;
+    const season = document.getElementById('seasonFilter').value;
+    
+    let filteredPlayers = allPlayers;
+    
+    if (teamId) {
+        filteredPlayers = filteredPlayers.filter(p => p.team.id == teamId);
+    }
+    
+    displayPlayers(filteredPlayers);
+    
+    // Update action links with season parameter
+    if (season) {
+        document.querySelectorAll('a[href*="/reports/player-season/"]').forEach(link => {
+            const href = link.href.split('?')[0];
+            link.href = `${href}?season=${season}`;
+        });
+    }
+}
+</script>
+{% endblock %}

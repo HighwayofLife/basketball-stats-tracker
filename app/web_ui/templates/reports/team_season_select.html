@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+
+{% block title %}Select Team for Season Report - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Select Team for Season Report</h1>
+        <button class="btn btn-secondary" onclick="window.location.href='/reports'">
+            <i class="fas fa-arrow-left"></i> Back to Reports
+        </button>
+    </div>
+    
+    <div class="card">
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <label for="seasonFilter" class="form-label">Season</label>
+                    <select class="form-select" id="seasonFilter">
+                        <option value="">All Seasons</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                        <option value="2022">2022</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="row" id="teamsList">
+                <div class="col-12 text-center">Loading teams...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.team-card {
+    transition: transform 0.2s;
+    cursor: pointer;
+}
+
+.team-card:hover {
+    transform: translateY(-5px);
+}
+
+.team-logo {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+</style>
+
+<script>
+let allTeams = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeams();
+});
+
+async function loadTeams() {
+    try {
+        const response = await fetch('/v1/teams');
+        const data = await response.json();
+        
+        allTeams = data.teams;
+        displayTeams(allTeams);
+    } catch (error) {
+        console.error('Error loading teams:', error);
+    }
+}
+
+function displayTeams(teams) {
+    const container = document.getElementById('teamsList');
+    container.innerHTML = '';
+    
+    if (teams.length === 0) {
+        container.innerHTML = '<div class="col-12 text-center">No teams found</div>';
+        return;
+    }
+    
+    teams.forEach(team => {
+        const season = document.getElementById('seasonFilter').value;
+        const seasonParam = season ? `?season=${season}` : '';
+        
+        const col = document.createElement('div');
+        col.className = 'col-md-4 mb-4';
+        col.innerHTML = `
+            <div class="card team-card h-100" onclick="window.location.href='/reports/team-season/${team.id}${seasonParam}'">
+                <div class="card-body text-center">
+                    <div class="team-logo text-primary">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h4>${team.name}</h4>
+                    <p class="text-muted mb-3">Click to view season report</p>
+                    <button class="btn btn-primary">
+                        <i class="fas fa-chart-bar"></i> View Report
+                    </button>
+                </div>
+            </div>
+        `;
+        container.appendChild(col);
+    });
+}
+
+document.getElementById('seasonFilter').addEventListener('change', function() {
+    displayTeams(allTeams);
+});
+</script>
+{% endblock %}

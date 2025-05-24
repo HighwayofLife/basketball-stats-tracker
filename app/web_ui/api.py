@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .routers import admin_router, games_router, pages_router, players_router, teams_router
+from .routers import admin_router, games_router, pages_router, players_router, reports_router, teams_router
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -29,3 +29,4 @@ app.include_router(games_router)
 app.include_router(teams_router)
 app.include_router(players_router)
 app.include_router(admin_router)
+app.include_router(reports_router)

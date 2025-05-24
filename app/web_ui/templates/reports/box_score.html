@@ -1,0 +1,453 @@
+{% extends "base.html" %}
+
+{% block title %}Box Score - {{ game.home_team.name }} vs {{ game.away_team.name }} - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Box Score Report</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn btn-primary" onclick="exportReport('json')">
+                    <i class="fas fa-file-code"></i> Export JSON
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-5">
+                    <h2 id="homeTeamName">-</h2>
+                    <h3 class="text-muted" id="homeTeamScore">0</h3>
+                </div>
+                <div class="col-md-2">
+                    <p class="text-muted">vs</p>
+                    <p id="gameDate">-</p>
+                </div>
+                <div class="col-md-5">
+                    <h2 id="awayTeamName">-</h2>
+                    <h3 class="text-muted" id="awayTeamScore">0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quarter Scores -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Quarter-by-Quarter</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm text-center">
+                <thead>
+                    <tr>
+                        <th>Team</th>
+                        <th>Q1</th>
+                        <th>Q2</th>
+                        <th>Q3</th>
+                        <th>Q4</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="quarterScores">
+                    <tr><td colspan="6">Loading...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Home Team Stats -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 id="homeTeamHeader">Home Team</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover sortable" id="homeTeamTable">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>MIN</th>
+                        <th>PTS</th>
+                        <th>AST</th>
+                        <th>REB</th>
+                        <th>FG</th>
+                        <th>FG%</th>
+                        <th>3PT</th>
+                        <th>3P%</th>
+                        <th>FT</th>
+                        <th>FT%</th>
+                        <th>+/-</th>
+                    </tr>
+                </thead>
+                <tbody id="homeTeamStats">
+                    <tr><td colspan="12">Loading...</td></tr>
+                </tbody>
+                <tfoot id="homeTeamTotals">
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Away Team Stats -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 id="awayTeamHeader">Away Team</h4>
+        </div>
+        <div class="card-body">
+            <table class="table table-hover sortable" id="awayTeamTable">
+                <thead>
+                    <tr>
+                        <th>Player</th>
+                        <th>MIN</th>
+                        <th>PTS</th>
+                        <th>AST</th>
+                        <th>REB</th>
+                        <th>FG</th>
+                        <th>FG%</th>
+                        <th>3PT</th>
+                        <th>3P%</th>
+                        <th>FT</th>
+                        <th>FT%</th>
+                        <th>+/-</th>
+                    </tr>
+                </thead>
+                <tbody id="awayTeamStats">
+                    <tr><td colspan="12">Loading...</td></tr>
+                </tbody>
+                <tfoot id="awayTeamTotals">
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Advanced Stats -->
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Team Efficiency</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="efficiencyChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Shot Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="shotChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<!-- Include Sortable Tables Library -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+<style>
+.sortable th {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+}
+
+.sortable th:hover {
+    background-color: #f0f0f0;
+}
+
+.sortable th::after {
+    content: ' ⇅';
+    font-size: 0.8em;
+    color: #999;
+}
+
+.sortable th.sorted-asc::after {
+    content: ' ▲';
+    color: #333;
+}
+
+.sortable th.sorted-desc::after {
+    content: ' ▼';
+    color: #333;
+}
+
+tfoot {
+    font-weight: bold;
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+const gameId = {{ game_id }};
+let reportData = null;
+
+// Load report data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadBoxScore();
+});
+
+async function loadBoxScore() {
+    try {
+        const response = await fetch(`/v1/reports/box-score/${gameId}`);
+        reportData = await response.json();
+        
+        // Update game info
+        document.getElementById('homeTeamName').textContent = reportData.home_team.name;
+        document.getElementById('homeTeamScore').textContent = reportData.home_team.score;
+        document.getElementById('awayTeamName').textContent = reportData.away_team.name;
+        document.getElementById('awayTeamScore').textContent = reportData.away_team.score;
+        document.getElementById('gameDate').textContent = new Date(reportData.game_date).toLocaleDateString();
+        
+        // Update team headers
+        document.getElementById('homeTeamHeader').textContent = reportData.home_team.name;
+        document.getElementById('awayTeamHeader').textContent = reportData.away_team.name;
+        
+        // Update quarter scores
+        updateQuarterScores(reportData);
+        
+        // Update team stats tables
+        updateTeamStats('home', reportData.home_team);
+        updateTeamStats('away', reportData.away_team);
+        
+        // Make tables sortable
+        makeSortable('homeTeamTable');
+        makeSortable('awayTeamTable');
+        
+        // Draw charts
+        drawEfficiencyChart(reportData);
+        drawShotChart(reportData);
+        
+    } catch (error) {
+        console.error('Error loading box score:', error);
+        alert('Error loading box score data');
+    }
+}
+
+function updateQuarterScores(data) {
+    const tbody = document.getElementById('quarterScores');
+    tbody.innerHTML = '';
+    
+    // Home team row
+    const homeRow = tbody.insertRow();
+    homeRow.insertCell().textContent = data.home_team.name;
+    for (let q = 1; q <= 4; q++) {
+        homeRow.insertCell().textContent = data.home_team.quarter_scores[`q${q}`] || 0;
+    }
+    homeRow.insertCell().innerHTML = `<strong>${data.home_team.score}</strong>`;
+    
+    // Away team row
+    const awayRow = tbody.insertRow();
+    awayRow.insertCell().textContent = data.away_team.name;
+    for (let q = 1; q <= 4; q++) {
+        awayRow.insertCell().textContent = data.away_team.quarter_scores[`q${q}`] || 0;
+    }
+    awayRow.insertCell().innerHTML = `<strong>${data.away_team.score}</strong>`;
+}
+
+function updateTeamStats(teamType, teamData) {
+    const tbody = document.getElementById(`${teamType}TeamStats`);
+    const tfoot = document.getElementById(`${teamType}TeamTotals`);
+    tbody.innerHTML = '';
+    tfoot.innerHTML = '';
+    
+    // Add player rows
+    teamData.players.forEach(player => {
+        const row = tbody.insertRow();
+        row.insertCell().textContent = player.name;
+        row.insertCell().textContent = player.minutes || '-';
+        row.insertCell().textContent = player.points;
+        row.insertCell().textContent = player.assists;
+        row.insertCell().textContent = player.rebounds;
+        row.insertCell().textContent = `${player.fg_made}/${player.fg_attempted}`;
+        row.insertCell().textContent = player.fg_percentage ? `${player.fg_percentage.toFixed(1)}%` : '-';
+        row.insertCell().textContent = `${player.three_pt_made}/${player.three_pt_attempted}`;
+        row.insertCell().textContent = player.three_pt_percentage ? `${player.three_pt_percentage.toFixed(1)}%` : '-';
+        row.insertCell().textContent = `${player.ft_made}/${player.ft_attempted}`;
+        row.insertCell().textContent = player.ft_percentage ? `${player.ft_percentage.toFixed(1)}%` : '-';
+        row.insertCell().textContent = player.plus_minus || '-';
+    });
+    
+    // Add totals row
+    const totalsRow = tfoot.insertRow();
+    totalsRow.insertCell().textContent = 'TOTALS';
+    totalsRow.insertCell().textContent = '-';
+    totalsRow.insertCell().textContent = teamData.totals.points;
+    totalsRow.insertCell().textContent = teamData.totals.assists;
+    totalsRow.insertCell().textContent = teamData.totals.rebounds;
+    totalsRow.insertCell().textContent = `${teamData.totals.fg_made}/${teamData.totals.fg_attempted}`;
+    totalsRow.insertCell().textContent = teamData.totals.fg_percentage ? `${teamData.totals.fg_percentage.toFixed(1)}%` : '-';
+    totalsRow.insertCell().textContent = `${teamData.totals.three_pt_made}/${teamData.totals.three_pt_attempted}`;
+    totalsRow.insertCell().textContent = teamData.totals.three_pt_percentage ? `${teamData.totals.three_pt_percentage.toFixed(1)}%` : '-';
+    totalsRow.insertCell().textContent = `${teamData.totals.ft_made}/${teamData.totals.ft_attempted}`;
+    totalsRow.insertCell().textContent = teamData.totals.ft_percentage ? `${teamData.totals.ft_percentage.toFixed(1)}%` : '-';
+    totalsRow.insertCell().textContent = '-';
+}
+
+function makeSortable(tableId) {
+    const table = document.getElementById(tableId);
+    const headers = table.querySelectorAll('thead th');
+    
+    headers.forEach((header, index) => {
+        header.addEventListener('click', () => {
+            sortTable(table, index, header);
+        });
+    });
+}
+
+function sortTable(table, columnIndex, header) {
+    const tbody = table.querySelector('tbody');
+    const rows = Array.from(tbody.rows);
+    const isAscending = !header.classList.contains('sorted-asc');
+    
+    // Remove sorted classes from all headers
+    table.querySelectorAll('th').forEach(th => {
+        th.classList.remove('sorted-asc', 'sorted-desc');
+    });
+    
+    // Add appropriate class to clicked header
+    header.classList.add(isAscending ? 'sorted-asc' : 'sorted-desc');
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        const aValue = getCellValue(a.cells[columnIndex]);
+        const bValue = getCellValue(b.cells[columnIndex]);
+        
+        if (!isNaN(aValue) && !isNaN(bValue)) {
+            return isAscending ? aValue - bValue : bValue - aValue;
+        } else {
+            return isAscending ? 
+                aValue.localeCompare(bValue) : 
+                bValue.localeCompare(aValue);
+        }
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function getCellValue(cell) {
+    const text = cell.textContent.trim();
+    
+    // Handle percentage values
+    if (text.includes('%')) {
+        return parseFloat(text.replace('%', ''));
+    }
+    
+    // Handle fraction values (e.g., "5/10")
+    if (text.includes('/')) {
+        const [made, attempted] = text.split('/').map(n => parseInt(n));
+        return made;
+    }
+    
+    // Try to parse as number
+    const num = parseFloat(text);
+    return isNaN(num) ? text : num;
+}
+
+function drawEfficiencyChart(data) {
+    const ctx = document.getElementById('efficiencyChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['FG%', '3P%', 'FT%', 'Assists', 'Rebounds', 'Points'],
+            datasets: [{
+                label: data.home_team.name,
+                data: [
+                    data.home_team.totals.fg_percentage || 0,
+                    data.home_team.totals.three_pt_percentage || 0,
+                    data.home_team.totals.ft_percentage || 0,
+                    data.home_team.totals.assists,
+                    data.home_team.totals.rebounds,
+                    data.home_team.totals.points / 2
+                ],
+                backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                borderColor: 'rgb(54, 162, 235)',
+                pointBackgroundColor: 'rgb(54, 162, 235)'
+            }, {
+                label: data.away_team.name,
+                data: [
+                    data.away_team.totals.fg_percentage || 0,
+                    data.away_team.totals.three_pt_percentage || 0,
+                    data.away_team.totals.ft_percentage || 0,
+                    data.away_team.totals.assists,
+                    data.away_team.totals.rebounds,
+                    data.away_team.totals.points / 2
+                ],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgb(255, 99, 132)',
+                pointBackgroundColor: 'rgb(255, 99, 132)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100
+                }
+            }
+        }
+    });
+}
+
+function drawShotChart(data) {
+    const ctx = document.getElementById('shotChart').getContext('2d');
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['2PT Made', '2PT Missed', '3PT Made', '3PT Missed', 'FT Made', 'FT Missed'],
+            datasets: [{
+                data: [
+                    data.home_team.totals.fg_made - data.home_team.totals.three_pt_made,
+                    data.home_team.totals.fg_attempted - data.home_team.totals.fg_made - 
+                        (data.home_team.totals.three_pt_attempted - data.home_team.totals.three_pt_made),
+                    data.home_team.totals.three_pt_made,
+                    data.home_team.totals.three_pt_attempted - data.home_team.totals.three_pt_made,
+                    data.home_team.totals.ft_made,
+                    data.home_team.totals.ft_attempted - data.home_team.totals.ft_made
+                ],
+                backgroundColor: [
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(75, 192, 192, 0.3)',
+                    'rgba(54, 162, 235, 0.8)',
+                    'rgba(54, 162, 235, 0.3)',
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(255, 206, 86, 0.3)'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                title: {
+                    display: true,
+                    text: data.home_team.name + ' Shot Distribution'
+                }
+            }
+        }
+    });
+}
+
+function exportReport(format) {
+    window.location.href = `/v1/reports/export/box-score/${gameId}?format=${format}`;
+}
+</script>
+{% endblock %}

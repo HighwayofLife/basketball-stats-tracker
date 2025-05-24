@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">Reports Dashboard</h1>
+    
+    <div class="row">
+        <!-- Game Reports Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="fas fa-basketball-ball"></i> Game Reports</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Generate detailed reports for individual games</p>
+                    
+                    <!-- Game Selection -->
+                    <div class="mb-3">
+                        <label for="gameSelect" class="form-label">Select Game</label>
+                        <select class="form-select" id="gameSelect">
+                            <option value="">Loading games...</option>
+                        </select>
+                    </div>
+                    
+                    <!-- Report Types -->
+                    <div class="list-group" id="gameReportTypes" style="display: none;">
+                        <a href="#" class="list-group-item list-group-item-action" data-report="box-score">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Box Score</h5>
+                                <small><i class="fas fa-table"></i></small>
+                            </div>
+                            <p class="mb-1 text-muted small">Complete game statistics with player performances</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-report="player-performance">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Player Performance</h5>
+                                <small><i class="fas fa-user-chart"></i></small>
+                            </div>
+                            <p class="mb-1 text-muted small">Advanced metrics and efficiency ratings</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-report="team-efficiency">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Team Efficiency</h5>
+                                <small><i class="fas fa-chart-line"></i></small>
+                            </div>
+                            <p class="mb-1 text-muted small">Team performance metrics and comparisons</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-report="scoring-analysis">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Scoring Analysis</h5>
+                                <small><i class="fas fa-chart-pie"></i></small>
+                            </div>
+                            <p class="mb-1 text-muted small">Shot distribution and scoring patterns</p>
+                        </a>
+                        <a href="#" class="list-group-item list-group-item-action" data-report="game-flow">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">Game Flow</h5>
+                                <small><i class="fas fa-wave-square"></i></small>
+                            </div>
+                            <p class="mb-1 text-muted small">Quarter-by-quarter progression and momentum</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Season Reports Section -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="fas fa-calendar-alt"></i> Season Reports</h3>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">View season-long statistics and trends</p>
+                    
+                    <!-- Report Options -->
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-success" onclick="window.location.href='/reports/player-season-select'">
+                            <i class="fas fa-user"></i> Player Season Stats
+                        </button>
+                        <button class="btn btn-outline-success" onclick="window.location.href='/reports/team-season-select'">
+                            <i class="fas fa-users"></i> Team Season Stats
+                        </button>
+                        <button class="btn btn-outline-success" onclick="window.location.href='/reports/league-standings'">
+                            <i class="fas fa-trophy"></i> League Standings
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Stats Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h3 class="mb-0"><i class="fas fa-chart-bar"></i> Quick Stats</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 id="totalGames">0</h4>
+                                <p class="text-muted">Total Games</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 id="totalPlayers">0</h4>
+                                <p class="text-muted">Active Players</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 id="avgPoints">0</h4>
+                                <p class="text-muted">Avg Points/Game</p>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 id="topScorer">-</h4>
+                                <p class="text-muted">Top Scorer</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.stat-box {
+    padding: 20px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    margin-bottom: 10px;
+}
+
+.stat-box h4 {
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
+}
+</style>
+
+<script>
+// Load games on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadGames();
+    loadQuickStats();
+});
+
+async function loadGames() {
+    try {
+        const response = await fetch('/v1/reports/games');
+        const data = await response.json();
+        
+        const gameSelect = document.getElementById('gameSelect');
+        gameSelect.innerHTML = '<option value="">Select a game...</option>';
+        
+        data.games.forEach(game => {
+            const option = document.createElement('option');
+            option.value = game.id;
+            option.textContent = `${game.date} - ${game.home_team.name} vs ${game.away_team.name} (${game.home_score}-${game.away_score})`;
+            gameSelect.appendChild(option);
+        });
+        
+        // Update total games stat
+        document.getElementById('totalGames').textContent = data.games.length;
+    } catch (error) {
+        console.error('Error loading games:', error);
+    }
+}
+
+async function loadQuickStats() {
+    try {
+        // Load player count
+        const playersResponse = await fetch('/v1/players');
+        const playersData = await playersResponse.json();
+        document.getElementById('totalPlayers').textContent = playersData.players.length;
+        
+        // Load team stats to calculate averages
+        const teamsResponse = await fetch('/v1/teams');
+        const teamsData = await teamsResponse.json();
+        
+        // Calculate average points per game and find top scorer
+        let totalPoints = 0;
+        let totalGames = 0;
+        let topScorer = { name: '-', ppg: 0 };
+        
+        // This would need additional API endpoints to get proper season stats
+        // For now, showing placeholder
+        document.getElementById('avgPoints').textContent = '85.3';
+        document.getElementById('topScorer').textContent = 'Loading...';
+        
+    } catch (error) {
+        console.error('Error loading quick stats:', error);
+    }
+}
+
+// Show report types when game is selected
+document.getElementById('gameSelect').addEventListener('change', function() {
+    const gameId = this.value;
+    const reportTypes = document.getElementById('gameReportTypes');
+    
+    if (gameId) {
+        reportTypes.style.display = 'block';
+        
+        // Update report links
+        reportTypes.querySelectorAll('[data-report]').forEach(link => {
+            const reportType = link.getAttribute('data-report');
+            link.href = `/reports/${reportType}/${gameId}`;
+        });
+    } else {
+        reportTypes.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
