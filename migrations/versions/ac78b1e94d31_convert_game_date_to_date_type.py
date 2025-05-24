@@ -7,9 +7,6 @@ Create Date: 2025-05-21 12:00:00.000000
 
 """
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.sql import table, column
-
 
 # revision identifiers, used by Alembic.
 revision = 'ac78b1e94d31'
@@ -30,17 +27,17 @@ def upgrade():
         FOREIGN KEY (opponent_team_id) REFERENCES teams (id)
     )
     ''')
-    
+
     # Copy data from the old table to the new one, converting string dates to date objects
     op.execute('''
     INSERT INTO games_temp (id, date, playing_team_id, opponent_team_id)
     SELECT id, date(date), playing_team_id, opponent_team_id
     FROM games
     ''')
-    
+
     # Drop the old table
     op.drop_table('games')
-    
+
     # Rename the new table to the original name
     op.rename_table('games_temp', 'games')
 
@@ -57,16 +54,16 @@ def downgrade():
         FOREIGN KEY (opponent_team_id) REFERENCES teams (id)
     )
     ''')
-    
+
     # Copy data from the current table to the temporary one, converting date objects to strings
     op.execute('''
     INSERT INTO games_temp (id, date, playing_team_id, opponent_team_id)
     SELECT id, strftime('%Y-%m-%d', date), playing_team_id, opponent_team_id
     FROM games
     ''')
-    
+
     # Drop the current table
     op.drop_table('games')
-    
+
     # Rename the temporary table to the original name
     op.rename_table('games_temp', 'games')
