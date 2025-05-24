@@ -3,7 +3,7 @@
 import csv
 import io
 from datetime import date
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.requests import Request
@@ -11,12 +11,18 @@ from fastapi.responses import HTMLResponse, StreamingResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.data_access.crud import crud_game, crud_player, crud_player_season_stats, crud_team, crud_team_season_stats
-from app.data_access.db_session import get_db
+from app.data_access.crud import (
+    crud_game,
+    crud_player,
+    crud_player_game_stats,
+    crud_player_season_stats,
+    crud_team,
+    crud_team_season_stats,
+)
 from app.reports.report_generator import ReportGenerator
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
-from app.utils.stats_calculator import StatsCalculator
+from app.web_ui.dependencies import get_db
 
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web_ui/templates")
@@ -42,10 +48,10 @@ async def team_season_select(request: Request):
 
 @router.get("/v1/reports/games", response_model=dict[str, Any])
 async def get_games_for_reports(
-    db: Session = Depends(get_db),
-    start_date: date | None = Query(None),
-    end_date: date | None = Query(None),
-    team_id: int | None = Query(None),
+    db: Annotated[Session, Depends(get_db)],
+    start_date: Annotated[date | None, Query()] = None,
+    end_date: Annotated[date | None, Query()] = None,
+    team_id: Annotated[int | None, Query()] = None,
 ):
     """Get list of games for report selection."""
     games = crud_game.get_all_games(db)
@@ -91,51 +97,92 @@ async def get_games_for_reports(
 
 
 @router.get("/v1/reports/box-score/{game_id}", response_model=dict[str, Any])
-async def get_box_score_report(game_id: int, db: Session = Depends(get_db)):
+async def get_box_score_report(game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Get box score report data."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
     report_gen = ReportGenerator(db, stats_calculator)
-    return report_gen.generate_box_score(game_id)
+    player_stats_list, game_summary = report_gen.get_game_box_score_data(game_id)
+
+    # Transform data into expected format for API response
+    return {
+        "game_summary": game_summary,
+        "player_stats": player_stats_list
+    }
 
 
 @router.get("/v1/reports/player-performance/{game_id}", response_model=dict[str, Any])
-async def get_player_performance_report(game_id: int, db: Session = Depends(get_db)):
+async def get_player_performance_report(game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Get player performance report data."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
     report_gen = ReportGenerator(db, stats_calculator)
-    return report_gen.generate_player_performance_report(game_id)
+    # Get all player stats for this game
+    player_game_stats = crud_player_game_stats.get_player_game_stats_by_game(db, game_id)
+
+    # Generate performance reports for all players
+    player_reports = []
+    for pgs in player_game_stats:
+        try:
+            report = report_gen.generate_player_performance_report(pgs.player_id, game_id)
+            player_reports.append(report)
+        except ValueError:
+            # Skip players with no stats
+            continue
+
+    return {
+        "game_id": game_id,
+        "game_date": game.date.isoformat(),
+        "players": player_reports
+    }
 
 
 @router.get("/v1/reports/team-efficiency/{game_id}", response_model=dict[str, Any])
-async def get_team_efficiency_report(game_id: int, db: Session = Depends(get_db)):
+async def get_team_efficiency_report(game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Get team efficiency report data."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
     report_gen = ReportGenerator(db, stats_calculator)
-    return report_gen.generate_team_efficiency_report(game_id)
+    # Generate efficiency reports for both teams
+    playing_team_report = report_gen.generate_team_efficiency_report(game.playing_team_id, game_id)
+    opponent_team_report = report_gen.generate_team_efficiency_report(game.opponent_team_id, game_id)
+
+    return {
+        "game_id": game_id,
+        "game_date": game.date.isoformat(),
+        "playing_team": playing_team_report,
+        "opponent_team": opponent_team_report
+    }
 
 
 @router.get("/v1/reports/scoring-analysis/{game_id}", response_model=dict[str, Any])
-async def get_scoring_analysis_report(game_id: int, db: Session = Depends(get_db)):
+async def get_scoring_analysis_report(game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Get scoring analysis report data."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
         raise HTTPException(status_code=404, detail="Game not found")
 
     report_gen = ReportGenerator(db, stats_calculator)
-    return report_gen.generate_scoring_analysis_report(game_id)
+    # Generate scoring analysis for both teams
+    playing_team_analysis = report_gen.generate_scoring_analysis_report(game.playing_team_id, game_id)
+    opponent_team_analysis = report_gen.generate_scoring_analysis_report(game.opponent_team_id, game_id)
+
+    return {
+        "game_id": game_id,
+        "game_date": game.date.isoformat(),
+        "playing_team": playing_team_analysis,
+        "opponent_team": opponent_team_analysis
+    }
 
 
 @router.get("/v1/reports/game-flow/{game_id}", response_model=dict[str, Any])
-async def get_game_flow_report(game_id: int, db: Session = Depends(get_db)):
+async def get_game_flow_report(game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Get game flow report data."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
@@ -148,8 +195,8 @@ async def get_game_flow_report(game_id: int, db: Session = Depends(get_db)):
 @router.get("/v1/reports/player-season/{player_id}", response_model=dict[str, Any])
 async def get_player_season_report(
     player_id: int,
-    db: Session = Depends(get_db),
-    season: int | None = Query(None, description="Season year (e.g., 2024)"),
+    db: Annotated[Session, Depends(get_db)],
+    season: Annotated[int | None, Query(description="Season year (e.g., 2024)")] = None,
 ):
     """Get player season statistics report."""
     player = crud_player.get_player_by_id(db, player_id)
@@ -159,14 +206,20 @@ async def get_player_season_report(
     # Convert season year to season string format
     season_str = f"{season}-{season + 1}" if season else None
 
-    # Get player's season stats
-    season_stats = crud_player_season_stats.get_player_season_stats(db, player_id, season_str)
+    # Get player's season stats only if season_str is not None
+    season_stats = None
+    if season_str:
+        season_stats = crud_player_season_stats.get_player_season_stats(db, player_id, season_str)
 
     if not season_stats and season:
         # Calculate season stats if not cached
         stats_service = SeasonStatsService(db)
         stats_service.update_player_season_stats(player_id, season_str)
-        season_stats = crud_player_season_stats.get_player_season_stats(db, player_id, season_str)
+        season_stats = (
+            crud_player_season_stats.get_player_season_stats(db, player_id, season_str)
+            if season_str
+            else None
+        )
 
     # Get all games for the player
     games = crud_game.get_all_games(db)
@@ -230,13 +283,13 @@ async def get_player_season_report(
         ppg = total_points / len(game_stats) if game_stats else 0
         apg = 0
         rpg = 0
-        fg_percentage = StatsCalculator.calculate_percentage(
+        fg_percentage = stats_calculator.calculate_percentage(
             sum(g["fg_made"] for g in game_stats), sum(g["fg_attempted"] for g in game_stats)
         )
-        three_pt_percentage = StatsCalculator.calculate_percentage(
+        three_pt_percentage = stats_calculator.calculate_percentage(
             sum(g["three_pt_made"] for g in game_stats), sum(g["three_pt_attempted"] for g in game_stats)
         )
-        ft_percentage = StatsCalculator.calculate_percentage(
+        ft_percentage = stats_calculator.calculate_percentage(
             sum(g["ft_made"] for g in game_stats), sum(g["ft_attempted"] for g in game_stats)
         )
 
@@ -272,8 +325,8 @@ async def get_player_season_report(
 @router.get("/v1/reports/team-season/{team_id}", response_model=dict[str, Any])
 async def get_team_season_report(
     team_id: int,
-    db: Session = Depends(get_db),
-    season: int | None = Query(None, description="Season year (e.g., 2024)"),
+    db: Annotated[Session, Depends(get_db)],
+    season: Annotated[int | None, Query(description="Season year (e.g., 2024)")] = None,
 ):
     """Get team season statistics report."""
     team = crud_team.get_team_by_id(db, team_id)
@@ -283,14 +336,20 @@ async def get_team_season_report(
     # Convert season year to season string format
     season_str = f"{season}-{season + 1}" if season else None
 
-    # Get team's season stats
-    season_stats = crud_team_season_stats.get_team_season_stats(db, team_id, season_str)
+    # Get team's season stats only if season_str is not None
+    season_stats = None
+    if season_str:
+        season_stats = crud_team_season_stats.get_team_season_stats(db, team_id, season_str)
 
     if not season_stats and season:
         # Calculate season stats if not cached
         stats_service = SeasonStatsService(db)
         stats_service.update_team_season_stats(team_id, season_str)
-        season_stats = crud_team_season_stats.get_team_season_stats(db, team_id, season_str)
+        season_stats = (
+            crud_team_season_stats.get_team_season_stats(db, team_id, season_str)
+            if season_str
+            else None
+        )
 
     # Get all games for the team
     games = crud_game.get_games_by_team(db, team_id)
@@ -338,14 +397,19 @@ async def get_team_season_report(
     player_stats = []
 
     for player in players:
-        p_season_stats = crud_player_season_stats.get_player_season_stats(db, player.id, season_str)
+        p_season_stats = (
+            crud_player_season_stats.get_player_season_stats(db, player.id, season_str)
+            if season_str
+            else None
+        )
         if p_season_stats and p_season_stats.games_played > 0:
             player_total_points = stats_calculator.calculate_points(
                 p_season_stats.total_ftm, p_season_stats.total_2pm, p_season_stats.total_3pm
             )
             ppg = player_total_points / p_season_stats.games_played if p_season_stats.games_played > 0 else 0
             fg_percentage = stats_calculator.calculate_percentage(
-                p_season_stats.total_2pm + p_season_stats.total_3pm, p_season_stats.total_2pa + p_season_stats.total_3pa
+                p_season_stats.total_2pm + p_season_stats.total_3pm,
+                p_season_stats.total_2pa + p_season_stats.total_3pa
             )
             three_pt_percentage = stats_calculator.calculate_percentage(
                 p_season_stats.total_3pm, p_season_stats.total_3pa
@@ -414,7 +478,10 @@ async def get_team_season_report(
 
 @router.get("/v1/reports/export/{report_type}/{id}")
 async def export_report(
-    report_type: str, id: int, format: str = Query("csv", regex="^(csv|json)$"), db: Session = Depends(get_db)
+    report_type: str,
+    id: int,
+    db: Annotated[Session, Depends(get_db)],
+    format: Annotated[str, Query(regex="^(csv|json)$")] = "csv",
 ):
     """Export report data in various formats."""
     if report_type == "box-score":
@@ -470,7 +537,7 @@ async def export_report(
 
 
 @router.get("/box-score/{game_id}", response_class=HTMLResponse)
-async def view_box_score_report(request: Request, game_id: int, db: Session = Depends(get_db)):
+async def view_box_score_report(request: Request, game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Display box score report page."""
     game = crud_game.get_game_by_id(db, game_id)
     if not game:
@@ -481,7 +548,10 @@ async def view_box_score_report(request: Request, game_id: int, db: Session = De
 
 @router.get("/player-season/{player_id}", response_class=HTMLResponse)
 async def view_player_season_report(
-    request: Request, player_id: int, season: int | None = Query(None), db: Session = Depends(get_db)
+    request: Request,
+    player_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    season: Annotated[int | None, Query()] = None,
 ):
     """Display player season report page."""
     player = crud_player.get_player_by_id(db, player_id)
@@ -495,7 +565,10 @@ async def view_player_season_report(
 
 @router.get("/team-season/{team_id}", response_class=HTMLResponse)
 async def view_team_season_report(
-    request: Request, team_id: int, season: int | None = Query(None), db: Session = Depends(get_db)
+    request: Request,
+    team_id: int,
+    db: Annotated[Session, Depends(get_db)],
+    season: Annotated[int | None, Query()] = None,
 ):
     """Display team season report page."""
     team = crud_team.get_team_by_id(db, team_id)
