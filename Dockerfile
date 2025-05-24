@@ -2,8 +2,11 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Copy pyproject.toml for dependencies
+# Copy pyproject.toml and source code for dependencies
 COPY pyproject.toml ./
+COPY app ./app
+COPY README.md ./
+COPY LICENSE ./
 
 # Install build dependencies
 RUN pip install --no-cache-dir build wheel setuptools
