@@ -76,3 +76,16 @@ def get_games_by_date_range(db: Session, start_date: str, end_date: str) -> list
     end_date_obj = datetime.strptime(end_date, "%Y-%m-%d").date()
 
     return db.query(Game).filter(Game.date >= start_date_obj, Game.date <= end_date_obj).all()
+
+
+def get_all_games(db: Session) -> list[Game]:
+    """
+    Get all games from the database.
+
+    Args:
+        db: SQLAlchemy database session
+
+    Returns:
+        List of all Game instances
+    """
+    return db.query(Game).all()

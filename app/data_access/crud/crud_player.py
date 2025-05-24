@@ -68,3 +68,16 @@ def get_players_by_team(db: Session, team_id: int) -> list[Player]:
         List of Player instances belonging to the team
     """
     return db.query(Player).filter(Player.team_id == team_id).all()
+
+
+def get_all_players(db: Session) -> list[Player]:
+    """
+    Get all players from the database.
+
+    Args:
+        db: SQLAlchemy database session
+
+    Returns:
+        List of all Player instances
+    """
+    return db.query(Player).all()

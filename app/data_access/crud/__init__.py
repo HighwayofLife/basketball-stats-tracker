@@ -12,9 +12,16 @@ from app.data_access.crud.crud_audit_log import (
     mark_audit_log_as_undone,
     mark_command_as_undone,
 )
-from app.data_access.crud.crud_game import create_game, get_game_by_id, get_games_by_date_range, get_games_by_team
+from app.data_access.crud.crud_game import (
+    create_game,
+    get_all_games,
+    get_game_by_id,
+    get_games_by_date_range,
+    get_games_by_team,
+)
 from app.data_access.crud.crud_player import (
     create_player,
+    get_all_players,
     get_player_by_id,
     get_player_by_team_and_jersey,
     get_players_by_team,
@@ -66,11 +73,13 @@ __all__ = [
     "get_player_by_team_and_jersey",
     "get_player_by_id",
     "get_players_by_team",
+    "get_all_players",
     # Game CRUD
     "create_game",
     "get_game_by_id",
     "get_games_by_team",
     "get_games_by_date_range",
+    "get_all_games",
     # PlayerGameStats CRUD
     "create_player_game_stats",
     "update_player_game_stats_totals",
