@@ -27,23 +27,24 @@ class TestPlayerCrud:
 
     def test_create_player(self, db_session, test_teams):
         """Test creating a player."""
-        player = create_player(db_session, "Test Player", 23, test_teams["team_a"].id)
+        player = create_player(db_session, "Test Player", "23", test_teams["team_a"].id)
 
         assert isinstance(player, Player)
         assert player.id is not None
         assert player.name == "Test Player"
-        assert player.jersey_number == 23
+        assert player.jersey_number == "23"
         assert player.team_id == test_teams["team_a"].id
+        assert player.thumbnail_image is None  # Default value
 
     def test_create_player_duplicate_jersey_same_team(self, db_session, test_teams):
         """Test that creating a player with the same jersey number in the same team raises an IntegrityError."""
         # Create the first player
-        player1 = create_player(db_session, "Player 1", 23, test_teams["team_a"].id)
-        assert player1.jersey_number == 23
+        player1 = create_player(db_session, "Player 1", "23", test_teams["team_a"].id)
+        assert player1.jersey_number == "23"
 
         # Try to create a second player with the same jersey number in the same team
         with pytest.raises(IntegrityError):
-            create_player(db_session, "Player 2", 23, test_teams["team_a"].id)
+            create_player(db_session, "Player 2", "23", test_teams["team_a"].id)
 
     def test_create_player_duplicate_jersey_different_team(self, db_session, test_teams):
         """Test creating players with the same jersey number in different teams."""
@@ -139,3 +140,17 @@ class TestPlayerCrud:
         assert any(p.id == player3.id for p in players)
         # No player from Team B should be present
         assert not any(p.team_id == test_teams["team_b"].id for p in players)
+
+    def test_update_player_thumbnail_image(self, db_session, test_teams):
+        """Test updating a player's thumbnail image."""
+        # Create a player
+        player = create_player(db_session, "Test Player", 23, test_teams["team_a"].id)
+        assert player.thumbnail_image is None
+
+        # Update the thumbnail image
+        player.thumbnail_image = "uploads/players/player_1.jpg"
+        db_session.commit()
+
+        # Retrieve and verify
+        retrieved_player = get_player_by_id(db_session, player.id)
+        assert retrieved_player.thumbnail_image == "uploads/players/player_1.jpg"

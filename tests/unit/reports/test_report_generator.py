@@ -28,10 +28,12 @@ class TestReportGenerator:
         team_a = MagicMock(spec=Team)
         team_a.id = 1
         team_a.name = "Team A"
+        team_a.display_name = "Team Alpha"
 
         team_b = MagicMock(spec=Team)
         team_b.id = 2
         team_b.name = "Team B"
+        team_b.display_name = "Team Beta"
 
         # Create mock players
         player_a1 = MagicMock(spec=Player)
@@ -528,6 +530,28 @@ class TestReportGenerator:
         assert team_totals["scoring_distribution"]["ft_pct"] == 0.2
         assert team_totals["scoring_distribution"]["fg2_pct"] == 0.6
         assert team_totals["scoring_distribution"]["fg3_pct"] == 0.2
+
+    def test_get_team_display_name(self, db_session, mock_stats_calculator):
+        """Test that _get_team_display_name returns display_name when available."""
+        report_generator = ReportGenerator(db_session, mock_stats_calculator)
+
+        # Test with display_name set
+        team_with_display = MagicMock(spec=Team)
+        team_with_display.name = "Red"
+        team_with_display.display_name = "Red Dragons"
+        assert report_generator._get_team_display_name(team_with_display) == "Red Dragons"
+
+        # Test with display_name as None
+        team_without_display = MagicMock(spec=Team)
+        team_without_display.name = "Blue"
+        team_without_display.display_name = None
+        assert report_generator._get_team_display_name(team_without_display) == "Blue"
+
+        # Test with display_name as empty string
+        team_empty_display = MagicMock(spec=Team)
+        team_empty_display.name = "Green"
+        team_empty_display.display_name = ""
+        assert report_generator._get_team_display_name(team_empty_display) == "Green"
 
     @patch("app.reports.report_generator.crud_player_game_stats")
     @patch("app.reports.report_generator.crud_player_quarter_stats")

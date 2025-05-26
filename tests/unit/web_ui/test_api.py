@@ -97,7 +97,7 @@ class TestAPIEndpoints:
     @pytest.fixture
     def sample_team(self, db_session):
         """Create a sample team in the database."""
-        team = Team(name="Lakers", is_deleted=False, deleted_at=None, deleted_by=None)
+        team = Team(name="Lakers", display_name="Lakers", is_deleted=False, deleted_at=None, deleted_by=None)
         db_session.add(team)
         db_session.commit()
         db_session.refresh(team)
@@ -106,7 +106,7 @@ class TestAPIEndpoints:
     @pytest.fixture
     def sample_team_2(self, db_session):
         """Create a second sample team in the database."""
-        team = Team(name="Warriors", is_deleted=False, deleted_at=None, deleted_by=None)
+        team = Team(name="Warriors", display_name="Warriors", is_deleted=False, deleted_at=None, deleted_by=None)
         db_session.add(team)
         db_session.commit()
         db_session.refresh(team)
@@ -117,7 +117,7 @@ class TestAPIEndpoints:
         """Create sample players in the database."""
         player1 = Player(
             name="LeBron James",
-            jersey_number=23,
+            jersey_number="23",
             team_id=sample_team.id,
             position="SF",
             height=81,
@@ -130,7 +130,7 @@ class TestAPIEndpoints:
         )
         player2 = Player(
             name="Anthony Davis",
-            jersey_number=3,
+            jersey_number="3",
             team_id=sample_team.id,
             position="PF",
             height=82,
@@ -385,7 +385,7 @@ class TestAPIEndpoints:
         assert len(data["roster"]) == 2
         # Players are ordered by jersey number
         assert data["roster"][0]["name"] == "Anthony Davis"
-        assert data["roster"][0]["jersey_number"] == 3
+        assert data["roster"][0]["jersey_number"] == "3"
         assert data["roster"][1]["name"] == "LeBron James"
         assert data["roster"][1]["jersey_number"] == 23
 
@@ -531,6 +531,47 @@ class TestAPIEndpoints:
         # Assertions
         assert response.status_code == 400
         assert "Team name already exists" in response.json()["detail"]
+
+    def test_update_team_display_name(self, client, sample_team):
+        """Test updating a team's display name."""
+        # Make request
+        response = client.put(f"/v1/teams/{sample_team.id}", json={"display_name": "Los Angeles Lakers"})
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Lakers"  # Original name unchanged
+        assert data["display_name"] == "Los Angeles Lakers"
+        assert data["player_count"] == 0
+
+    def test_create_team_with_display_name(self, client):
+        """Test creating a team with a display name."""
+        # Make request
+        response = client.post("/v1/teams/new", json={"name": "Red", "display_name": "Red Dragons"})
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Red"
+        assert data["display_name"] == "Red Dragons"
+        assert data["player_count"] == 0
+
+    def test_list_teams_includes_display_name(self, client, db_session):
+        """Test that team list includes display names."""
+        # Create a team with display name
+        team = Team(name="Blue", display_name="Blue Knights")
+        db_session.add(team)
+        db_session.commit()
+
+        # Make request
+        response = client.get("/v1/teams")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "Blue"
+        assert data[0]["display_name"] == "Blue Knights"
 
     def test_delete_team_success(self, client, db_session):
         """Test deleting a team successfully."""
@@ -722,6 +763,177 @@ class TestAPIEndpoints:
         """Test deleting a player that doesn't exist."""
         # Make request
         response = client.delete("/v1/players/999")
+
+        # Assertions
+        assert response.status_code == 404
+        assert "Player not found" in response.json()["detail"]
+
+    # Player Stats and Image Tests
+
+    def test_get_player_stats_success(self, client, sample_players, sample_game_stats):
+        """Test getting player statistics."""
+        # Make request
+        response = client.get(f"/v1/players/{sample_players[0].id}/stats")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["player"]["id"] == sample_players[0].id
+        assert data["player"]["name"] == "LeBron James"
+        assert data["player"]["jersey_number"] == "23"
+        assert data["player"]["thumbnail_image"] is None
+        assert "career_stats" in data
+        assert data["career_stats"]["games_played"] == 1
+        assert data["career_stats"]["total_points"] == 19  # 5 FT + 8 2PT + 6 3PT
+        assert "recent_games" in data
+        assert len(data["recent_games"]) == 1
+
+    def test_get_player_stats_not_found(self, client):
+        """Test getting stats for non-existent player."""
+        # Make request
+        response = client.get("/v1/players/999/stats")
+
+        # Assertions
+        assert response.status_code == 404
+        assert "Player not found" in response.json()["detail"]
+
+    def test_get_player_stats_with_season_stats(self, client, db_session, sample_players):
+        """Test getting player stats includes season statistics."""
+        from app.data_access.models import PlayerSeasonStats
+
+        # Create season stats
+        season_stats = PlayerSeasonStats(
+            player_id=sample_players[0].id,
+            season="2024-2025",
+            games_played=10,
+            total_fouls=20,
+            total_ftm=50,
+            total_fta=60,
+            total_2pm=40,
+            total_2pa=80,
+            total_3pm=20,
+            total_3pa=50,
+        )
+        db_session.add(season_stats)
+        db_session.commit()
+
+        # Make request
+        response = client.get(f"/v1/players/{sample_players[0].id}/stats")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert "season_stats" in data
+        assert data["season_stats"]["games_played"] == 10
+        assert data["season_stats"]["total_ftm"] == 50
+
+    def test_upload_player_image_success(self, client, sample_players, tmp_path):
+        """Test uploading a player image successfully."""
+        # Create a test image file
+        image_content = b"fake image content"
+        image_file = tmp_path / "test.jpg"
+        image_file.write_bytes(image_content)
+
+        # Make request
+        with open(image_file, "rb") as f:
+            response = client.post(
+                f"/v1/players/{sample_players[0].id}/upload-image", files={"file": ("test.jpg", f, "image/jpeg")}
+            )
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert "image_path" in data
+        assert data["image_path"] == f"uploads/players/player_{sample_players[0].id}.jpg"
+
+    def test_upload_player_image_invalid_type(self, client, sample_players, tmp_path):
+        """Test uploading invalid file type."""
+        # Create a test text file
+        text_file = tmp_path / "test.txt"
+        text_file.write_text("not an image")
+
+        # Make request
+        with open(text_file, "rb") as f:
+            response = client.post(
+                f"/v1/players/{sample_players[0].id}/upload-image", files={"file": ("test.txt", f, "text/plain")}
+            )
+
+        # Assertions
+        assert response.status_code == 400
+        assert "Invalid file type" in response.json()["detail"]
+
+    def test_upload_player_image_invalid_extension(self, client, sample_players, tmp_path):
+        """Test uploading image with invalid extension."""
+        # Create a test image file with wrong extension
+        image_file = tmp_path / "test.gif"
+        image_file.write_bytes(b"fake gif content")
+
+        # Make request
+        with open(image_file, "rb") as f:
+            response = client.post(
+                f"/v1/players/{sample_players[0].id}/upload-image", files={"file": ("test.gif", f, "image/gif")}
+            )
+
+        # Assertions
+        assert response.status_code == 400
+        assert "Invalid file format" in response.json()["detail"]
+
+    def test_upload_player_image_too_large(self, client, sample_players, tmp_path):
+        """Test uploading image that's too large."""
+        # Create a large fake image (over 5MB)
+        large_content = b"x" * (6 * 1024 * 1024)  # 6MB
+        image_file = tmp_path / "large.jpg"
+        image_file.write_bytes(large_content)
+
+        # Make request
+        with open(image_file, "rb") as f:
+            response = client.post(
+                f"/v1/players/{sample_players[0].id}/upload-image", files={"file": ("large.jpg", f, "image/jpeg")}
+            )
+
+        # Assertions
+        assert response.status_code == 400
+        assert "File too large" in response.json()["detail"]
+
+    def test_upload_player_image_player_not_found(self, client, tmp_path):
+        """Test uploading image for non-existent player."""
+        # Create a test image file
+        image_file = tmp_path / "test.jpg"
+        image_file.write_bytes(b"fake image")
+
+        # Make request
+        with open(image_file, "rb") as f:
+            response = client.post("/v1/players/999/upload-image", files={"file": ("test.jpg", f, "image/jpeg")})
+
+        # Assertions
+        assert response.status_code == 404
+        assert "Player not found" in response.json()["detail"]
+
+    @patch("app.web_ui.routers.pages.templates")
+    def test_player_detail_page(self, mock_templates, client, sample_players):
+        """Test the player detail HTML page endpoint."""
+        # Set up mock
+        from fastapi.responses import HTMLResponse
+
+        mock_templates.TemplateResponse.return_value = HTMLResponse(
+            content="<html>Player Detail</html>", status_code=200
+        )
+
+        # Make request
+        response = client.get(f"/players/{sample_players[0].id}")
+
+        # Assertions
+        assert response.status_code == 200
+        mock_templates.TemplateResponse.assert_called_once()
+        args = mock_templates.TemplateResponse.call_args[0]
+        assert args[0] == "players/detail.html"
+        assert args[1]["player_id"] == sample_players[0].id
+
+    def test_player_detail_page_not_found(self, client):
+        """Test the player detail page when player not found."""
+        # Make request
+        response = client.get("/players/999")
 
         # Assertions
         assert response.status_code == 404

@@ -5,7 +5,7 @@ Test module for team CRUD operations.
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from app.data_access.crud.crud_team import create_team, get_all_teams, get_team_by_id, get_team_by_name
+from app.data_access.crud.crud_team import create_team, get_all_teams, get_team_by_id, get_team_by_name, update_team
 from app.data_access.models import Team
 
 
@@ -19,6 +19,16 @@ class TestTeamCrud:
         assert isinstance(team, Team)
         assert team.id is not None
         assert team.name == "Test Team"
+        assert team.display_name == "Test Team"  # Should default to name
+
+    def test_create_team_with_display_name(self, db_session):
+        """Test creating a team with a custom display name."""
+        team = create_team(db_session, "Red", "Red Dragons")
+
+        assert isinstance(team, Team)
+        assert team.id is not None
+        assert team.name == "Red"
+        assert team.display_name == "Red Dragons"
 
     def test_create_duplicate_team(self, db_session):
         """Test that creating a team with the same name raises an IntegrityError."""
@@ -83,3 +93,46 @@ class TestTeamCrud:
         assert any(t.id == team1.id for t in teams)
         assert any(t.id == team2.id for t in teams)
         assert any(t.id == team3.id for t in teams)
+
+    def test_update_team_display_name(self, db_session):
+        """Test updating a team's display name."""
+        # Create a team
+        team = create_team(db_session, "Blue", "Blue Team")
+        original_id = team.id
+
+        # Update the display name
+        updated_team = update_team(db_session, original_id, display_name="Blue Knights")
+
+        assert updated_team is not None
+        assert updated_team.id == original_id
+        assert updated_team.name == "Blue"  # Name should not change
+        assert updated_team.display_name == "Blue Knights"
+
+    def test_update_team_name_and_display_name(self, db_session):
+        """Test updating both name and display name."""
+        # Create a team
+        team = create_team(db_session, "Green")
+        original_id = team.id
+
+        # Update both name and display name
+        updated_team = update_team(db_session, original_id, name="Green Team", display_name="Green Machine")
+
+        assert updated_team is not None
+        assert updated_team.id == original_id
+        assert updated_team.name == "Green Team"
+        assert updated_team.display_name == "Green Machine"
+
+    def test_update_nonexistent_team(self, db_session):
+        """Test updating a team that doesn't exist."""
+        updated_team = update_team(db_session, 9999, display_name="Should Not Work")
+        assert updated_team is None
+
+    def test_team_str_method(self, db_session):
+        """Test the Team __str__ method returns display_name when set."""
+        # Test with display_name
+        team1 = create_team(db_session, "Red", "Red Dragons")
+        assert str(team1) == "Red Dragons"
+
+        # Test without display_name (should fall back to name)
+        team2 = create_team(db_session, "Blue")
+        assert str(team2) == "Blue"

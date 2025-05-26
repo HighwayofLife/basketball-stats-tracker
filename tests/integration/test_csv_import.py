@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import app.data_access.database_manager as db_manager
+from app.data_access.crud.crud_team import update_team
 from app.data_access.models import Game, Player, PlayerGameStats, PlayerQuarterStats, Team
 from app.services.csv_import_service import import_game_stats_from_csv
 
@@ -83,6 +84,10 @@ Team B,15,Player Beta,4,//-,2-,11x,3"""
         assert "Team A" in team_names
         assert "Team B" in team_names
 
+        # Check that display_name defaults to name for imported teams
+        for team in teams:
+            assert team.display_name == team.name
+
         # Check that players are created
         players = db_session.query(Player).all()
         assert len(players) == 4
@@ -139,3 +144,65 @@ Team A,10,Player One,2,22-1x,3/2,11,
 
             games_count = db_session.query(Game).count()
             assert games_count == 0
+
+    def test_import_preserves_team_mapping_with_display_name(self, setup_import_test, mock_db_manager):
+        """Test that updating display names doesn't break future imports."""
+        # First import
+        valid_csv_content = """Home,Red
+Visitor,Blue
+Date,2025-05-01
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Red,10,Player One,2,22-1x,3/2,11,
+Blue,5,Player Alpha,3,3-,1,/3,"""
+
+        mock_path = MagicMock()
+        mock_path.exists.return_value = True
+
+        with (
+            patch("app.services.csv_import_service._check_file_exists", return_value=mock_path),
+            patch("builtins.open", create=True) as mock_open,
+        ):
+            mock_open.return_value.__enter__.return_value.__iter__.return_value = iter(valid_csv_content.splitlines())
+            result = import_game_stats_from_csv("game1.csv")
+
+        assert result is True
+
+        db_session = setup_import_test["db_session"]
+
+        # Update team display names
+        red_team = db_session.query(Team).filter(Team.name == "Red").first()
+        blue_team = db_session.query(Team).filter(Team.name == "Blue").first()
+
+        update_team(db_session, red_team.id, display_name="Red Dragons")
+        update_team(db_session, blue_team.id, display_name="Blue Knights")
+
+        # Second import using same team names
+        valid_csv_content2 = """Home,Red
+Visitor,Blue
+Date,2025-05-02
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Red,10,Player One,1,11,2/2,33,
+Blue,5,Player Alpha,2,2-,11,/2,"""
+
+        with (
+            patch("app.services.csv_import_service._check_file_exists", return_value=mock_path),
+            patch("builtins.open", create=True) as mock_open,
+        ):
+            mock_open.return_value.__enter__.return_value.__iter__.return_value = iter(valid_csv_content2.splitlines())
+            result2 = import_game_stats_from_csv("game2.csv")
+
+        assert result2 is True
+
+        # Verify teams still exist with correct mapping
+        teams = db_session.query(Team).all()
+        assert len(teams) == 2
+
+        for team in teams:
+            if team.name == "Red":
+                assert team.display_name == "Red Dragons"
+            elif team.name == "Blue":
+                assert team.display_name == "Blue Knights"
+
+        # Verify we have 2 games
+        games = db_session.query(Game).all()
+        assert len(games) == 2
