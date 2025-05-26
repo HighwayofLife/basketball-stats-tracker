@@ -457,7 +457,7 @@ def _process_game_stats_import(validated_data: GameStatsCSVInputSchema) -> bool:
         players_processed, players_error = _record_player_stats(
             game, validated_data.player_stats, game_service, player_service, stats_entry_service, db
         )
-        
+
         # Calculate and update game scores
         _update_game_scores(db, game)
 
@@ -515,27 +515,29 @@ def _record_player_stats(
 
 def _update_game_scores(db: Session, game: Game) -> None:
     """Calculate and update game scores based on player statistics."""
-    from app.data_access.models import PlayerGameStats, Player
-    
+    from app.data_access.models import Player, PlayerGameStats
+
     # Get all player stats for this game
     player_stats = db.query(PlayerGameStats).filter(PlayerGameStats.game_id == game.id).join(Player).all()
-    
+
     playing_team_score = 0
     opponent_team_score = 0
-    
+
     for stat in player_stats:
         # Calculate player's total points
         points = stat.total_ftm + (stat.total_2pm * 2) + (stat.total_3pm * 3)
-        
+
         # Add to appropriate team total
         if stat.player.team_id == game.playing_team_id:
             playing_team_score += points
         elif stat.player.team_id == game.opponent_team_id:
             opponent_team_score += points
-    
+
     # Update game with calculated scores
     game.playing_team_score = playing_team_score
     game.opponent_team_score = opponent_team_score
     db.commit()
-    
-    typer.echo(f"Updated game scores: {game.playing_team.name} {playing_team_score} - {opponent_team_score} {game.opponent_team.name}")
+
+    typer.echo(
+        f"Updated game scores: {game.playing_team.name} {playing_team_score} - {opponent_team_score} {game.opponent_team.name}"
+    )

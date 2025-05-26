@@ -126,9 +126,7 @@ class Game(Base, SoftDeleteMixin):
         "ActiveRoster", back_populates="game", cascade="all, delete-orphan"
     )
 
-    __table_args__ = (
-        UniqueConstraint("date", "playing_team_id", "opponent_team_id", name="uq_game_date_teams"),
-    )
+    __table_args__ = (UniqueConstraint("date", "playing_team_id", "opponent_team_id", name="uq_game_date_teams"),)
 
     def __repr__(self):
         return (

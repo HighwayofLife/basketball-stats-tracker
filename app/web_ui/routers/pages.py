@@ -54,14 +54,16 @@ async def index(request: Request):
                 home_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in playing_team_stats)
                 away_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in opponent_team_stats)
 
-                recent_games_data.append({
-                    "id": game.id,
-                    "date": game.date,
-                    "home_team": game.playing_team.display_name or game.playing_team.name,
-                    "away_team": game.opponent_team.display_name or game.opponent_team.name,
-                    "home_score": home_score,
-                    "away_score": away_score,
-                })
+                recent_games_data.append(
+                    {
+                        "id": game.id,
+                        "date": game.date,
+                        "home_team": game.playing_team.display_name or game.playing_team.name,
+                        "away_team": game.opponent_team.display_name or game.opponent_team.name,
+                        "home_score": home_score,
+                        "away_score": away_score,
+                    }
+                )
 
             return templates.TemplateResponse(
                 "index.html",
@@ -228,17 +230,17 @@ async def player_detail_page(request: Request, player_id: int):
     try:
         with get_db_session() as session:
             player = session.query(models.Player).filter(models.Player.id == player_id).first()
-            
+
             if not player:
                 raise HTTPException(status_code=404, detail="Player not found")
-            
+
             return templates.TemplateResponse(
                 "players/detail.html",
                 {
                     "request": request,
                     "title": f"{player.name} - Player Profile",
                     "player_id": player_id,
-                }
+                },
             )
     except HTTPException:
         raise

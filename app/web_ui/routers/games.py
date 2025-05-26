@@ -61,13 +61,13 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                 opponent_team_score = 0
 
                 # Get all player stats for this game
-                player_stats = session.query(models.PlayerGameStats).filter(
-                    models.PlayerGameStats.game_id == game.id
-                ).all()
+                player_stats = (
+                    session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
+                )
 
                 for stat in player_stats:
                     # Calculate points for this player
-                    player_points = (stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3)
+                    player_points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
 
                     # Add to appropriate team score
                     if stat.player.team_id == game.playing_team_id:
@@ -109,13 +109,11 @@ async def get_game(game_id: int):
             opponent_team_score = 0
 
             # Get all player stats for this game
-            player_stats = session.query(models.PlayerGameStats).filter(
-                models.PlayerGameStats.game_id == game.id
-            ).all()
+            player_stats = session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
 
             for stat in player_stats:
                 # Calculate points for this player
-                player_points = (stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3)
+                player_points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
 
                 # Add to appropriate team score
                 if stat.player.team_id == game.playing_team_id:
@@ -203,9 +201,9 @@ async def get_box_score(game_id: int):
                     key=lambda p: (
                         p.get("points", 0),
                         # Calculate FG% - handle division by zero
-                        (p.get("fg2m", 0) + p.get("fg3m", 0)) / max((p.get("fg2a", 0) + p.get("fg3a", 0)), 1) * 100
+                        (p.get("fg2m", 0) + p.get("fg3m", 0)) / max((p.get("fg2a", 0) + p.get("fg3a", 0)), 1) * 100,
                     ),
-                    reverse=True
+                    reverse=True,
                 )
                 if sorted_players:
                     top = sorted_players[0]
@@ -220,7 +218,7 @@ async def get_box_score(game_id: int):
                         "points": top.get("points", 0),
                         "fg_percentage": fg_percentage,
                         "rebounds": top.get("rebounds", 0),
-                        "assists": top.get("assists", 0)
+                        "assists": top.get("assists", 0),
                     }
                 return None
 

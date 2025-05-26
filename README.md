@@ -68,6 +68,12 @@ make shell
 make stop
 ```
 
+**Important Production Database Notes:**
+- The web UI at http://localhost:8000 uses the PostgreSQL database in the Docker container
+- All CLI commands for production must be run from inside the Docker container
+- To import data to production: `docker-compose exec -T web basketball-stats import-game --file /app/import/filename.csv`
+- Duplicate games are automatically prevented
+
 The Docker implementation uses a multi-stage build for optimal image size and includes security best practices like running as a non-root user.
 
 ### Option 2: Standalone Executable (Recommended for Most Users)

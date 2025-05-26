@@ -8,7 +8,6 @@ This module contains schemas for:
 - The overall structure of a game stats CSV import.
 """
 
-
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -26,6 +25,7 @@ class GameInfoSchema(BaseModel):
     def validate_date_format(cls, value):
         """Validates that date is in an acceptable format."""
         import re
+
         # Accept both YYYY-MM-DD and M/D/YYYY formats
         if not re.match(r"^\d{4}-\d{2}-\d{2}$|^\d{1,2}/\d{1,2}/\d{4}$", value):
             raise ValueError("Date must be in YYYY-MM-DD or M/D/YYYY format")
@@ -54,7 +54,7 @@ class PlayerStatsRowSchema(BaseModel):
             field_name = info.field_name
             raise ValueError("Input should be greater than or equal to 0", field_name)
         return value
-        
+
     @classmethod
     @field_validator("PlayerJersey")
     def validate_jersey_number(cls, value):

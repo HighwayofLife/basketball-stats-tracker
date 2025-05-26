@@ -3,7 +3,6 @@ CRUD operations for Game model.
 """
 
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 

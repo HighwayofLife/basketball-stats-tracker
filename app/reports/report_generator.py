@@ -76,10 +76,10 @@ class ReportGenerator:
     def _get_team_display_name(self, team) -> str:
         """
         Get the display name for a team, falling back to name if display_name is not set.
-        
+
         Args:
             team: Team object
-            
+
         Returns:
             String with the team display name
         """
@@ -454,7 +454,9 @@ class ReportGenerator:
         performance_report = {
             **player_box_score,  # Include all box score stats
             "game_date": date_str,
-            "opponent": self._get_team_display_name(opponent_team) if player.team_id == playing_team.id else self._get_team_display_name(playing_team),
+            "opponent": self._get_team_display_name(opponent_team)
+            if player.team_id == playing_team.id
+            else self._get_team_display_name(playing_team),
             "quarter_breakdown": self._get_quarter_stats_breakdown(quarter_stats),
         }
 
