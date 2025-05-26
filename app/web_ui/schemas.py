@@ -104,7 +104,7 @@ class ActivePlayer(BaseModel):
 
     id: int
     name: str
-    jersey_number: int
+    jersey_number: str
     position: str | None = None
     is_starter: bool
 
@@ -196,7 +196,7 @@ class PlayerCreateRequest(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=100, description="Player name")
     team_id: int
-    jersey_number: int = Field(..., ge=0, le=99, description="Jersey number (0-99)")
+    jersey_number: str = Field(..., min_length=1, max_length=10, description="Jersey number (e.g., '0', '00', '23')")
     position: str | None = Field(None, pattern="^(PG|SG|SF|PF|C)$", description="Position: PG, SG, SF, PF, or C")
     height: int | None = Field(None, ge=48, le=96, description="Height in inches")
     weight: int | None = Field(None, ge=100, le=400, description="Weight in pounds")
@@ -208,7 +208,7 @@ class PlayerUpdateRequest(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=100, description="Player name")
     team_id: int | None = None
-    jersey_number: int | None = Field(None, ge=0, le=99, description="Jersey number (0-99)")
+    jersey_number: str | None = Field(None, min_length=1, max_length=10, description="Jersey number (e.g., '0', '00', '23')")
     position: str | None = Field(None, pattern="^(PG|SG|SF|PF|C)$", description="Position: PG, SG, SF, PF, or C")
     height: int | None = Field(None, ge=48, le=96, description="Height in inches")
     weight: int | None = Field(None, ge=100, le=400, description="Weight in pounds")
@@ -223,7 +223,7 @@ class PlayerResponse(BaseModel):
     name: str
     team_id: int
     team_name: str
-    jersey_number: int
+    jersey_number: str
     position: str | None = None
     height: int | None = None
     weight: int | None = None

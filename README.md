@@ -2,6 +2,8 @@
 
 A simple application for tracking basketball game statistics for a small league. This application allows for easy data entry via CSV files and generates statistical reports for games and players.
 
+![Basketball Stats Tracker Application](assets/basketball-stats-tracker-app.png)
+
 ## Features
 
 - Game and player stats import via CSV files

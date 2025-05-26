@@ -387,7 +387,7 @@ class TestAPIEndpoints:
         assert data["roster"][0]["name"] == "Anthony Davis"
         assert data["roster"][0]["jersey_number"] == "3"
         assert data["roster"][1]["name"] == "LeBron James"
-        assert data["roster"][1]["jersey_number"] == 23
+        assert data["roster"][1]["jersey_number"] == "23"
 
     def test_get_team_not_found(self, client):
         """Test the get team endpoint when team not found."""
@@ -490,9 +490,9 @@ class TestAPIEndpoints:
         assert len(data["players"]) == 2
         # Players are ordered by jersey number
         assert data["players"][0]["name"] == "Anthony Davis"
-        assert data["players"][0]["jersey_number"] == 3
+        assert data["players"][0]["jersey_number"] == "3"
         assert data["players"][1]["name"] == "LeBron James"
-        assert data["players"][1]["jersey_number"] == 23
+        assert data["players"][1]["jersey_number"] == "23"
 
     def test_get_team_detail_not_found(self, client):
         """Test getting team detail when team not found."""
@@ -621,9 +621,9 @@ class TestAPIEndpoints:
         # Players are ordered by jersey number, so Anthony Davis (#3) comes first
         assert data[0]["name"] == "Anthony Davis"
         assert data[0]["team_name"] == "Lakers"
-        assert data[0]["jersey_number"] == 3
+        assert data[0]["jersey_number"] == "3"
         assert data[1]["name"] == "LeBron James"
-        assert data[1]["jersey_number"] == 23
+        assert data[1]["jersey_number"] == "23"
 
     def test_list_players_by_team(self, client, sample_team, sample_players):
         """Test listing players filtered by team."""
@@ -644,7 +644,7 @@ class TestAPIEndpoints:
         player_data = {
             "name": "New Player",
             "team_id": sample_team.id,
-            "jersey_number": 24,
+            "jersey_number": "24",
             "position": "SF",
             "height": 79,
             "weight": 220,
@@ -659,12 +659,12 @@ class TestAPIEndpoints:
         data = response.json()
         assert data["name"] == "New Player"
         assert data["team_id"] == sample_team.id
-        assert data["jersey_number"] == 24
+        assert data["jersey_number"] == "24"
         assert data["position"] == "SF"
 
     def test_create_player_team_not_found(self, client):
         """Test creating a player with non-existent team."""
-        player_data = {"name": "New Player", "team_id": 999, "jersey_number": 24}
+        player_data = {"name": "New Player", "team_id": 999, "jersey_number": "24"}
 
         # Make request
         response = client.post("/v1/players/new", json=player_data)
@@ -678,7 +678,7 @@ class TestAPIEndpoints:
         player_data = {
             "name": "New Player",
             "team_id": sample_team.id,
-            "jersey_number": 23,  # Same as existing player
+            "jersey_number": "23",  # Same as existing player
         }
 
         # Make request
@@ -687,6 +687,28 @@ class TestAPIEndpoints:
         # Assertions
         assert response.status_code == 400
         assert "Jersey number 23 already exists" in response.json()["detail"]
+
+    def test_create_player_with_special_jersey_numbers(self, client, sample_team):
+        """Test creating players with special jersey numbers like '0' and '00'."""
+        # Create player with jersey "0"
+        player_data_0 = {
+            "name": "Player Zero",
+            "team_id": sample_team.id,
+            "jersey_number": "0",
+        }
+        response = client.post("/v1/players/new", json=player_data_0)
+        assert response.status_code == 200
+        assert response.json()["jersey_number"] == "0"
+
+        # Create player with jersey "00" (should work as it's different from "0")
+        player_data_00 = {
+            "name": "Player Double Zero",
+            "team_id": sample_team.id,
+            "jersey_number": "00",
+        }
+        response = client.post("/v1/players/new", json=player_data_00)
+        assert response.status_code == 200
+        assert response.json()["jersey_number"] == "00"
 
     def test_get_player_success(self, client, sample_players):
         """Test getting a player successfully."""
@@ -699,7 +721,7 @@ class TestAPIEndpoints:
         assert data["id"] == sample_players[0].id
         assert data["name"] == "LeBron James"
         assert data["team_name"] == "Lakers"
-        assert data["jersey_number"] == 23
+        assert data["jersey_number"] == "23"
 
     def test_get_player_not_found(self, client):
         """Test getting a player that doesn't exist."""
@@ -712,7 +734,7 @@ class TestAPIEndpoints:
 
     def test_update_player_success(self, client, sample_players):
         """Test updating a player successfully."""
-        update_data = {"name": "Updated Name", "jersey_number": 24, "position": "PF"}
+        update_data = {"name": "Updated Name", "jersey_number": "24", "position": "PF"}
 
         # Make request
         response = client.put(f"/v1/players/{sample_players[0].id}", json=update_data)
@@ -721,7 +743,7 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Updated Name"
-        assert data["jersey_number"] == 24
+        assert data["jersey_number"] == "24"
         assert data["position"] == "PF"
 
     def test_update_player_not_found(self, client):
@@ -746,7 +768,7 @@ class TestAPIEndpoints:
     def test_delete_player_without_stats(self, client, db_session, sample_team):
         """Test deleting a player that has no game stats (should delete)."""
         # Create a player without stats
-        player = Player(name="Deletable Player", jersey_number=99, team_id=sample_team.id, is_active=True)
+        player = Player(name="Deletable Player", jersey_number="99", team_id=sample_team.id, is_active=True)
         db_session.add(player)
         db_session.commit()
         db_session.refresh(player)
