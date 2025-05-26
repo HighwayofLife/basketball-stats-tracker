@@ -212,7 +212,10 @@ async function loadBoxScore() {
         document.getElementById('homeTeamScore').textContent = reportData.home_team.score;
         document.getElementById('awayTeamName').textContent = reportData.away_team.name;
         document.getElementById('awayTeamScore').textContent = reportData.away_team.score;
-        document.getElementById('gameDate').textContent = new Date(reportData.game_date).toLocaleDateString();
+        // Parse date string as local date, not UTC
+        const [year, month, day] = reportData.game_date.split('-').map(num => parseInt(num, 10));
+        const date = new Date(year, month - 1, day); // month is 0-indexed
+        document.getElementById('gameDate').textContent = date.toLocaleDateString();
         
         // Update team headers
         document.getElementById('homeTeamHeader').textContent = reportData.home_team.name;

@@ -3,6 +3,7 @@ CRUD operations for Game model.
 """
 
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -15,15 +16,29 @@ def create_game(db: Session, date_str: str, playing_team_id: int, opponent_team_
 
     Args:
         db: SQLAlchemy database session
-        date_str: Date of the game in YYYY-MM-DD format
+        date_str: Date of the game in YYYY-MM-DD or M/D/YYYY format
         playing_team_id: ID of the home/playing team
         opponent_team_id: ID of the away/opponent team
 
     Returns:
         The created Game instance
     """
-    # Convert string date to date object
-    game_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    # Convert string date to date object - handle both formats
+    # Parse the date string as a naive datetime first
+    try:
+        # Try YYYY-MM-DD format first
+        naive_dt = datetime.strptime(date_str, "%Y-%m-%d")
+    except ValueError:
+        try:
+            # Try M/D/YYYY format
+            naive_dt = datetime.strptime(date_str, "%m/%d/%Y")
+        except ValueError as e:
+            raise ValueError(f"Invalid date format: {date_str}. Expected YYYY-MM-DD or M/D/YYYY") from e
+
+    # Get just the date component without timezone issues
+    # This ensures the date is interpreted as-is without timezone conversion
+    game_date = naive_dt.date()
+
     game = Game(date=game_date, playing_team_id=playing_team_id, opponent_team_id=opponent_team_id)
     db.add(game)
     db.commit()

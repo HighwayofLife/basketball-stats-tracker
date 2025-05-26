@@ -467,11 +467,22 @@ function getActionClass(action) {
 }
 
 function formatDate(dateStr) {
-    const date = new Date(dateStr);
+    // Parse date string as local date, not UTC
+    // For YYYY-MM-DD format, split and create date with local timezone
+    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+    const date = new Date(year, month - 1, day); // month is 0-indexed
     return date.toLocaleDateString();
 }
 
 function formatDateTime(dateStr) {
+    // Parse ISO datetime string properly to avoid timezone issues
+    // If it's just a date (YYYY-MM-DD), parse as local date
+    if (dateStr.length === 10) {
+        const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+        const date = new Date(year, month - 1, day);
+        return date.toLocaleString();
+    }
+    // For full datetime strings, use the native parser but be aware of timezone
     const date = new Date(dateStr);
     return date.toLocaleString();
 }

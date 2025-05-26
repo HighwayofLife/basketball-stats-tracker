@@ -281,7 +281,7 @@ function updateGameLog(games) {
     
     games.forEach(game => {
         const row = tbody.insertRow();
-        row.insertCell().textContent = new Date(game.date).toLocaleDateString();
+        row.insertCell().textContent = formatDate(game.date);
         row.insertCell().textContent = game.opponent;
         row.insertCell().textContent = game.points;
         row.insertCell().textContent = game.assists;
@@ -314,7 +314,7 @@ function drawPerformanceChart(games) {
     const ctx = document.getElementById('performanceChart').getContext('2d');
     
     // Prepare data for chart
-    const dates = games.map(g => new Date(g.date));
+    const dates = games.map(g => formatDate(g.date));
     const points = games.map(g => g.points);
     const assists = games.map(g => g.assists);
     const rebounds = games.map(g => g.rebounds);
@@ -418,9 +418,15 @@ function sortTable(table, columnIndex, header) {
 function getCellValue(cell) {
     const text = cell.textContent.trim();
     
-    // Handle date values
+    // Handle date values (MM/DD/YYYY format from toLocaleDateString)
     if (text.includes('/') && text.split('/').length === 3) {
-        return new Date(text).getTime();
+        // Parse the localized date string properly
+        const parts = text.split('/');
+        // Assuming US format: MM/DD/YYYY
+        const month = parseInt(parts[0], 10) - 1; // 0-indexed
+        const day = parseInt(parts[1], 10);
+        const year = parseInt(parts[2], 10);
+        return new Date(year, month, day).getTime();
     }
     
     // Handle percentage values
@@ -445,6 +451,14 @@ function exportReport(format) {
         url += `&season=${season}`;
     }
     window.location.href = url;
+}
+
+function formatDate(dateStr) {
+    // Parse date string as local date, not UTC
+    // For YYYY-MM-DD format, split and create date with local timezone
+    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString();
 }
 </script>
 {% endblock %}

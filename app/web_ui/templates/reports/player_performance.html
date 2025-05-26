@@ -166,7 +166,10 @@ function updateGameInfo(data) {
             document.getElementById('homeTeamScore').textContent = gameData.home_score;
             document.getElementById('awayTeamName').textContent = gameData.away_team;
             document.getElementById('awayTeamScore').textContent = gameData.away_score;
-            document.getElementById('gameDate').textContent = new Date(gameData.date).toLocaleDateString();
+            // Parse date string as local date, not UTC
+            const [year, month, day] = gameData.date.split('-').map(num => parseInt(num, 10));
+            const date = new Date(year, month - 1, day); // month is 0-indexed
+            document.getElementById('gameDate').textContent = date.toLocaleDateString();
         });
 }
 

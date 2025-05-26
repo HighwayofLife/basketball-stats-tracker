@@ -395,7 +395,7 @@ async function loadRecentGames() {
                         ${won ? 'W' : 'L'} ${teamScore}-${oppScore}
                     </span>
                 </div>
-                <p class="mb-1 text-muted">${new Date(game.date).toLocaleDateString()}</p>
+                <p class="mb-1 text-muted">${formatDate(game.date)}</p>
             `;
             recentGamesDiv.appendChild(gameItem);
         });
@@ -472,6 +472,14 @@ function exportReport(format) {
         url += `&season=${season}`;
     }
     window.location.href = url;
+}
+
+function formatDate(dateStr) {
+    // Parse date string as local date, not UTC
+    // For YYYY-MM-DD format, split and create date with local timezone
+    const [year, month, day] = dateStr.split('-').map(num => parseInt(num, 10));
+    const date = new Date(year, month - 1, day); // month is 0-indexed
+    return date.toLocaleDateString();
 }
 </script>
 {% endblock %}

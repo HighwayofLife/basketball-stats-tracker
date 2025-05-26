@@ -328,7 +328,10 @@
     }
 
     function formatDate(dateString) {
-        const date = new Date(dateString);
+        // Parse date string as local date, not UTC
+        // For YYYY-MM-DD format, split and create date with local timezone
+        const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
+        const date = new Date(year, month - 1, day); // month is 0-indexed
         return date.toLocaleDateString(undefined, {
             weekday: 'long',
             year: 'numeric',
