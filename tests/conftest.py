@@ -118,10 +118,10 @@ def sample_players() -> list[dict[str, Any]]:
     Returns sample player data for testing.
     """
     return [
-        {"name": "Player One", "jersey_number": 10, "team_name": "Team A"},
-        {"name": "Player Two", "jersey_number": 23, "team_name": "Team A"},
-        {"name": "Player Alpha", "jersey_number": 5, "team_name": "Team B"},
-        {"name": "Player Beta", "jersey_number": 15, "team_name": "Team B"},
+        {"name": "Player One", "jersey_number": "10", "team_name": "Team A"},
+        {"name": "Player Two", "jersey_number": "23", "team_name": "Team A"},
+        {"name": "Player Alpha", "jersey_number": "5", "team_name": "Team B"},
+        {"name": "Player Beta", "jersey_number": "15", "team_name": "Team B"},
     ]
 
 
@@ -141,7 +141,7 @@ def sample_player_stats() -> list[dict[str, Any]]:
     return [
         {
             "team_name": "Team A",
-            "player_jersey": 10,
+            "player_jersey": "10",
             "player_name": "Player One",
             "fouls": 2,
             "qt1_shots": "22-1x",
@@ -151,7 +151,7 @@ def sample_player_stats() -> list[dict[str, Any]]:
         },
         {
             "team_name": "Team A",
-            "player_jersey": 23,
+            "player_jersey": "23",
             "player_name": "Player Two",
             "fouls": 3,
             "qt1_shots": "12",
@@ -161,7 +161,7 @@ def sample_player_stats() -> list[dict[str, Any]]:
         },
         {
             "team_name": "Team B",
-            "player_jersey": 5,
+            "player_jersey": "5",
             "player_name": "Player Alpha",
             "fouls": 1,
             "qt1_shots": "x",
@@ -171,7 +171,7 @@ def sample_player_stats() -> list[dict[str, Any]]:
         },
         {
             "team_name": "Team B",
-            "player_jersey": 15,
+            "player_jersey": "15",
             "player_name": "Player Beta",
             "fouls": 4,
             "qt1_shots": "2//1",

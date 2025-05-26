@@ -173,27 +173,29 @@ Data will be imported into the system via a CSV file. This CSV file will contain
   **Example CSV Structure (`game_stats_template.csv`):**
 
   ```csv
-  GAME_INFO_KEY,VALUE
-  Playing Team,Team A
-  Opponent Team,Team B
-  Date,YYYY-MM-DD
-  PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-  PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
-  PLAYER_DATA,Team A,23,Player Two,3,12,x,-/,22
-  PLAYER_DATA,Team B,5,Player Alpha,1,x,11,,33-
-  PLAYER_DATA,Team B,15,Player Beta,4,2//1,2,x,1
+  Home,Team A
+  Visitor,Team B  
+  Date,2025-05-15
+  Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+  Team A,10,Player One,2,22-1x,3/2,11,
+  Team A,23,Player Two,3,12,x,-/,22
+  Team B,5,Player Alpha,1,x,11,,33-
+  Team B,15,Player Beta,4,2//1,2,x,1
   ```
 
-  *   **Game Information Section:**
-      *   `Playing Team`: Name of the home/main team.
-      *   `Opponent Team`: Name of the opposing team.
-      *   `Date`: Date of the game (e.g., YYYY-MM-DD).
-  *   **Player Statistics Section (each row starting with `PLAYER_DATA`):**
-      *   `Team Name`: The team the player belongs to (e.g., "Team A").
-      *   `Player Jersey`: Jersey number of the player.
-      *   `Player Name`: Full name of the player. This, in conjunction with jersey number and team, helps identify or create new player records. If a player with the given team and jersey/name doesn't exist, they can be created.
-      *   `Fouls`: Total fouls committed by the player in the game.
-      *   `QT1 Shots`, `QT2 Shots`, `QT3 Shots`, `QT4 Shots`: Shot strings for each quarter.
+  *   **Game Information (First 3 rows):**
+      *   Row 1: `Home,<team_name>` - Name of the home team.
+      *   Row 2: `Visitor,<team_name>` or `Away,<team_name>` - Name of the visiting/away team.
+      *   Row 3: `Date,<date>` - Date of the game (supports YYYY-MM-DD or M/D/YYYY format).
+  *   **Header Row (Row 4):**
+      *   Contains column headers for player data. Headers are case-insensitive.
+      *   `Team`: The team the player belongs to.
+      *   `Jersey Number`, `Number`, or `Jersey`: Jersey number of the player.
+      *   `Player Name`, `Player`, or `Name`: Full name of the player.
+      *   `Fouls`: Total fouls committed by the player in the game (optional, defaults to 0).
+      *   `QT1`, `QT2`, `QT3`, `QT4`: Shot strings for each quarter.
+  *   **Player Data Rows (Row 5+):**
+      *   Each row contains data for one player.
           *   An empty string for a quarter (e.g., `,,` in the CSV for QT3 of Player Alpha) indicates no shots or activity recorded for that quarter.
           *   **Shot String Character Legend (Configurable):** The characters used in the shot strings are defined in the application's configuration (e.g., in `app/config.py`). The following are default examples:
               *   `-`: Missed 2-point shot

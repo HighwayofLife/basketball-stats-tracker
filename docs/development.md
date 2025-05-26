@@ -86,6 +86,16 @@ For a simpler environment with the built-in SQLite database:
 | `make docker-clean` | Clean up Docker resources |
 | `make docker-compose-build` | Build images with docker-compose |
 
+## Important Production Database Notes
+
+**Production = Docker Container with PostgreSQL**
+- The web UI at http://localhost:8000 uses the PostgreSQL database in the Docker container, NOT the local SQLite database
+- All CLI commands for production must be run from inside the Docker container using `docker-compose exec`
+- To import CSVs to production: `docker-compose exec -T web basketball-stats import-game --file /app/import/filename.csv`
+- To import rosters to production: `docker-compose exec -T web basketball-stats import-roster --file /app/import/roster.csv`
+- Duplicate games are prevented by a unique constraint on (date, playing_team_id, opponent_team_id)
+- Jersey numbers are stored as strings to handle variations like "0" vs "00"
+
 ## Docker Architecture
 
 The Basketball Stats Tracker application uses Docker for both development and production environments.
@@ -261,6 +271,9 @@ python -m pytest tests/unit/
 # Run only integration tests
 python -m pytest tests/integration/
 
+# Run functional UI tests (requires running web server)
+python -m pytest tests/functional/
+
 # Run tests with verbose output
 python -m pytest tests/ -v
 
@@ -275,7 +288,10 @@ python -m pytest --cov=app --cov-report=term tests/
 
 1. **Unit Tests**: Located in `tests/unit/`, test individual components in isolation
 2. **Integration Tests**: Located in `tests/integration/`, test multiple components working together
-3. **Test Fixtures**: Common test setup code is in `tests/conftest.py`
+3. **Functional Tests**: Located in `tests/functional/`, test complete user workflows through the UI
+4. **Test Fixtures**: Common test setup code is in `tests/conftest.py`
+
+For detailed information on UI functional testing, see the [UI Functional Testing Guide](ui_functional_testing_guide.md).
 
 ### Testing Best Practices
 
@@ -573,8 +589,51 @@ The following debug configurations are available (F5 or Run → Start Debugging)
 4. **Black Formatter** - Auto-format code on save
 5. **Ruff** - Fast Python linter
 
+## Web UI Development
+
+The Basketball Stats Tracker includes a web interface built with FastAPI for the backend and vanilla JavaScript for the frontend.
+
+### Starting the Web Server
+
+```bash
+# Using Docker (recommended)
+make run
+
+# Or using the CLI directly
+basketball-stats web-server --port 8000
+```
+
+The web interface will be available at http://localhost:8000
+
+### Web UI Features
+
+1. **Dashboard**: Overview of recent games and statistics
+2. **Game Management**: View, create, and edit game data
+3. **Scorebook Entry**: 
+   - Manual data entry form
+   - CSV import functionality (matching CLI format)
+   - Real-time score calculation
+4. **Reports**: Interactive box scores and player statistics
+5. **Data Management**: Team and player administration
+
+### CSV Import Feature
+
+The web UI supports importing game data via CSV files:
+
+1. Navigate to `/scorebook`
+2. Click "Import CSV" button
+3. Select a CSV file matching the CLI format
+4. Review imported data
+5. Click "Save Game" to persist
+
+The CSV format matches the CLI's `import-game` command format, ensuring compatibility between interfaces.
+
+For detailed information on web UI development, see the [Web UI Development Plan](web_ui_development_plan.md).
+
 ## Further Documentation
 
 For design details and development roadmap, see:
 - [Design Document](design_doc.md)
 - [Development Phases](development_phases.md)
+- [Web UI Development Plan](web_ui_development_plan.md)
+- [UI Functional Testing Guide](ui_functional_testing_guide.md)
