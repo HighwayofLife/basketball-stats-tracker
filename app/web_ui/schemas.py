@@ -208,7 +208,9 @@ class PlayerUpdateRequest(BaseModel):
 
     name: str | None = Field(None, min_length=1, max_length=100, description="Player name")
     team_id: int | None = None
-    jersey_number: str | None = Field(None, min_length=1, max_length=10, description="Jersey number (e.g., '0', '00', '23')")
+    jersey_number: str | None = Field(
+        None, min_length=1, max_length=10, description="Jersey number (e.g., '0', '00', '23')"
+    )
     position: str | None = Field(None, pattern="^(PG|SG|SF|PF|C)$", description="Position: PG, SG, SF, PF, or C")
     height: int | None = Field(None, ge=48, le=96, description="Height in inches")
     weight: int | None = Field(None, ge=100, le=400, description="Weight in pounds")

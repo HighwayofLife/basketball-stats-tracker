@@ -2,6 +2,23 @@
 
 {% block title %}Scorebook Entry{% endblock %}
 
+{% block head %}
+<style>
+    .jersey-input {
+        background-color: #fffbf0;
+        border: 2px solid #ffc107;
+    }
+    .jersey-input:focus {
+        border-color: #ff9800;
+        box-shadow: 0 0 0 0.2rem rgba(255, 152, 0, 0.25);
+    }
+    .jersey-input.is-invalid {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid mt-4">
     <div class="row">
@@ -354,8 +371,33 @@ function updatePlayerInfo(select) {
     const selectedOption = select.options[select.selectedIndex];
     
     if (selectedOption.value) {
+        // If a player is selected, update displays
         row.querySelector('.team-display').textContent = selectedOption.dataset.teamName;
-        row.querySelector('.jersey-display').textContent = selectedOption.dataset.jerseyNumber;
+        
+        // Handle jersey display - if it's an input (for new players), replace it with text
+        const jerseyDisplay = row.querySelector('.jersey-display');
+        if (jerseyDisplay) {
+            const jerseyInput = jerseyDisplay.querySelector('.jersey-input');
+            if (jerseyInput) {
+                // Replace the input with the jersey number from the selected player
+                jerseyDisplay.innerHTML = selectedOption.dataset.jerseyNumber;
+            } else {
+                jerseyDisplay.textContent = selectedOption.dataset.jerseyNumber;
+            }
+        }
+        
+        // If this row was marked as a new player, unmark it since a player is now selected
+        if (row.dataset.newPlayer === 'true') {
+            row.dataset.newPlayer = 'false';
+            
+            // Clean up the "NEW" prefix from the option text if it exists
+            if (selectedOption.text.includes('⚠️ NEW:')) {
+                // This was the placeholder option, update it to show the selected player
+                const teamName = selectedOption.dataset.teamName || row.dataset.teamName;
+                selectedOption.text = `${selectedOption.text.split(' (')[0].replace('⚠️ NEW:', '').trim()} - ${teamName}`;
+                selectedOption.classList.remove('text-warning');
+            }
+        }
     } else {
         row.querySelector('.team-display').textContent = '-';
         row.querySelector('.jersey-display').textContent = '-';
@@ -465,17 +507,39 @@ async function saveGame() {
         const newPlayersToCreate = [];
         document.querySelectorAll('.player-row').forEach(row => {
             if (row.dataset.newPlayer === 'true') {
-                const teamName = row.dataset.teamName;
-                const teamId = teamName.toLowerCase() === document.querySelector(`#homeTeam option[value="${homeTeamId}"]`).text.toLowerCase() 
-                    ? parseInt(homeTeamId) 
-                    : parseInt(awayTeamId);
+                // Check if a player is already selected in the dropdown
+                const playerSelect = row.querySelector('.player-select');
+                const selectedValue = playerSelect ? playerSelect.value : '';
                 
-                newPlayersToCreate.push({
-                    name: row.dataset.playerName,
-                    jersey_number: row.dataset.jerseyNumber,
-                    team_id: teamId,
-                    row: row
-                });
+                // Only create if no player is selected (empty value)
+                if (!selectedValue) {
+                    const teamName = row.dataset.teamName;
+                    const teamId = teamName.toLowerCase() === document.querySelector(`#homeTeam option[value="${homeTeamId}"]`).text.toLowerCase() 
+                        ? parseInt(homeTeamId) 
+                        : parseInt(awayTeamId);
+                    
+                    // Get the jersey number from the input field (user may have edited it)
+                    const jerseyInput = row.querySelector('.jersey-input');
+                    const jerseyNumber = jerseyInput ? jerseyInput.value.trim() : row.dataset.jerseyNumber;
+                    
+                    newPlayersToCreate.push({
+                        name: row.dataset.playerName,
+                        jersey_number: jerseyNumber,
+                        team_id: teamId,
+                        row: row
+                    });
+                } else {
+                    // Player is already selected, just update the row to not be "new" anymore
+                    row.dataset.newPlayer = 'false';
+                    
+                    // Update jersey display if it's still an input
+                    const jerseyDisplay = row.querySelector('.jersey-display');
+                    const jerseyInput = row.querySelector('.jersey-input');
+                    if (jerseyDisplay && jerseyInput) {
+                        const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+                        jerseyDisplay.innerHTML = `#${selectedOption.dataset.jerseyNumber || jerseyInput.value}`;
+                    }
+                }
             }
         });
         
@@ -515,9 +579,47 @@ async function saveGame() {
                         
                         // Update row to indicate player is no longer new
                         newPlayer.row.dataset.newPlayer = 'false';
+                        
+                        // Update the jersey display back to normal
+                        const jerseyDisplay = newPlayer.row.querySelector('.jersey-display');
+                        if (jerseyDisplay) {
+                            jerseyDisplay.innerHTML = `#${createdPlayer.jersey_number}`;
+                        }
+                        
+                        // Remove the warning styling from the dropdown
+                        const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+                        if (selectedOption && selectedOption.text.includes('⚠️ NEW:')) {
+                            // Find the team name from the team select
+                            const teamName = newPlayer.team_id == parseInt(homeTeamId) 
+                                ? document.querySelector(`#homeTeam option[value="${homeTeamId}"]`).text
+                                : document.querySelector(`#awayTeam option[value="${awayTeamId}"]`).text;
+                            selectedOption.text = `${createdPlayer.name} (#${createdPlayer.jersey_number}) - ${teamName}`;
+                            selectedOption.classList.remove('text-warning');
+                        }
                     } else {
-                        const error = await response.json();
-                        showAlert(`Failed to create player ${newPlayer.name}: ${error.detail}`, 'danger');
+                        let errorMessage = `Failed to create player ${newPlayer.name}`;
+                        try {
+                            const error = await response.json();
+                            // Check if it's a jersey number conflict
+                            if (error.detail && error.detail.includes('already exists')) {
+                                if (error.detail.includes('jersey number')) {
+                                    errorMessage = `${errorMessage}: Jersey #${newPlayer.jersey_number} is already taken. Please edit the jersey number in the table and try again.`;
+                                    // Highlight the jersey input field
+                                    const jerseyInput = newPlayer.row.querySelector('.jersey-input');
+                                    if (jerseyInput) {
+                                        jerseyInput.classList.add('is-invalid');
+                                        jerseyInput.focus();
+                                    }
+                                } else if (error.detail.includes('team_name')) {
+                                    errorMessage = `${errorMessage}: A player named "${newPlayer.name}" already exists on this team.`;
+                                }
+                            } else {
+                                errorMessage = `${errorMessage}: ${error.detail || 'Unknown error'}`;
+                            }
+                        } catch (e) {
+                            errorMessage = `${errorMessage}: Server error (${response.status})`;
+                        }
+                        showAlert(errorMessage, 'danger');
                         return;
                     }
                 } catch (error) {
@@ -865,7 +967,16 @@ async function importCSV(event) {
                     const teamDisplay = lastRow.querySelector('.team-display');
                     const jerseyDisplay = lastRow.querySelector('.jersey-display');
                     if (teamDisplay) teamDisplay.textContent = teamName;
-                    if (jerseyDisplay) jerseyDisplay.textContent = `#${jerseyNumber}`;
+                    if (jerseyDisplay) {
+                        // For new players, make jersey number editable
+                        jerseyDisplay.innerHTML = `
+                            <input type="text" class="form-control form-control-sm jersey-input" 
+                                   value="${jerseyNumber}" 
+                                   data-original="${jerseyNumber}"
+                                   style="width: 60px;"
+                                   title="Edit jersey number for new player">
+                        `;
+                    }
                 }
                 
                 // Set fouls
@@ -884,7 +995,7 @@ async function importCSV(event) {
         // Show warning about unmatched players
         if (unmatchedPlayers.length > 0) {
             const playersList = unmatchedPlayers.map(p => `${p.name} #${p.jersey} (${p.team})`).join(', ');
-            showAlert(`Warning: ${unmatchedPlayers.length} player(s) not found in database and will need to be created: ${playersList}`, 'warning');
+            showAlert(`Warning: ${unmatchedPlayers.length} player(s) not found in database and will need to be created: ${playersList}. You can edit their jersey numbers if needed before saving.`, 'warning');
         }
         
         // Update game summary

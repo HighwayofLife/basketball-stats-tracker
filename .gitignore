@@ -68,7 +68,8 @@ coverage.xml
 /data/league_stats.db
 
 # VSCode
-.vscode/ 
+.vscode/
 
 **/*.swp
 .github
+.DS_Store

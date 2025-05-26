@@ -790,6 +790,120 @@ class TestAPIEndpoints:
         assert response.status_code == 404
         assert "Player not found" in response.json()["detail"]
 
+    def test_create_player_jersey_conflict(self, client, sample_team):
+        """Test creating a player with conflicting jersey number."""
+        # Create first player with jersey #10
+        response1 = client.post(
+            "/v1/players/new",
+            json={
+                "name": "First Player",
+                "jersey_number": "10",
+                "team_id": sample_team.id,
+                "position": "PF",
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert response1.status_code == 200
+
+        # Try to create second player with same jersey #10 on same team
+        response2 = client.post(
+            "/v1/players/new",
+            json={
+                "name": "Second Player",
+                "jersey_number": "10",
+                "team_id": sample_team.id,
+                "position": "PG",
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert response2.status_code == 400
+        assert "already exists" in response2.json()["detail"]
+        assert "jersey number" in response2.json()["detail"].lower()
+
+    def test_create_player_name_conflict(self, client, sample_team):
+        """Test creating a player with conflicting name on same team."""
+        # Create first player
+        response1 = client.post(
+            "/v1/players/new",
+            json={
+                "name": "Duplicate Name",
+                "jersey_number": "20",
+                "team_id": sample_team.id,
+                "position": "C",
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert response1.status_code == 200
+
+        # Try to create second player with same name on same team
+        response2 = client.post(
+            "/v1/players/new",
+            json={
+                "name": "Duplicate Name",
+                "jersey_number": "21",  # Different jersey number
+                "team_id": sample_team.id,
+                "position": "PF",
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert response2.status_code == 400
+        assert "already exists" in response2.json()["detail"]
+        assert "team_name" in response2.json()["detail"]
+
+    def test_update_player_jersey_conflict(self, client, sample_team):
+        """Test updating a player to a jersey number that's already taken."""
+        # Create two players
+        player1_response = client.post(
+            "/v1/players/new",
+            json={
+                "name": "Player One",
+                "jersey_number": "30",
+                "team_id": sample_team.id,
+                "position": None,
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert player1_response.status_code == 200
+        player1 = player1_response.json()
+
+        player2_response = client.post(
+            "/v1/players/new",
+            json={
+                "name": "Player Two",
+                "jersey_number": "31",
+                "team_id": sample_team.id,
+                "position": None,
+                "height": None,
+                "weight": None,
+                "year": None,
+            },
+        )
+        assert player2_response.status_code == 200
+        player2 = player2_response.json()
+
+        # Try to update player2 to have player1's jersey number
+        update_response = client.put(
+            f"/v1/players/{player2['id']}",
+            json={
+                "name": "Player Two",
+                "jersey_number": "30",  # Already taken by player1
+                "position": None,
+            },
+        )
+        assert update_response.status_code == 400
+        assert "already exists" in update_response.json()["detail"]
+        assert "jersey number" in update_response.json()["detail"].lower()
+
     # Player Stats and Image Tests
 
     def test_get_player_stats_success(self, client, sample_players, sample_game_stats):
