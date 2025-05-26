@@ -222,6 +222,31 @@ async def admin_data_corrections_page(request: Request):
     )
 
 
+@router.get("/players/{player_id}", response_class=HTMLResponse)
+async def player_detail_page(request: Request, player_id: int):
+    """Render the player detail page."""
+    try:
+        with get_db_session() as session:
+            player = session.query(models.Player).filter(models.Player.id == player_id).first()
+            
+            if not player:
+                raise HTTPException(status_code=404, detail="Player not found")
+            
+            return templates.TemplateResponse(
+                "players/detail.html",
+                {
+                    "request": request,
+                    "title": f"{player.name} - Player Profile",
+                    "player_id": player_id,
+                }
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error rendering player detail page: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error") from e
+
+
 @router.get("/scorebook", response_class=HTMLResponse)
 async def scorebook_entry_page(request: Request):
     """Render the scorebook entry page."""

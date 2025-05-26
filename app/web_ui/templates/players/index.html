@@ -360,6 +360,7 @@ async function loadPlayers() {
                     </td>
                     <td>
                         <div class="action-buttons">
+                            <a href="/players/${player.id}" class="btn btn-sm btn-primary">View</a>
                             <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
                             <button class="btn btn-sm btn-danger" onclick="showDeletePlayerModal(${player.id}, '${player.name}')">Delete</button>
                         </div>

@@ -72,6 +72,7 @@ class Player(Base, SoftDeleteMixin):
     weight: Mapped[int | None] = mapped_column(Integer, nullable=True)  # in pounds
     year: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    thumbnail_image: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to player thumbnail image
 
     team: Mapped["Team"] = relationship("Team", back_populates="players")
     game_stats: Mapped[list["PlayerGameStats"]] = relationship(

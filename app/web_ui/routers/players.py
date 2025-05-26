@@ -1,11 +1,16 @@
 """Players router for Basketball Stats Tracker."""
 
 import logging
+import os
+from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi.responses import FileResponse
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.season_stats_service import SeasonStatsService
+from app.utils.stats_calculator import StatsCalculator
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
 
@@ -259,6 +264,153 @@ async def get_deleted_players():
     except Exception as e:
         logger.error(f"Error getting deleted players: {e}")
         raise HTTPException(status_code=500, detail="Failed to get deleted players") from e
+
+
+@router.get("/{player_id}/stats")
+async def get_player_stats(player_id: int):
+    """Get player statistics including season and career stats."""
+    try:
+        with get_db_session() as session:
+            player = session.query(models.Player).filter(models.Player.id == player_id).first()
+            if not player:
+                raise HTTPException(status_code=404, detail="Player not found")
+
+            # Get all player's game stats
+            game_stats = (
+                session.query(models.PlayerGameStats, models.Game)
+                .join(models.Game)
+                .filter(models.PlayerGameStats.player_id == player_id)
+                .order_by(models.Game.date.desc())
+                .all()
+            )
+
+            # Calculate career totals
+            career_stats = {
+                "games_played": len(game_stats),
+                "total_points": 0,
+                "total_ftm": 0,
+                "total_fta": 0,
+                "total_2pm": 0,
+                "total_2pa": 0,
+                "total_3pm": 0,
+                "total_3pa": 0,
+                "total_fouls": 0,
+            }
+
+            recent_games = []
+            for stats, game in game_stats[:10]:  # Last 10 games
+                points = StatsCalculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
+                career_stats["total_points"] += points
+                career_stats["total_ftm"] += stats.total_ftm
+                career_stats["total_fta"] += stats.total_fta
+                career_stats["total_2pm"] += stats.total_2pm
+                career_stats["total_2pa"] += stats.total_2pa
+                career_stats["total_3pm"] += stats.total_3pm
+                career_stats["total_3pa"] += stats.total_3pa
+                career_stats["total_fouls"] += stats.fouls
+
+                recent_games.append({
+                    "game_id": game.id,
+                    "date": game.date.isoformat(),
+                    "opponent": game.opponent_team.name,
+                    "points": points,
+                    "ft": f"{stats.total_ftm}/{stats.total_fta}",
+                    "fg2": f"{stats.total_2pm}/{stats.total_2pa}",
+                    "fg3": f"{stats.total_3pm}/{stats.total_3pa}",
+                    "fouls": stats.fouls,
+                })
+
+            # Calculate career averages
+            if career_stats["games_played"] > 0:
+                career_stats["ppg"] = round(career_stats["total_points"] / career_stats["games_played"], 1)
+                career_stats["fpg"] = round(career_stats["total_fouls"] / career_stats["games_played"], 1)
+            else:
+                career_stats["ppg"] = 0.0
+                career_stats["fpg"] = 0.0
+
+            # Get season stats
+            stats_service = SeasonStatsService(session)
+            season_stats = stats_service.get_player_season_stats(player_id)
+
+            return {
+                "player": {
+                    "id": player.id,
+                    "name": player.name,
+                    "jersey_number": player.jersey_number,
+                    "position": player.position,
+                    "height": player.height,
+                    "weight": player.weight,
+                    "year": player.year,
+                    "team_name": player.team.name,
+                    "thumbnail_image": player.thumbnail_image,
+                },
+                "career_stats": career_stats,
+                "season_stats": season_stats,
+                "recent_games": recent_games,
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting player stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get player stats") from e
+
+
+@router.post("/{player_id}/upload-image")
+async def upload_player_image(player_id: int, file: UploadFile = File(...)):
+    """Upload a thumbnail image for a player."""
+    try:
+        # Validate file type
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image file.")
+        
+        # Validate file size (max 5MB)
+        file_size = 0
+        contents = await file.read()
+        file_size = len(contents)
+        if file_size > 5 * 1024 * 1024:
+            raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
+        
+        # Create upload directory if it doesn't exist
+        upload_dir = Path("app/web_ui/static/uploads/players")
+        upload_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Generate filename
+        file_extension = os.path.splitext(file.filename)[1]
+        if file_extension.lower() not in [".jpg", ".jpeg", ".png"]:
+            raise HTTPException(status_code=400, detail="Invalid file format. Only JPG and PNG files are allowed.")
+        
+        filename = f"player_{player_id}{file_extension}"
+        file_path = upload_dir / filename
+        
+        # Save file
+        with open(file_path, "wb") as f:
+            f.write(contents)
+        
+        # Update player record
+        with get_db_session() as session:
+            player = session.query(models.Player).filter(models.Player.id == player_id).first()
+            if not player:
+                # Clean up uploaded file
+                if file_path.exists():
+                    file_path.unlink()
+                raise HTTPException(status_code=404, detail="Player not found")
+            
+            # Remove old image if exists
+            if player.thumbnail_image:
+                old_path = Path("app/web_ui/static") / player.thumbnail_image
+                if old_path.exists():
+                    old_path.unlink()
+            
+            player.thumbnail_image = f"uploads/players/{filename}"
+            session.commit()
+            
+            return {"success": True, "message": "Image uploaded successfully", "image_path": player.thumbnail_image}
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading player image: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload image") from e
 
 
 @router.post("/{player_id}/restore")
