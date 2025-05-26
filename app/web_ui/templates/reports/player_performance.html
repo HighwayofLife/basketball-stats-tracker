@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+
+{% block title %}Player Performance - {{ game.home_team.name }} vs {{ game.away_team.name }} - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Player Performance Report</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
+            <div class="btn-group" role="group">
+                <button class="btn btn-primary" onclick="exportReport('csv')">
+                    <i class="fas fa-file-csv"></i> Export CSV
+                </button>
+                <button class="btn btn-primary" onclick="exportReport('json')">
+                    <i class="fas fa-file-code"></i> Export JSON
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Game Info -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-5">
+                    <h2 id="homeTeamName">-</h2>
+                    <h3 class="text-muted" id="homeTeamScore">0</h3>
+                </div>
+                <div class="col-md-2">
+                    <p class="text-muted">vs</p>
+                    <p id="gameDate">-</p>
+                </div>
+                <div class="col-md-5">
+                    <h2 id="awayTeamName">-</h2>
+                    <h3 class="text-muted" id="awayTeamScore">0</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Player Performance Cards -->
+    <div id="playerPerformanceCards" class="row">
+        <!-- Cards will be dynamically inserted here -->
+    </div>
+</div>
+
+<!-- Include Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.player-card {
+    margin-bottom: 20px;
+}
+
+.player-card .card-header {
+    background-color: #f8f9fa;
+    font-weight: bold;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.stat-row:last-child {
+    border-bottom: none;
+}
+
+.stat-label {
+    font-weight: 500;
+}
+
+.stat-value {
+    font-weight: bold;
+}
+
+.efficiency-badge {
+    font-size: 0.9em;
+    padding: 4px 8px;
+    border-radius: 4px;
+}
+
+.efficiency-high {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.efficiency-medium {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.efficiency-low {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.quarter-stats {
+    margin-top: 15px;
+}
+
+.quarter-stats table {
+    width: 100%;
+    font-size: 0.9em;
+}
+
+.quarter-stats th {
+    background-color: #f8f9fa;
+    padding: 5px;
+    text-align: center;
+}
+
+.quarter-stats td {
+    padding: 5px;
+    text-align: center;
+}
+
+.scoring-distribution {
+    margin-top: 15px;
+}
+
+.chart-container {
+    position: relative;
+    height: 200px;
+    margin-top: 10px;
+}
+</style>
+
+<script>
+const gameId = {{ game_id }};
+let reportData = null;
+
+// Load report data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadPlayerPerformance();
+});
+
+async function loadPlayerPerformance() {
+    try {
+        const response = await fetch(`/v1/reports/player-performance/${gameId}`);
+        reportData = await response.json();
+        
+        // Update game info
+        updateGameInfo(reportData);
+        
+        // Create player performance cards
+        createPlayerCards(reportData.players);
+        
+    } catch (error) {
+        console.error('Error loading player performance:', error);
+        alert('Error loading player performance data');
+    }
+}
+
+function updateGameInfo(data) {
+    // First get game details
+    fetch(`/v1/games/${gameId}`)
+        .then(response => response.json())
+        .then(gameData => {
+            document.getElementById('homeTeamName').textContent = gameData.home_team;
+            document.getElementById('homeTeamScore').textContent = gameData.home_score;
+            document.getElementById('awayTeamName').textContent = gameData.away_team;
+            document.getElementById('awayTeamScore').textContent = gameData.away_score;
+            document.getElementById('gameDate').textContent = new Date(gameData.date).toLocaleDateString();
+        });
+}
+
+function createPlayerCards(players) {
+    const container = document.getElementById('playerPerformanceCards');
+    container.innerHTML = '';
+    
+    // Sort players by points scored
+    players.sort((a, b) => {
+        const pointsA = a.basic_stats?.points || 0;
+        const pointsB = b.basic_stats?.points || 0;
+        return pointsB - pointsA;
+    });
+    
+    players.forEach((player, index) => {
+        const card = createPlayerCard(player, index);
+        container.appendChild(card);
+    });
+}
+
+function createPlayerCard(player, index) {
+    const col = document.createElement('div');
+    col.className = 'col-md-6 col-lg-4';
+    
+    const card = document.createElement('div');
+    card.className = 'card player-card';
+    
+    // Card Header
+    const header = document.createElement('div');
+    header.className = 'card-header d-flex justify-content-between align-items-center';
+    header.innerHTML = `
+        <span>${player.player_name} (#${player.jersey_number || '-'})</span>
+        <span class="badge badge-secondary">${player.team_name}</span>
+    `;
+    
+    // Card Body
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    
+    // Basic Stats
+    const basicStats = player.basic_stats || {};
+    const efficiencyStats = player.efficiency_stats || {};
+    
+    const statsHtml = `
+        <div class="stat-row">
+            <span class="stat-label">Points:</span>
+            <span class="stat-value">${basicStats.points || 0}</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Field Goals:</span>
+            <span class="stat-value">${basicStats.fg2m + basicStats.fg3m || 0}/${basicStats.fg2a + basicStats.fg3a || 0} (${basicStats.fg_pct ? basicStats.fg_pct.toFixed(1) + '%' : '-'})</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">3-Pointers:</span>
+            <span class="stat-value">${basicStats.fg3m || 0}/${basicStats.fg3a || 0} (${basicStats.fg3_pct ? basicStats.fg3_pct.toFixed(1) + '%' : '-'})</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Free Throws:</span>
+            <span class="stat-value">${basicStats.ftm || 0}/${basicStats.fta || 0} (${basicStats.ft_pct ? basicStats.ft_pct.toFixed(1) + '%' : '-'})</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">Fouls:</span>
+            <span class="stat-value">${basicStats.fouls || 0}</span>
+        </div>
+    `;
+    
+    // Efficiency Stats
+    const efficiencyHtml = `
+        <h6 class="mt-3">Efficiency Metrics</h6>
+        <div class="stat-row">
+            <span class="stat-label">EFG%:</span>
+            <span class="stat-value">${efficiencyStats.efg_pct ? efficiencyStats.efg_pct.toFixed(1) + '%' : '-'}</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">TS%:</span>
+            <span class="stat-value">${efficiencyStats.ts_pct ? efficiencyStats.ts_pct.toFixed(1) + '%' : '-'}</span>
+        </div>
+        <div class="stat-row">
+            <span class="stat-label">PPSA:</span>
+            <span class="stat-value">${efficiencyStats.ppsa ? efficiencyStats.ppsa.toFixed(2) : '-'}</span>
+        </div>
+    `;
+    
+    // Scoring Distribution Chart
+    const chartId = `scoringChart_${index}`;
+    const chartHtml = `
+        <div class="scoring-distribution">
+            <h6>Scoring Distribution</h6>
+            <div class="chart-container">
+                <canvas id="${chartId}"></canvas>
+            </div>
+        </div>
+    `;
+    
+    body.innerHTML = statsHtml + efficiencyHtml + chartHtml;
+    
+    card.appendChild(header);
+    card.appendChild(body);
+    col.appendChild(card);
+    
+    // Draw chart after card is added to DOM
+    setTimeout(() => {
+        drawScoringDistribution(chartId, player.scoring_analysis || {});
+    }, 100);
+    
+    return col;
+}
+
+function drawScoringDistribution(chartId, scoringData) {
+    const canvas = document.getElementById(chartId);
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    const distribution = scoringData.scoring_distribution || {};
+    const ftPoints = scoringData.points_from_ft || 0;
+    const fg2Points = scoringData.points_from_2pt || 0;
+    const fg3Points = scoringData.points_from_3pt || 0;
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Free Throws', '2-Pointers', '3-Pointers'],
+            datasets: [{
+                data: [ftPoints, fg2Points, fg3Points],
+                backgroundColor: [
+                    'rgba(255, 206, 86, 0.8)',
+                    'rgba(75, 192, 192, 0.8)',
+                    'rgba(54, 162, 235, 0.8)'
+                ],
+                borderColor: [
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(54, 162, 235, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: {
+                            size: 10
+                        }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const percentage = distribution[label.toLowerCase().replace(/[- ]/g, '_') + '_pct'] || 0;
+                            return `${label}: ${value} pts (${percentage.toFixed(1)}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function exportReport(format) {
+    window.location.href = `/v1/reports/export/player-performance/${gameId}?format=${format}`;
+}
+</script>
+{% endblock %}

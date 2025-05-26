@@ -107,7 +107,130 @@ async def get_box_score_report(game_id: int, db: Annotated[Session, Depends(get_
     player_stats_list, game_summary = report_gen.get_game_box_score_data(game_id)
 
     # Transform data into expected format for API response
-    return {"game_summary": game_summary, "player_stats": player_stats_list}
+    # Group players by team
+    home_players = []
+    away_players = []
+    home_totals = {
+        "points": 0,
+        "assists": 0,
+        "rebounds": 0,
+        "fg_made": 0,
+        "fg_attempted": 0,
+        "three_pt_made": 0,
+        "three_pt_attempted": 0,
+        "ft_made": 0,
+        "ft_attempted": 0,
+    }
+    away_totals = {
+        "points": 0,
+        "assists": 0,
+        "rebounds": 0,
+        "fg_made": 0,
+        "fg_attempted": 0,
+        "three_pt_made": 0,
+        "three_pt_attempted": 0,
+        "ft_made": 0,
+        "ft_attempted": 0,
+    }
+
+    for player_stat in player_stats_list:
+        # Transform player stats to expected format
+        player_data = {
+            "name": player_stat.get("name", ""),
+            "minutes": None,  # Not tracked
+            "points": player_stat.get("points", 0),
+            "assists": 0,  # Not tracked
+            "rebounds": 0,  # Not tracked
+            "fg_made": player_stat.get("fg2m", 0) + player_stat.get("fg3m", 0),
+            "fg_attempted": player_stat.get("fg2a", 0) + player_stat.get("fg3a", 0),
+            "fg_percentage": None,
+            "three_pt_made": player_stat.get("fg3m", 0),
+            "three_pt_attempted": player_stat.get("fg3a", 0),
+            "three_pt_percentage": player_stat.get("fg3_pct"),
+            "ft_made": player_stat.get("ftm", 0),
+            "ft_attempted": player_stat.get("fta", 0),
+            "ft_percentage": player_stat.get("ft_pct"),
+            "plus_minus": None,  # Not tracked
+        }
+
+        # Calculate FG%
+        if player_data["fg_attempted"] > 0:
+            player_data["fg_percentage"] = (player_data["fg_made"] / player_data["fg_attempted"]) * 100
+
+        # Add to appropriate team and update totals
+        if player_stat.get("team") == game_summary.get("playing_team"):
+            home_players.append(player_data)
+            home_totals["points"] += player_data["points"]
+            home_totals["assists"] += player_data["assists"]
+            home_totals["rebounds"] += player_data["rebounds"]
+            home_totals["fg_made"] += player_data["fg_made"]
+            home_totals["fg_attempted"] += player_data["fg_attempted"]
+            home_totals["three_pt_made"] += player_data["three_pt_made"]
+            home_totals["three_pt_attempted"] += player_data["three_pt_attempted"]
+            home_totals["ft_made"] += player_data["ft_made"]
+            home_totals["ft_attempted"] += player_data["ft_attempted"]
+        else:
+            away_players.append(player_data)
+            away_totals["points"] += player_data["points"]
+            away_totals["assists"] += player_data["assists"]
+            away_totals["rebounds"] += player_data["rebounds"]
+            away_totals["fg_made"] += player_data["fg_made"]
+            away_totals["fg_attempted"] += player_data["fg_attempted"]
+            away_totals["three_pt_made"] += player_data["three_pt_made"]
+            away_totals["three_pt_attempted"] += player_data["three_pt_attempted"]
+            away_totals["ft_made"] += player_data["ft_made"]
+            away_totals["ft_attempted"] += player_data["ft_attempted"]
+
+    # Calculate team percentages
+    if home_totals["fg_attempted"] > 0:
+        home_totals["fg_percentage"] = (home_totals["fg_made"] / home_totals["fg_attempted"]) * 100
+    else:
+        home_totals["fg_percentage"] = None
+
+    if home_totals["three_pt_attempted"] > 0:
+        home_totals["three_pt_percentage"] = (home_totals["three_pt_made"] / home_totals["three_pt_attempted"]) * 100
+    else:
+        home_totals["three_pt_percentage"] = None
+
+    if home_totals["ft_attempted"] > 0:
+        home_totals["ft_percentage"] = (home_totals["ft_made"] / home_totals["ft_attempted"]) * 100
+    else:
+        home_totals["ft_percentage"] = None
+
+    if away_totals["fg_attempted"] > 0:
+        away_totals["fg_percentage"] = (away_totals["fg_made"] / away_totals["fg_attempted"]) * 100
+    else:
+        away_totals["fg_percentage"] = None
+
+    if away_totals["three_pt_attempted"] > 0:
+        away_totals["three_pt_percentage"] = (away_totals["three_pt_made"] / away_totals["three_pt_attempted"]) * 100
+    else:
+        away_totals["three_pt_percentage"] = None
+
+    if away_totals["ft_attempted"] > 0:
+        away_totals["ft_percentage"] = (away_totals["ft_made"] / away_totals["ft_attempted"]) * 100
+    else:
+        away_totals["ft_percentage"] = None
+
+    # Build response
+    return {
+        "game_id": game_id,
+        "game_date": game_summary.get("date", ""),
+        "home_team": {
+            "name": game_summary.get("playing_team", ""),
+            "score": game_summary.get("team_points", 0),
+            "players": home_players,
+            "totals": home_totals,
+            "quarter_scores": {}  # Not currently tracked quarter-by-quarter
+        },
+        "away_team": {
+            "name": game_summary.get("opponent_team", ""),
+            "score": away_totals["points"],  # Calculate from player totals
+            "players": away_players,
+            "totals": away_totals,
+            "quarter_scores": {}  # Not currently tracked quarter-by-quarter
+        }
+    }
 
 
 @router.get("/v1/reports/player-performance/{game_id}", response_model=dict[str, Any])
@@ -566,4 +689,16 @@ async def view_team_season_report(
 
     return templates.TemplateResponse(
         "reports/team_season.html", {"request": request, "team_id": team_id, "team": team, "season": season}
+    )
+
+
+@router.get("/reports/player-performance/{game_id}", response_class=HTMLResponse)
+async def view_player_performance_report(request: Request, game_id: int, db: Annotated[Session, Depends(get_db)]):
+    """Display player performance report page."""
+    game = crud_game.get_game_by_id(db, game_id)
+    if not game:
+        raise HTTPException(status_code=404, detail="Game not found")
+
+    return templates.TemplateResponse(
+        "reports/player_performance.html", {"request": request, "game_id": game_id, "game": game}
     )
