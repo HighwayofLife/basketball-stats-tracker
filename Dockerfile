@@ -17,14 +17,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies
-COPY pyproject.toml ./
+# Copy application files first
 COPY app ./app
 COPY README.md ./
 COPY LICENSE ./
+COPY pyproject.toml ./
 
+# Install runtime dependencies
 RUN pip install --no-cache-dir . && \
     pip cache purge
+
 
 # Copy application code
 COPY . .
@@ -44,4 +46,4 @@ USER appuser
 EXPOSE 8000
 
 # Use uvicorn directly for better performance
-CMD ["uvicorn", "app.web_ui:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]

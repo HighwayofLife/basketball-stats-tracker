@@ -38,7 +38,7 @@ class PlayerStatsRowSchema(BaseModel):
     """
 
     TeamName: str
-    PlayerJersey: int = Field(ge=0, description="Player jersey number must be non-negative")
+    PlayerJersey: str = Field(description="Player jersey number as string to handle 0 vs 00")
     PlayerName: str
     Fouls: int | None = Field(default=0, ge=0, description="Fouls must be non-negative")
     QT1Shots: str = ""
@@ -47,13 +47,22 @@ class PlayerStatsRowSchema(BaseModel):
     QT4Shots: str = ""
 
     @classmethod
-    @field_validator("PlayerJersey", "Fouls")
-    def check_non_negative(cls, value, info):
-        """Validates that jersey number and fouls are non-negative."""
+    @field_validator("Fouls")
+    def check_fouls_non_negative(cls, value, info):
+        """Validates that fouls are non-negative."""
         if value is not None and value < 0:
             field_name = info.field_name
             raise ValueError("Input should be greater than or equal to 0", field_name)
         return value
+        
+    @classmethod
+    @field_validator("PlayerJersey")
+    def validate_jersey_number(cls, value):
+        """Validates that jersey number is a valid string."""
+        if not value or not value.strip():
+            raise ValueError("Jersey number cannot be empty")
+        # Allow any string that represents a valid jersey number
+        return value.strip()
 
 
 class GameStatsCSVInputSchema(BaseModel):

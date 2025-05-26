@@ -30,6 +30,8 @@ class GameService:
     def add_game(self, date: str, playing_team_name: str, opponent_team_name: str) -> Game:
         """
         Add a new game to the database, creating teams if they don't already exist.
+        
+        If a game already exists with the same date and teams, returns the existing game.
 
         Args:
             date: Date of the game in YYYY-MM-DD format
@@ -37,11 +39,28 @@ class GameService:
             opponent_team_name: Name of the away/opponent team
 
         Returns:
-            The created Game instance
+            The created or existing Game instance
         """
         # Get or create both teams
         playing_team = self.get_or_create_team(playing_team_name)
         opponent_team = self.get_or_create_team(opponent_team_name)
+
+        # Check if game already exists
+        from datetime import datetime
+        game_date = datetime.strptime(date, "%Y-%m-%d").date()
+        existing_game = (
+            self._db_session.query(Game)
+            .filter(
+                Game.date == game_date,
+                Game.playing_team_id == playing_team.id,
+                Game.opponent_team_id == opponent_team.id
+            )
+            .first()
+        )
+        
+        if existing_game:
+            print(f"Game already exists: {playing_team.name} vs {opponent_team.name} on {date}")
+            return existing_game
 
         # Create the game - date string will be converted to date object in create_game
         return create_game(self._db_session, date, playing_team.id, opponent_team.id)

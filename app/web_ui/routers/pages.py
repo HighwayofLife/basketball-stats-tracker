@@ -26,18 +26,42 @@ async def index(request: Request):
             # Get recent games for dashboard
             recent_games = session.query(models.Game).order_by(models.Game.date.desc()).limit(5).all()
 
-            # Convert to dictionary for template
-            recent_games_data = [
-                {
+            # Convert to dictionary for template, calculating scores from player stats
+            recent_games_data = []
+            for game in recent_games:
+                # Get player stats for both teams
+                playing_team_stats = (
+                    session.query(models.PlayerGameStats)
+                    .join(models.Player)
+                    .filter(
+                        models.PlayerGameStats.game_id == game.id,
+                        models.Player.team_id == game.playing_team_id,
+                    )
+                    .all()
+                )
+
+                opponent_team_stats = (
+                    session.query(models.PlayerGameStats)
+                    .join(models.Player)
+                    .filter(
+                        models.PlayerGameStats.game_id == game.id,
+                        models.Player.team_id == game.opponent_team_id,
+                    )
+                    .all()
+                )
+
+                # Calculate team scores from player stats
+                home_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in playing_team_stats)
+                away_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in opponent_team_stats)
+
+                recent_games_data.append({
                     "id": game.id,
                     "date": game.date,
                     "home_team": game.playing_team.name,
                     "away_team": game.opponent_team.name,
-                    "home_score": 0,  # To be calculated from player stats
-                    "away_score": 0,  # To be calculated from player stats
-                }
-                for game in recent_games
-            ]
+                    "home_score": home_score,
+                    "away_score": away_score,
+                })
 
             return templates.TemplateResponse(
                 "index.html",

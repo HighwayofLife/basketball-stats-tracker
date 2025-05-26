@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.data_access.models import Player
 
 
-def create_player(db: Session, name: str, jersey_number: int, team_id: int) -> Player:
+def create_player(db: Session, name: str, jersey_number: str, team_id: int) -> Player:
     """
     Create a new player in the database.
 
@@ -27,7 +27,7 @@ def create_player(db: Session, name: str, jersey_number: int, team_id: int) -> P
     return player
 
 
-def get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: int) -> Player | None:
+def get_player_by_team_and_jersey(db: Session, team_id: int, jersey_number: str) -> Player | None:
     """
     Get a player by their team ID and jersey number.
 

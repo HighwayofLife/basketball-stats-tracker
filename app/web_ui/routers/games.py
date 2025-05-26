@@ -60,8 +60,20 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                 playing_team_score = 0
                 opponent_team_score = 0
 
-                # In a real implementation, you would calculate this from the player stats
-                # For now, we'll just use placeholder values
+                # Get all player stats for this game
+                player_stats = session.query(models.PlayerGameStats).filter(
+                    models.PlayerGameStats.game_id == game.id
+                ).all()
+
+                for stat in player_stats:
+                    # Calculate points for this player
+                    player_points = (stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3)
+
+                    # Add to appropriate team score
+                    if stat.player.team_id == game.playing_team_id:
+                        playing_team_score += player_points
+                    elif stat.player.team_id == game.opponent_team_id:
+                        opponent_team_score += player_points
 
                 result.append(
                     GameSummary(
@@ -96,8 +108,20 @@ async def get_game(game_id: int):
             playing_team_score = 0
             opponent_team_score = 0
 
-            # In a real implementation, you would calculate this from the player stats
-            # For now, we'll just use placeholder values
+            # Get all player stats for this game
+            player_stats = session.query(models.PlayerGameStats).filter(
+                models.PlayerGameStats.game_id == game.id
+            ).all()
+
+            for stat in player_stats:
+                # Calculate points for this player
+                player_points = (stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3)
+
+                # Add to appropriate team score
+                if stat.player.team_id == game.playing_team_id:
+                    playing_team_score += player_points
+                elif stat.player.team_id == game.opponent_team_id:
+                    opponent_team_score += player_points
 
             return GameSummary(
                 id=game.id,
@@ -138,25 +162,29 @@ async def get_box_score(game_id: int):
                 playing_team_id = game.playing_team_id
                 opponent_team_id = game.opponent_team_id
 
-            # Filter players by team
-            playing_team_players = [p for p in player_stats if p.get("team_id") == playing_team_id]
-            opponent_team_players = [p for p in player_stats if p.get("team_id") == opponent_team_id]
+            # Get team names from the game
+            playing_team_name = game.playing_team.name if game else ""
+            opponent_team_name = game.opponent_team.name if game else ""
+
+            # Filter players by team name (report generator provides team name, not ID)
+            playing_team_players = [p for p in player_stats if p.get("team") == playing_team_name]
+            opponent_team_players = [p for p in player_stats if p.get("team") == opponent_team_name]
 
             # Convert player stats to the expected format
             playing_team_player_stats = [
                 PlayerStats(
-                    player_id=p.get("player_id"),
-                    name=p.get("player_name"),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "player_name", "team_id", "team_name"]},
+                    player_id=p.get("player_id", 0),
+                    name=p.get("name", ""),
+                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey"]},
                 )
                 for p in playing_team_players
             ]
 
             opponent_team_player_stats = [
                 PlayerStats(
-                    player_id=p.get("player_id"),
-                    name=p.get("player_name"),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "player_name", "team_id", "team_name"]},
+                    player_id=p.get("player_id", 0),
+                    name=p.get("name", ""),
+                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey"]},
                 )
                 for p in opponent_team_players
             ]

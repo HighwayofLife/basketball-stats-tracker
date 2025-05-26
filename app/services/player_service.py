@@ -22,7 +22,7 @@ class PlayerService:
         """
         self._db_session = db_session
 
-    def get_or_create_player(self, team_id: int, jersey_number: int, player_name: str | None = None) -> Player:
+    def get_or_create_player(self, team_id: int, jersey_number: str, player_name: str | None = None) -> Player:
         """
         Get a player by team and jersey number, or create if not found.
 

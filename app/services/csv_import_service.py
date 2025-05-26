@@ -91,7 +91,7 @@ def _read_and_validate_roster_csv(roster_path: Path) -> tuple[dict[str, dict[str
             player_name = row["player_name"].strip()
 
             try:
-                jersey_number = int(row["jersey_number"])
+                jersey_number = str(int(row["jersey_number"]))  # Validate as int, store as string
             except (ValueError, TypeError):
                 typer.echo(
                     f"Warning: Invalid jersey number '{row['jersey_number']}' for player '{player_name}'. Skipping."
@@ -360,7 +360,7 @@ def _process_player_stats_rows(
         player_stats.append(
             PlayerStatsRowSchema(
                 TeamName=str(player_dict["TeamName"]),
-                PlayerJersey=cast(int, player_dict["PlayerJersey"]),
+                PlayerJersey=str(player_dict["PlayerJersey"]),
                 PlayerName=str(player_dict["PlayerName"]),
                 Fouls=cast(int, player_dict["Fouls"]),
                 QT1Shots=str(player_dict["QT1Shots"]),
@@ -381,7 +381,7 @@ def _extract_player_data_from_row(
     """
     player_dict = {
         "TeamName": "",
-        "PlayerJersey": 0,
+        "PlayerJersey": "0",
         "PlayerName": "",
         "Fouls": 0,
         "QT1Shots": "",
@@ -401,11 +401,8 @@ def _extract_player_data_from_row(
         if header_normalized in ("teamname", "team"):
             player_dict["TeamName"] = cell_value
         elif header_normalized in ("playerjersey", "jersey", "jerseynumber", "number"):
-            try:
-                player_dict["PlayerJersey"] = int(cell_value) if cell_value else 0
-            except (ValueError, TypeError):
-                typer.echo(f"Warning: Invalid jersey number '{cell_value}' in row {row_index + 1}. Using 0.")
-                player_dict["PlayerJersey"] = 0
+            # Store jersey number as string to handle "0" vs "00"
+            player_dict["PlayerJersey"] = cell_value.strip() if cell_value else "0"
         elif header_normalized in ("playername", "name", "player"):
             player_dict["PlayerName"] = cell_value
         elif header_normalized == "fouls":
@@ -458,8 +455,11 @@ def _process_game_stats_import(validated_data: GameStatsCSVInputSchema) -> bool:
 
         # Process player stats
         players_processed, players_error = _record_player_stats(
-            game, validated_data.player_stats, game_service, player_service, stats_entry_service
+            game, validated_data.player_stats, game_service, player_service, stats_entry_service, db
         )
+        
+        # Calculate and update game scores
+        _update_game_scores(db, game)
 
         typer.echo(f"Game stats import completed: {players_processed} players processed, {players_error} errors")
         typer.echo("Import completed successfully")
@@ -472,6 +472,7 @@ def _record_player_stats(
     game_service: GameService,
     player_service: PlayerService,
     stats_entry_service: StatsEntryService,
+    db: Session | None = None,
 ) -> tuple[int, int]:
     """
     Records statistics for all players in a game.
@@ -494,11 +495,47 @@ def _record_player_stats(
         except (ValueError, KeyError, TypeError) as e:
             typer.echo(f"Data error processing player {player_stat.PlayerName}: {e}")
             players_error += 1
+            # Rollback the session to recover from the error
+            if db:
+                db.rollback()
         except OSError as e:
             typer.echo(f"I/O error processing player {player_stat.PlayerName}: {e}")
             players_error += 1
+            if db:
+                db.rollback()
         except SQLAlchemyError as e:
             typer.echo(f"Database error processing player {player_stat.PlayerName}: {e}")
             players_error += 1
+            # Rollback the session to recover from the error
+            if db:
+                db.rollback()
 
     return players_processed, players_error
+
+
+def _update_game_scores(db: Session, game: Game) -> None:
+    """Calculate and update game scores based on player statistics."""
+    from app.data_access.models import PlayerGameStats, Player
+    
+    # Get all player stats for this game
+    player_stats = db.query(PlayerGameStats).filter(PlayerGameStats.game_id == game.id).join(Player).all()
+    
+    playing_team_score = 0
+    opponent_team_score = 0
+    
+    for stat in player_stats:
+        # Calculate player's total points
+        points = stat.total_ftm + (stat.total_2pm * 2) + (stat.total_3pm * 3)
+        
+        # Add to appropriate team total
+        if stat.player.team_id == game.playing_team_id:
+            playing_team_score += points
+        elif stat.player.team_id == game.opponent_team_id:
+            opponent_team_score += points
+    
+    # Update game with calculated scores
+    game.playing_team_score = playing_team_score
+    game.opponent_team_score = opponent_team_score
+    db.commit()
+    
+    typer.echo(f"Updated game scores: {game.playing_team.name} {playing_team_score} - {opponent_team_score} {game.opponent_team.name}")

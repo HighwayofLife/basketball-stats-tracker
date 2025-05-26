@@ -65,7 +65,7 @@ class Player(Base, SoftDeleteMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
     name: Mapped[str] = mapped_column(String, nullable=False)
-    jersey_number: Mapped[int] = mapped_column(Integer, nullable=False)
+    jersey_number: Mapped[str] = mapped_column(String(10), nullable=False)
     position: Mapped[str | None] = mapped_column(String(10), nullable=True)
     height: Mapped[int | None] = mapped_column(Integer, nullable=True)  # in inches
     weight: Mapped[int | None] = mapped_column(Integer, nullable=True)  # in pounds
@@ -103,6 +103,8 @@ class Game(Base, SoftDeleteMixin):
     date: Mapped[dt.date] = mapped_column(Date, nullable=False)  # Using Date type for better query support
     playing_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
     opponent_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
+    playing_team_score: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
+    opponent_team_score: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -120,6 +122,10 @@ class Game(Base, SoftDeleteMixin):
     )
     active_rosters: Mapped[list["ActiveRoster"]] = relationship(
         "ActiveRoster", back_populates="game", cascade="all, delete-orphan"
+    )
+
+    __table_args__ = (
+        UniqueConstraint("date", "playing_team_id", "opponent_team_id", name="uq_game_date_teams"),
     )
 
     def __repr__(self):
