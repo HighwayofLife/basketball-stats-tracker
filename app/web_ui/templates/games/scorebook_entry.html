@@ -12,6 +12,10 @@
                     Scorebook Entry
                 </h1>
                 <div>
+                    <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('csvFileInput').click()">
+                        <i class="fas fa-file-import"></i> Import CSV
+                    </button>
+                    <input type="file" id="csvFileInput" accept=".csv" style="display: none;" onchange="importCSV(event)">
                     <button type="button" class="btn btn-outline-secondary me-2" onclick="clearForm()">
                         <i class="fas fa-trash"></i> Clear All
                     </button>
@@ -78,7 +82,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <h6>Shot Types:</h6>
                             <ul class="list-unstyled">
                                 <li><code>1</code> = Made Free Throw</li>
@@ -89,13 +93,22 @@
                                 <li><code>/</code> = Missed 3-Point Shot</li>
                             </ul>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <h6>Examples:</h6>
                             <ul class="list-unstyled">
                                 <li><code>22-1x</code> = 2 made 2pts, 1 missed 2pt, 1 made FT, 1 missed FT</li>
                                 <li><code>3/2</code> = 1 made 3pt, 1 missed 3pt, 1 made 2pt</li>
                                 <li><code>11</code> = 2 made free throws</li>
                                 <li><code>-/</code> = 1 missed 2pt, 1 missed 3pt</li>
+                            </ul>
+                        </div>
+                        <div class="col-md-4">
+                            <h6>CSV Import Format:</h6>
+                            <ul class="list-unstyled small">
+                                <li>Use the <strong>Import CSV</strong> button to load game data</li>
+                                <li>CSV must include game info and player stats</li>
+                                <li>Headers: <code>Team Name</code>, <code>Player Jersey</code>, <code>Player Name</code>, <code>Fouls</code>, <code>QT1-4 Shots</code></li>
+                                <li><a href="/static/game_stats_template.csv" download class="text-primary">Download Template CSV</a></li>
                             </ul>
                         </div>
                     </div>
@@ -430,24 +443,6 @@ function parseScoring(scoringString) {
     return points;
 }
 
-function clearForm() {
-    if (confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-        document.getElementById('homeTeam').value = '';
-        document.getElementById('awayTeam').value = '';
-        document.getElementById('location').value = '';
-        document.getElementById('notes').value = '';
-        setDefaultDate();
-        
-        // Remove all player rows
-        document.getElementById('playerStatsBody').innerHTML = '';
-        
-        // Add one empty row
-        addPlayerRow();
-        
-        // Hide summary
-        document.getElementById('gameSummary').style.display = 'none';
-    }
-}
 
 async function saveGame() {
     try {
@@ -561,6 +556,160 @@ function showAlert(message, type) {
             alertDiv.remove();
         }, 5000);
     }
+}
+
+async function importCSV(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    try {
+        const text = await file.text();
+        const lines = text.split('\n').filter(line => line.trim());
+        
+        let gameInfo = {};
+        let playerData = [];
+        let section = '';
+        let headers = [];
+        
+        // Parse CSV file
+        for (let i = 0; i < lines.length; i++) {
+            const line = lines[i];
+            const parts = line.split(',').map(part => part.trim());
+            
+            if (parts[0] === 'GAME_INFO_KEY') {
+                section = 'game_info';
+                continue;
+            } else if (parts[0] === 'PLAYER_STATS_HEADER') {
+                section = 'player_stats';
+                headers = parts.slice(1);
+                continue;
+            } else if (parts[0] === 'PLAYER_DATA') {
+                section = 'player_data';
+            }
+            
+            if (section === 'game_info' && parts.length >= 2) {
+                gameInfo[parts[0]] = parts[1];
+            } else if (section === 'player_data' && parts.length > 1) {
+                const playerRow = {};
+                const data = parts.slice(1);
+                headers.forEach((header, index) => {
+                    playerRow[header] = data[index] || '';
+                });
+                playerData.push(playerRow);
+            }
+        }
+        
+        // Validate required data
+        if (!gameInfo['Playing Team'] || !gameInfo['Opponent Team'] || !gameInfo['Date']) {
+            showAlert('Invalid CSV file: Missing required game information', 'danger');
+            return;
+        }
+        
+        // Clear existing form data
+        clearForm(true); // Pass true to skip confirmation
+        
+        // Set game date
+        if (gameInfo['Date']) {
+            document.getElementById('gameDate').value = gameInfo['Date'];
+        }
+        
+        // Find and set teams
+        const homeTeamSelect = document.getElementById('homeTeam');
+        const awayTeamSelect = document.getElementById('awayTeam');
+        const playingTeam = gameInfo['Playing Team'];
+        const opponentTeam = gameInfo['Opponent Team'];
+        
+        // Try to match teams in selects
+        let homeTeamId = null;
+        let awayTeamId = null;
+        
+        for (let option of homeTeamSelect.options) {
+            if (option.text === playingTeam) {
+                homeTeamId = option.value;
+                break;
+            }
+        }
+        
+        for (let option of awayTeamSelect.options) {
+            if (option.text === opponentTeam) {
+                awayTeamId = option.value;
+                break;
+            }
+        }
+        
+        if (!homeTeamId || !awayTeamId) {
+            showAlert('Warning: Could not match all teams. Please verify team selection.', 'warning');
+        } else {
+            homeTeamSelect.value = homeTeamId;
+            awayTeamSelect.value = awayTeamId;
+        }
+        
+        // Add player data
+        for (let player of playerData) {
+            addPlayerRow();
+            const lastRow = document.querySelector('#playerStatsBody tr:last-child');
+            
+            if (lastRow) {
+                // Find player by name and jersey number
+                const playerSelect = lastRow.querySelector('.player-select');
+                const playerName = player['Player Name'] || '';
+                const jerseyNumber = player['Player Jersey'] || '';
+                
+                // Try to find matching player
+                for (let option of playerSelect.options) {
+                    if (option.text.includes(playerName) && option.text.includes(`#${jerseyNumber}`)) {
+                        playerSelect.value = option.value;
+                        updatePlayerInfo(playerSelect);
+                        break;
+                    }
+                }
+                
+                // Set fouls
+                const foulsInput = lastRow.querySelector('.fouls-input');
+                foulsInput.value = player['Fouls'] || '0';
+                
+                // Set quarter shots
+                const scoringInputs = lastRow.querySelectorAll('.scoring-input');
+                scoringInputs[0].value = player['QT1 Shots'] || '';
+                scoringInputs[1].value = player['QT2 Shots'] || '';
+                scoringInputs[2].value = player['QT3 Shots'] || '';
+                scoringInputs[3].value = player['QT4 Shots'] || '';
+            }
+        }
+        
+        // Update game summary
+        updateGameSummary();
+        
+        showAlert('CSV file imported successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error importing CSV:', error);
+        showAlert('Error importing CSV file. Please check the file format.', 'danger');
+    }
+    
+    // Reset file input
+    event.target.value = '';
+}
+
+function clearForm(skipConfirmation = false) {
+    if (!skipConfirmation && !confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+        return;
+    }
+    
+    document.getElementById('homeTeam').value = '';
+    document.getElementById('awayTeam').value = '';
+    document.getElementById('location').value = '';
+    document.getElementById('notes').value = '';
+    setDefaultDate();
+    
+    // Remove all player rows
+    document.getElementById('playerStatsBody').innerHTML = '';
+    
+    // Add one empty row
+    addPlayerRow();
+    
+    // Hide summary
+    document.getElementById('gameSummary').style.display = 'none';
 }
 </script>
 {% endblock %}
