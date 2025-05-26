@@ -4,7 +4,8 @@
 <div class="team-header">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
         <div>
-            <h2 id="team-name">Loading...</h2>
+            <h2 id="team-display-name">Loading...</h2>
+            <p id="team-name" class="text-muted" style="margin-bottom: 0.5rem;">Loading...</p>
             <p id="player-count" class="text-muted">0 players</p>
         </div>
         <div>
@@ -268,7 +269,8 @@ async function loadTeamDetail() {
         const team = await response.json();
         
         // Update page header
-        document.getElementById('team-name').textContent = team.name;
+        document.getElementById('team-display-name').textContent = team.display_name || team.name;
+        document.getElementById('team-name').textContent = `Short name: ${team.name}`;
         document.getElementById('player-count').textContent = `${team.players.length} player${team.players.length !== 1 ? 's' : ''}`;
         
         // Update players table

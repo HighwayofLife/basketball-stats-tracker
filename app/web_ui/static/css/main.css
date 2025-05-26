@@ -237,10 +237,119 @@ body {
   color: var(--secondary-color);
 }
 
-.box-score-container {
+/* Game Content Grid */
+.game-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 30px;
+  align-items: start;
+}
+
+.main-content {
   display: grid;
   grid-template-columns: 1fr;
   gap: 30px;
+}
+
+.sidebar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 30px;
+}
+
+/* Top Players Box */
+#top-players-card {
+  padding: 20px;
+}
+
+#top-players-card h2 {
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+}
+
+.top-players-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.top-player-box {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+}
+
+.top-player-box:hover {
+  background-color: #f3f4f6;
+}
+
+.player-photo-placeholder {
+  flex-shrink: 0;
+}
+
+.player-info {
+  flex: 1;
+}
+
+.player-info .team-name {
+  font-size: 0.75rem;
+  color: #6B7280;
+  margin: 0 0 3px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.player-info .player-name {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--secondary-color);
+  margin: 0 0 3px 0;
+}
+
+.player-info .player-stats {
+  font-size: 0.875rem;
+  color: #374151;
+  margin: 0;
+}
+
+@media (max-width: 1024px) {
+  .game-content-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar {
+    order: -1;
+  }
+  
+  #top-players-card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .top-players-container {
+    flex-direction: row;
+    gap: 20px;
+  }
+  
+  .top-player-box {
+    flex: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .top-players-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  .top-player-box {
+    flex: auto;
+  }
 }
 
 /* Tabs */

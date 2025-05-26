@@ -36,6 +36,7 @@ class TeamStats(BaseModel):
     score: int
     stats: dict[str, Any]
     players: list[PlayerStats]
+    top_player: dict[str, Any] | None = None
 
 
 class BoxScoreResponse(BaseModel):
@@ -159,12 +160,14 @@ class TeamCreateRequest(BaseModel):
     """Request schema for creating a new team."""
 
     name: str = Field(..., min_length=1, max_length=100, description="Team name")
+    display_name: str | None = Field(None, min_length=1, max_length=100, description="Display name (optional)")
 
 
 class TeamUpdateRequest(BaseModel):
     """Request schema for updating a team."""
 
-    name: str = Field(..., min_length=1, max_length=100, description="Team name")
+    name: str | None = Field(None, min_length=1, max_length=100, description="Team name (for CSV imports)")
+    display_name: str | None = Field(None, min_length=1, max_length=100, description="Display name")
 
 
 class TeamResponse(BaseModel):
@@ -172,6 +175,7 @@ class TeamResponse(BaseModel):
 
     id: int
     name: str
+    display_name: str | None = None
     player_count: int = 0
 
 
@@ -180,6 +184,7 @@ class TeamDetailResponse(BaseModel):
 
     id: int
     name: str
+    display_name: str | None = None
     players: list["PlayerResponse"]
 
 

@@ -11,7 +11,8 @@
     <table class="data-table">
         <thead>
             <tr>
-                <th>Team Name</th>
+                <th>Short Name</th>
+                <th>Display Name</th>
                 <th>Players</th>
                 <th>Actions</th>
             </tr>
@@ -34,8 +35,14 @@
         <div class="modal-body">
             <form id="team-form">
                 <div class="form-group">
-                    <label for="team-name">Team Name *</label>
+                    <label for="team-name">Short Name (for CSV imports) *</label>
                     <input type="text" id="team-name" name="name" required maxlength="100">
+                    <small style="color: #666;">Use short names like "Red", "Blue", etc. for CSV imports</small>
+                </div>
+                <div class="form-group">
+                    <label for="display-name">Display Name</label>
+                    <input type="text" id="display-name" name="display_name" maxlength="100">
+                    <small style="color: #666;">Full team name shown in UI and reports (e.g., "Red Dragons")</small>
                 </div>
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save Team</button>
@@ -131,6 +138,12 @@
     font-size: 1rem;
 }
 
+.form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
 .form-group input:focus {
     outline: none;
     border-color: #007bff;
@@ -196,19 +209,20 @@ async function loadTeams() {
         
         if (teams.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="3">No teams found. <a href="#" onclick="showCreateTeamModal()">Create your first team</a>.</td>';
+            row.innerHTML = '<td colspan="4">No teams found. <a href="#" onclick="showCreateTeamModal()">Create your first team</a>.</td>';
             tableBody.appendChild(row);
         } else {
             teams.forEach(team => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
                     <td><strong>${team.name}</strong></td>
+                    <td>${team.display_name || '<em style="color: #999;">Not set</em>'}</td>
                     <td>${team.player_count} players</td>
                     <td>
                         <div class="action-buttons">
                             <a href="/teams/${team.id}" class="btn btn-sm">View Details</a>
-                            <button class="btn btn-sm btn-secondary" onclick="editTeam(${team.id}, '${team.name}')">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${team.name}')">Delete</button>
+                            <button class="btn btn-sm btn-secondary" onclick="editTeam(${team.id}, '${team.name}', '${team.display_name || ''}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${team.display_name || team.name}')">Delete</button>
                         </div>
                     </td>
                 `;
@@ -218,7 +232,7 @@ async function loadTeams() {
     } catch (error) {
         console.error('Error loading teams:', error);
         const tableBody = document.getElementById('teams-table-body');
-        tableBody.innerHTML = '<tr><td colspan="3" class="error-message">Failed to load teams. Please try again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="error-message">Failed to load teams. Please try again.</td></tr>';
     }
 }
 
@@ -226,13 +240,15 @@ function showCreateTeamModal() {
     currentTeamId = null;
     document.getElementById('modal-title').textContent = 'Add New Team';
     document.getElementById('team-name').value = '';
+    document.getElementById('display-name').value = '';
     document.getElementById('team-modal').style.display = 'block';
 }
 
-function editTeam(teamId, teamName) {
+function editTeam(teamId, teamName, displayName) {
     currentTeamId = teamId;
     document.getElementById('modal-title').textContent = 'Edit Team';
     document.getElementById('team-name').value = teamName;
+    document.getElementById('display-name').value = displayName || '';
     document.getElementById('team-modal').style.display = 'block';
 }
 
@@ -258,7 +274,8 @@ document.getElementById('team-form').addEventListener('submit', async (e) => {
     
     const formData = new FormData(e.target);
     const teamData = {
-        name: formData.get('name').trim()
+        name: formData.get('name').trim(),
+        display_name: formData.get('display_name').trim() || null
     };
     
     if (!teamData.name) {

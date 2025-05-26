@@ -79,9 +79,9 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                     GameSummary(
                         id=game.id,
                         date=game.date.isoformat() if game.date else "",
-                        home_team=game.playing_team.name,
+                        home_team=game.playing_team.display_name or game.playing_team.name,
                         home_team_id=game.playing_team_id,
-                        away_team=game.opponent_team.name,
+                        away_team=game.opponent_team.display_name or game.opponent_team.name,
                         away_team_id=game.opponent_team_id,
                         home_score=playing_team_score,
                         away_score=opponent_team_score,
@@ -126,9 +126,9 @@ async def get_game(game_id: int):
             return GameSummary(
                 id=game.id,
                 date=game.date.isoformat() if game.date else "",
-                home_team=game.playing_team.name,
+                home_team=game.playing_team.display_name or game.playing_team.name,
                 home_team_id=game.playing_team_id,
-                away_team=game.opponent_team.name,
+                away_team=game.opponent_team.display_name or game.opponent_team.name,
                 away_team_id=game.opponent_team_id,
                 home_score=playing_team_score,
                 away_score=opponent_team_score,
@@ -162,9 +162,9 @@ async def get_box_score(game_id: int):
                 playing_team_id = game.playing_team_id
                 opponent_team_id = game.opponent_team_id
 
-            # Get team names from the game
-            playing_team_name = game.playing_team.name if game else ""
-            opponent_team_name = game.opponent_team.name if game else ""
+            # Get team display names from the game
+            playing_team_name = game.playing_team.display_name or game.playing_team.name if game else ""
+            opponent_team_name = game.opponent_team.display_name or game.opponent_team.name if game else ""
 
             # Filter players by team name (report generator provides team name, not ID)
             playing_team_players = [p for p in player_stats if p.get("team") == playing_team_name]
@@ -193,6 +193,40 @@ async def get_box_score(game_id: int):
             playing_team_score = sum(p.get("points", 0) for p in playing_team_players)
             opponent_team_score = sum(p.get("points", 0) for p in opponent_team_players)
 
+            # Find top player from each team
+            def get_top_player(players):
+                if not players:
+                    return None
+                # Sort by points (descending), then by FG% (descending)
+                sorted_players = sorted(
+                    players,
+                    key=lambda p: (
+                        p.get("points", 0),
+                        # Calculate FG% - handle division by zero
+                        (p.get("fg2m", 0) + p.get("fg3m", 0)) / max((p.get("fg2a", 0) + p.get("fg3a", 0)), 1) * 100
+                    ),
+                    reverse=True
+                )
+                if sorted_players:
+                    top = sorted_players[0]
+                    # Calculate FG percentage for the top player
+                    fgm = top.get("fg2m", 0) + top.get("fg3m", 0)
+                    fga = top.get("fg2a", 0) + top.get("fg3a", 0)
+                    fg_percentage = (fgm / fga * 100) if fga > 0 else 0
+                    return {
+                        "player_id": top.get("player_id", 0),
+                        "name": top.get("name", ""),
+                        "jersey": top.get("jersey", ""),
+                        "points": top.get("points", 0),
+                        "fg_percentage": fg_percentage,
+                        "rebounds": top.get("rebounds", 0),
+                        "assists": top.get("assists", 0)
+                    }
+                return None
+
+            home_top_player = get_top_player(playing_team_players)
+            away_top_player = get_top_player(opponent_team_players)
+
             # Create the response
             return BoxScoreResponse(
                 game_id=game_id,
@@ -203,6 +237,7 @@ async def get_box_score(game_id: int):
                     score=playing_team_score,
                     stats={},  # Team stats aggregation would go here
                     players=playing_team_player_stats,
+                    top_player=home_top_player,
                 ),
                 away_team=TeamStats(
                     team_id=opponent_team_id or 0,  # Provide default value of 0 when None
@@ -210,6 +245,7 @@ async def get_box_score(game_id: int):
                     score=opponent_team_score,
                     stats={},  # Team stats aggregation would go here
                     players=opponent_team_player_stats,
+                    top_player=away_top_player,
                 ),
             )
     except HTTPException:

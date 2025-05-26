@@ -12,8 +12,9 @@
     </div>
 </div>
 
-<div class="box-score-container">
-    <div class="card">
+<div class="game-content-grid">
+    <div class="main-content">
+        <div class="card">
         <h2>Box Score</h2>
         <div class="tab-container">
             <div class="tabs">
@@ -83,10 +84,47 @@
         </div>
     </div>
 
-    <div class="card">
-        <h2>Shooting Chart</h2>
-        <div class="chart-container">
-            <canvas id="shooting-chart"></canvas>
+        <div class="card">
+            <h2>Shooting Chart</h2>
+            <div class="chart-container">
+                <canvas id="shooting-chart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="card" id="top-players-card">
+            <h2>Game Leaders</h2>
+            <div class="top-players-container">
+                <div class="top-player-box away-player">
+                    <div class="player-photo-placeholder">
+                        <svg width="50" height="50" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="30" cy="30" r="30" fill="#E5E7EB"/>
+                            <path d="M30 32C34.4183 32 38 28.4183 38 24C38 19.5817 34.4183 16 30 16C25.5817 16 22 19.5817 22 24C22 28.4183 25.5817 32 30 32Z" fill="#9CA3AF"/>
+                            <path d="M30 36C21.1634 36 14 43.1634 14 52V60H46V52C46 43.1634 38.8366 36 30 36Z" fill="#9CA3AF"/>
+                        </svg>
+                    </div>
+                    <div class="player-info">
+                        <h3 class="team-name" id="away-top-team-name">Away Team</h3>
+                        <p class="player-name" id="away-top-player-name">-</p>
+                        <p class="player-stats" id="away-top-player-stats">-</p>
+                    </div>
+                </div>
+                <div class="top-player-box home-player">
+                    <div class="player-photo-placeholder">
+                        <svg width="50" height="50" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="30" cy="30" r="30" fill="#E5E7EB"/>
+                            <path d="M30 32C34.4183 32 38 28.4183 38 24C38 19.5817 34.4183 16 30 16C25.5817 16 22 19.5817 22 24C22 28.4183 25.5817 32 30 32Z" fill="#9CA3AF"/>
+                            <path d="M30 36C21.1634 36 14 43.1634 14 52V60H46V52C46 43.1634 38.8366 36 30 36Z" fill="#9CA3AF"/>
+                        </svg>
+                    </div>
+                    <div class="player-info">
+                        <h3 class="team-name" id="home-top-team-name">Home Team</h3>
+                        <p class="player-name" id="home-top-player-name">-</p>
+                        <p class="player-stats" id="home-top-player-stats">-</p>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -148,6 +186,21 @@
                 // Update team names
                 document.getElementById('away-team-name').textContent = data.away_team.name;
                 document.getElementById('home-team-name').textContent = data.home_team.name;
+
+                // Update top players section
+                if (data.away_team.top_player) {
+                    document.getElementById('away-top-team-name').textContent = data.away_team.name;
+                    document.getElementById('away-top-player-name').textContent = data.away_team.top_player.name;
+                    document.getElementById('away-top-player-stats').textContent = 
+                        `${data.away_team.top_player.points} PTS, ${data.away_team.top_player.fg_percentage.toFixed(1)}% FG`;
+                }
+                
+                if (data.home_team.top_player) {
+                    document.getElementById('home-top-team-name').textContent = data.home_team.name;
+                    document.getElementById('home-top-player-name').textContent = data.home_team.top_player.name;
+                    document.getElementById('home-top-player-stats').textContent = 
+                        `${data.home_team.top_player.points} PTS, ${data.home_team.top_player.fg_percentage.toFixed(1)}% FG`;
+                }
 
                 // Populate away team stats
                 populateTeamTable('away-team-table', data.away_team);
