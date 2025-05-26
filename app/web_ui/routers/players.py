@@ -4,13 +4,11 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
-from app.services.season_stats_service import SeasonStatsService
-from app.utils.stats_calculator import StatsCalculator
+from app.utils import stats_calculator
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
 
@@ -299,7 +297,7 @@ async def get_player_stats(player_id: int):
 
             recent_games = []
             for stats, game in game_stats[:10]:  # Last 10 games
-                points = StatsCalculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
+                points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
                 career_stats["total_points"] += points
                 career_stats["total_ftm"] += stats.total_ftm
                 career_stats["total_fta"] += stats.total_fta
@@ -309,16 +307,18 @@ async def get_player_stats(player_id: int):
                 career_stats["total_3pa"] += stats.total_3pa
                 career_stats["total_fouls"] += stats.fouls
 
-                recent_games.append({
-                    "game_id": game.id,
-                    "date": game.date.isoformat(),
-                    "opponent": game.opponent_team.name,
-                    "points": points,
-                    "ft": f"{stats.total_ftm}/{stats.total_fta}",
-                    "fg2": f"{stats.total_2pm}/{stats.total_2pa}",
-                    "fg3": f"{stats.total_3pm}/{stats.total_3pa}",
-                    "fouls": stats.fouls,
-                })
+                recent_games.append(
+                    {
+                        "game_id": game.id,
+                        "date": game.date.isoformat(),
+                        "opponent": game.opponent_team.name,
+                        "points": points,
+                        "ft": f"{stats.total_ftm}/{stats.total_fta}",
+                        "fg2": f"{stats.total_2pm}/{stats.total_2pa}",
+                        "fg3": f"{stats.total_3pm}/{stats.total_3pa}",
+                        "fouls": stats.fouls,
+                    }
+                )
 
             # Calculate career averages
             if career_stats["games_played"] > 0:
@@ -329,8 +329,51 @@ async def get_player_stats(player_id: int):
                 career_stats["fpg"] = 0.0
 
             # Get season stats
-            stats_service = SeasonStatsService(session)
-            season_stats = stats_service.get_player_season_stats(player_id)
+            current_season = "2024-2025"  # You might want to calculate this dynamically
+            season_stats_record = (
+                session.query(models.PlayerSeasonStats).filter_by(player_id=player_id, season=current_season).first()
+            )
+
+            if season_stats_record:
+                season_stats = {
+                    "season": season_stats_record.season,
+                    "games_played": season_stats_record.games_played,
+                    "total_points": season_stats_record.total_ftm
+                    + season_stats_record.total_2pm * 2
+                    + season_stats_record.total_3pm * 3,
+                    "total_fouls": season_stats_record.total_fouls,
+                    "total_ftm": season_stats_record.total_ftm,
+                    "total_fta": season_stats_record.total_fta,
+                    "total_2pm": season_stats_record.total_2pm,
+                    "total_2pa": season_stats_record.total_2pa,
+                    "total_3pm": season_stats_record.total_3pm,
+                    "total_3pa": season_stats_record.total_3pa,
+                    "ppg": round(
+                        (
+                            season_stats_record.total_ftm
+                            + season_stats_record.total_2pm * 2
+                            + season_stats_record.total_3pm * 3
+                        )
+                        / season_stats_record.games_played,
+                        1,
+                    )
+                    if season_stats_record.games_played > 0
+                    else 0,
+                    "fpg": round(season_stats_record.total_fouls / season_stats_record.games_played, 1)
+                    if season_stats_record.games_played > 0
+                    else 0,
+                    "ft_percentage": round(season_stats_record.total_ftm / season_stats_record.total_fta * 100, 1)
+                    if season_stats_record.total_fta > 0
+                    else 0,
+                    "fg2_percentage": round(season_stats_record.total_2pm / season_stats_record.total_2pa * 100, 1)
+                    if season_stats_record.total_2pa > 0
+                    else 0,
+                    "fg3_percentage": round(season_stats_record.total_3pm / season_stats_record.total_3pa * 100, 1)
+                    if season_stats_record.total_3pa > 0
+                    else 0,
+                }
+            else:
+                season_stats = None
 
             return {
                 "player": {
@@ -362,30 +405,30 @@ async def upload_player_image(player_id: int, file: UploadFile = File(...)):
         # Validate file type
         if not file.content_type or not file.content_type.startswith("image/"):
             raise HTTPException(status_code=400, detail="Invalid file type. Please upload an image file.")
-        
+
         # Validate file size (max 5MB)
         file_size = 0
         contents = await file.read()
         file_size = len(contents)
         if file_size > 5 * 1024 * 1024:
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
-        
+
         # Create upload directory if it doesn't exist
         upload_dir = Path("app/web_ui/static/uploads/players")
         upload_dir.mkdir(parents=True, exist_ok=True)
-        
+
         # Generate filename
         file_extension = os.path.splitext(file.filename)[1]
         if file_extension.lower() not in [".jpg", ".jpeg", ".png"]:
             raise HTTPException(status_code=400, detail="Invalid file format. Only JPG and PNG files are allowed.")
-        
+
         filename = f"player_{player_id}{file_extension}"
         file_path = upload_dir / filename
-        
+
         # Save file
         with open(file_path, "wb") as f:
             f.write(contents)
-        
+
         # Update player record
         with get_db_session() as session:
             player = session.query(models.Player).filter(models.Player.id == player_id).first()
@@ -394,18 +437,18 @@ async def upload_player_image(player_id: int, file: UploadFile = File(...)):
                 if file_path.exists():
                     file_path.unlink()
                 raise HTTPException(status_code=404, detail="Player not found")
-            
+
             # Remove old image if exists
             if player.thumbnail_image:
                 old_path = Path("app/web_ui/static") / player.thumbnail_image
                 if old_path.exists():
                     old_path.unlink()
-            
+
             player.thumbnail_image = f"uploads/players/{filename}"
             session.commit()
-            
+
             return {"success": True, "message": "Image uploaded successfully", "image_path": player.thumbnail_image}
-    
+
     except HTTPException:
         raise
     except Exception as e:

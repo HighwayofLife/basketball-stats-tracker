@@ -221,15 +221,15 @@ async def get_box_score_report(game_id: int, db: Annotated[Session, Depends(get_
             "score": game_summary.get("team_points", 0),
             "players": home_players,
             "totals": home_totals,
-            "quarter_scores": {}  # Not currently tracked quarter-by-quarter
+            "quarter_scores": {},  # Not currently tracked quarter-by-quarter
         },
         "away_team": {
             "name": game_summary.get("opponent_team", ""),
             "score": away_totals["points"],  # Calculate from player totals
             "players": away_players,
             "totals": away_totals,
-            "quarter_scores": {}  # Not currently tracked quarter-by-quarter
-        }
+            "quarter_scores": {},  # Not currently tracked quarter-by-quarter
+        },
     }
 
 

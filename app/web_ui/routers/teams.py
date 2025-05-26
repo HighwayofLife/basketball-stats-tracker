@@ -40,7 +40,12 @@ async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_re
     try:
         teams_with_counts = team_repo.get_with_player_count()
         return [
-            TeamResponse(id=team["id"], name=team["name"], display_name=team.get("display_name"), player_count=team["player_count"])
+            TeamResponse(
+                id=team["id"],
+                name=team["name"],
+                display_name=team.get("display_name"),
+                player_count=team["player_count"],
+            )
             for team in teams_with_counts
         ]
     except Exception as e:
@@ -153,17 +158,17 @@ async def update_team(
 
         # Build update kwargs - only include fields that are not None
         update_kwargs = {}
-        
+
         # Check if new name conflicts with existing team
         if team_data.name is not None:
             if team_data.name != team.name:
                 existing_team = team_repo.get_by_name(team_data.name)
                 if existing_team and existing_team.id != team_id:
                     raise HTTPException(status_code=400, detail="Team name already exists")
-            update_kwargs['name'] = team_data.name
-        
+            update_kwargs["name"] = team_data.name
+
         if team_data.display_name is not None:
-            update_kwargs['display_name'] = team_data.display_name
+            update_kwargs["display_name"] = team_data.display_name
 
         updated_team = team_repo.update(team_id, **update_kwargs)
         if not updated_team:
@@ -173,7 +178,12 @@ async def update_team(
         teams_with_counts = team_repo.get_with_player_count()
         player_count = next((t["player_count"] for t in teams_with_counts if t["id"] == team_id), 0)
 
-        return TeamResponse(id=updated_team.id, name=updated_team.name, display_name=updated_team.display_name, player_count=player_count)
+        return TeamResponse(
+            id=updated_team.id,
+            name=updated_team.name,
+            display_name=updated_team.display_name,
+            player_count=player_count,
+        )
     except HTTPException:
         raise
     except Exception as e:

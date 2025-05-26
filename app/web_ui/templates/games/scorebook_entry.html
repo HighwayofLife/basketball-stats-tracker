@@ -461,6 +461,72 @@ async function saveGame() {
             return;
         }
         
+        // First, create any new players that were imported
+        const newPlayersToCreate = [];
+        document.querySelectorAll('.player-row').forEach(row => {
+            if (row.dataset.newPlayer === 'true') {
+                const teamName = row.dataset.teamName;
+                const teamId = teamName.toLowerCase() === document.querySelector(`#homeTeam option[value="${homeTeamId}"]`).text.toLowerCase() 
+                    ? parseInt(homeTeamId) 
+                    : parseInt(awayTeamId);
+                
+                newPlayersToCreate.push({
+                    name: row.dataset.playerName,
+                    jersey_number: row.dataset.jerseyNumber,
+                    team_id: teamId,
+                    row: row
+                });
+            }
+        });
+        
+        // Create new players if needed
+        if (newPlayersToCreate.length > 0) {
+            showAlert(`Creating ${newPlayersToCreate.length} new player(s)...`, 'info');
+            
+            for (const newPlayer of newPlayersToCreate) {
+                try {
+                    const response = await fetch('/v1/players/new', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            name: newPlayer.name,
+                            jersey_number: newPlayer.jersey_number,
+                            team_id: newPlayer.team_id,
+                            position: null,
+                            height: null,
+                            weight: null,
+                            year: null
+                        })
+                    });
+                    
+                    if (response.ok) {
+                        const createdPlayer = await response.json();
+                        // Update the row with the new player ID
+                        const playerSelect = newPlayer.row.querySelector('.player-select');
+                        const newOption = document.createElement('option');
+                        newOption.value = createdPlayer.id;
+                        newOption.text = `${createdPlayer.name} (#${createdPlayer.jersey_number})`;
+                        newOption.dataset.jerseyNumber = createdPlayer.jersey_number;
+                        newOption.dataset.teamId = createdPlayer.team_id;
+                        newOption.selected = true;
+                        playerSelect.appendChild(newOption);
+                        
+                        // Update row to indicate player is no longer new
+                        newPlayer.row.dataset.newPlayer = 'false';
+                    } else {
+                        const error = await response.json();
+                        showAlert(`Failed to create player ${newPlayer.name}: ${error.detail}`, 'danger');
+                        return;
+                    }
+                } catch (error) {
+                    showAlert(`Error creating player ${newPlayer.name}: ${error.message}`, 'danger');
+                    return;
+                }
+            }
+        }
+        
         // Collect player data
         const playerStats = [];
         let hasPlayerData = false;
@@ -481,7 +547,7 @@ async function saveGame() {
                 playerStats.push({
                     player_id: parseInt(selectedOption.value),
                     player_name: selectedOption.text.split(' (')[0],
-                    jersey_number: parseInt(selectedOption.dataset.jerseyNumber),
+                    jersey_number: selectedOption.dataset.jerseyNumber,
                     team_id: parseInt(selectedOption.dataset.teamId),
                     fouls: fouls,
                     qt1_shots: quarters[0],
@@ -571,46 +637,153 @@ async function importCSV(event) {
         let section = '';
         let headers = [];
         
-        // Parse CSV file
-        for (let i = 0; i < lines.length; i++) {
-            const line = lines[i];
-            const parts = line.split(',').map(part => part.trim());
-            
-            if (parts[0] === 'GAME_INFO_KEY') {
-                section = 'game_info';
-                continue;
-            } else if (parts[0] === 'PLAYER_STATS_HEADER') {
-                section = 'player_stats';
-                headers = parts.slice(1);
-                continue;
-            } else if (parts[0] === 'PLAYER_DATA') {
-                section = 'player_data';
-            }
-            
-            if (section === 'game_info' && parts.length >= 2) {
-                gameInfo[parts[0]] = parts[1];
-            } else if (section === 'player_data' && parts.length > 1) {
-                const playerRow = {};
-                const data = parts.slice(1);
-                headers.forEach((header, index) => {
-                    playerRow[header] = data[index] || '';
-                });
-                playerData.push(playerRow);
+        // Try parsing as new format first (with markers)
+        let isNewFormat = false;
+        for (let line of lines) {
+            if (line.includes('GAME_INFO_KEY') || line.includes('PLAYER_STATS_HEADER')) {
+                isNewFormat = true;
+                break;
             }
         }
         
-        // Validate required data
-        if (!gameInfo['Playing Team'] || !gameInfo['Opponent Team'] || !gameInfo['Date']) {
-            showAlert('Invalid CSV file: Missing required game information', 'danger');
+        if (isNewFormat) {
+            // Parse new format with markers
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i];
+                const parts = line.split(',').map(part => part.trim());
+                
+                if (parts[0] === 'GAME_INFO_KEY') {
+                    section = 'game_info';
+                    continue;
+                } else if (parts[0] === 'PLAYER_STATS_HEADER') {
+                    section = 'player_stats';
+                    headers = parts.slice(1);
+                    continue;
+                } else if (parts[0] === 'PLAYER_DATA') {
+                    section = 'player_data';
+                }
+                
+                if (section === 'game_info' && parts.length >= 2) {
+                    gameInfo[parts[0]] = parts[1];
+                } else if (section === 'player_data' && parts.length > 1) {
+                    const playerRow = {};
+                    const data = parts.slice(1);
+                    headers.forEach((header, index) => {
+                        playerRow[header] = data[index] || '';
+                    });
+                    playerData.push(playerRow);
+                }
+            }
+        } else {
+            // Parse simpler format (Home/Away/Date rows)
+            if (lines.length < 5) {
+                showAlert('Invalid CSV file: File must have at least 5 rows (Home team, Away team, Date, Headers, and at least one player)', 'danger');
+                return;
+            }
+            
+            // Parse home team (row 0)
+            const homeRow = lines[0].split(',').map(s => s.trim());
+            if (homeRow[0].toLowerCase() !== 'home' || !homeRow[1]) {
+                showAlert('Invalid CSV file: First row must be "Home,<team_name>"', 'danger');
+                return;
+            }
+            
+            // Parse away team (row 1)
+            const awayRow = lines[1].split(',').map(s => s.trim());
+            if (!['away', 'visitor'].includes(awayRow[0].toLowerCase()) || !awayRow[1]) {
+                showAlert('Invalid CSV file: Second row must be "Away,<team_name>" or "Visitor,<team_name>"', 'danger');
+                return;
+            }
+            
+            // Parse date (row 2)
+            const dateRow = lines[2].split(',').map(s => s.trim());
+            if (dateRow[0].toLowerCase() !== 'date' || !dateRow[1]) {
+                showAlert('Invalid CSV file: Third row must be "Date,<date>"', 'danger');
+                return;
+            }
+            
+            // Get home and away team names from the header rows
+            const homeTeamFromHeader = homeRow[1];
+            const awayTeamFromHeader = awayRow[1];
+            gameInfo['Date'] = dateRow[1];
+            
+            // Parse headers (row 3)
+            headers = lines[3].split(',').map(s => s.trim());
+            
+            // Parse player data (row 4+) and collect team names
+            const teamsInData = new Set();
+            for (let i = 4; i < lines.length; i++) {
+                const parts = lines[i].split(',').map(s => s.trim());
+                if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) continue; // Skip empty or invalid rows
+                
+                const teamName = parts[0];
+                teamsInData.add(teamName);
+                
+                const playerRow = {
+                    'Team': teamName,
+                    'Player Jersey': parts[1],
+                    'Player Name': parts[2],
+                    'Fouls': parts[3] || '0'
+                };
+                
+                // Add quarter data
+                for (let q = 1; q <= 4; q++) {
+                    const headerIndex = headers.indexOf(`QT${q}`);
+                    if (headerIndex >= 0 && parts[headerIndex]) {
+                        playerRow[`qt${q}_shots`] = parts[headerIndex];
+                    }
+                }
+                
+                playerData.push(playerRow);
+            }
+            
+            // Determine which team is home and which is away
+            const teamsList = Array.from(teamsInData);
+            if (teamsList.length !== 2) {
+                showAlert(`Invalid CSV file: Expected exactly 2 teams in player data, found ${teamsList.length}: ${teamsList.join(', ')}`, 'danger');
+                return;
+            }
+            
+            // Match teams from data with home/away designation from headers
+            if (homeTeamFromHeader && awayTeamFromHeader) {
+                // If header specifies team names, use those
+                gameInfo['Playing Team'] = homeTeamFromHeader;
+                gameInfo['Opponent Team'] = awayTeamFromHeader;
+            } else {
+                // Otherwise, use teams from player data (first found is home, second is away)
+                gameInfo['Playing Team'] = teamsList[0];
+                gameInfo['Opponent Team'] = teamsList[1];
+            }
+        }
+        
+        // Validate required data with better error messages
+        const missingFields = [];
+        if (!gameInfo['Playing Team']) missingFields.push('Playing Team (Home team)');
+        if (!gameInfo['Opponent Team']) missingFields.push('Opponent Team (Away team)');
+        if (!gameInfo['Date']) missingFields.push('Date');
+        
+        if (missingFields.length > 0) {
+            showAlert(`Invalid CSV file: Missing required game information: ${missingFields.join(', ')}`, 'danger');
             return;
         }
         
         // Clear existing form data
         clearForm(true); // Pass true to skip confirmation
         
-        // Set game date
+        // Set game date - convert from M/D/YYYY to YYYY-MM-DD if needed
         if (gameInfo['Date']) {
-            document.getElementById('gameDate').value = gameInfo['Date'];
+            let dateValue = gameInfo['Date'];
+            // Check if date is in M/D/YYYY format and convert to YYYY-MM-DD
+            if (dateValue.includes('/')) {
+                const parts = dateValue.split('/');
+                if (parts.length === 3) {
+                    const month = parts[0].padStart(2, '0');
+                    const day = parts[1].padStart(2, '0');
+                    const year = parts[2];
+                    dateValue = `${year}-${month}-${day}`;
+                }
+            }
+            document.getElementById('gameDate').value = dateValue;
         }
         
         // Find and set teams
@@ -644,7 +817,8 @@ async function importCSV(event) {
             awayTeamSelect.value = awayTeamId;
         }
         
-        // Add player data
+        // Add player data and track unmatched players
+        const unmatchedPlayers = [];
         for (let player of playerData) {
             addPlayerRow();
             const lastRow = document.querySelector('#playerStatsBody tr:last-child');
@@ -654,14 +828,44 @@ async function importCSV(event) {
                 const playerSelect = lastRow.querySelector('.player-select');
                 const playerName = player['Player Name'] || '';
                 const jerseyNumber = player['Player Jersey'] || '';
+                const teamName = player['Team'] || '';
                 
                 // Try to find matching player
+                let playerFound = false;
                 for (let option of playerSelect.options) {
                     if (option.text.includes(playerName) && option.text.includes(`#${jerseyNumber}`)) {
                         playerSelect.value = option.value;
                         updatePlayerInfo(playerSelect);
+                        playerFound = true;
                         break;
                     }
+                }
+                
+                // If player not found, add to unmatched list and show in row
+                if (!playerFound && playerName) {
+                    unmatchedPlayers.push({
+                        name: playerName,
+                        jersey: jerseyNumber,
+                        team: teamName
+                    });
+                    
+                    // Add visual indicator that this player needs to be created
+                    // Update the player select to show it's a new player
+                    const currentOption = playerSelect.options[playerSelect.selectedIndex];
+                    currentOption.text = `⚠️ NEW: ${playerName} #${jerseyNumber} (${teamName})`;
+                    currentOption.classList.add('text-warning');
+                    
+                    // Store new player data on the row for later use
+                    lastRow.dataset.newPlayer = 'true';
+                    lastRow.dataset.playerName = playerName;
+                    lastRow.dataset.jerseyNumber = jerseyNumber;
+                    lastRow.dataset.teamName = teamName;
+                    
+                    // Update the team and jersey displays
+                    const teamDisplay = lastRow.querySelector('.team-display');
+                    const jerseyDisplay = lastRow.querySelector('.jersey-display');
+                    if (teamDisplay) teamDisplay.textContent = teamName;
+                    if (jerseyDisplay) jerseyDisplay.textContent = `#${jerseyNumber}`;
                 }
                 
                 // Set fouls
@@ -670,11 +874,17 @@ async function importCSV(event) {
                 
                 // Set quarter shots
                 const scoringInputs = lastRow.querySelectorAll('.scoring-input');
-                scoringInputs[0].value = player['QT1 Shots'] || '';
-                scoringInputs[1].value = player['QT2 Shots'] || '';
-                scoringInputs[2].value = player['QT3 Shots'] || '';
-                scoringInputs[3].value = player['QT4 Shots'] || '';
+                scoringInputs[0].value = player['qt1_shots'] || '';
+                scoringInputs[1].value = player['qt2_shots'] || '';
+                scoringInputs[2].value = player['qt3_shots'] || '';
+                scoringInputs[3].value = player['qt4_shots'] || '';
             }
+        }
+        
+        // Show warning about unmatched players
+        if (unmatchedPlayers.length > 0) {
+            const playersList = unmatchedPlayers.map(p => `${p.name} #${p.jersey} (${p.team})`).join(', ');
+            showAlert(`Warning: ${unmatchedPlayers.length} player(s) not found in database and will need to be created: ${playersList}`, 'warning');
         }
         
         // Update game summary
