@@ -187,16 +187,14 @@ def sample_game_csv_content() -> str:
     """
     Returns sample CSV content for game stats import testing.
     """
-    return """GAME_INFO_KEY,VALUE
-Playing Team,Team A
-Opponent Team,Team B
+    return """Home,Team A
+Visitor,Team B
 Date,2025-05-01
-PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
-PLAYER_DATA,Team A,23,Player Two,3,12,x,-/,22
-PLAYER_DATA,Team B,5,Player Alpha,1,x,11,,33-
-PLAYER_DATA,Team B,15,Player Beta,4,2//1,2,x,1
-"""
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Team A,10,Player One,2,22-1x,3/2,11,
+Team A,23,Player Two,3,12,x,-/,22
+Team B,5,Player Alpha,1,x,11,,33-
+Team B,15,Player Beta,4,2//1,2,x,1"""
 
 
 @pytest.fixture

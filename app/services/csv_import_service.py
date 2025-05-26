@@ -263,38 +263,51 @@ def _read_and_parse_game_stats_csv(game_stats_path: Path) -> tuple[dict[str, str
         reader = csv.reader(csvfile)
         rows = list(reader)
 
-        if not rows:
-            typer.echo("Error: CSV file is empty.")
+        if len(rows) < 5:  # Need at least 5 rows (home, visitor, date, header, 1 player)
+            typer.echo("Error: CSV file doesn't have enough rows.")
             return None
 
+        # Parse new simplified format
+        # Row 0: Home,<team_name>
+        # Row 1: Visitor/Away,<team_name>
+        # Row 2: Date,<date>
+        # Row 3: Headers
+        # Row 4+: Player data
+
         game_info_data = {}
-        player_stats_header = None
+
+        # Parse home team (row 0)
+        if len(rows[0]) >= 2 and rows[0][0].lower() == "home":
+            game_info_data["Home"] = rows[0][1].strip()
+        else:
+            typer.echo("Error: First row should be 'Home,<team_name>'")
+            return None
+
+        # Parse visitor team (row 1)
+        if len(rows[1]) >= 2 and rows[1][0].lower() in ["visitor", "away"]:
+            game_info_data["Visitor"] = rows[1][1].strip()
+        else:
+            typer.echo("Error: Second row should be 'Visitor,<team_name>' or 'Away,<team_name>'")
+            return None
+
+        # Parse date (row 2)
+        if len(rows[2]) >= 2 and rows[2][0].lower() == "date":
+            game_info_data["Date"] = rows[2][1].strip()
+        else:
+            typer.echo("Error: Third row should be 'Date,<date>'")
+            return None
+
+        # Parse header (row 3)
+        player_stats_header = rows[3]
+
+        # Parse player data (rows 4+)
         player_stats_rows = []
-        section = "unknown"
+        for row in rows[4:]:
+            if row and any(cell.strip() for cell in row):  # Skip empty rows
+                player_stats_rows.append(row)
 
-        for row in rows:
-            if not row:
-                continue
-
-            if row[0] == "GAME_INFO_KEY":
-                section = "game_info"
-                continue
-
-            if row[0] == "PLAYER_STATS_HEADER":
-                section = "player_stats_header"
-                player_stats_header = row[1:]
-                continue
-
-            if row[0] == "PLAYER_DATA":
-                section = "player_stats"
-
-            if section == "game_info" and len(row) >= 2:
-                game_info_data[row[0]] = row[1]
-            elif section == "player_stats" and len(row) >= 2:
-                player_stats_rows.append(row[1:])
-
-        if not game_info_data or not player_stats_header or not player_stats_rows:
-            typer.echo("Error: CSV file doesn't have the required structure.")
+        if not player_stats_rows:
+            typer.echo("Error: No player data found.")
             return None
 
         return game_info_data, player_stats_header, player_stats_rows
@@ -307,10 +320,10 @@ def _validate_game_stats_data(
     Validates the game stats data and returns a GameStatsCSVInputSchema object if valid.
     """
     try:
-        # Validate game information
+        # Validate game information - now using Home/Visitor instead of Playing/Opponent
         game_info_valid = {
-            "PlayingTeam": game_info_data.get("Playing Team", ""),
-            "OpponentTeam": game_info_data.get("Opponent Team", ""),
+            "HomeTeam": game_info_data.get("Home", ""),
+            "VisitorTeam": game_info_data.get("Visitor", ""),
             "Date": game_info_data.get("Date", ""),
         }
         game_info = GameInfoSchema(**game_info_valid)
@@ -364,6 +377,7 @@ def _extract_player_data_from_row(
 ) -> dict[str, Any]:
     """
     Extracts player data from a row based on the header.
+    Headers are case-insensitive and support multiple variations.
     """
     player_dict = {
         "TeamName": "",
@@ -377,32 +391,37 @@ def _extract_player_data_from_row(
     }
 
     for j, header in enumerate(player_stats_header):
-        header_normalized = header.replace(" ", "")
+        if j >= len(player_row):
+            continue
 
-        if header_normalized in ("TeamName", "Team"):
-            player_dict["TeamName"] = player_row[j]
-        elif header_normalized in ("PlayerJersey", "Jersey"):
+        # Normalize header: lowercase and remove spaces
+        header_normalized = header.lower().replace(" ", "")
+        cell_value = player_row[j].strip() if player_row[j] else ""
+
+        if header_normalized in ("teamname", "team"):
+            player_dict["TeamName"] = cell_value
+        elif header_normalized in ("playerjersey", "jersey", "jerseynumber", "number"):
             try:
-                player_dict["PlayerJersey"] = int(player_row[j])
+                player_dict["PlayerJersey"] = int(cell_value) if cell_value else 0
             except (ValueError, TypeError):
-                typer.echo(f"Warning: Invalid jersey number '{player_row[j]}' in row {row_index + 1}. Using 0.")
+                typer.echo(f"Warning: Invalid jersey number '{cell_value}' in row {row_index + 1}. Using 0.")
                 player_dict["PlayerJersey"] = 0
-        elif header_normalized in ("PlayerName", "Name"):
-            player_dict["PlayerName"] = player_row[j]
-        elif header_normalized == "Fouls":
+        elif header_normalized in ("playername", "name", "player"):
+            player_dict["PlayerName"] = cell_value
+        elif header_normalized == "fouls":
             try:
-                player_dict["Fouls"] = int(player_row[j]) if player_row[j] else 0
+                player_dict["Fouls"] = int(cell_value) if cell_value else 0
             except (ValueError, TypeError):
-                typer.echo(f"Warning: Invalid fouls '{player_row[j]}' in row {row_index + 1}. Using 0.")
+                typer.echo(f"Warning: Invalid fouls '{cell_value}' in row {row_index + 1}. Using 0.")
                 player_dict["Fouls"] = 0
-        elif header_normalized == "QT1Shots":
-            player_dict["QT1Shots"] = player_row[j]
-        elif header_normalized == "QT2Shots":
-            player_dict["QT2Shots"] = player_row[j]
-        elif header_normalized == "QT3Shots":
-            player_dict["QT3Shots"] = player_row[j]
-        elif header_normalized == "QT4Shots":
-            player_dict["QT4Shots"] = player_row[j]
+        elif header_normalized in ("qt1shots", "qt1"):
+            player_dict["QT1Shots"] = cell_value
+        elif header_normalized in ("qt2shots", "qt2"):
+            player_dict["QT2Shots"] = cell_value
+        elif header_normalized in ("qt3shots", "qt3"):
+            player_dict["QT3Shots"] = cell_value
+        elif header_normalized in ("qt4shots", "qt4"):
+            player_dict["QT4Shots"] = cell_value
 
     return player_dict
 
@@ -413,7 +432,7 @@ def _display_game_stats_import_summary(game_stats_file: str, validated_data: Gam
     """
     typer.echo(f"\nGame stats import summary from {game_stats_file}:")
     typer.echo(
-        f"Game: {validated_data.game_info.PlayingTeam} vs {validated_data.game_info.OpponentTeam} "
+        f"Game: {validated_data.game_info.HomeTeam} (Home) vs {validated_data.game_info.VisitorTeam} (Visitor) "
         f"on {validated_data.game_info.Date}"
     )
     typer.echo(f"Players: {len(validated_data.player_stats)}")
@@ -428,11 +447,11 @@ def _process_game_stats_import(validated_data: GameStatsCSVInputSchema) -> bool:
         player_service = PlayerService(db)
         stats_entry_service = StatsEntryService(db, parse_quarter_shot_string, SHOT_MAPPING)
 
-        # Create the game
+        # Create the game - using home team as playing team and visitor as opponent
         game = game_service.add_game(
             validated_data.game_info.Date,
-            validated_data.game_info.PlayingTeam,
-            validated_data.game_info.OpponentTeam,
+            validated_data.game_info.HomeTeam,
+            validated_data.game_info.VisitorTeam,
         )
 
         typer.echo(f"\nCreated game #{game.id}: {game.playing_team.name} vs {game.opponent_team.name} on {game.date}")

@@ -30,13 +30,12 @@ Warriors,Klay Thompson,11"""
     @pytest.fixture
     def sample_game_stats_csv_content(self):
         """Sample game stats CSV content."""
-        return """GAME_INFO_KEY,value
-Playing Team,Lakers
-Opponent Team,Warriors
+        return """Home,Lakers
+Visitor,Warriors
 Date,2025-05-01
-PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-PLAYER_DATA,Lakers,23,LeBron James,2,FT-FT+22X,33+FT-,22+,33X
-PLAYER_DATA,Lakers,3,Anthony Davis,3,22+FT-,22X,FT+33-,22+"""
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Lakers,23,LeBron James,2,22-1x,3/2,22,3/
+Lakers,3,Anthony Davis,3,22x1,22/,1x3/-,22"""
 
     @pytest.fixture
     def invalid_roster_csv_content(self):
@@ -48,7 +47,8 @@ Lakers,LeBron James,23"""
     def invalid_game_stats_csv_content(self):
         """Invalid game stats CSV content."""
         return """Some random content
-Without proper structure"""
+Without proper structure
+Missing required rows"""
 
     def test_check_file_exists_valid_file(self):
         """Test _check_file_exists with an existing file."""
@@ -242,18 +242,18 @@ Lakers,LeBron James,twenty-three"""
             patch("app.services.csv_import_service._process_game_stats_import") as mock_process,
         ):
             mock_read.return_value = (
-                {"Playing Team": "Lakers", "Opponent Team": "Warriors", "Date": "2025-05-01"},
+                {"Home": "Lakers", "Visitor": "Warriors", "Date": "2025-05-01"},
                 [
-                    "Team Name",
-                    "Player Jersey",
+                    "Team",
+                    "Jersey Number",
                     "Player Name",
                     "Fouls",
-                    "QT1 Shots",
-                    "QT2 Shots",
-                    "QT3 Shots",
-                    "QT4 Shots",
+                    "QT1",
+                    "QT2",
+                    "QT3",
+                    "QT4",
                 ],
-                [["Lakers", "23", "LeBron James", "2", "FT-FT+22X", "33+FT-", "22+", "33X"]],
+                [["Lakers", "23", "LeBron James", "2", "22-1x", "3/2", "22", "3/"]],
             )
 
             mock_validated_data = MagicMock(spec=GameStatsCSVInputSchema)
@@ -276,12 +276,12 @@ Lakers,LeBron James,twenty-three"""
             assert result is not None
             game_info_data, player_stats_header, player_stats_rows = result
 
-            assert game_info_data["Playing Team"] == "Lakers"
-            assert game_info_data["Opponent Team"] == "Warriors"
+            assert game_info_data["Home"] == "Lakers"
+            assert game_info_data["Visitor"] == "Warriors"
             assert game_info_data["Date"] == "2025-05-01"
 
             assert len(player_stats_header) == 8
-            assert player_stats_header[0] == "Team Name"
+            assert player_stats_header[0] == "Team"
 
             assert len(player_stats_rows) == 2
             assert player_stats_rows[0][2] == "LeBron James"
@@ -302,18 +302,18 @@ Lakers,LeBron James,twenty-three"""
 
     def test_validate_game_stats_data_valid(self):
         """Test validating valid game stats data."""
-        game_info_data = {"Playing Team": "Lakers", "Opponent Team": "Warriors", "Date": "2025-05-01"}
+        game_info_data = {"Home": "Lakers", "Visitor": "Warriors", "Date": "2025-05-01"}
         player_stats_header = [
-            "Team Name",
-            "Player Jersey",
+            "Team",
+            "Jersey Number",
             "Player Name",
             "Fouls",
-            "QT1 Shots",
-            "QT2 Shots",
-            "QT3 Shots",
-            "QT4 Shots",
+            "QT1",
+            "QT2",
+            "QT3",
+            "QT4",
         ]
-        player_stats_rows = [["Lakers", "23", "LeBron James", "2", "FT-", "", "", ""]]
+        player_stats_rows = [["Lakers", "23", "LeBron James", "2", "22-1x", "", "", ""]]
 
         with patch("app.services.csv_import_service._process_player_stats_rows") as mock_process:
             mock_process.return_value = [
@@ -322,7 +322,7 @@ Lakers,LeBron James,twenty-three"""
                     PlayerJersey=23,
                     PlayerName="LeBron James",
                     Fouls=2,
-                    QT1Shots="FT-",
+                    QT1Shots="22-1x",
                     QT2Shots="",
                     QT3Shots="",
                     QT4Shots="",
@@ -335,14 +335,14 @@ Lakers,LeBron James,twenty-three"""
 
             assert result is not None
             assert isinstance(result, GameStatsCSVInputSchema)
-            assert result.game_info.PlayingTeam == "Lakers"
+            assert result.game_info.HomeTeam == "Lakers"
 
     @patch("typer.echo")
     def test_validate_game_stats_data_invalid(self, mock_echo):
         """Test validating invalid game stats data."""
         game_info_data = {
-            "Playing Team": "",  # Missing required field
-            "Opponent Team": "Warriors",
+            "Home": "",  # Missing required field
+            "Visitor": "Warriors",
             "Date": "2025-05-01",
         }
         player_stats_header = []
@@ -391,14 +391,14 @@ Lakers,LeBron James,twenty-three"""
         # Since the function has too many dependencies that are hard to mock
 
         validated_data = GameStatsCSVInputSchema(
-            game_info=GameInfoSchema(PlayingTeam="Lakers", OpponentTeam="Warriors", Date="2025-05-01"),
+            game_info=GameInfoSchema(HomeTeam="Lakers", VisitorTeam="Warriors", Date="2025-05-01"),
             player_stats=[
                 PlayerStatsRowSchema(
                     TeamName="Lakers",
                     PlayerJersey=23,
                     PlayerName="LeBron James",
                     Fouls=2,
-                    QT1Shots="FT-",
+                    QT1Shots="22-1x",
                     QT2Shots="",
                     QT3Shots="",
                     QT4Shots="",
@@ -407,8 +407,8 @@ Lakers,LeBron James,twenty-three"""
         )
 
         # Verify the data structure is correct
-        assert validated_data.game_info.PlayingTeam == "Lakers"
-        assert validated_data.game_info.OpponentTeam == "Warriors"
+        assert validated_data.game_info.HomeTeam == "Lakers"
+        assert validated_data.game_info.VisitorTeam == "Warriors"
         assert len(validated_data.player_stats) == 1
         assert validated_data.player_stats[0].PlayerName == "LeBron James"
 

@@ -8,6 +8,7 @@ This module contains schemas for:
 - The overall structure of a game stats CSV import.
 """
 
+
 from pydantic import BaseModel, Field, field_validator
 
 
@@ -16,9 +17,19 @@ class GameInfoSchema(BaseModel):
     Pydantic schema for validating the game information part of the CSV.
     """
 
-    PlayingTeam: str
-    OpponentTeam: str
-    Date: str = Field(pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date must be in YYYY-MM-DD format")
+    HomeTeam: str
+    VisitorTeam: str
+    Date: str = Field(description="Date can be in YYYY-MM-DD or M/D/YYYY format")
+
+    @field_validator("Date")
+    @classmethod
+    def validate_date_format(cls, value):
+        """Validates that date is in an acceptable format."""
+        import re
+        # Accept both YYYY-MM-DD and M/D/YYYY formats
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$|^\d{1,2}/\d{1,2}/\d{4}$", value):
+            raise ValueError("Date must be in YYYY-MM-DD or M/D/YYYY format")
+        return value
 
 
 class PlayerStatsRowSchema(BaseModel):
@@ -29,7 +40,7 @@ class PlayerStatsRowSchema(BaseModel):
     TeamName: str
     PlayerJersey: int = Field(ge=0, description="Player jersey number must be non-negative")
     PlayerName: str
-    Fouls: int = Field(ge=0, description="Fouls must be non-negative")
+    Fouls: int | None = Field(default=0, ge=0, description="Fouls must be non-negative")
     QT1Shots: str = ""
     QT2Shots: str = ""
     QT3Shots: str = ""
@@ -39,7 +50,7 @@ class PlayerStatsRowSchema(BaseModel):
     @field_validator("PlayerJersey", "Fouls")
     def check_non_negative(cls, value, info):
         """Validates that jersey number and fouls are non-negative."""
-        if value < 0:
+        if value is not None and value < 0:
             field_name = info.field_name
             raise ValueError("Input should be greater than or equal to 0", field_name)
         return value

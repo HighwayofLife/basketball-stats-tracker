@@ -50,16 +50,14 @@ class TestCSVImport:
     def test_import_game_stats_from_csv(self, setup_import_test, mock_db_manager):
         """Test importing game stats from CSV file."""
         # Create valid CSV content
-        valid_csv_content = """GAME_INFO_KEY,VALUE
-Playing Team,Team A
-Opponent Team,Team B
+        valid_csv_content = """Home,Team A
+Visitor,Team B
 Date,2025-05-01
-PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
-PLAYER_DATA,Team A,23,Player Two,1,1,2-2,3/,22
-PLAYER_DATA,Team B,5,Player Alpha,3,3-,1,/3,
-PLAYER_DATA,Team B,15,Player Beta,4,//-,2-,11x,3
-"""
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Team A,10,Player One,2,22-1x,3/2,11,
+Team A,23,Player Two,1,1,2-2,3/,22
+Team B,5,Player Alpha,3,3-,1,/3,
+Team B,15,Player Beta,4,//-,2-,11x,3"""
         # Mock the _check_file_exists function to return a Path object
         mock_path = MagicMock()
         mock_path.exists.return_value = True
@@ -110,12 +108,11 @@ PLAYER_DATA,Team B,15,Player Beta,4,//-,2-,11x,3
 
     def test_import_game_stats_from_invalid_csv(self, setup_import_test, mock_db_manager):
         """Test importing game stats from an invalid CSV file."""
-        # Create invalid CSV file - missing required headers
-        invalid_csv_content = """GAME_INFO_KEY,VALUE
-Playing Team,Team A
+        # Create invalid CSV file - missing visitor team
+        invalid_csv_content = """Home,Team A
 Date,2025-05-01
-PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Team A,10,Player One,2,22-1x,3/2,11,
 """
         # Mock the _check_file_exists function to return a Path object
         mock_path = MagicMock()
@@ -125,7 +122,7 @@ PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
             patch("app.services.csv_import_service._check_file_exists", return_value=mock_path),
             patch("builtins.open", create=True) as mock_open,
         ):
-            mock_open.return_value.__enter__.return_value.read.return_value = invalid_csv_content
+            mock_open.return_value.__enter__.return_value.__iter__.return_value = iter(invalid_csv_content.splitlines())
             result = import_game_stats_from_csv("invalid_path.csv")  # This path doesn't matter due to mocking
 
             # Assertions for failed import
