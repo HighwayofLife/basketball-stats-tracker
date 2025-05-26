@@ -73,6 +73,18 @@ class ReportGenerator:
             "scoring_distribution": {"ft_pct": None, "fg2_pct": None, "fg3_pct": None},
         }
 
+    def _get_team_display_name(self, team) -> str:
+        """
+        Get the display name for a team, falling back to name if display_name is not set.
+        
+        Args:
+            team: Team object
+            
+        Returns:
+            String with the team display name
+        """
+        return team.display_name if team.display_name else team.name
+
     def _get_team_name(self, player, playing_team, opponent_team) -> str:
         """
         Determine the team name for a player.
@@ -86,9 +98,9 @@ class ReportGenerator:
             String with the team name
         """
         if player.team_id == playing_team.id:
-            return playing_team.name
+            return self._get_team_display_name(playing_team)
         elif player.team_id == opponent_team.id:
-            return opponent_team.name
+            return self._get_team_display_name(opponent_team)
         else:
             return "Unknown Team"
 
@@ -275,8 +287,8 @@ class ReportGenerator:
         return {
             "game_id": game.id,
             "date": date_str,
-            "playing_team": playing_team.name,
-            "opponent_team": opponent_team.name,
+            "playing_team": self._get_team_display_name(playing_team),
+            "opponent_team": self._get_team_display_name(opponent_team),
             "team_points": team_totals["points"],
             "team_fouls": team_totals["fouls"],
             "team_ft_pct": team_totals["ft_pct"],
@@ -442,7 +454,7 @@ class ReportGenerator:
         performance_report = {
             **player_box_score,  # Include all box score stats
             "game_date": date_str,
-            "opponent": opponent_team.name if player.team_id == playing_team.id else playing_team.name,
+            "opponent": self._get_team_display_name(opponent_team) if player.team_id == playing_team.id else self._get_team_display_name(playing_team),
             "quarter_breakdown": self._get_quarter_stats_breakdown(quarter_stats),
         }
 
@@ -596,8 +608,8 @@ class ReportGenerator:
         # Create the efficiency report
         efficiency_report = {
             "game_date": date_str,
-            "team_name": selected_team.name,
-            "opponent_name": other_team.name,
+            "team_name": self._get_team_display_name(selected_team),
+            "opponent_name": self._get_team_display_name(other_team),
             "team_points": team_totals["points"],
             "team_ts_pct": team_totals["ts_pct"],
             "team_efg": team_totals["efg"],
@@ -737,8 +749,8 @@ class ReportGenerator:
         # Create the scoring analysis report
         scoring_analysis = {
             "game_date": date_str,
-            "team_name": selected_team.name,
-            "opponent_name": other_team.name,
+            "team_name": self._get_team_display_name(selected_team),
+            "opponent_name": self._get_team_display_name(other_team),
             "team_points": team_totals["points"],
             "ft_points": ft_points_team,
             "fg2_points": fg2_points_team,
@@ -847,13 +859,13 @@ class ReportGenerator:
         game_flow_report = {
             "game_date": date_str,
             "playing_team": {
-                "name": playing_team.name,
+                "name": self._get_team_display_name(playing_team),
                 "quarter_scoring": playing_team_quarters,
                 "cumulative_score": playing_team_cumulative,
                 "total_points": sum(playing_team_quarters.values()),
             },
             "opponent_team": {
-                "name": opponent_team.name,
+                "name": self._get_team_display_name(opponent_team),
                 "quarter_scoring": opponent_team_quarters,
                 "cumulative_score": opponent_team_cumulative,
                 "total_points": sum(opponent_team_quarters.values()),

@@ -29,7 +29,7 @@ class TeamRepository(BaseRepository[Team]):
 
         for team in teams:
             player_count = self.session.query(Player).filter(Player.team_id == team.id, Player.is_active).count()
-            result.append({"id": team.id, "name": team.name, "player_count": player_count})
+            result.append({"id": team.id, "name": team.name, "display_name": team.display_name, "player_count": player_count})
 
         return result
 

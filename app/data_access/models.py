@@ -41,6 +41,7 @@ class Team(Base, SoftDeleteMixin):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    display_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
     players: Mapped[list["Player"]] = relationship("Player", back_populates="team", cascade="all, delete-orphan")
     home_games: Mapped[list["Game"]] = relationship(
@@ -51,10 +52,10 @@ class Team(Base, SoftDeleteMixin):
     )
 
     def __repr__(self):
-        return f"<Team(id={self.id}, name='{self.name}')>"
+        return f"<Team(id={self.id}, name='{self.name}', display_name='{self.display_name}')>"
 
     def __str__(self):
-        return self.name
+        return self.display_name or self.name
 
 
 class Player(Base, SoftDeleteMixin):

@@ -7,18 +7,19 @@ from sqlalchemy.orm import Session
 from app.data_access.models import Team
 
 
-def create_team(db: Session, team_name: str) -> Team:
+def create_team(db: Session, team_name: str, display_name: str | None = None) -> Team:
     """
     Create a new team in the database.
 
     Args:
         db: SQLAlchemy database session
-        team_name: Name of the team
+        team_name: Name of the team (used for imports/mapping)
+        display_name: Display name of the team (optional, defaults to team_name)
 
     Returns:
         The created Team instance
     """
-    team = Team(name=team_name)
+    team = Team(name=team_name, display_name=display_name or team_name)
     db.add(team)
     db.commit()
     db.refresh(team)
@@ -64,3 +65,27 @@ def get_all_teams(db: Session) -> list[Team]:
         List of all Team instances
     """
     return db.query(Team).all()
+
+
+def update_team(db: Session, team_id: int, name: str | None = None, display_name: str | None = None) -> Team | None:
+    """
+    Update a team's information.
+
+    Args:
+        db: SQLAlchemy database session
+        team_id: ID of the team to update
+        name: New name for the team (optional)
+        display_name: New display name for the team (optional)
+
+    Returns:
+        Updated Team instance if found, None otherwise
+    """
+    team = get_team_by_id(db, team_id)
+    if team:
+        if name is not None:
+            team.name = name
+        if display_name is not None:
+            team.display_name = display_name
+        db.commit()
+        db.refresh(team)
+    return team

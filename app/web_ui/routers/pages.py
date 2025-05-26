@@ -57,8 +57,8 @@ async def index(request: Request):
                 recent_games_data.append({
                     "id": game.id,
                     "date": game.date,
-                    "home_team": game.playing_team.name,
-                    "away_team": game.opponent_team.name,
+                    "home_team": game.playing_team.display_name or game.playing_team.name,
+                    "away_team": game.opponent_team.display_name or game.opponent_team.name,
                     "home_score": home_score,
                     "away_score": away_score,
                 })
@@ -120,7 +120,7 @@ async def game_detail_page(request: Request, game_id: int):
                 "games/detail.html",
                 {
                     "request": request,
-                    "title": f"{game.opponent_team.name} @ {game.playing_team.name}",
+                    "title": f"{game.opponent_team.display_name or game.opponent_team.name} @ {game.playing_team.display_name or game.playing_team.name}",
                     "game_id": game_id,
                 },
             )
