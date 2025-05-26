@@ -28,19 +28,19 @@ router = APIRouter()
 templates = Jinja2Templates(directory="app/web_ui/templates")
 
 
-@router.get("/", response_class=HTMLResponse)
+@router.get("/reports", response_class=HTMLResponse)
 async def reports_index(request: Request):
     """Display reports index page."""
     return templates.TemplateResponse("reports/index.html", {"request": request})
 
 
-@router.get("/player-season-select", response_class=HTMLResponse)
+@router.get("/reports/player-season-select", response_class=HTMLResponse)
 async def player_season_select(request: Request):
     """Display player selection page for season reports."""
     return templates.TemplateResponse("reports/player_season_select.html", {"request": request})
 
 
-@router.get("/team-season-select", response_class=HTMLResponse)
+@router.get("/reports/team-season-select", response_class=HTMLResponse)
 async def team_season_select(request: Request):
     """Display team selection page for season reports."""
     return templates.TemplateResponse("reports/team_season_select.html", {"request": request})
@@ -525,7 +525,7 @@ async def export_report(
         return data
 
 
-@router.get("/box-score/{game_id}", response_class=HTMLResponse)
+@router.get("/reports/box-score/{game_id}", response_class=HTMLResponse)
 async def view_box_score_report(request: Request, game_id: int, db: Annotated[Session, Depends(get_db)]):
     """Display box score report page."""
     game = crud_game.get_game_by_id(db, game_id)
@@ -535,7 +535,7 @@ async def view_box_score_report(request: Request, game_id: int, db: Annotated[Se
     return templates.TemplateResponse("reports/box_score.html", {"request": request, "game_id": game_id, "game": game})
 
 
-@router.get("/player-season/{player_id}", response_class=HTMLResponse)
+@router.get("/reports/player-season/{player_id}", response_class=HTMLResponse)
 async def view_player_season_report(
     request: Request,
     player_id: int,
@@ -552,7 +552,7 @@ async def view_player_season_report(
     )
 
 
-@router.get("/team-season/{team_id}", response_class=HTMLResponse)
+@router.get("/reports/team-season/{team_id}", response_class=HTMLResponse)
 async def view_team_season_report(
     request: Request,
     team_id: int,
