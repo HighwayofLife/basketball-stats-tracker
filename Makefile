@@ -34,7 +34,7 @@ NC=\033[0m # No Color
 .PHONY: docker-build
 docker-build: ## Build the Docker image for production
 	@echo "${CYAN}Building production Docker image...${NC}"
-	@docker build -t $(IMAGE_NAME) .
+	@docker build --target production -t $(IMAGE_NAME) .
 
 .PHONY: docker-run
 docker-run: docker-build ## Run the production Docker container
@@ -217,32 +217,44 @@ import-game-stats: ensure-running ## Import game statistics from a CSV file into
 	@# This example assumes the CSV is in the project root and accessible to the 'web' service.
 	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game --file $(GAME_STATS_FILE)
 
-# --- Testing Targets ---
+# --- Testing Targets (Local) ---
 
-.PHONY: test
-test: ## Run all tests with pytest
-	@echo "${CYAN}Running all tests...${NC}"
+.PHONY: local-test
+local-test: ## Run all tests locally with pytest
+	@echo "${CYAN}Running all tests locally...${NC}"
 	@pytest -v
 
-.PHONY: test-unit
-test-unit: ## Run unit tests only
-	@echo "${CYAN}Running unit tests...${NC}"
+.PHONY: local-test-unit
+local-test-unit: ## Run unit tests only locally
+	@echo "${CYAN}Running unit tests locally...${NC}"
 	@pytest -v tests/unit/
 
-.PHONY: test-integration
-test-integration: ## Run integration tests only
-	@echo "${CYAN}Running integration tests...${NC}"
+.PHONY: local-test-integration
+local-test-integration: ## Run integration tests only locally
+	@echo "${CYAN}Running integration tests locally...${NC}"
 	@pytest -v tests/integration/
 
-.PHONY: test-coverage
-test-coverage: ## Run tests with coverage report
-	@echo "${CYAN}Running tests with coverage...${NC}"
+.PHONY: local-test-coverage
+local-test-coverage: ## Run tests with coverage report locally
+	@echo "${CYAN}Running tests with coverage locally...${NC}"
 	@pytest --cov=app --cov-report=term --cov-report=html tests/
 
-.PHONY: test-watch
-test-watch: ## Run tests in watch mode, rerunning on file changes
-	@echo "${CYAN}Running tests in watch mode...${NC}"
+.PHONY: local-test-watch
+local-test-watch: ## Run tests in watch mode locally, rerunning on file changes
+	@echo "${CYAN}Running tests in watch mode locally...${NC}"
 	@pytest-watch -- -v tests/
+
+# --- Convenience Testing Targets (delegates to container) ---
+
+.PHONY: test-unit
+test-unit: ensure-running ## Run unit tests inside the container
+	@echo "${CYAN}Running unit tests in container...${NC}"
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) pytest -v tests/unit/
+
+.PHONY: test-integration
+test-integration: ensure-running ## Run integration tests inside the container
+	@echo "${CYAN}Running integration tests in container...${NC}"
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) pytest -v tests/integration/
 
 # --- MCP Server ---
 
