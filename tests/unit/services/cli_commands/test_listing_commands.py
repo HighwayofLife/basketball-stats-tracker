@@ -29,7 +29,7 @@ class TestListingCommands:
         player = MagicMock()
         player.id = 1
         player.name = "John Doe"
-        player.jersey_number = 23
+        player.jersey_number = "23"
         player.position = "PG"
         player.height = 72
         player.weight = 180

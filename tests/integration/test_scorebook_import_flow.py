@@ -2,23 +2,25 @@
 Integration tests for the complete scorebook import flow including player creation.
 """
 
+import pytest
 from sqlalchemy.orm import Session
+from .test_game_entry_workflow import test_client, mock_db_manager
 
 
 class TestScorebookImportFlow:
     """Integration tests for the complete scorebook import workflow."""
 
-    def test_import_game_with_new_players(self, client, db_session: Session):
+    def test_import_game_with_new_players(self, test_client, db_session: Session):
         """Test importing a game that requires creating new players."""
         # First, create teams
-        teams_response = client.get("/v1/teams/detail")
+        teams_response = test_client.get("/v1/teams/detail")
         teams = teams_response.json()
 
         if len(teams) < 2:
             # Create teams if they don't exist
-            client.post("/v1/teams/new", json={"name": "Lakers"})
-            client.post("/v1/teams/new", json={"name": "Warriors"})
-            teams_response = client.get("/v1/teams/detail")
+            test_client.post("/v1/teams/new", json={"name": "Lakers"})
+            test_client.post("/v1/teams/new", json={"name": "Warriors"})
+            teams_response = test_client.get("/v1/teams/detail")
             teams = teams_response.json()
 
         lakers = next(t for t in teams if t["name"] == "Lakers")
@@ -60,7 +62,7 @@ class TestScorebookImportFlow:
         }
 
         # First create the players
-        lebron_response = client.post(
+        lebron_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "LeBron James",
@@ -75,7 +77,7 @@ class TestScorebookImportFlow:
         assert lebron_response.status_code == 200
         lebron = lebron_response.json()
 
-        curry_response = client.post(
+        curry_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Stephen Curry",
@@ -95,14 +97,14 @@ class TestScorebookImportFlow:
         game_data["player_stats"][1]["player_id"] = curry["id"]
 
         # Create the game
-        response = client.post("/v1/games/scorebook", json=game_data)
+        response = test_client.post("/v1/games/scorebook", json=game_data)
         assert response.status_code == 200
 
         result = response.json()
         game_id = result["game_id"]
 
         # Verify the game was created correctly
-        game_response = client.get(f"/v1/games/{game_id}")
+        game_response = test_client.get(f"/v1/games/{game_id}")
         assert game_response.status_code == 200
 
         game = game_response.json()
@@ -124,15 +126,15 @@ class TestScorebookImportFlow:
         assert curry_stats["three_pointers_attempted"] == 11
         assert curry_stats["personal_fouls"] == 3
 
-    def test_import_game_with_jersey_conflict(self, client, db_session: Session):
+    def test_import_game_with_jersey_conflict(self, test_client, db_session: Session):
         """Test handling jersey number conflicts during import."""
         # Get teams
-        teams_response = client.get("/v1/teams/detail")
+        teams_response = test_client.get("/v1/teams/detail")
         teams = teams_response.json()
         team = teams[0]
 
         # Create a player with jersey #0
-        player1_response = client.post(
+        player1_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Player Zero",
@@ -147,7 +149,7 @@ class TestScorebookImportFlow:
         assert player1_response.status_code == 200
 
         # Try to create another player with jersey #0 on same team
-        player2_response = client.post(
+        player2_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Another Zero",
@@ -163,7 +165,7 @@ class TestScorebookImportFlow:
         assert "already exists" in player2_response.json()["detail"]
 
         # But creating with jersey #00 should work (different string)
-        player3_response = client.post(
+        player3_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Double Zero",
@@ -179,16 +181,16 @@ class TestScorebookImportFlow:
         player3 = player3_response.json()
         assert player3["jersey_number"] == "00"
 
-    def test_import_game_updates_existing_player_stats(self, client, db_session: Session):
+    def test_import_game_updates_existing_player_stats(self, test_client, db_session: Session):
         """Test that importing a game updates stats for existing players."""
         # Get teams and create a game
-        teams_response = client.get("/v1/teams/detail")
+        teams_response = test_client.get("/v1/teams/detail")
         teams = teams_response.json()
         home_team = teams[0]
         away_team = teams[1]
 
         # Get existing players
-        players_response = client.get("/v1/players/list")
+        players_response = test_client.get("/v1/players/list")
         players = players_response.json()
         home_player = next(p for p in players if p["team_id"] == home_team["id"])
         away_player = next(p for p in players if p["team_id"] == away_team["id"])
@@ -213,7 +215,7 @@ class TestScorebookImportFlow:
             ],
         }
 
-        response1 = client.post("/v1/games/scorebook", json=game1_data)
+        response1 = test_client.post("/v1/games/scorebook", json=game1_data)
         assert response1.status_code == 200
 
         # Create second game on different date
@@ -236,12 +238,12 @@ class TestScorebookImportFlow:
             ],
         }
 
-        response2 = client.post("/v1/games/scorebook", json=game2_data)
+        response2 = test_client.post("/v1/games/scorebook", json=game2_data)
         assert response2.status_code == 200
 
         # Both games should exist and have different stats
-        game1 = client.get(f"/v1/games/{response1.json()['game_id']}").json()
-        game2 = client.get(f"/v1/games/{response2.json()['game_id']}").json()
+        game1 = test_client.get(f"/v1/games/{response1.json()['game_id']}").json()
+        game2 = test_client.get(f"/v1/games/{response2.json()['game_id']}").json()
 
         # Check first game stats
         game1_stats = game1["player_stats"][0]
@@ -253,27 +255,27 @@ class TestScorebookImportFlow:
         assert game2_stats["points"] == 15  # 9 + 4 + 2 = 15
         assert game2_stats["personal_fouls"] == 4
 
-    def test_csv_import_simulation(self, client, db_session: Session):
+    def test_csv_import_simulation(self, test_client, db_session: Session):
         """Simulate the full CSV import process as it would happen in the UI."""
         # This test simulates what happens when a user imports a CSV file
         # with both existing and new players
 
-        teams_response = client.get("/v1/teams/detail")
+        teams_response = test_client.get("/v1/teams/detail")
         teams = teams_response.json()
         blue_team = next((t for t in teams if t["name"] == "Blue"), None)
         black_team = next((t for t in teams if t["name"] == "Black"), None)
 
         # Create teams if they don't exist
         if not blue_team:
-            blue_response = client.post("/v1/teams/new", json={"name": "Blue"})
+            blue_response = test_client.post("/v1/teams/new", json={"name": "Blue"})
             blue_team = blue_response.json()
 
         if not black_team:
-            black_response = client.post("/v1/teams/new", json={"name": "Black"})
+            black_response = test_client.post("/v1/teams/new", json={"name": "Black"})
             black_team = black_response.json()
 
         # Create one existing player
-        existing_player_response = client.post(
+        existing_player_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Jose",
@@ -324,7 +326,7 @@ class TestScorebookImportFlow:
 
         # Step 1: Create new players (Jordan and Kyle)
         # In the UI, this happens when the user clicks Save and new players are detected
-        jordan_response = client.post(
+        jordan_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Jordan",
@@ -339,7 +341,7 @@ class TestScorebookImportFlow:
         assert jordan_response.status_code == 200
         jordan = jordan_response.json()
 
-        kyle_response = client.post(
+        kyle_response = test_client.post(
             "/v1/players/new",
             json={
                 "name": "Kyle",
@@ -398,12 +400,12 @@ class TestScorebookImportFlow:
             ],
         }
 
-        response = client.post("/v1/games/scorebook", json=game_data)
+        response = test_client.post("/v1/games/scorebook", json=game_data)
         assert response.status_code == 200
 
         # Verify the game
         game_id = response.json()["game_id"]
-        game = client.get(f"/v1/games/{game_id}").json()
+        game = test_client.get(f"/v1/games/{game_id}").json()
 
         assert len(game["player_stats"]) == 3
 

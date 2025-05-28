@@ -39,13 +39,13 @@ class TestReportGenerator:
         player_a1 = MagicMock(spec=Player)
         player_a1.id = 1
         player_a1.name = "Player One"
-        player_a1.jersey_number = 10
+        player_a1.jersey_number = "10"
         player_a1.team_id = team_a.id
 
         player_a2 = MagicMock(spec=Player)
         player_a2.id = 2
         player_a2.name = "Player Two"
-        player_a2.jersey_number = 20
+        player_a2.jersey_number = "20"
         player_a2.team_id = team_a.id
 
         # Create mock game
@@ -88,13 +88,13 @@ class TestReportGenerator:
         player_a1 = MagicMock(spec=Player)
         player_a1.id = 1
         player_a1.name = "Player One"
-        player_a1.jersey_number = 10
+        player_a1.jersey_number = "10"
         player_a1.team_id = mock_game_data["playing_team"].id
 
         player_a2 = MagicMock(spec=Player)
         player_a2.id = 2
         player_a2.name = "Player Two"
-        player_a2.jersey_number = 20
+        player_a2.jersey_number = "20"
         player_a2.team_id = mock_game_data["playing_team"].id
 
         # Create mock player game stats

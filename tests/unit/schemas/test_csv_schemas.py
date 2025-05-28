@@ -88,7 +88,7 @@ class TestPlayerStatsRowSchema:
         """Test validating valid player stats row."""
         player_stats = {
             "TeamName": "Team A",
-            "PlayerJersey": 10,
+            "PlayerJersey": "10",
             "PlayerName": "Player One",
             "Fouls": 2,
             "QT1Shots": "22-1x",
@@ -99,7 +99,7 @@ class TestPlayerStatsRowSchema:
         validated = PlayerStatsRowSchema(**player_stats)
 
         assert validated.TeamName == "Team A"
-        assert validated.PlayerJersey == 10
+        assert validated.PlayerJersey == "10"
         assert validated.PlayerName == "Player One"
         assert validated.Fouls == 2
         assert validated.QT1Shots == "22-1x"
@@ -110,7 +110,7 @@ class TestPlayerStatsRowSchema:
     def test_missing_team_name(self):
         """Test validating player stats row with missing team name."""
         player_stats = {
-            "PlayerJersey": 10,
+            "PlayerJersey": "10",
             "PlayerName": "Player One",
             "Fouls": 2,
             "QT1Shots": "22-1x",
@@ -128,7 +128,7 @@ class TestPlayerStatsRowSchema:
         """Test validating player stats row with invalid player jersey."""
         player_stats = {
             "TeamName": "Team A",
-            "PlayerJersey": "Ten",  # Should be an integer
+            "PlayerJersey": "",  # Should not be empty
             "PlayerName": "Player One",
             "Fouls": 2,
             "QT1Shots": "22-1x",
@@ -140,13 +140,13 @@ class TestPlayerStatsRowSchema:
             PlayerStatsRowSchema(**player_stats)
 
         assert "PlayerJersey" in str(excinfo.value)
-        assert "Input should be a valid integer" in str(excinfo.value)
+        assert "Jersey number cannot be empty" in str(excinfo.value)
 
     def test_negative_fouls(self):
         """Test validating player stats row with negative fouls."""
         player_stats = {
             "TeamName": "Team A",
-            "PlayerJersey": 10,
+            "PlayerJersey": "10",
             "PlayerName": "Player One",
             "Fouls": -1,  # Should be non-negative
             "QT1Shots": "22-1x",
@@ -164,7 +164,7 @@ class TestPlayerStatsRowSchema:
         """Test validating player stats row with no fouls (should default to 0)."""
         player_stats = {
             "TeamName": "Team A",
-            "PlayerJersey": 10,
+            "PlayerJersey": "10",
             "PlayerName": "Player One",
             # Fouls omitted
             "QT1Shots": "22-1x",
@@ -189,7 +189,7 @@ class TestGameStatsCSVInputSchema:
         player_stats_data = [
             {
                 "TeamName": "Team A",
-                "PlayerJersey": 10,
+                "PlayerJersey": "10",
                 "PlayerName": "Player One",
                 "Fouls": 2,
                 "QT1Shots": "22-1x",
@@ -199,7 +199,7 @@ class TestGameStatsCSVInputSchema:
             },
             {
                 "TeamName": "Team B",
-                "PlayerJersey": 5,
+                "PlayerJersey": "5",
                 "PlayerName": "Player Alpha",
                 "Fouls": 1,
                 "QT1Shots": "x",
@@ -229,7 +229,7 @@ class TestGameStatsCSVInputSchema:
         # Create player stats row objects first
         player_data = {
             "TeamName": "Team A",
-            "PlayerJersey": 10,
+            "PlayerJersey": "10",
             "PlayerName": "Player One",
             "Fouls": 2,
             "QT1Shots": "22-1x",

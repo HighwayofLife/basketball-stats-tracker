@@ -77,10 +77,10 @@ Missing required rows"""
         ):
             team_data = {"Lakers": {"count": 2}, "Warriors": {"count": 2}}
             player_data = [
-                {"team_name": "Lakers", "name": "LeBron James", "jersey_number": 23},
-                {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": 3},
-                {"team_name": "Warriors", "name": "Stephen Curry", "jersey_number": 30},
-                {"team_name": "Warriors", "name": "Klay Thompson", "jersey_number": 11},
+                {"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"},
+                {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": "3"},
+                {"team_name": "Warriors", "name": "Stephen Curry", "jersey_number": "30"},
+                {"team_name": "Warriors", "name": "Klay Thompson", "jersey_number": "11"},
             ]
 
             mock_read.return_value = (team_data, player_data)
@@ -111,7 +111,7 @@ Missing required rows"""
             patch("app.services.csv_import_service._process_roster_import") as mock_process,
         ):
             team_data = {"Lakers": {"count": 2}}
-            player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": 23}]
+            player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"}]
 
             mock_read.return_value = (team_data, player_data)
 
@@ -133,7 +133,7 @@ Missing required rows"""
 
             assert len(player_data) == 4
             assert player_data[0]["name"] == "LeBron James"
-            assert player_data[0]["jersey_number"] == 23
+            assert player_data[0]["jersey_number"] == "23"
 
     @patch("typer.echo")
     def test_read_and_validate_roster_csv_missing_headers(self, mock_echo, invalid_roster_csv_content):
@@ -192,8 +192,8 @@ Lakers,LeBron James,twenty-three"""
         mock_query.filter.return_value = mock_filter
 
         player_data = [
-            {"team_name": "Lakers", "name": "LeBron James", "jersey_number": 23},
-            {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": 3},
+            {"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"},
+            {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": "3"},
         ]
         team_name_to_id = {"Lakers": 1}
 
@@ -215,9 +215,9 @@ Lakers,LeBron James,twenty-three"""
         mock_db.query.return_value = mock_query
 
         # Player exists with same jersey but different name
-        mock_query.filter.return_value.first.return_value = MagicMock(name="Different Player", jersey_number=23)
+        mock_query.filter.return_value.first.return_value = MagicMock(name="Different Player", jersey_number="23")
 
-        player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": 23}]
+        player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"}]
         team_name_to_id = {"Lakers": 1}
 
         players_added, players_existing, players_error = csv_import_service._process_players(
@@ -319,7 +319,7 @@ Lakers,LeBron James,twenty-three"""
             mock_process.return_value = [
                 PlayerStatsRowSchema(
                     TeamName="Lakers",
-                    PlayerJersey=23,
+                    PlayerJersey="23",
                     PlayerName="LeBron James",
                     Fouls=2,
                     QT1Shots="22-1x",
@@ -369,7 +369,7 @@ Lakers,LeBron James,twenty-three"""
         result = csv_import_service._extract_player_data_from_row(header, row, 0)
 
         assert result["TeamName"] == "Lakers"
-        assert result["PlayerJersey"] == 23
+        assert result["PlayerJersey"] == "23"
         assert result["PlayerName"] == "LeBron James"
         assert result["Fouls"] == 2
         assert result["QT1Shots"] == "FT-"
@@ -382,7 +382,7 @@ Lakers,LeBron James,twenty-three"""
 
         result = csv_import_service._extract_player_data_from_row(header, row, 0)
 
-        assert result["PlayerJersey"] == 0  # Should default to 0
+        assert result["PlayerJersey"] == "invalid"  # Should keep the string value
         assert result["Fouls"] == 0  # Should default to 0
 
     def test_process_game_stats_import(self):
@@ -395,7 +395,7 @@ Lakers,LeBron James,twenty-three"""
             player_stats=[
                 PlayerStatsRowSchema(
                     TeamName="Lakers",
-                    PlayerJersey=23,
+                    PlayerJersey="23",
                     PlayerName="LeBron James",
                     Fouls=2,
                     QT1Shots="22-1x",
@@ -429,7 +429,7 @@ Lakers,LeBron James,twenty-three"""
         player_stats = [
             PlayerStatsRowSchema(
                 TeamName="Lakers",
-                PlayerJersey=23,
+                PlayerJersey="23",
                 PlayerName="LeBron James",
                 Fouls=2,
                 QT1Shots="FT-",
@@ -457,7 +457,7 @@ Lakers,LeBron James,twenty-three"""
         player_stats = [
             PlayerStatsRowSchema(
                 TeamName="Lakers",
-                PlayerJersey=23,
+                PlayerJersey="23",
                 PlayerName="LeBron James",
                 Fouls=2,
                 QT1Shots="FT-",
@@ -489,7 +489,7 @@ Lakers,LeBron James,twenty-three"""
         player_stats = [
             PlayerStatsRowSchema(
                 TeamName="Lakers",
-                PlayerJersey=23,
+                PlayerJersey="23",
                 PlayerName="LeBron James",
                 Fouls=2,
                 QT1Shots="FT-",

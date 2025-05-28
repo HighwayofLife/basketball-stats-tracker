@@ -114,19 +114,19 @@ class TestGameEntryWorkflow:
 
         # Step 2: Create players for each team
         lakers_players = [
-            {"name": "LeBron James", "team_id": team1_id, "jersey_number": 23, "position": "SF"},
-            {"name": "Anthony Davis", "team_id": team1_id, "jersey_number": 3, "position": "PF"},
-            {"name": "Russell Westbrook", "team_id": team1_id, "jersey_number": 0, "position": "PG"},
-            {"name": "Carmelo Anthony", "team_id": team1_id, "jersey_number": 7, "position": "SF"},
-            {"name": "Dwight Howard", "team_id": team1_id, "jersey_number": 39, "position": "C"},
+            {"name": "LeBron James", "team_id": team1_id, "jersey_number": "23", "position": "SF"},
+            {"name": "Anthony Davis", "team_id": team1_id, "jersey_number": "3", "position": "PF"},
+            {"name": "Russell Westbrook", "team_id": team1_id, "jersey_number": "0", "position": "PG"},
+            {"name": "Carmelo Anthony", "team_id": team1_id, "jersey_number": "7", "position": "SF"},
+            {"name": "Dwight Howard", "team_id": team1_id, "jersey_number": "39", "position": "C"},
         ]
 
         warriors_players = [
-            {"name": "Stephen Curry", "team_id": team2_id, "jersey_number": 30, "position": "PG"},
-            {"name": "Klay Thompson", "team_id": team2_id, "jersey_number": 11, "position": "SG"},
-            {"name": "Draymond Green", "team_id": team2_id, "jersey_number": 23, "position": "PF"},
-            {"name": "Andrew Wiggins", "team_id": team2_id, "jersey_number": 22, "position": "SF"},
-            {"name": "Kevon Looney", "team_id": team2_id, "jersey_number": 5, "position": "C"},
+            {"name": "Stephen Curry", "team_id": team2_id, "jersey_number": "30", "position": "PG"},
+            {"name": "Klay Thompson", "team_id": team2_id, "jersey_number": "11", "position": "SG"},
+            {"name": "Draymond Green", "team_id": team2_id, "jersey_number": "23", "position": "PF"},
+            {"name": "Andrew Wiggins", "team_id": team2_id, "jersey_number": "22", "position": "SF"},
+            {"name": "Kevon Looney", "team_id": team2_id, "jersey_number": "5", "position": "C"},
         ]
 
         lakers_player_ids = []
@@ -345,7 +345,7 @@ class TestGameEntryWorkflow:
         player_data = {
             "name": "Test Player",
             "team_id": team_id,
-            "jersey_number": 42,
+            "jersey_number": "42",
             "position": "PG",
             "height": 75,
             "weight": 180,
@@ -369,12 +369,12 @@ class TestGameEntryWorkflow:
         assert update_response.json()["name"] == "Updated Team"
 
         # Update the player
-        player_update_data = {"name": "Updated Player", "jersey_number": 24, "position": "SG"}
+        player_update_data = {"name": "Updated Player", "jersey_number": "24", "position": "SG"}
         player_update_response = test_client.put(f"/v1/players/{player_id}", json=player_update_data)
         assert player_update_response.status_code == 200
         updated_player = player_update_response.json()
         assert updated_player["name"] == "Updated Player"
-        assert updated_player["jersey_number"] == 24
+        assert updated_player["jersey_number"] == "24"
         assert updated_player["position"] == "SG"
 
         # List all players
@@ -476,7 +476,7 @@ class TestGameEntryWorkflow:
         db_session = test_db_file_session  # Use file-based session for database queries
 
         # Try to create player for non-existent team
-        player_data = {"name": "Test Player", "team_id": 999, "jersey_number": 1}
+        player_data = {"name": "Test Player", "team_id": 999, "jersey_number": "1"}
         response = test_client.post("/v1/players/new", json=player_data)
         assert response.status_code == 400
         assert "Team not found" in response.json()["detail"]
@@ -486,13 +486,13 @@ class TestGameEntryWorkflow:
         team_id = team_response.json()["id"]
 
         player_response = test_client.post(
-            "/v1/players/new", json={"name": "Test Player", "team_id": team_id, "jersey_number": 1}
+            "/v1/players/new", json={"name": "Test Player", "team_id": team_id, "jersey_number": "1"}
         )
         player_id = player_response.json()["id"]
 
         # Try to create another player with same jersey number
         duplicate_response = test_client.post(
-            "/v1/players/new", json={"name": "Duplicate Player", "team_id": team_id, "jersey_number": 1}
+            "/v1/players/new", json={"name": "Duplicate Player", "team_id": team_id, "jersey_number": "1"}
         )
         assert duplicate_response.status_code == 400
         assert "already exists" in duplicate_response.json()["detail"]

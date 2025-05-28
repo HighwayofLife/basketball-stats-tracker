@@ -23,7 +23,7 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add(team)
         db_session.commit()
 
-        player = Player(name="Test Player", team_id=team.id, jersey_number=10)
+        player = Player(name="Test Player", team_id=team.id, jersey_number="10")
         db_session.add(player)
         db_session.commit()
 
@@ -49,7 +49,7 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add(team)
         db_session.commit()
 
-        player = Player(name="Test Player", team_id=team.id, jersey_number=10)
+        player = Player(name="Test Player", team_id=team.id, jersey_number="10")
         db_session.add(player)
         db_session.commit()
 
@@ -90,7 +90,7 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add(team)
         db_session.commit()
 
-        player = Player(name="Test Player", team_id=team.id, jersey_number=10)
+        player = Player(name="Test Player", team_id=team.id, jersey_number="10")
         db_session.add(player)
         db_session.commit()
 
@@ -117,9 +117,9 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add_all([team1, team2])
         db_session.commit()
 
-        player1 = Player(name="Player 1", team_id=team1.id, jersey_number=10)
-        player2 = Player(name="Player 2", team_id=team1.id, jersey_number=20)
-        player3 = Player(name="Player 3", team_id=team2.id, jersey_number=30)
+        player1 = Player(name="Player 1", team_id=team1.id, jersey_number="10")
+        player2 = Player(name="Player 2", team_id=team1.id, jersey_number="20")
+        player3 = Player(name="Player 3", team_id=team2.id, jersey_number="30")
         db_session.add_all([player1, player2, player3])
         db_session.commit()
 
@@ -145,7 +145,7 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add(team)
         db_session.commit()
 
-        player = Player(name="Test Player", team_id=team.id, jersey_number=10)
+        player = Player(name="Test Player", team_id=team.id, jersey_number="10")
         db_session.add(player)
         db_session.commit()
 
@@ -176,7 +176,7 @@ class TestPlayerSeasonStatsCRUD:
         db_session.add(team)
         db_session.commit()
 
-        player = Player(name="Test Player", team_id=team.id, jersey_number=10)
+        player = Player(name="Test Player", team_id=team.id, jersey_number="10")
         db_session.add(player)
         db_session.commit()
 

@@ -32,7 +32,7 @@ class TestModelRelationships:
         player1 = Player(
             name="Player One",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             height=72,
             weight=180,
@@ -42,7 +42,7 @@ class TestModelRelationships:
         player2 = Player(
             name="Player Two",
             team_id=team.id,
-            jersey_number=2,
+            jersey_number="2",
             position="SG",
             height=75,
             weight=190,
@@ -144,7 +144,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -197,7 +197,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -264,7 +264,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team1.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -333,7 +333,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -381,7 +381,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -456,7 +456,7 @@ class TestModelRelationships:
         player1 = Player(
             name="Player One",
             team_id=team.id,
-            jersey_number=1,
+            jersey_number="1",
             position="PG",
             is_active=True,
         )
@@ -467,7 +467,7 @@ class TestModelRelationships:
         player2 = Player(
             name="Player Two",
             team_id=team.id,
-            jersey_number=1,  # Same jersey number
+            jersey_number="1",  # Same jersey number
             position="SG",
             is_active=True,
         )
@@ -484,7 +484,7 @@ class TestModelRelationships:
         player3 = Player(
             name="Player Three",
             team_id=team.id,
-            jersey_number=1,  # Same jersey number
+            jersey_number="1",  # Same jersey number
             position="SG",
             is_active=False,  # Inactive
         )
@@ -500,7 +500,7 @@ class TestModelRelationships:
         player4 = Player(
             name="Player Four",
             team_id=team.id,
-            jersey_number=2,  # Different jersey number
+            jersey_number="2",  # Different jersey number
             position="SG",
             is_active=False,  # Inactive
         )
@@ -524,7 +524,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=42,
+            jersey_number="42",
             position="PG",
             is_active=True,
         )
@@ -555,7 +555,7 @@ class TestModelRelationships:
         player = Player(
             name="Test Player",
             team_id=team.id,
-            jersey_number=42,
+            jersey_number="42",
             position="PG",
             height=75,  # 6'3"
             weight=180,
