@@ -264,8 +264,8 @@ class TestReportGenerator:
         # Check game info
         expected_date_str = "2025-05-01"  # Use string format for display
         assert game_info["date"] == expected_date_str
-        assert game_info["playing_team"] == "Team A"
-        assert game_info["opponent_team"] == "Team B"
+        assert game_info["playing_team"] == "Team Alpha"  # Uses display_name
+        assert game_info["opponent_team"] == "Team Beta"  # Uses display_name
 
         # Check player stats were calculated (checking first player)
         assert len(player_stats) > 0
@@ -415,8 +415,8 @@ class TestReportGenerator:
         # Check game info
         expected_date_str = "2025-05-01"  # Use string format for display
         assert game_info["date"] == expected_date_str
-        assert game_info["playing_team"] == "Team A"
-        assert game_info["opponent_team"] == "Team B"
+        assert game_info["playing_team"] == "Team Alpha"  # Uses display_name
+        assert game_info["opponent_team"] == "Team Beta"  # Uses display_name
 
         # Check player stats were calculated
         assert len(player_stats) > 0

@@ -67,11 +67,13 @@ def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
     from app.web_ui import dependencies
     from app.web_ui.routers import admin, games, pages, players
 
-    # Patch the original module
-    monkeypatch.setattr(db_session, "get_db_session", get_db_session_mock)
-
-    # Patch in dependencies
-    monkeypatch.setattr(dependencies, "get_db_session", get_db_session_mock)
+    # Store original functions for cleanup
+    original_get_db_session = db_session.get_db_session
+    original_deps_get_db_session = dependencies.get_db_session
+    
+    # Patch using direct assignment (more reliable than monkeypatch for this case)
+    db_session.get_db_session = get_db_session_mock
+    dependencies.get_db_session = get_db_session_mock
 
     # Patch in all router modules that have already imported it
     monkeypatch.setattr(players, "get_db_session", get_db_session_mock)
@@ -81,8 +83,10 @@ def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
 
     yield mock_manager
 
-    # Restore the original database manager
+    # Restore the original database manager and functions
     db_manager.db_manager = original_manager
+    db_session.get_db_session = original_get_db_session
+    dependencies.get_db_session = original_deps_get_db_session
 
 
 class TestGameEntryWorkflow:

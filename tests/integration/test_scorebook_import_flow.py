@@ -10,7 +10,7 @@ from .test_game_entry_workflow import test_client, mock_db_manager
 class TestScorebookImportFlow:
     """Integration tests for the complete scorebook import workflow."""
 
-    def test_import_game_with_new_players(self, test_client, db_session: Session):
+    def test_import_game_with_new_players(self, test_client, mock_db_manager, db_session: Session):
         """Test importing a game that requires creating new players."""
         # First, create teams
         teams_response = test_client.get("/v1/teams/detail")
@@ -126,7 +126,7 @@ class TestScorebookImportFlow:
         assert curry_stats["three_pointers_attempted"] == 11
         assert curry_stats["personal_fouls"] == 3
 
-    def test_import_game_with_jersey_conflict(self, test_client, db_session: Session):
+    def test_import_game_with_jersey_conflict(self, test_client, mock_db_manager, db_session: Session):
         """Test handling jersey number conflicts during import."""
         # Get teams
         teams_response = test_client.get("/v1/teams/detail")
@@ -181,7 +181,7 @@ class TestScorebookImportFlow:
         player3 = player3_response.json()
         assert player3["jersey_number"] == "00"
 
-    def test_import_game_updates_existing_player_stats(self, test_client, db_session: Session):
+    def test_import_game_updates_existing_player_stats(self, test_client, mock_db_manager, db_session: Session):
         """Test that importing a game updates stats for existing players."""
         # Get teams and create a game
         teams_response = test_client.get("/v1/teams/detail")
@@ -255,7 +255,7 @@ class TestScorebookImportFlow:
         assert game2_stats["points"] == 15  # 9 + 4 + 2 = 15
         assert game2_stats["personal_fouls"] == 4
 
-    def test_csv_import_simulation(self, test_client, db_session: Session):
+    def test_csv_import_simulation(self, test_client, mock_db_manager, db_session: Session):
         """Simulate the full CSV import process as it would happen in the UI."""
         # This test simulates what happens when a user imports a CSV file
         # with both existing and new players
