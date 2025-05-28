@@ -55,8 +55,8 @@ class PlayerStatsRowSchema(BaseModel):
             raise ValueError("Input should be greater than or equal to 0", field_name)
         return value
 
-    @classmethod
     @field_validator("PlayerJersey")
+    @classmethod
     def validate_jersey_number(cls, value):
         """Validates that jersey number is a valid string."""
         if not value or not value.strip():

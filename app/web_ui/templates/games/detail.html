@@ -315,17 +315,29 @@
 
         // Update top players section
         if (data.away_team.top_player) {
+            const player = data.away_team.top_player;
+            const fgMade = (player.fg2m || 0) + (player.fg3m || 0);
+            const fgAttempted = (player.fg2a || 0) + (player.fg3a || 0);
+            const fg3Percentage = (player.fg3a > 0) ? ((player.fg3m || 0) / player.fg3a * 100).toFixed(1) : '0.0';
+            
             document.getElementById('away-top-team-name').textContent = data.away_team.name;
-            document.getElementById('away-top-player-name').textContent = data.away_team.top_player.name;
-            document.getElementById('away-top-player-stats').textContent =
-                `${data.away_team.top_player.points} PTS, ${data.away_team.top_player.fg_percentage.toFixed(1)}% FG`;
+            document.getElementById('away-top-player-name').textContent = player.name;
+            document.getElementById('away-top-player-stats').innerHTML =
+                `${player.points} PTS, ${fgMade}/${fgAttempted} FG (${player.fg_percentage.toFixed(1)}%)<br>` +
+                `${player.fg3m || 0}/${player.fg3a || 0} 3PT (${fg3Percentage}%)`;
         }
 
         if (data.home_team.top_player) {
+            const player = data.home_team.top_player;
+            const fgMade = (player.fg2m || 0) + (player.fg3m || 0);
+            const fgAttempted = (player.fg2a || 0) + (player.fg3a || 0);
+            const fg3Percentage = (player.fg3a > 0) ? ((player.fg3m || 0) / player.fg3a * 100).toFixed(1) : '0.0';
+            
             document.getElementById('home-top-team-name').textContent = data.home_team.name;
-            document.getElementById('home-top-player-name').textContent = data.home_team.top_player.name;
-            document.getElementById('home-top-player-stats').textContent =
-                `${data.home_team.top_player.points} PTS, ${data.home_team.top_player.fg_percentage.toFixed(1)}% FG`;
+            document.getElementById('home-top-player-name').textContent = player.name;
+            document.getElementById('home-top-player-stats').innerHTML =
+                `${player.points} PTS, ${fgMade}/${fgAttempted} FG (${player.fg_percentage.toFixed(1)}%)<br>` +
+                `${player.fg3m || 0}/${player.fg3a || 0} 3PT (${fg3Percentage}%)`;
         }
 
         // Populate away team stats
@@ -420,51 +432,72 @@
         const homeTeam = data.home_team;
 
         // Calculate percentages from player stats
-        let awayFGM = 0, awayFGA = 0, away3PM = 0, away3PA = 0, awayFTM = 0, awayFTA = 0;
-        let homeFGM = 0, homeFGA = 0, home3PM = 0, home3PA = 0, homeFTM = 0, homeFTA = 0;
+        let awayFGM = 0, awayFGA = 0, away2PM = 0, away2PA = 0, away3PM = 0, away3PA = 0, awayFTM = 0, awayFTA = 0;
+        let homeFGM = 0, homeFGA = 0, home2PM = 0, home2PA = 0, home3PM = 0, home3PA = 0, homeFTM = 0, homeFTA = 0;
+        let awayPoints = 0, homePoints = 0;
 
         awayTeam.players.forEach(player => {
             const stats = player.stats;
-            awayFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
-            awayFGA += (stats.fg2a || 0) + (stats.fg3a || 0);
+            away2PM += stats.fg2m || 0;
+            away2PA += stats.fg2a || 0;
             away3PM += stats.fg3m || 0;
             away3PA += stats.fg3a || 0;
+            awayFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
+            awayFGA += (stats.fg2a || 0) + (stats.fg3a || 0);
             awayFTM += stats.ftm || 0;
             awayFTA += stats.fta || 0;
+            awayPoints += stats.points || 0;
         });
 
         homeTeam.players.forEach(player => {
             const stats = player.stats;
-            homeFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
-            homeFGA += (stats.fg2a || 0) + (stats.fg3a || 0);
+            home2PM += stats.fg2m || 0;
+            home2PA += stats.fg2a || 0;
             home3PM += stats.fg3m || 0;
             home3PA += stats.fg3a || 0;
+            homeFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
+            homeFGA += (stats.fg2a || 0) + (stats.fg3a || 0);
             homeFTM += stats.ftm || 0;
             homeFTA += stats.fta || 0;
+            homePoints += stats.points || 0;
         });
 
+        // Calculate basic percentages
         const awayFG = awayFGA > 0 ? (awayFGM / awayFGA * 100) : 0;
+        const away2PT = away2PA > 0 ? (away2PM / away2PA * 100) : 0;
         const away3PT = away3PA > 0 ? (away3PM / away3PA * 100) : 0;
         const awayFT = awayFTA > 0 ? (awayFTM / awayFTA * 100) : 0;
 
         const homeFG = homeFGA > 0 ? (homeFGM / homeFGA * 100) : 0;
+        const home2PT = home2PA > 0 ? (home2PM / home2PA * 100) : 0;
         const home3PT = home3PA > 0 ? (home3PM / home3PA * 100) : 0;
         const homeFT = homeFTA > 0 ? (homeFTM / homeFTA * 100) : 0;
+
+        // Calculate advanced metrics
+        // eFG% = (FGM + 0.5 * 3PM) / FGA
+        const awayEFG = awayFGA > 0 ? ((awayFGM + 0.5 * away3PM) / awayFGA * 100) : 0;
+        const homeEFG = homeFGA > 0 ? ((homeFGM + 0.5 * home3PM) / homeFGA * 100) : 0;
+
+        // TS% = Points / (2 * (FGA + 0.44 * FTA))
+        const awayTSA = 2 * (awayFGA + 0.44 * awayFTA);
+        const awayTS = awayTSA > 0 ? (awayPoints / awayTSA * 100) : 0;
+        const homeTSA = 2 * (homeFGA + 0.44 * homeFTA);
+        const homeTS = homeTSA > 0 ? (homePoints / homeTSA * 100) : 0;
 
         new Chart(ctx, {
             type: 'bar',
             data: {
-                labels: ['FG%', '3PT%', 'FT%'],
+                labels: ['FG%', '2PT%', '3PT%', 'FT%', 'eFG%', 'TS%'],
                 datasets: [
                     {
                         label: awayTeam.name,
                         backgroundColor: 'rgba(54, 162, 235, 0.7)',
-                        data: [awayFG, away3PT, awayFT]
+                        data: [awayFG, away2PT, away3PT, awayFT, awayEFG, awayTS]
                     },
                     {
                         label: homeTeam.name,
                         backgroundColor: 'rgba(255, 99, 132, 0.7)',
-                        data: [homeFG, home3PT, homeFT]
+                        data: [homeFG, home2PT, home3PT, homeFT, homeEFG, homeTS]
                     }
                 ]
             },
