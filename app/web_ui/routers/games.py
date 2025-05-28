@@ -255,6 +255,10 @@ async def get_box_score(game_id: int):
                         "fg_percentage": fg_percentage,
                         "rebounds": top.get("rebounds", 0),
                         "assists": top.get("assists", 0),
+                        "fg2m": top.get("fg2m", 0),
+                        "fg2a": top.get("fg2a", 0),
+                        "fg3m": top.get("fg3m", 0),
+                        "fg3a": top.get("fg3a", 0),
                     }
                 return None
 

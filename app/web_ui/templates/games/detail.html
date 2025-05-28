@@ -274,7 +274,7 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="team-name-cell">${getShortTeamName(awayTeam.name)}</td>
+                            <td class="team-name-cell">${awayTeam.name}</td>
                             <td>${awayQuarters[1] || 0}</td>
                             <td>${awayQuarters[2] || 0}</td>
                             <td>${awayQuarters[3] || 0}</td>
@@ -282,7 +282,7 @@
                             <td class="total-score">${awayTeam.score}</td>
                         </tr>
                         <tr>
-                            <td class="team-name-cell">${getShortTeamName(homeTeam.name)}</td>
+                            <td class="team-name-cell">${homeTeam.name}</td>
                             <td>${homeQuarters[1] || 0}</td>
                             <td>${homeQuarters[2] || 0}</td>
                             <td>${homeQuarters[3] || 0}</td>
@@ -297,16 +297,6 @@
         `;
     }
 
-    function getShortTeamName(fullName) {
-        // Extract a short team name from the full display name
-        // This could be improved with actual team abbreviations stored in the database
-        const words = fullName.split(' ');
-        if (words.length === 1) {
-            return words[0].substring(0, 3).toUpperCase();
-        }
-        // Take first letter of each word, up to 3 letters
-        return words.map(word => word.charAt(0)).join('').substring(0, 3).toUpperCase();
-    }
 
     function loadBoxScoreData(data) {
         // Update team names
