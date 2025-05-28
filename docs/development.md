@@ -381,11 +381,11 @@ basketball_stats_tracker/
 
 ## CLI Commands
 
-The application is designed to be used primarily through CLI commands rather than Make targets, though Make targets exist for development convenience.
+The application provides comprehensive CLI commands for power users and automation.
 
-### Data Import
+### Data Import Commands
 
-Import team rosters:
+**Import team rosters:**
 ```bash
 # Basic usage
 basketball-stats import-roster --file players_template.csv
@@ -396,7 +396,15 @@ basketball-stats import-roster -f players_template.csv
 basketball-stats import-roster -f players_template.csv --dry-run
 ```
 
-Import game statistics:
+Player roster CSV format:
+```csv
+team_name,player_name,jersey_number
+Warriors,Stephen Curry,30
+Warriors,Klay Thompson,11
+Lakers,LeBron James,23
+```
+
+**Import game statistics:**
 ```bash
 # Basic usage
 basketball-stats import-game --file game_stats_template.csv
@@ -406,6 +414,23 @@ basketball-stats import-game -f game_stats_template.csv
 # Preview changes without modifying the database
 basketball-stats import-game -f game_stats_template.csv --dry-run
 ```
+
+Game statistics CSV format:
+```csv
+Home,Team A
+Visitor,Team B
+Date,2025-05-15
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Team A,10,Player One,2,22-1x,3/2,11,
+Team A,23,Player Two,3,12,x,-/,22
+```
+
+**Shot String Format:**
+- `2` = Made 2-pointer | `-` = Missed 2-pointer
+- `3` = Made 3-pointer | `/` = Missed 3-pointer  
+- `1` = Made free throw | `x` = Missed free throw
+
+Example: `22-1x` = 2 made 2-pointers, 1 missed 2-pointer, 1 made free throw, 1 missed free throw
 
 ### Database Management
 
@@ -418,20 +443,52 @@ basketball-stats health-check
 
 # Seed database with sample data
 basketball-stats seed-db
+
+# Start web server
+basketball-stats web-server --port 8000
+
+# Start MCP server for API access
+basketball-stats mcp-server
 ```
 
 ### Report Generation
 
-Generate box score reports:
+Generate detailed reports:
 ```bash
 # Console output (default)
 basketball-stats report --id 1
 
-# CSV output
+# CSV output with default filename
 basketball-stats report --id 1 --format csv
 
 # CSV output with custom filename
-basketball-stats report --id 1 --format csv --output report.csv
+basketball-stats report --id 1 --format csv --output my_report.csv
+
+# Player season statistics
+basketball-stats report player-season --player-id 1 --format csv
+
+# Team season statistics  
+basketball-stats report team-season --team-id 1 --format csv
+```
+
+### Listing Commands
+
+View existing data:
+```bash
+# List all teams
+basketball-stats list teams
+
+# List all players
+basketball-stats list players
+
+# List all games
+basketball-stats list games
+
+# List games for a specific team
+basketball-stats list games --team-id 1
+
+# List players for a specific team
+basketball-stats list players --team-id 1
 ```
 
 ## Available Make Commands

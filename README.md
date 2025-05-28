@@ -1,217 +1,119 @@
-# Python Basketball Stats Tracker
+# Basketball Stats Tracker
 
-A simple application for tracking basketball game statistics for a small league. This application allows for easy data entry via CSV files and generates statistical reports for games and players.
-
-![Basketball Stats Tracker Application](assets/basketball-stats-tracker-app.png)
+A comprehensive basketball statistics management system designed for small leagues and teams. Track game performance, manage rosters, and generate detailed reports through both web interface and command-line tools.
 
 ## Features
 
-- Game and player stats import via CSV files
-- Game summary reports via CLI or CSV export
-- Roster management via CSV import
-- Configurable shot string parsing for flexible data entry
-- Team and player performance statistics
-- Standalone executable available (no Python installation required)
+### Game Management
+- **Live Game Entry**: Real-time statistics entry during games via web interface
+- **Scorebook Entry**: Traditional paper scorebook data entry with CSV import
+- **Game Reports**: Detailed box scores and performance analytics
+- **Historical Data**: Track season-long statistics and trends
 
-## Quick Start
+### Data Management
+- **Team & Player Management**: Organize rosters with detailed player information
+- **CSV Import/Export**: Bulk data operations for rosters and game statistics
+- **Data Validation**: Automatic error checking and duplicate prevention
+- **Season Statistics**: Automatic calculation of cumulative stats
 
-Choose the option that works best for you:
+### Interfaces
+- **Web UI**: Modern web interface accessible at http://localhost:8000
+- **Command Line**: Full-featured CLI for automation and advanced users
+- **Standalone App**: No installation required - download and run
+- **API Access**: REST API for custom integrations
 
-1. **Standalone Application** - Download and run, no installation required
-2. **Python Package** - If you already use Python
+## Installation
 
-### Installation
+Choose the installation method that works best for you:
 
-Using pip:
+### Option 1: Web Application (Recommended)
 
-```bash
-# Install from PyPI
-pip install basketball-stats-tracker
-
-# Initialize the database
-basketball-stats init-db
-
-# Optional: Add sample data
-basketball-stats seed-db
-```
-
-That's it! The application is ready to use.
-
-> **Note:** For Docker setup or development environment instructions, see the [Developer Guide](docs/development.md).
-
-## Installation Options
-
-### Option 1: Docker (Recommended for Production)
-
-The easiest way to run the application in a production environment:
+Run the full web application with database:
 
 ```bash
-# Build the image
-make docker-build
-
-# Run the container
-make docker-run
-```
-
-The application will be available at `http://localhost:8000`.
-
-For development with Docker Compose (includes PostgreSQL database):
-```bash
-# Build and run with docker-compose
+# Using Docker (easiest)
+git clone https://github.com/highwayoflife/basketball-stats-tracker.git
+cd basketball-stats-tracker
 make run
-
-# Access logs
-make logs
-
-# Open a shell in the container
-make shell
-
-# Stop the containers
-make stop
 ```
 
-**Important Production Database Notes:**
-- The web UI at http://localhost:8000 uses the PostgreSQL database in the Docker container
-- All CLI commands for production must be run from inside the Docker container
-- To import data to production: `docker-compose exec -T web basketball-stats import-game --file /app/import/filename.csv`
-- Duplicate games are automatically prevented
+Access the web interface at **http://localhost:8000**
 
-The Docker implementation uses a multi-stage build for optimal image size and includes security best practices like running as a non-root user.
+### Option 2: Standalone Download
 
-### Option 2: Standalone Executable (Recommended for Most Users)
+Download and run without any installation:
 
-No Python installation required! Just download and run:
-
-1. Download the latest release for your OS from the [Releases page](https://github.com/highwayoflife/basketball-stats-tracker/releases)
+1. Download the latest release from the [Releases page](https://github.com/highwayoflife/basketball-stats-tracker/releases)
 2. Extract the ZIP file
 3. Run the application:
-   - **Windows**: Double-click `start.bat` or run `basketball-stats.exe`
-   - **macOS**: Use `./start.sh` or `./basketball-stats` in Terminal
-   - **Linux**: Use `./start.sh` or `./basketball-stats` in terminal
+   - **Windows**: Double-click `start.bat`
+   - **macOS/Linux**: Run `./start.sh` in Terminal
 
 ### Option 3: Python Package
 
-If you already use Python (version 3.11+):
+For Python users (version 3.11+):
 
 ```bash
-# Install from PyPI
 pip install basketball-stats-tracker
-
-# Initialize the database
 basketball-stats init-db
 ```
 
-## Using the Application
+## Getting Started
 
-### Importing Team Rosters
+### 1. Using the Web Interface
 
-Import your league's roster from a CSV file:
-```bash
-basketball-stats import-roster --file players_template.csv
-# Or simply with the short option:
-basketball-stats import-roster -f players_template.csv
-```
+After installation, access the web interface at **http://localhost:8000**
 
-To preview changes without modifying the database:
-```bash
-basketball-stats import-roster -f players_template.csv --dry-run
-```
+**Main Features:**
+- **Dashboard**: View recent games and team statistics
+- **Games**: Create new games and enter live statistics
+- **Teams & Players**: Manage rosters and player information
+- **Reports**: Generate box scores and season statistics
 
-The roster CSV file must include these columns:
-- `team_name`: The name of the team
-- `player_name`: The player's full name
-- `jersey_number`: The player's jersey number (integer)
+**Quick Workflow:**
+1. Navigate to **Teams** → Add your teams and players
+2. Go to **Games** → Create a new game
+3. Use **Live Entry** for real-time scoring or **Scorebook Entry** for post-game data
+4. View **Reports** for game summaries and statistics
 
-Example structure (`players_template.csv`):
-```
+### 2. Importing Data via CSV
+
+Bulk import rosters and game data using CSV files:
+
+**Player Roster Format:**
+```csv
 team_name,player_name,jersey_number
 Warriors,Stephen Curry,30
 Warriors,Klay Thompson,11
 Lakers,LeBron James,23
 ```
 
-### Importing Game Statistics
-
-Import game statistics from a CSV file:
-```bash
-basketball-stats import-game --file game_stats_template.csv
-# Or simply with the short option:
-basketball-stats import-game -f game_stats_template.csv
-```
-
-To preview changes without modifying the database:
-```bash
-basketball-stats import-game -f game_stats_template.csv --dry-run
-```
-
-The game statistics CSV file should have the following structure:
-1. Game information rows (Playing Team, Opponent Team, Date)
-2. Player statistics rows with the `PLAYER_DATA` prefix
-
-Example structure (`game_stats_template.csv`):
-```
-GAME_INFO_KEY,VALUE
-Playing Team,Team A
-Opponent Team,Team B
+**Game Statistics Format:**
+```csv
+Home,Team A
+Visitor,Team B
 Date,2025-05-15
-PLAYER_STATS_HEADER,Team Name,Player Jersey,Player Name,Fouls,QT1 Shots,QT2 Shots,QT3 Shots,QT4 Shots
-PLAYER_DATA,Team A,10,Player One,2,22-1x,3/2,11,
-PLAYER_DATA,Team A,23,Player Two,3,12,x,-/,22
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
+Team A,10,Player One,2,22-1x,3/2,11,
+Team A,23,Player Two,3,12,x,-/,22
 ```
 
-#### Shot String Format
+**Shot String Format:**
+- `2` = Made 2-pointer | `-` = Missed 2-pointer
+- `3` = Made 3-pointer | `/` = Missed 3-pointer  
+- `1` = Made free throw | `x` = Missed free throw
 
-The shot strings represent made/missed shots using the following characters:
-- `1` = made free throw (FT)
-- `x` = missed free throw
-- `2` = made 2-point field goal
-- `-` = missed 2-point field goal
-- `3` = made 3-point field goal
-- `/` = missed 3-point field goal
+Example: `22-1x` = 2 made 2-pointers, 1 missed 2-pointer, 1 made free throw, 1 missed free throw
 
-For example, the shot string `22-1x/` represents:
-- Two made 2-point shots (`22`)
-- One missed 2-point shot (`-`)
-- One made free throw (`1`)
-- One missed free throw (`x`)
-- One missed 3-point shot (`/`)
+## Advanced Usage
 
-### Generating Reports
+For command-line usage, API integration, and development setup, see:
 
-Generate box score reports for games:
-```bash
-# Console output (default)
-basketball-stats report --id 1
-# Or with the short option:
-basketball-stats report -i 1
+- **[Developer Guide](docs/development.md)** - CLI commands, development setup, testing
+- **[Design Document](docs/design_doc.md)** - Technical architecture and database schema
 
-# CSV output with default filename (game_1_box_score.csv)
-basketball-stats report -i 1 --format csv
+## Support
 
-# CSV output with custom filename
-basketball-stats report -i 1 -f csv -o my_report.csv
-```
-
-The report includes:
-- Individual player statistics (points, shooting percentages, etc.)
-- Team totals and shooting percentages
-- Game summary information
-
-## Documentation
-
-For more detailed information, please consult:
-
-- [Developer Guide](docs/development.md) - For development setup, database management, and CLI commands
-- [Design Document](docs/design_doc.md) - Technical design and architecture details
-- [Development Phases](docs/development_phases.md) - Project implementation roadmap
-
-## For Developers
-
-If you're interested in contributing to the project or building the standalone executable yourself, please see the [Developer Guide](docs/development.md) for detailed instructions on:
-
-- Setting up a development environment
-- Running tests
-- Building the standalone executable
-- Project architecture
-
-The developer documentation also contains information about the [PyInstaller bundling process](docs/pyinstaller_bundle.md) used to create the standalone executables.
+For issues, questions, or feature requests:
+- **GitHub Issues**: [Report bugs or request features](https://github.com/highwayoflife/basketball-stats-tracker/issues)
+- **Documentation**: Check the [Developer Guide](docs/development.md) for detailed usage
