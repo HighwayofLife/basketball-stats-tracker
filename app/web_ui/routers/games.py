@@ -191,6 +191,42 @@ async def get_box_score(game_id: int):
             playing_team_score = sum(p.get("points", 0) for p in playing_team_players)
             opponent_team_score = sum(p.get("points", 0) for p in opponent_team_players)
 
+            # Calculate quarter-by-quarter scores (separate from main score calculation)
+            playing_team_quarters = {1: 0, 2: 0, 3: 0, 4: 0}
+            opponent_team_quarters = {1: 0, 2: 0, 3: 0, 4: 0}
+
+            # Get all player game stats for this game to access quarter stats
+            all_player_game_stats = (
+                session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game_id).all()
+            )
+
+            logger.info(f"Found {len(all_player_game_stats)} player game stats for game {game_id}")
+
+            for pgs in all_player_game_stats:
+                # Get quarter stats for this player
+                quarter_stats = (
+                    session.query(models.PlayerQuarterStats)
+                    .filter(models.PlayerQuarterStats.player_game_stat_id == pgs.id)
+                    .all()
+                )
+
+                logger.info(f"Player {pgs.player.name} has {len(quarter_stats)} quarter stats")
+
+                for qs in quarter_stats:
+                    # Calculate points for this quarter
+                    quarter_points = qs.ftm + (qs.fg2m * 2) + (qs.fg3m * 3)
+
+                    # Add to appropriate team's quarter total
+                    if pgs.player.team_id == playing_team_id:
+                        playing_team_quarters[qs.quarter_number] += quarter_points
+                        logger.info(f"Added {quarter_points} points to playing team Q{qs.quarter_number}")
+                    elif pgs.player.team_id == opponent_team_id:
+                        opponent_team_quarters[qs.quarter_number] += quarter_points
+                        logger.info(f"Added {quarter_points} points to opponent team Q{qs.quarter_number}")
+
+            logger.info(f"Playing team quarters: {playing_team_quarters}")
+            logger.info(f"Opponent team quarters: {opponent_team_quarters}")
+
             # Find top player from each team
             def get_top_player(players):
                 if not players:
@@ -233,7 +269,7 @@ async def get_box_score(game_id: int):
                     team_id=playing_team_id or 0,  # Provide default value of 0 when None
                     name=game_summary.get("playing_team", ""),
                     score=playing_team_score,
-                    stats={},  # Team stats aggregation would go here
+                    stats={"quarter_scores": playing_team_quarters},  # Add quarter scores to team stats
                     players=playing_team_player_stats,
                     top_player=home_top_player,
                 ),
@@ -241,7 +277,7 @@ async def get_box_score(game_id: int):
                     team_id=opponent_team_id or 0,  # Provide default value of 0 when None
                     name=game_summary.get("opponent_team", ""),
                     score=opponent_team_score,
-                    stats={},  # Team stats aggregation would go here
+                    stats={"quarter_scores": opponent_team_quarters},  # Add quarter scores to team stats
                     players=opponent_team_player_stats,
                     top_player=away_top_player,
                 ),

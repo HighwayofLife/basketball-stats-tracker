@@ -2,6 +2,72 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<style>
+.game-header {
+    margin-bottom: 2rem;
+}
+
+.scoreboard {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.team-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.team-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.team-score {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.quarter-scores-table {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.quarter-scores-table th,
+.quarter-scores-table td {
+    text-align: center;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.quarter-scores-table th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.quarter-scores-table .team-name-cell {
+    text-align: left;
+    font-weight: bold;
+}
+
+.quarter-scores-table .total-score {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.game-date {
+    text-align: center;
+    color: #6c757d;
+    margin-top: 1rem;
+    font-size: 1.1rem;
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -137,29 +203,25 @@
     const gameId = pathParts[pathParts.length - 1];
 
     document.addEventListener('DOMContentLoaded', function() {
-        // Load game information
-        fetch(`/v1/games/${gameId}`)
-            .then(response => response.json())
-            .then(game => {
-                document.getElementById('game-info').innerHTML = `
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h2>${game.away_team} @ ${game.home_team}</h2>
-                            <p class="game-date">${formatDate(game.date)}</p>
-                            <p class="game-score">${game.away_score} - ${game.home_score}</p>
-                        </div>
-                        <a href="/games/${gameId}/edit-stats" class="btn btn-primary">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                            Edit Stats
-                        </a>
-                    </div>
-                `;
-            });
+        // Load game information and box score
+        Promise.all([
+            fetch(`/v1/games/${gameId}`),
+            fetch(`/v1/games/${gameId}/box-score`)
+        ])
+        .then(responses => Promise.all(responses.map(r => r.json())))
+        .then(([game, boxScore]) => {
+            // Create scoreboard header
+            createScoreboard(game, boxScore);
 
-        // Load box score
-        loadBoxScore();
+            // Load box score data
+            loadBoxScoreData(boxScore);
+        })
+        .catch(error => {
+            console.error('Error loading game data:', error);
+            document.getElementById('game-info').innerHTML = `
+                <p class="error-message">Failed to load game information. Please try again.</p>
+            `;
+        });
 
         // Set up tab switching
         document.querySelectorAll('.tab-btn').forEach(button => {
@@ -179,45 +241,101 @@
         });
     });
 
-    function loadBoxScore() {
-        fetch(`/v1/games/${gameId}/box-score`)
-            .then(response => response.json())
-            .then(data => {
-                // Update team names
-                document.getElementById('away-team-name').textContent = data.away_team.name;
-                document.getElementById('home-team-name').textContent = data.home_team.name;
+    function createScoreboard(game, boxScore) {
+        const awayTeam = boxScore.away_team;
+        const homeTeam = boxScore.home_team;
+        const awayQuarters = awayTeam.stats.quarter_scores || {};
+        const homeQuarters = homeTeam.stats.quarter_scores || {};
 
-                // Update top players section
-                if (data.away_team.top_player) {
-                    document.getElementById('away-top-team-name').textContent = data.away_team.name;
-                    document.getElementById('away-top-player-name').textContent = data.away_team.top_player.name;
-                    document.getElementById('away-top-player-stats').textContent = 
-                        `${data.away_team.top_player.points} PTS, ${data.away_team.top_player.fg_percentage.toFixed(1)}% FG`;
-                }
-                
-                if (data.home_team.top_player) {
-                    document.getElementById('home-top-team-name').textContent = data.home_team.name;
-                    document.getElementById('home-top-player-name').textContent = data.home_team.top_player.name;
-                    document.getElementById('home-top-player-stats').textContent = 
-                        `${data.home_team.top_player.points} PTS, ${data.home_team.top_player.fg_percentage.toFixed(1)}% FG`;
-                }
+        document.getElementById('game-info').innerHTML = `
+            <div class="scoreboard">
+                <div class="team-info">
+                    <div>
+                        <h2 class="team-name">${awayTeam.name} (Away)</h2>
+                    </div>
+                    <div class="team-score">${awayTeam.score}</div>
+                    <div style="text-align: center; font-size: 1.5rem; color: #6c757d;">vs</div>
+                    <div class="team-score">${homeTeam.score}</div>
+                    <div>
+                        <h2 class="team-name">${homeTeam.name} (Home)</h2>
+                    </div>
+                </div>
 
-                // Populate away team stats
-                populateTeamTable('away-team-table', data.away_team);
+                <table class="quarter-scores-table">
+                    <thead>
+                        <tr>
+                            <th>Team</th>
+                            <th>Q1</th>
+                            <th>Q2</th>
+                            <th>Q3</th>
+                            <th>Q4</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="team-name-cell">${getShortTeamName(awayTeam.name)}</td>
+                            <td>${awayQuarters[1] || 0}</td>
+                            <td>${awayQuarters[2] || 0}</td>
+                            <td>${awayQuarters[3] || 0}</td>
+                            <td>${awayQuarters[4] || 0}</td>
+                            <td class="total-score">${awayTeam.score}</td>
+                        </tr>
+                        <tr>
+                            <td class="team-name-cell">${getShortTeamName(homeTeam.name)}</td>
+                            <td>${homeQuarters[1] || 0}</td>
+                            <td>${homeQuarters[2] || 0}</td>
+                            <td>${homeQuarters[3] || 0}</td>
+                            <td>${homeQuarters[4] || 0}</td>
+                            <td class="total-score">${homeTeam.score}</td>
+                        </tr>
+                    </tbody>
+                </table>
 
-                // Populate home team stats
-                populateTeamTable('home-team-table', data.home_team);
+                <div class="game-date">${formatDate(game.date)}</div>
+            </div>
+        `;
+    }
 
-                // Create shooting chart
-                createShootingChart(data);
-            })
-            .catch(error => {
-                console.error('Error loading box score:', error);
-                document.querySelectorAll('.loading-message').forEach(el => {
-                    el.textContent = 'Failed to load stats. Please try again.';
-                    el.classList.add('error-message');
-                });
-            });
+    function getShortTeamName(fullName) {
+        // Extract a short team name from the full display name
+        // This could be improved with actual team abbreviations stored in the database
+        const words = fullName.split(' ');
+        if (words.length === 1) {
+            return words[0].substring(0, 3).toUpperCase();
+        }
+        // Take first letter of each word, up to 3 letters
+        return words.map(word => word.charAt(0)).join('').substring(0, 3).toUpperCase();
+    }
+
+    function loadBoxScoreData(data) {
+        // Update team names
+        document.getElementById('away-team-name').textContent = data.away_team.name;
+        document.getElementById('home-team-name').textContent = data.home_team.name;
+
+        // Update top players section
+        if (data.away_team.top_player) {
+            document.getElementById('away-top-team-name').textContent = data.away_team.name;
+            document.getElementById('away-top-player-name').textContent = data.away_team.top_player.name;
+            document.getElementById('away-top-player-stats').textContent =
+                `${data.away_team.top_player.points} PTS, ${data.away_team.top_player.fg_percentage.toFixed(1)}% FG`;
+        }
+
+        if (data.home_team.top_player) {
+            document.getElementById('home-top-team-name').textContent = data.home_team.name;
+            document.getElementById('home-top-player-name').textContent = data.home_team.top_player.name;
+            document.getElementById('home-top-player-stats').textContent =
+                `${data.home_team.top_player.points} PTS, ${data.home_team.top_player.fg_percentage.toFixed(1)}% FG`;
+        }
+
+        // Populate away team stats
+        populateTeamTable('away-team-table', data.away_team);
+
+        // Populate home team stats
+        populateTeamTable('home-team-table', data.home_team);
+
+        // Create shooting chart
+        createShootingChart(data);
     }
 
     function populateTeamTable(tableId, teamData) {
@@ -232,7 +350,7 @@
             // Calculate total field goals from 2pt and 3pt
             const fgMade = (stats.fg2m || 0) + (stats.fg3m || 0);
             const fgAttempted = (stats.fg2a || 0) + (stats.fg3a || 0);
-            
+
             row.innerHTML = `
                 <td>${player.name}</td>
                 <td>-</td>
@@ -253,7 +371,7 @@
         // Add team totals
         const totals = teamData.stats;
         const tfoot = document.getElementById(tableId === 'away-team-table' ? 'away-team-totals' : 'home-team-totals');
-        
+
         // Calculate totals from player stats
         let totalPoints = 0;
         let totalFouls = 0;
@@ -263,7 +381,7 @@
         let total3PA = 0;
         let totalFTM = 0;
         let totalFTA = 0;
-        
+
         teamData.players.forEach(player => {
             const stats = player.stats;
             totalPoints += stats.points || 0;
@@ -275,7 +393,7 @@
             totalFTM += stats.ftm || 0;
             totalFTA += stats.fta || 0;
         });
-        
+
         tfoot.innerHTML = `
             <tr>
                 <td><strong>Team Totals</strong></td>
@@ -300,11 +418,11 @@
         // Extract shooting data
         const awayTeam = data.away_team;
         const homeTeam = data.home_team;
-        
+
         // Calculate percentages from player stats
         let awayFGM = 0, awayFGA = 0, away3PM = 0, away3PA = 0, awayFTM = 0, awayFTA = 0;
         let homeFGM = 0, homeFGA = 0, home3PM = 0, home3PA = 0, homeFTM = 0, homeFTA = 0;
-        
+
         awayTeam.players.forEach(player => {
             const stats = player.stats;
             awayFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
@@ -314,7 +432,7 @@
             awayFTM += stats.ftm || 0;
             awayFTA += stats.fta || 0;
         });
-        
+
         homeTeam.players.forEach(player => {
             const stats = player.stats;
             homeFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
