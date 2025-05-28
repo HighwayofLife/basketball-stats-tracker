@@ -20,8 +20,8 @@ FROM base AS development
 # Install all dependencies including dev
 RUN pip install --no-cache-dir -e ".[dev]"
 
-# Copy remaining files
-COPY . .
+# Don't copy files in development - we'll use volume mount instead
+# COPY . .
 
 # Set environment variables
 ENV PYTHONPATH=/app
@@ -37,8 +37,8 @@ USER appuser
 # Expose port
 EXPOSE 8000
 
-# Use uvicorn directly for better performance
-CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
+# Use uvicorn with reload for development
+CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--reload"]
 
 # Production stage
 FROM base AS production
