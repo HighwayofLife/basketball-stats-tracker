@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from sqlalchemy import Integer, func
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
@@ -29,7 +30,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True):
             if active_only:
                 query = query.filter(models.Player.is_active)
 
-            players_teams = query.order_by(models.Team.name, models.Player.jersey_number).all()
+            players_teams = query.order_by(models.Team.name, func.cast(models.Player.jersey_number, Integer)).all()
 
             result = [
                 PlayerResponse(
@@ -76,6 +77,21 @@ async def create_player(player_data: PlayerCreateRequest):
             if existing_player:
                 raise HTTPException(
                     status_code=400, detail=f"Jersey number {player_data.jersey_number} already exists on this team"
+                )
+
+            # Check for duplicate player name on same team
+            existing_name = (
+                session.query(models.Player)
+                .filter(
+                    models.Player.team_id == player_data.team_id,
+                    models.Player.name == player_data.name,
+                    models.Player.is_active,
+                )
+                .first()
+            )
+            if existing_name:
+                raise HTTPException(
+                    status_code=400, detail=f"Player with name '{player_data.name}' already exists on team_name"
                 )
 
             player = models.Player(

@@ -203,11 +203,52 @@ body {
   margin-bottom: 10px;
 }
 
+/* Quick Actions Top */
+.quick-actions-top {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-bottom: 30px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.quick-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  padding: 12px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  min-width: auto;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border: 1px solid transparent;
+}
+
+.quick-action-btn:hover {
+  background-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.quick-action-btn .icon {
+  font-size: 1.2rem;
+}
+
+.quick-action-btn .label {
+  font-size: 0.9rem;
+}
+
 /* Dashboard */
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: 1fr 320px;
   gap: 30px;
+  align-items: start;
 }
 
 .dashboard-section h2 {
@@ -258,11 +299,11 @@ body {
 }
 
 /* Top Players Box */
-#top-players-card {
+#top-players-card, #players-of-week-card {
   padding: 20px;
 }
 
-#top-players-card h2 {
+#top-players-card h2, #players-of-week-card h2 {
   font-size: 1.25rem;
   margin-bottom: 20px;
 }
@@ -349,6 +390,26 @@ body {
   
   .top-player-box {
     flex: auto;
+  }
+  
+  #players-of-week-card .top-players-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+  
+  #players-of-week-card .top-player-box {
+    flex: auto;
+  }
+  
+  .quick-actions-top {
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+  
+  .quick-action-btn {
+    width: 200px;
+    justify-content: center;
   }
 }
 
@@ -460,11 +521,36 @@ body {
 }
 
 /* Responsive */
-@media (min-width: 768px) {
+@media (max-width: 1024px) {
   .dashboard {
-    grid-template-columns: 3fr 1fr;
+    grid-template-columns: 1fr;
   }
+  
+  .dashboard .sidebar {
+    order: -1;
+  }
+  
+  #players-of-week-card {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  #players-of-week-card .top-players-container {
+    flex-direction: row;
+    gap: 20px;
+  }
+  
+  #players-of-week-card .top-player-box {
+    flex: 1;
+  }
+  
+  .quick-actions-top {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+}
 
+@media (min-width: 768px) {
   .box-score-container {
     grid-template-columns: 2fr 1fr;
   }

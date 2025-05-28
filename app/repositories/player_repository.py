@@ -1,5 +1,6 @@
 """Repository for player-related database operations."""
 
+from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Player, PlayerGameStats, Team
@@ -47,7 +48,7 @@ class PlayerRepository(BaseRepository[Player]):
         if active_only:
             query = query.filter(Player.is_active)
 
-        return query.order_by(Team.name, Player.jersey_number).all()  # type: ignore[return-value]
+        return query.order_by(Team.name, func.cast(Player.jersey_number, Integer)).all()  # type: ignore[return-value]
 
     def get_by_jersey_number(self, team_id: int, jersey_number: int) -> Player | None:
         """Get a player by team and jersey number.
@@ -96,7 +97,7 @@ class PlayerRepository(BaseRepository[Player]):
         if active_only:
             query = query.filter(Player.is_active)
 
-        return query.order_by(Player.jersey_number).all()
+        return query.order_by(func.cast(Player.jersey_number, Integer)).all()
 
     def get_deleted_players(self) -> list[Player]:
         """Get all soft-deleted players.

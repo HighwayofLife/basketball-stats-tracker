@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy import desc
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
@@ -16,6 +17,64 @@ router = APIRouter(tags=["pages"])
 # Setup templates
 BASE_DIR = Path(__file__).resolve().parent.parent
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+
+
+def get_top_players_from_recent_week(session, limit=4):
+    """Get top players from the most recent week when games were played."""
+    # Find the most recent game date
+    most_recent_game = session.query(models.Game).order_by(desc(models.Game.date)).first()
+
+    if not most_recent_game:
+        return []
+
+    # Get all games from the most recent date (or week if we want to extend)
+    recent_date = most_recent_game.date
+
+    # Get all player stats from games on that date
+    player_stats = (
+        session.query(models.PlayerGameStats, models.Player, models.Team, models.Game)
+        .join(models.Player, models.PlayerGameStats.player_id == models.Player.id)
+        .join(models.Team, models.Player.team_id == models.Team.id)
+        .join(models.Game, models.PlayerGameStats.game_id == models.Game.id)
+        .filter(models.Game.date == recent_date)
+        .all()
+    )
+
+    # Calculate points and create player data
+    top_players_data = []
+    for stat, player, team, _game in player_stats:
+        points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
+
+        # Calculate field goal percentages
+        fg_made = stat.total_2pm + stat.total_3pm
+        fg_attempted = stat.total_2pa + stat.total_3pa
+        fg_percentage = (fg_made / fg_attempted * 100) if fg_attempted > 0 else 0
+
+        fg3_percentage = (stat.total_3pm / stat.total_3pa * 100) if stat.total_3pa > 0 else 0
+
+        top_players_data.append(
+            {
+                "name": player.name,
+                "team_name": team.display_name or team.name,
+                "points": points,
+                "fg_made": fg_made,
+                "fg_attempted": fg_attempted,
+                "fg_percentage": fg_percentage,
+                "fg3_made": stat.total_3pm,
+                "fg3_attempted": stat.total_3pa,
+                "fg3_percentage": fg3_percentage,
+                "total_2pm": stat.total_2pm,
+                "total_2pa": stat.total_2pa,
+                "total_3pm": stat.total_3pm,
+                "total_3pa": stat.total_3pa,
+                "total_ftm": stat.total_ftm,
+                "total_fta": stat.total_fta,
+            }
+        )
+
+    # Sort by points descending and return top players
+    top_players_data.sort(key=lambda x: x["points"], reverse=True)
+    return top_players_data[:limit]
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -65,12 +124,16 @@ async def index(request: Request):
                     }
                 )
 
+            # Get top players from recent games
+            top_players = get_top_players_from_recent_week(session, limit=4)
+
             return templates.TemplateResponse(
                 "index.html",
                 {
                     "request": request,
                     "title": "Basketball Stats Dashboard",
                     "recent_games": recent_games_data,
+                    "top_players": top_players,
                 },
             )
     except Exception as e:
