@@ -51,6 +51,9 @@ dependencies = [
   "python-multipart>=0.0.20", # For file uploads
   "psycopg2-binary>=2.9.0", # PostgreSQL adapter
   "uvicorn>=0.23.0",
+  "python-jose[cryptography]>=3.3.0", # JWT tokens
+  "passlib[bcrypt]>=1.7.4", # Password hashing
+  "email-validator>=2.0.0", # Email validation for Pydantic
 ]
 
 [project.optional-dependencies]
@@ -64,6 +67,8 @@ test = [
   "pytest-mock>=3.10", # Mocking library for pytest
   "coverage>=7.2", # Code coverage tool
   "debugpy>=1.6", # Debugging tool
+  "requests>=2.28.0", # HTTP requests for UI testing
+  "beautifulsoup4>=4.11.0", # HTML parsing for UI validation
 ]
 
 # Dev should inherit from test dependencies and install additional tools

@@ -2,6 +2,9 @@
 
 A comprehensive basketball statistics management system designed for small leagues and teams. Track game performance, manage rosters, and generate detailed reports through both web interface and command-line tools.
 
+![Basketball Stats Tracker Interface](./assets/basketball-stats-tracker-app.png)
+
+
 ## Features
 
 ### Game Management
@@ -100,7 +103,7 @@ Team A,23,Player Two,3,12,x,-/,22
 
 **Shot String Format:**
 - `2` = Made 2-pointer | `-` = Missed 2-pointer
-- `3` = Made 3-pointer | `/` = Missed 3-pointer  
+- `3` = Made 3-pointer | `/` = Missed 3-pointer
 - `1` = Made free throw | `x` = Missed free throw
 
 Example: `22-1x` = 2 made 2-pointers, 1 missed 2-pointer, 1 made free throw, 1 missed free throw
