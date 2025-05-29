@@ -231,9 +231,17 @@
                    onchange="updateGameSummary()">
         </td>
         <td>
-            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removePlayerRow(this)">
-                <i class="fas fa-trash"></i>
-            </button>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-info substitute-toggle" 
+                        onclick="toggleSubstitute(this)" 
+                        title="Mark as substitute player"
+                        style="display: none;">
+                    <i class="fas fa-exchange-alt"></i>
+                </button>
+                <button type="button" class="btn btn-outline-danger" onclick="removePlayerRow(this)">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </td>
     </tr>
 </template>
@@ -286,6 +294,21 @@ code {
     .scoring-input {
         min-width: 80px;
     }
+}
+
+.substitute-toggle {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.4rem;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    border-color: #17a2b8;
+    color: white;
+}
+
+.text-info {
+    color: #17a2b8 !important;
 }
 </style>
 
@@ -356,18 +379,20 @@ async function loadTeamsAndPlayers() {
 
 async function loadSubstitutePlayerNames() {
     try {
-        // Load substitute player configuration
-        // For now, we'll hardcode some common substitute names
-        // In production, this would come from an API endpoint
-        substitutePlayerNames = [
-            // Add any configured substitute player names here
-            // These will be matched case-insensitively
-        ];
+        // Load substitute players from the database
+        // Get all players that are marked as substitutes
+        const substitutePlayers = playersData.filter(player => player.is_substitute);
+        
+        // Extract their names for matching during CSV import
+        substitutePlayerNames = substitutePlayers.map(player => player.name.toLowerCase());
         
         // Make it available globally for CSV import
         window.substitutePlayerNames = substitutePlayerNames;
+        window.substitutePlayers = substitutePlayers;
     } catch (error) {
         console.error('Error loading substitute player names:', error);
+        substitutePlayerNames = [];
+        window.substitutePlayerNames = [];
     }
 }
 
@@ -398,13 +423,17 @@ function addPlayerRow() {
     // Only add player options if we have players
     if (playersData && playersData.length > 0) {
         playersData.forEach(player => {
-            const option = new Option(
-                `${player.name} (#${player.jersey_number}) - ${player.team_name}`,
-                player.id
-            );
+            const displayName = player.is_substitute 
+                ? `🔄 ${player.name} (#${player.jersey_number}) - ${player.team_name} [SUB]`
+                : `${player.name} (#${player.jersey_number}) - ${player.team_name}`;
+            const option = new Option(displayName, player.id);
             option.dataset.teamId = player.team_id;
             option.dataset.teamName = player.team_name;
             option.dataset.jerseyNumber = player.jersey_number;
+            option.dataset.isSubstitute = player.is_substitute || false;
+            if (player.is_substitute) {
+                option.classList.add('text-info');
+            }
             playerSelect.add(option);
         });
     } else {
@@ -426,6 +455,7 @@ function removePlayerRow(button) {
 function updatePlayerInfo(select) {
     const row = select.closest('tr');
     const selectedOption = select.options[select.selectedIndex];
+    const substituteToggle = row.querySelector('.substitute-toggle');
     
     if (selectedOption.value) {
         // If a player is selected, update displays
@@ -443,6 +473,11 @@ function updatePlayerInfo(select) {
             }
         }
         
+        // Hide substitute toggle for existing players
+        if (substituteToggle) {
+            substituteToggle.style.display = 'none';
+        }
+        
         // If this row was marked as a new player, unmark it since a player is now selected
         if (row.dataset.newPlayer === 'true') {
             row.dataset.newPlayer = 'false';
@@ -458,9 +493,50 @@ function updatePlayerInfo(select) {
     } else {
         row.querySelector('.team-display').textContent = '-';
         row.querySelector('.jersey-display').textContent = '-';
+        
+        // Hide substitute toggle when no player selected
+        if (substituteToggle) {
+            substituteToggle.style.display = 'none';
+        }
     }
     
     updateGameSummary();
+}
+
+function toggleSubstitute(button) {
+    const row = button.closest('tr');
+    const playerType = row.dataset.playerType;
+    
+    // Toggle between regular and substitute
+    if (playerType === 'substitute') {
+        row.dataset.playerType = 'regular';
+        button.classList.remove('btn-info');
+        button.classList.add('btn-outline-info');
+        button.title = 'Mark as substitute player';
+        
+        // Update the display text
+        const playerSelect = row.querySelector('.player-select');
+        const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+        if (selectedOption && selectedOption.text.includes('🔄 SUB:')) {
+            selectedOption.text = selectedOption.text.replace('🔄 SUB:', '⚠️ NEW:');
+            selectedOption.classList.remove('text-info');
+            selectedOption.classList.add('text-warning');
+        }
+    } else {
+        row.dataset.playerType = 'substitute';
+        button.classList.remove('btn-outline-info');
+        button.classList.add('btn-info');
+        button.title = 'Remove substitute designation';
+        
+        // Update the display text
+        const playerSelect = row.querySelector('.player-select');
+        const selectedOption = playerSelect.options[playerSelect.selectedIndex];
+        if (selectedOption && selectedOption.text.includes('⚠️ NEW:')) {
+            selectedOption.text = selectedOption.text.replace('⚠️ NEW:', '🔄 SUB:');
+            selectedOption.classList.remove('text-warning');
+            selectedOption.classList.add('text-info');
+        }
+    }
 }
 
 function updateGameSummary() {
@@ -579,10 +655,23 @@ async function saveGame() {
                     const jerseyInput = row.querySelector('.jersey-input');
                     const jerseyNumber = jerseyInput ? jerseyInput.value.trim() : row.dataset.jerseyNumber;
                     
+                    // Check if this is a substitute player
+                    const isSubstitute = row.dataset.playerType === 'substitute';
+                    
+                    // For substitute players, always use Guest Players team
+                    let actualTeamId = teamId;
+                    if (isSubstitute) {
+                        const guestTeam = teamsData.find(t => t.name === "Guest Players");
+                        if (guestTeam) {
+                            actualTeamId = guestTeam.id;
+                        }
+                    }
+                    
                     newPlayersToCreate.push({
                         name: row.dataset.playerName,
                         jersey_number: jerseyNumber,
-                        team_id: teamId,
+                        team_id: actualTeamId,
+                        is_substitute: isSubstitute,
                         row: row
                     });
                 } else {
@@ -618,7 +707,8 @@ async function saveGame() {
                             position: null,
                             height: null,
                             weight: null,
-                            year: null
+                            year: null,
+                            is_substitute: newPlayer.is_substitute || false
                         })
                     });
                     
@@ -1033,6 +1123,17 @@ async function importCSV(event) {
                     lastRow.dataset.playerName = playerName;
                     lastRow.dataset.jerseyNumber = jerseyNumber;
                     lastRow.dataset.teamName = teamName;
+                    
+                    // Show substitute toggle button for new players (not unknown ones)
+                    const substituteToggle = lastRow.querySelector('.substitute-toggle');
+                    if (substituteToggle && !isUnknown) {
+                        substituteToggle.style.display = '';
+                        if (isSubstitute) {
+                            substituteToggle.classList.remove('btn-outline-info');
+                            substituteToggle.classList.add('btn-info');
+                            substituteToggle.title = 'Remove substitute designation';
+                        }
+                    }
                     
                     // Update the team and jersey displays
                     const teamDisplay = lastRow.querySelector('.team-display');

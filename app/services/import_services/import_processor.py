@@ -72,17 +72,33 @@ class ImportProcessor:
 
         for player in player_data:
             try:
-                team = self.db.query(Team).filter(Team.name == player["team_name"]).first()
-                if not team:
-                    typer.echo(f"Error: Team '{player['team_name']}' not found for player '{player['name']}'")
-                    players_error += 1
-                    continue
+                # Check if this is a substitute player
+                is_substitute = player.get("is_substitute", False)
 
-                result = self._add_or_update_player(team.id, player)
-                if result:
-                    players_processed += 1
+                if is_substitute:
+                    # For substitute players, directly create in Guest Players team
+                    substitute_player = self.player_service.get_or_create_substitute_player(
+                        jersey_number=player["jersey_number"], player_name=player["name"]
+                    )
+                    if substitute_player:
+                        typer.echo(f"Created substitute player: {player['name']} #{player['jersey_number']}")
+                        players_processed += 1
+                    else:
+                        typer.echo(f"Error: Failed to create substitute player '{player['name']}'")
+                        players_error += 1
                 else:
-                    players_error += 1
+                    # Regular player - needs a valid team
+                    team = self.db.query(Team).filter(Team.name == player["team_name"]).first()
+                    if not team:
+                        typer.echo(f"Error: Team '{player['team_name']}' not found for player '{player['name']}'")
+                        players_error += 1
+                        continue
+
+                    result = self._add_or_update_player(team.id, player)
+                    if result:
+                        players_processed += 1
+                    else:
+                        players_error += 1
             except SQLAlchemyError as e:
                 typer.echo(f"Error processing player '{player['name']}': {e}")
                 players_error += 1
@@ -121,11 +137,12 @@ class ImportProcessor:
                     return False
             return True
 
-        # Create new player
+        # Create new regular player
         new_player = Player(
             team_id=team_id,
             name=player_data["name"],
             jersey_number=player_data["jersey_number"],
+            is_substitute=False,
         )
 
         # Add optional fields

@@ -82,6 +82,10 @@ class CSVParser:
                     player_info["weight"] = row["weight"].strip()
                 if "year" in row:
                     player_info["year"] = row["year"].strip()
+                if "is_substitute" in row:
+                    # Handle various representations of boolean values
+                    is_sub_value = row["is_substitute"].strip().lower()
+                    player_info["is_substitute"] = is_sub_value in ["true", "yes", "y", "1", "x"]
 
                 player_data.append(player_info)
 
