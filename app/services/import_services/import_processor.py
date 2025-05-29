@@ -107,11 +107,18 @@ class ImportProcessor:
 
         if existing_player:
             if existing_player.name != player_data["name"]:
-                typer.echo(
-                    f"Warning: Jersey #{player_data['jersey_number']} on team already assigned to "
-                    f"'{existing_player.name}'. Skipping '{player_data['name']}'."
-                )
-                return False
+                if self._names_match_simple(existing_player.name, player_data["name"]):
+                    typer.echo(
+                        f"Info: Jersey #{player_data['jersey_number']} name variation accepted: "
+                        f"'{existing_player.name}' → '{player_data['name']}'"
+                    )
+                    return True
+                else:
+                    typer.echo(
+                        f"Error: Jersey #{player_data['jersey_number']} on team already assigned to "
+                        f"'{existing_player.name}'. Cannot import '{player_data['name']}' - names too different."
+                    )
+                    return False
             return True
 
         # Create new player
@@ -133,6 +140,57 @@ class ImportProcessor:
 
         self.db.add(new_player)
         return True
+
+    def _names_match_simple(self, existing_name: str, new_name: str) -> bool:
+        """Check if two names are similar enough to be considered the same player.
+        
+        Uses conservative heuristics for common scorebook variations:
+        - Exact prefix matching (John vs John M.)
+        - Conservative abbreviations with length limit
+        
+        Args:
+            existing_name: Name currently in database
+            new_name: Name from CSV import
+            
+        Returns:
+            True if names are similar enough to accept
+        """
+        existing_clean = existing_name.strip().lower()
+        new_clean = new_name.strip().lower()
+        
+        # Must have at least 3 characters for matching
+        if len(existing_clean) < 3 or len(new_clean) < 3:
+            return False
+            
+        # Check if one is an exact prefix of the other (handles "John" vs "John M.")
+        if existing_clean.startswith(new_clean) or new_clean.startswith(existing_clean):
+            # But limit the length difference to avoid false positives
+            length_diff = abs(len(existing_clean) - len(new_clean))
+            if length_diff <= 5:  # Allow reasonable differences like "John" vs "John M."
+                return True
+                
+        # Extract first names by splitting on space for multi-part names
+        existing_parts = existing_clean.split()
+        new_parts = new_clean.split()
+        
+        if len(existing_parts) >= 1 and len(new_parts) >= 1:
+            existing_first = existing_parts[0]
+            new_first = new_parts[0]
+            
+            # If first names match exactly and both have more parts, it's a match
+            if existing_first == new_first and len(existing_parts) > 1 and len(new_parts) > 1:
+                return True
+                
+            # Check if one first name is abbreviation of the other (Jonathan vs Jon)
+            shorter_first = min(existing_first, new_first, key=len)
+            longer_first = max(existing_first, new_first, key=len)
+            
+            if (len(shorter_first) >= 3 and 
+                longer_first.startswith(shorter_first) and 
+                len(longer_first) - len(shorter_first) <= 3):  # More conservative limit
+                return True
+                
+        return False
 
     def process_game_stats(self, validated_data: GameStatsCSVInputSchema) -> bool:
         """Process game statistics import.
