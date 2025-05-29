@@ -206,7 +206,7 @@ class TestAPIEndpoints:
         mock_templates.TemplateResponse.assert_called_once()
 
     def test_index_endpoint_error(self, client, monkeypatch):
-        """Test the index endpoint with database error."""
+        """Test the index endpoint with database error returns empty dashboard."""
 
         # Monkey-patch get_db_session to raise error
         def error_db_session():
@@ -219,9 +219,10 @@ class TestAPIEndpoints:
         # Make request
         response = client.get("/")
 
-        # Assertions
-        assert response.status_code == 500
-        assert "Internal server error" in response.json()["detail"]
+        # Assertions - Now we gracefully handle errors and return empty dashboard
+        assert response.status_code == 200
+        assert b"No games found" in response.content  # Empty games table
+        assert b"No player data available" in response.content  # Empty players section
 
     # Game API Tests
 
