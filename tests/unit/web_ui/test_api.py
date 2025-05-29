@@ -857,7 +857,7 @@ class TestAPIEndpoints:
         )
         assert response2.status_code == 400
         assert "already exists" in response2.json()["detail"]
-        assert "team_name" in response2.json()["detail"]
+        assert sample_team.name in response2.json()["detail"]
 
     def test_update_player_jersey_conflict(self, client, sample_team):
         """Test updating a player to a jersey number that's already taken."""

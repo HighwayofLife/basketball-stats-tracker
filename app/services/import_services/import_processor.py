@@ -227,15 +227,14 @@ class ImportProcessor:
             return False
 
         # Get or create the player
-        player = self.player_service.get_player_by_jersey(team.id, player_stats.jersey_number)
+        player = self.player_service.get_or_create_player(
+            team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
+        )
         if not player:
-            player = self.player_service.create_player(
-                team_id=team.id,
-                name=player_stats.player_name,
-                jersey_number=player_stats.jersey_number,
+            typer.echo(
+                f"Error: Could not get or create player '{player_stats.player_name}' #{player_stats.jersey_number} on team '{player_stats.team_name}'."
             )
-            if not player:
-                return False
+            return False
 
         # Process quarter statistics
         for quarter in range(1, 5):

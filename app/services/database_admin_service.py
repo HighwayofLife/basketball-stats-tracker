@@ -48,11 +48,22 @@ class DatabaseAdminService:
 
     def drop_all_tables(self):
         """
-        Drop all tables defined in the SQLAlchemy models.
+        Drop all tables defined in the SQLAlchemy models and alembic version table.
 
-        Uses SQLAlchemy's metadata to identify and drop all tables.
+        Uses SQLAlchemy's metadata to identify and drop all tables,
+        including the alembic_version table to ensure clean reset.
         """
+        # Drop all model tables
         Base.metadata.drop_all(bind=self.engine)
+
+        # Also drop alembic_version table to ensure clean state for migrations
+        try:
+            with self.engine.connect() as conn:
+                conn.execute(text("DROP TABLE IF EXISTS alembic_version"))
+                conn.commit()
+        except Exception:
+            # Ignore errors if table doesn't exist or in test environments
+            pass
 
     def create_migration(self, message: str = "Update database schema"):
         """

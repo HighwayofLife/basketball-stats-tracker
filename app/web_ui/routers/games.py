@@ -691,5 +691,25 @@ async def create_game_from_scorebook(scorebook_data: dict):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating game from scorebook: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create game from scorebook") from e
+        logger.error(f"Error creating game from scorebook: {e}", exc_info=True)
+
+        # Translate technical errors to user-friendly messages
+        error_message = "Failed to create game from scorebook"
+
+        # Check for common database constraint violations
+        error_str = str(e).lower()
+        if "duplicate key" in error_str and "uq_game_date_teams" in error_str:
+            error_message = (
+                "A game between these teams on this date already exists. Please check the game date and teams."
+            )
+        elif "foreign key" in error_str:
+            error_message = "Invalid team or player reference. Please verify all team and player selections."
+        elif "unique constraint" in error_str:
+            if "jersey" in error_str:
+                error_message = "A player with this jersey number already exists on the team."
+            else:
+                error_message = "This game data conflicts with existing records. Please check for duplicates."
+        elif "not null" in error_str:
+            error_message = "Missing required information. Please ensure all required fields are filled."
+
+        raise HTTPException(status_code=400, detail=error_message) from e

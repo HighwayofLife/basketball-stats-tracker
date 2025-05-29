@@ -91,7 +91,7 @@ async def create_player(player_data: PlayerCreateRequest):
             )
             if existing_name:
                 raise HTTPException(
-                    status_code=400, detail=f"Player with name '{player_data.name}' already exists on team_name"
+                    status_code=400, detail=f"Player with name '{player_data.name}' already exists on {team.name}"
                 )
 
             player = models.Player(
@@ -122,8 +122,26 @@ async def create_player(player_data: PlayerCreateRequest):
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error creating player: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create player") from e
+        logger.error(f"Error creating player {player_data.name}: {e}", exc_info=True)
+
+        # Translate technical errors to user-friendly messages
+        error_message = f"Failed to create player {player_data.name}"
+
+        # Check for common database errors
+        error_str = str(e).lower()
+        if "unique constraint" in error_str:
+            if "jersey" in error_str:
+                error_message = f"Jersey number {player_data.jersey_number} is already taken on this team."
+            elif "name" in error_str:
+                error_message = f"A player named '{player_data.name}' already exists on this team."
+            else:
+                error_message = f"Player '{player_data.name}' conflicts with existing player data."
+        elif "foreign key" in error_str:
+            error_message = f"Invalid team reference for player {player_data.name}."
+        elif "not null" in error_str:
+            error_message = f"Missing required information for player {player_data.name}."
+
+        raise HTTPException(status_code=400, detail=error_message) from e
 
 
 @router.get("/{player_id}", response_model=PlayerResponse)
