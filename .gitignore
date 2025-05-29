@@ -85,3 +85,4 @@ terraform.tfvars
 
 # Infrastructure
 infra/
+infra

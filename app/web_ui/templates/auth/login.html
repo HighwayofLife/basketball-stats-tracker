@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Basketball Stats Tracker{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">Login</h2>
+                    
+                    <div id="error-message" class="alert alert-danger d-none" role="alert"></div>
+                    
+                    <form id="login-form">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" required autofocus>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" id="login-button">
+                                <span id="login-text">Login</span>
+                                <span id="login-spinner" class="spinner-border spinner-border-sm d-none" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+                    
+                    <p class="text-center text-muted mb-0">
+                        Don't have an account? Contact your administrator.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const errorDiv = document.getElementById('error-message');
+    const loginButton = document.getElementById('login-button');
+    const loginText = document.getElementById('login-text');
+    const loginSpinner = document.getElementById('login-spinner');
+    
+    // Reset error message
+    errorDiv.classList.add('d-none');
+    errorDiv.textContent = '';
+    
+    // Show loading state
+    loginButton.disabled = true;
+    loginText.classList.add('d-none');
+    loginSpinner.classList.remove('d-none');
+    
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('/auth/token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: new URLSearchParams(formData).toString()
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            // Store the token in localStorage
+            localStorage.setItem('access_token', data.access_token);
+            localStorage.setItem('token_type', data.token_type);
+            
+            // Redirect to the home page or the page they were trying to access
+            const urlParams = new URLSearchParams(window.location.search);
+            const next = urlParams.get('next') || '/';
+            window.location.href = next;
+        } else {
+            const errorData = await response.json();
+            errorDiv.textContent = errorData.detail || 'Invalid username or password';
+            errorDiv.classList.remove('d-none');
+        }
+    } catch (error) {
+        errorDiv.textContent = 'An error occurred. Please try again.';
+        errorDiv.classList.remove('d-none');
+    } finally {
+        // Reset button state
+        loginButton.disabled = false;
+        loginText.classList.remove('d-none');
+        loginSpinner.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}
