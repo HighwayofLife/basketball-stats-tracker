@@ -27,8 +27,8 @@ def upgrade():
         "fk_player_game_stats_playing_for_team", "player_game_stats", "teams", ["playing_for_team_id"], ["id"]
     )
 
-    # Add is_substitute flag to active_roster
-    op.add_column("active_roster", sa.Column("is_substitute", sa.Boolean(), nullable=False, server_default="false"))
+    # Add is_substitute flag to active_rosters
+    op.add_column("active_rosters", sa.Column("is_substitute", sa.Boolean(), nullable=False, server_default="false"))
 
     # Create a unique index for substitute player identification
     op.create_index(
@@ -45,7 +45,7 @@ def downgrade():
     op.drop_index("ix_players_substitute_identifier", "players")
 
     # Remove columns
-    op.drop_column("active_roster", "is_substitute")
+    op.drop_column("active_rosters", "is_substitute")
     op.drop_constraint("fk_player_game_stats_playing_for_team", "player_game_stats", type_="foreignkey")
     op.drop_column("player_game_stats", "playing_for_team_id")
     op.drop_column("players", "is_substitute")

@@ -33,13 +33,14 @@
                 <th>Height</th>
                 <th>Weight</th>
                 <th>Year</th>
+                <th>Type</th>
                 <th>Status</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="players-table-body">
             <tr>
-                <td colspan="9" class="loading-message">Loading players...</td>
+                <td colspan="10" class="loading-message">Loading players...</td>
             </tr>
         </tbody>
     </table>
@@ -102,9 +103,14 @@
                         <input type="text" id="year" name="year" placeholder="e.g., Freshman, Senior">
                     </div>
                     <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="is-active" name="is_active" checked> Active Player
-                        </label>
+                        <div class="checkbox-group">
+                            <label>
+                                <input type="checkbox" id="is-active" name="is_active" checked> Active Player
+                            </label>
+                            <label>
+                                <input type="checkbox" id="is-substitute" name="is_substitute"> Substitute Player
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -264,6 +270,30 @@
     gap: 0.5rem;
 }
 
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.checkbox-group label {
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: normal;
+}
+
+.substitute-badge {
+    background-color: #6f42c1;
+    color: white;
+    padding: 0.2rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -342,7 +372,7 @@ async function loadPlayers() {
         
         if (players.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="9">No players found. <a href="#" onclick="showAddPlayerModal()">Add a player</a>.</td>';
+            row.innerHTML = '<td colspan="10">No players found. <a href="#" onclick="showAddPlayerModal()">Add a player</a>.</td>';
             tableBody.appendChild(row);
         } else {
             players.forEach(player => {
@@ -355,6 +385,9 @@ async function loadPlayers() {
                     <td>${player.height ? formatHeight(player.height) : '-'}</td>
                     <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
                     <td>${player.year || '-'}</td>
+                    <td>
+                        ${player.is_substitute ? '<span class="substitute-badge">Substitute</span>' : 'Regular'}
+                    </td>
                     <td class="${player.is_active ? 'status-active' : 'status-inactive'}">
                         ${player.is_active ? 'Active' : 'Inactive'}
                     </td>
@@ -372,7 +405,7 @@ async function loadPlayers() {
     } catch (error) {
         console.error('Error loading players:', error);
         const tableBody = document.getElementById('players-table-body');
-        tableBody.innerHTML = '<tr><td colspan="9" class="error-message">Failed to load players. Please try again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="10" class="error-message">Failed to load players. Please try again.</td></tr>';
     }
 }
 
@@ -387,6 +420,7 @@ function showAddPlayerModal() {
     document.getElementById('player-modal-title').textContent = 'Add New Player';
     document.getElementById('player-form').reset();
     document.getElementById('is-active').checked = true;
+    document.getElementById('is-substitute').checked = false;
     document.getElementById('player-modal').style.display = 'block';
 }
 
@@ -407,6 +441,7 @@ async function editPlayer(playerId) {
         document.getElementById('weight').value = player.weight || '';
         document.getElementById('year').value = player.year || '';
         document.getElementById('is-active').checked = player.is_active;
+        document.getElementById('is-substitute').checked = player.is_substitute || false;
         
         document.getElementById('player-modal').style.display = 'block';
     } catch (error) {
@@ -444,7 +479,8 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
         height: formData.get('height') ? parseInt(formData.get('height')) : null,
         weight: formData.get('weight') ? parseInt(formData.get('weight')) : null,
         year: formData.get('year') || null,
-        is_active: document.getElementById('is-active').checked
+        is_active: document.getElementById('is-active').checked,
+        is_substitute: document.getElementById('is-substitute').checked
     };
     
     if (!playerData.name) {

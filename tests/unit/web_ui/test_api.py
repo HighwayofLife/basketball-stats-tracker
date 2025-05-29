@@ -662,6 +662,7 @@ class TestAPIEndpoints:
         assert data["team_id"] == sample_team.id
         assert data["jersey_number"] == "24"
         assert data["position"] == "SF"
+        assert data["is_substitute"] is False  # Default value
 
     def test_create_player_team_not_found(self, client):
         """Test creating a player with non-existent team."""
@@ -1110,3 +1111,101 @@ class TestAPIEndpoints:
         # Assertions
         assert response.status_code == 404
         assert "Player not found" in response.json()["detail"]
+
+    # Substitute Player Tests
+
+    def test_create_substitute_player_success(self, client, sample_team):
+        """Test creating a substitute player successfully."""
+        player_data = {
+            "name": "Sub Player",
+            "team_id": sample_team.id,
+            "jersey_number": "1",
+            "is_substitute": True,
+        }
+
+        # Make request
+        response = client.post("/v1/players/new", json=player_data)
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["name"] == "Sub Player"
+        assert data["team_id"] == sample_team.id
+        assert data["jersey_number"] == "1"
+        assert data["is_substitute"] is True
+
+    def test_update_player_to_substitute(self, client, sample_players):
+        """Test updating a regular player to become a substitute."""
+        player = sample_players[0]  # LeBron James
+        update_data = {"is_substitute": True}
+
+        # Make request
+        response = client.put(f"/v1/players/{player.id}", json=update_data)
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_substitute"] is True
+
+    def test_update_substitute_to_regular(self, client, sample_team):
+        """Test updating a substitute player to become a regular player."""
+        # First create a substitute player
+        player_data = {
+            "name": "Sub Player",
+            "team_id": sample_team.id,
+            "jersey_number": "99",
+            "is_substitute": True,
+        }
+        create_response = client.post("/v1/players/new", json=player_data)
+        assert create_response.status_code == 200
+        player_id = create_response.json()["id"]
+
+        # Update to regular player
+        update_data = {"is_substitute": False}
+        response = client.put(f"/v1/players/{player_id}", json=update_data)
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_substitute"] is False
+
+    def test_list_players_includes_substitute_flag(self, client, sample_team):
+        """Test that the players list includes the is_substitute flag."""
+        # Create a substitute player
+        player_data = {
+            "name": "Sub Player",
+            "team_id": sample_team.id,
+            "jersey_number": "88",
+            "is_substitute": True,
+        }
+        client.post("/v1/players/new", json=player_data)
+
+        # List players
+        response = client.get("/v1/players/list")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        substitute_players = [p for p in data if p["is_substitute"]]
+        assert len(substitute_players) == 1
+        assert substitute_players[0]["name"] == "Sub Player"
+
+    def test_get_player_includes_substitute_flag(self, client, sample_team):
+        """Test that getting a single player includes the is_substitute flag."""
+        # Create a substitute player
+        player_data = {
+            "name": "Sub Player",
+            "team_id": sample_team.id,
+            "jersey_number": "77",
+            "is_substitute": True,
+        }
+        create_response = client.post("/v1/players/new", json=player_data)
+        player_id = create_response.json()["id"]
+
+        # Get the player
+        response = client.get(f"/v1/players/{player_id}")
+
+        # Assertions
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_substitute"] is True
