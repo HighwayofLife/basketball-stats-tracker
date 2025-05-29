@@ -439,7 +439,7 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
     const playerData = {
         name: formData.get('name').trim(),
         team_id: parseInt(formData.get('team_id')),
-        jersey_number: parseInt(formData.get('jersey_number')),
+        jersey_number: formData.get('jersey_number').trim(),
         position: formData.get('position') || null,
         height: formData.get('height') ? parseInt(formData.get('height')) : null,
         weight: formData.get('weight') ? parseInt(formData.get('weight')) : null,
@@ -485,7 +485,18 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
             await loadPlayers();
         } else {
             const error = await response.json();
-            alert(`Error: ${error.detail}`);
+            // Handle validation errors more gracefully
+            if (error.detail && typeof error.detail === 'string') {
+                alert(`Error: ${error.detail}`);
+            } else if (error.detail && Array.isArray(error.detail)) {
+                // Handle Pydantic validation errors
+                const messages = error.detail.map(err => 
+                    `${err.loc ? err.loc.join(' > ') : 'Field'}: ${err.msg}`
+                ).join('\n');
+                alert(`Validation Error:\n${messages}`);
+            } else {
+                alert(`Error: ${JSON.stringify(error)}`);
+            }
         }
     } catch (error) {
         console.error('Error saving player:', error);

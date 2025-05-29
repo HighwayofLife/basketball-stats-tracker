@@ -905,6 +905,41 @@ class TestAPIEndpoints:
         assert "already exists" in update_response.json()["detail"]
         assert "jersey number" in update_response.json()["detail"].lower()
 
+    def test_update_player_jersey_number_as_integer(self, client, sample_players):
+        """Test updating a player with jersey number as integer (should fail)."""
+        # Try to update player with jersey number as integer
+        update_data = {"jersey_number": 99}  # Integer instead of string
+
+        # Make request
+        response = client.put(f"/v1/players/{sample_players[0].id}", json=update_data)
+
+        # Assertions - should get validation error
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        # Check that the validation error is about jersey_number
+        if isinstance(data["detail"], list):
+            assert any("jersey_number" in str(err) for err in data["detail"])
+
+    def test_create_player_jersey_number_as_integer(self, client, sample_team):
+        """Test creating a player with jersey number as integer (should fail)."""
+        player_data = {
+            "name": "Test Player",
+            "team_id": sample_team.id,
+            "jersey_number": 42,  # Integer instead of string
+        }
+
+        # Make request
+        response = client.post("/v1/players/new", json=player_data)
+
+        # Assertions - should get validation error
+        assert response.status_code == 422
+        data = response.json()
+        assert "detail" in data
+        # Check that the validation error is about jersey_number
+        if isinstance(data["detail"], list):
+            assert any("jersey_number" in str(err) for err in data["detail"])
+
     # Player Stats and Image Tests
 
     def test_get_player_stats_success(self, client, sample_players, sample_game_stats):
