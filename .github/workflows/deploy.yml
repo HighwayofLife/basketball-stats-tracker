@@ -52,7 +52,7 @@ jobs:
 
     - name: Deploy to VM
       run: |
-        gcloud compute ssh basketball-stats-vm \
+        gcloud beta compute ssh basketball-stats-vm \
           --zone=${{ env.REGION }}-b \
           --project=${{ env.PROJECT_ID }} \
           --command="cd /opt/basketball-stats && sudo docker-compose -f docker-compose.production.yml pull && sudo docker-compose -f docker-compose.production.yml up -d"

@@ -71,7 +71,6 @@ coverage.xml
 .vscode/
 
 **/*.swp
-.github
 .DS_Store
 test_hot_reload.py
 
