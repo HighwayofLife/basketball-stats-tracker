@@ -7,6 +7,7 @@ Provides commands for database initialization, maintenance, and reporting.
 import typer
 
 from app.services.cli_commands import (
+    AuthCommands,
     DatabaseCommands,
     ImportCommands,
     ListingCommands,
@@ -309,6 +310,44 @@ def list_teams(
         output_format=output_format,
         output_file=output_file,
     )
+
+
+@cli.command("create-admin")
+def create_admin_user(
+    username: str = typer.Argument(..., help="Username for the admin user"),
+    email: str = typer.Argument(..., help="Email address for the admin user"),
+    full_name: str = typer.Option(None, "--name", "-n", help="Full name of the admin user"),
+):
+    """
+    Create an admin user for the system.
+
+    You will be prompted to enter a password.
+
+    Example:
+        basketball-stats create-admin admin admin@example.com --name "Admin User"
+    """
+    AuthCommands.create_admin_user(username=username, email=email, full_name=full_name)
+
+
+@cli.command("list-users")
+def list_users():
+    """List all users in the system."""
+    AuthCommands.list_users()
+
+
+@cli.command("deactivate-user")
+def deactivate_user(
+    username: str = typer.Argument(..., help="Username of the user to deactivate"),
+):
+    """
+    Deactivate a user account.
+
+    The user will no longer be able to log in.
+
+    Example:
+        basketball-stats deactivate-user john_doe
+    """
+    AuthCommands.deactivate_user(username=username)
 
 
 if __name__ == "__main__":

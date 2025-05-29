@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from .routers import admin_router, games_router, pages_router, players_router, reports_router, teams_router
+from .routers import admin_router, auth_router, games_router, pages_router, players_router, reports_router, teams_router
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -24,6 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
 # Include routers
+app.include_router(auth_router)  # Auth router first for authentication endpoints
 app.include_router(pages_router)
 app.include_router(games_router)
 app.include_router(teams_router)

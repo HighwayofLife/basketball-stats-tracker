@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
 # ruff: noqa: E402, I001
 # pylint: disable=wrong-import-position, ungrouped-imports
 from hooks.pyinstaller_hook import adjust_config_paths
+
 adjust_config_paths()
 
 from app.cli import cli  # noqa: E402
