@@ -73,3 +73,15 @@ coverage.xml
 **/*.swp
 .github
 .DS_Store
+test_hot_reload.py
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+.terraform.lock.hcl
+terraform.tfvars
+*.auto.tfvars
+
+# Infrastructure
+infra/

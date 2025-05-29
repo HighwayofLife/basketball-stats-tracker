@@ -92,3 +92,6 @@ Thumbs.db
 target/
 *.mo
 *.pot
+
+# Infrastructure
+infra/
