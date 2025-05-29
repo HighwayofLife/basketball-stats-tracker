@@ -10,6 +10,7 @@ from sqlalchemy import desc
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.score_calculation_service import ScoreCalculationService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["pages"])
@@ -43,7 +44,7 @@ def get_top_players_from_recent_week(session, limit=4):
     # Calculate points and create player data
     top_players_data = []
     for stat, player, team, _game in player_stats:
-        points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
+        points = ScoreCalculationService.calculate_player_points(stat)
 
         # Calculate field goal percentages
         fg_made = stat.total_2pm + stat.total_3pm
@@ -110,8 +111,8 @@ async def index(request: Request):
                 )
 
                 # Calculate team scores from player stats
-                home_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in playing_team_stats)
-                away_score = sum(s.total_ftm + s.total_2pm * 2 + s.total_3pm * 3 for s in opponent_team_stats)
+                home_score = sum(ScoreCalculationService.calculate_player_points(s) for s in playing_team_stats)
+                away_score = sum(ScoreCalculationService.calculate_player_points(s) for s in opponent_team_stats)
 
                 recent_games_data.append(
                     {

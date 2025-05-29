@@ -29,6 +29,7 @@ services:
       - DATABASE_URL=postgresql://basketball:password@database:5432/basketball_stats
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
+      - JWT_SECRET_KEY=your-super-secret-key-change-in-production
     volumes:
       # Mount for development to allow code changes without rebuilding
       - .:/app

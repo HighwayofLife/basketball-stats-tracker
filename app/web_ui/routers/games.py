@@ -54,26 +54,19 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
             # Apply pagination and ordering
             games = query.order_by(models.Game.date.desc()).offset(offset).limit(limit).all()
 
+            from app.services.score_calculation_service import ScoreCalculationService
+
             result = []
             for game in games:
-                # Calculate scores from player stats
-                playing_team_score = 0
-                opponent_team_score = 0
-
                 # Get all player stats for this game
                 player_stats = (
                     session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
                 )
 
-                for stat in player_stats:
-                    # Calculate points for this player
-                    player_points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
-
-                    # Add to appropriate team score
-                    if stat.player.team_id == game.playing_team_id:
-                        playing_team_score += player_points
-                    elif stat.player.team_id == game.opponent_team_id:
-                        opponent_team_score += player_points
+                # Calculate scores using the centralized service
+                playing_team_score, opponent_team_score = ScoreCalculationService.calculate_game_scores(
+                    game, player_stats
+                )
 
                 result.append(
                     GameSummary(
@@ -104,22 +97,13 @@ async def get_game(game_id: int):
             if not game:
                 raise HTTPException(status_code=404, detail="Game not found")
 
-            # Calculate scores from player stats
-            playing_team_score = 0
-            opponent_team_score = 0
+            from app.services.score_calculation_service import ScoreCalculationService
 
             # Get all player stats for this game
             player_stats = session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
 
-            for stat in player_stats:
-                # Calculate points for this player
-                player_points = stat.total_ftm + stat.total_2pm * 2 + stat.total_3pm * 3
-
-                # Add to appropriate team score
-                if stat.player.team_id == game.playing_team_id:
-                    playing_team_score += player_points
-                elif stat.player.team_id == game.opponent_team_id:
-                    opponent_team_score += player_points
+            # Calculate scores using the centralized service
+            playing_team_score, opponent_team_score = ScoreCalculationService.calculate_game_scores(game, player_stats)
 
             return GameSummary(
                 id=game.id,

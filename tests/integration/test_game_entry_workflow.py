@@ -70,7 +70,7 @@ def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
     # Store original functions for cleanup
     original_get_db_session = db_session.get_db_session
     original_deps_get_db_session = dependencies.get_db_session
-    
+
     # Patch using direct assignment (more reliable than monkeypatch for this case)
     db_session.get_db_session = get_db_session_mock
     dependencies.get_db_session = get_db_session_mock
