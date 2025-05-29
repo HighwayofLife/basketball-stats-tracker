@@ -10,9 +10,10 @@ env:
   REGION: us-west1
   REPOSITORY: basketball-stats
   IMAGE: basketball-stats-app
+  SERVICE_NAME: basketball-stats
 
 jobs:
-  build-and-push:
+  build-and-deploy:
     runs-on: ubuntu-latest
     
     permissions:
@@ -33,10 +34,6 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
 
-    - name: Install gcloud beta components
-      run: |
-        gcloud components install beta --quiet
-
     - name: Configure Docker for Artifact Registry
       run: |
         gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
@@ -54,9 +51,15 @@ jobs:
         docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
         docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
 
-    - name: Deploy to VM
+    - name: Deploy to Cloud Run
       run: |
-        gcloud beta compute ssh basketball-stats-vm \
-          --zone=${{ env.REGION }}-b \
-          --project=${{ env.PROJECT_ID }} \
-          --command="cd /opt/basketball-stats && sudo docker-compose -f docker-compose.production.yml pull && sudo docker-compose -f docker-compose.production.yml up -d"
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8000 \
+          --memory 512Mi \
+          --cpu 1 \
+          --min-instances 0 \
+          --max-instances 10
