@@ -294,10 +294,13 @@ let teamsData = [];
 let playersData = [];
 
 // Initialize the page
-document.addEventListener('DOMContentLoaded', function() {
-    loadTeamsAndPlayers();
+document.addEventListener('DOMContentLoaded', async function() {
     setDefaultDate();
-    addPlayerRow(); // Add first row by default
+    await loadTeamsAndPlayers();
+    // Only add the first row if we successfully loaded data
+    if (teamsData && teamsData.length > 0) {
+        addPlayerRow(); // Add first row by default
+    }
 });
 
 function setDefaultDate() {
@@ -309,17 +312,43 @@ async function loadTeamsAndPlayers() {
     try {
         // Load teams
         const teamsResponse = await fetch('/v1/teams/detail');
+        if (!teamsResponse.ok) {
+            throw new Error(`Failed to load teams: ${teamsResponse.status}`);
+        }
         teamsData = await teamsResponse.json();
         
         // Load players
         const playersResponse = await fetch('/v1/players/list');
+        if (!playersResponse.ok) {
+            throw new Error(`Failed to load players: ${playersResponse.status}`);
+        }
         playersData = await playersResponse.json();
+        
+        // Check if we have data
+        if (!teamsData || teamsData.length === 0) {
+            showAlert('No teams found. Please create teams first before entering game data.', 'warning');
+            // Disable form controls when no teams
+            document.getElementById('homeTeam').disabled = true;
+            document.getElementById('awayTeam').disabled = true;
+            document.querySelector('button[onclick="saveGame()"]').disabled = true;
+            document.querySelector('button[onclick="addPlayerRow()"]').disabled = true;
+            return;
+        }
+        
+        if (!playersData || playersData.length === 0) {
+            showAlert('No players found. You can still create a game and players will be created automatically when you import or save.', 'info');
+        }
         
         populateTeamSelects();
         
     } catch (error) {
         console.error('Error loading teams and players:', error);
-        showAlert('Error loading teams and players. Please refresh the page.', 'danger');
+        showAlert('Unable to load teams and players. The database may be empty or unavailable. Please try again later.', 'danger');
+        // Disable form controls on error
+        document.getElementById('homeTeam').disabled = true;
+        document.getElementById('awayTeam').disabled = true;
+        document.querySelector('button[onclick="saveGame()"]').disabled = true;
+        document.querySelector('button[onclick="addPlayerRow()"]').disabled = true;
     }
 }
 
@@ -346,16 +375,25 @@ function addPlayerRow() {
     
     // Populate player options
     playerSelect.innerHTML = '<option value="">Select player...</option>';
-    playersData.forEach(player => {
-        const option = new Option(
-            `${player.name} (#${player.jersey_number}) - ${player.team_name}`,
-            player.id
-        );
-        option.dataset.teamId = player.team_id;
-        option.dataset.teamName = player.team_name;
-        option.dataset.jerseyNumber = player.jersey_number;
+    
+    // Only add player options if we have players
+    if (playersData && playersData.length > 0) {
+        playersData.forEach(player => {
+            const option = new Option(
+                `${player.name} (#${player.jersey_number}) - ${player.team_name}`,
+                player.id
+            );
+            option.dataset.teamId = player.team_id;
+            option.dataset.teamName = player.team_name;
+            option.dataset.jerseyNumber = player.jersey_number;
+            playerSelect.add(option);
+        });
+    } else {
+        // Add a helpful message if no players exist
+        const option = new Option('No players available - Import CSV to create players', '');
+        option.disabled = true;
         playerSelect.add(option);
-    });
+    }
     
     document.getElementById('playerStatsBody').appendChild(clone);
 }

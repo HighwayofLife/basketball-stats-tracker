@@ -7,6 +7,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc
+from sqlalchemy.orm import joinedload
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
@@ -84,46 +85,61 @@ async def index(request: Request):
     try:
         with get_db_session() as session:
             # Get recent games for dashboard
-            recent_games = session.query(models.Game).order_by(models.Game.date.desc()).limit(5).all()
+            recent_games = (
+                session.query(models.Game)
+                .options(
+                    # Eagerly load relationships to avoid lazy loading issues
+                    joinedload(models.Game.playing_team),
+                    joinedload(models.Game.opponent_team)
+                )
+                .order_by(models.Game.date.desc())
+                .limit(5)
+                .all()
+            )
 
             # Convert to dictionary for template, calculating scores from player stats
             recent_games_data = []
             for game in recent_games:
-                # Get player stats for both teams
-                playing_team_stats = (
-                    session.query(models.PlayerGameStats)
-                    .join(models.Player)
-                    .filter(
-                        models.PlayerGameStats.game_id == game.id,
-                        models.Player.team_id == game.playing_team_id,
+                try:
+                    # Get player stats for both teams
+                    playing_team_stats = (
+                        session.query(models.PlayerGameStats)
+                        .join(models.Player)
+                        .filter(
+                            models.PlayerGameStats.game_id == game.id,
+                            models.Player.team_id == game.playing_team_id,
+                        )
+                        .all()
                     )
-                    .all()
-                )
 
-                opponent_team_stats = (
-                    session.query(models.PlayerGameStats)
-                    .join(models.Player)
-                    .filter(
-                        models.PlayerGameStats.game_id == game.id,
-                        models.Player.team_id == game.opponent_team_id,
+                    opponent_team_stats = (
+                        session.query(models.PlayerGameStats)
+                        .join(models.Player)
+                        .filter(
+                            models.PlayerGameStats.game_id == game.id,
+                            models.Player.team_id == game.opponent_team_id,
+                        )
+                        .all()
                     )
-                    .all()
-                )
 
-                # Calculate team scores from player stats
-                home_score = sum(ScoreCalculationService.calculate_player_points(s) for s in playing_team_stats)
-                away_score = sum(ScoreCalculationService.calculate_player_points(s) for s in opponent_team_stats)
+                    # Calculate team scores from player stats
+                    home_score = sum(ScoreCalculationService.calculate_player_points(s) for s in playing_team_stats)
+                    away_score = sum(ScoreCalculationService.calculate_player_points(s) for s in opponent_team_stats)
 
-                recent_games_data.append(
-                    {
-                        "id": game.id,
-                        "date": game.date,
-                        "home_team": game.playing_team.display_name or game.playing_team.name,
-                        "away_team": game.opponent_team.display_name or game.opponent_team.name,
-                        "home_score": home_score,
-                        "away_score": away_score,
-                    }
-                )
+                    recent_games_data.append(
+                        {
+                            "id": game.id,
+                            "date": game.date,
+                            "home_team": game.playing_team.display_name or game.playing_team.name if game.playing_team else "Unknown",
+                            "away_team": game.opponent_team.display_name or game.opponent_team.name if game.opponent_team else "Unknown",
+                            "home_score": home_score,
+                            "away_score": away_score,
+                        }
+                    )
+                except Exception as game_error:
+                    logger.warning(f"Error processing game {game.id}: {game_error}")
+                    # Skip this game if there's an error processing it
+                    continue
 
             # Get top players from recent games
             top_players = get_top_players_from_recent_week(session, limit=4)
@@ -139,7 +155,16 @@ async def index(request: Request):
             )
     except Exception as e:
         logger.error(f"Error rendering dashboard: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error") from e
+        # Return an empty dashboard instead of error
+        return templates.TemplateResponse(
+            "index.html",
+            {
+                "request": request,
+                "title": "Basketball Stats Dashboard",
+                "recent_games": [],
+                "top_players": [],
+            },
+        )
 
 
 @router.get("/games", response_class=HTMLResponse)
