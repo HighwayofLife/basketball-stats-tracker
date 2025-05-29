@@ -549,6 +549,12 @@ body {
   margin-top: 40px;
 }
 
+.site-footer .version-info {
+  font-size: 0.85em;
+  opacity: 0.7;
+  font-family: monospace;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .dashboard {

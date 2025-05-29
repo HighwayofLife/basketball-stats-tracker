@@ -8,7 +8,6 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse, StreamingResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.data_access.crud import (
@@ -23,9 +22,9 @@ from app.reports.report_generator import ReportGenerator
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 from app.web_ui.dependencies import get_db
+from app.web_ui.templates_config import templates
 
 router = APIRouter()
-templates = Jinja2Templates(directory="app/web_ui/templates")
 
 
 @router.get("/reports", response_class=HTMLResponse)

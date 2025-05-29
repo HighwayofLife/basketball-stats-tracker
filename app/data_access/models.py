@@ -11,11 +11,13 @@ from sqlalchemy import (
     Date,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
     Time,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -73,6 +75,7 @@ class Player(Base, SoftDeleteMixin):
     year: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     thumbnail_image: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to player thumbnail image
+    is_substitute: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # Flag for substitute players
 
     team: Mapped["Team"] = relationship("Team", back_populates="players")
     game_stats: Mapped[list["PlayerGameStats"]] = relationship(
@@ -88,6 +91,13 @@ class Player(Base, SoftDeleteMixin):
     __table_args__ = (
         UniqueConstraint("team_id", "jersey_number", name="uq_player_team_jersey"),
         UniqueConstraint("team_id", "name", name="uq_player_team_name"),
+        Index(
+            "ix_players_substitute_identifier",
+            "name",
+            "jersey_number",
+            unique=True,
+            postgresql_where=text("is_substitute = true"),
+        ),
     )
 
     def __repr__(self):
@@ -154,9 +164,13 @@ class PlayerGameStats(Base):
     total_2pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_3pm: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     total_3pa: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    playing_for_team_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("teams.id"), nullable=True
+    )  # Team the player played for (for substitutes)
 
     game: Mapped["Game"] = relationship("Game", back_populates="player_game_stats")
     player: Mapped["Player"] = relationship("Player", back_populates="game_stats")
+    playing_for_team: Mapped["Team | None"] = relationship("Team", foreign_keys=[playing_for_team_id])
     quarter_stats: Mapped[list["PlayerQuarterStats"]] = relationship(
         "PlayerQuarterStats", back_populates="player_game_stat", cascade="all, delete-orphan"
     )
@@ -271,6 +285,7 @@ class ActiveRoster(Base):
     checked_in_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     checked_out_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     is_starter: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_substitute: Mapped[bool] = mapped_column(Boolean, default=False)  # Flag if player is substituting for this game
 
     game: Mapped["Game"] = relationship("Game", back_populates="active_rosters")
     player: Mapped["Player"] = relationship("Player", back_populates="active_rosters")

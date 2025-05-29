@@ -5,7 +5,7 @@ Service for player-related operations.
 from sqlalchemy.orm import Session
 
 from app.data_access.crud import create_player, get_player_by_id, get_player_by_team_and_jersey, get_players_by_team
-from app.data_access.models import Player
+from app.data_access.models import Player, Team
 
 
 class PlayerService:
@@ -53,6 +53,57 @@ class PlayerService:
 
         # If the player exists but the name was provided and differs, update the name
         if player is not None and player_name and player.name != player_name:
+            player.name = player_name
+            self._db_session.commit()
+
+        return player
+
+    def get_or_create_substitute_player(self, jersey_number: str, player_name: str | None = None) -> Player | None:
+        """
+        Get or create a substitute player.
+
+        Substitute players belong to a special "Guest Players" team and can play
+        for any team in individual games.
+
+        Args:
+            jersey_number: Player's jersey number
+            player_name: Player's name (defaults to "Sub #{jersey_number}" if not provided)
+
+        Returns:
+            The retrieved or created substitute Player instance
+        """
+        from app.data_access.crud.crud_team import get_team_by_name
+
+        # Get or create the Guest Players team
+        guest_team = get_team_by_name(self._db_session, "Guest Players")
+        if not guest_team:
+            # Create the Guest Players team if it doesn't exist
+            guest_team = self._db_session.query(Team).filter_by(name="Guest Players").first()
+            if not guest_team:
+                from app.data_access.models import Team
+
+                guest_team = Team(name="Guest Players", display_name="Guest Players")
+                self._db_session.add(guest_team)
+                self._db_session.commit()
+
+        # Default name if not provided
+        if not player_name or player_name.strip().lower() in ["unknown", ""]:
+            player_name = f"Sub #{jersey_number}"
+
+        # Try to find existing substitute player with this jersey number
+        player = (
+            self._db_session.query(Player)
+            .filter_by(team_id=guest_team.id, jersey_number=jersey_number, is_substitute=True)
+            .first()
+        )
+
+        if not player:
+            # Create new substitute player
+            player = Player(team_id=guest_team.id, name=player_name, jersey_number=jersey_number, is_substitute=True)
+            self._db_session.add(player)
+            self._db_session.commit()
+        elif player.name != player_name and player_name != f"Sub #{jersey_number}":
+            # Update name if it's different and not the default
             player.name = player_name
             self._db_session.commit()
 

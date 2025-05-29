@@ -18,6 +18,7 @@ def seed_teams(db: Session):
         Team(name="Bears"),
         Team(name="Eagles"),
         Team(name="Sharks"),
+        Team(name="Guest Players", display_name="Guest Players"),  # For substitute players
     ]
 
     added_to_session = False

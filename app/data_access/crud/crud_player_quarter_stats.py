@@ -56,6 +56,21 @@ def get_player_quarter_stats(db: Session, player_game_stat_id: int) -> list[Play
     )
 
 
+def get_player_quarter_stats_by_game_stat(db: Session, player_game_stat_id: int) -> list[PlayerQuarterStats]:
+    """
+    Get all quarter stats for a specific player game stats record.
+    (Alias for get_player_quarter_stats for backward compatibility)
+
+    Args:
+        db: SQLAlchemy database session
+        player_game_stat_id: ID of the PlayerGameStats to get quarter stats for
+
+    Returns:
+        List of PlayerQuarterStats instances for all quarters
+    """
+    return get_player_quarter_stats(db, player_game_stat_id)
+
+
 def get_quarter_stats_by_quarter(
     db: Session, player_game_stat_id: int, quarter_number: int
 ) -> PlayerQuarterStats | None:

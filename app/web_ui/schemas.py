@@ -201,6 +201,9 @@ class PlayerCreateRequest(BaseModel):
     height: int | None = Field(None, ge=48, le=96, description="Height in inches")
     weight: int | None = Field(None, ge=100, le=400, description="Weight in pounds")
     year: str | None = Field(None, description="Academic year (e.g., Freshman, Junior)")
+    is_substitute: bool = Field(
+        False, description="Whether this player is a substitute who can play for multiple teams"
+    )
 
 
 class PlayerUpdateRequest(BaseModel):
@@ -216,6 +219,9 @@ class PlayerUpdateRequest(BaseModel):
     weight: int | None = Field(None, ge=100, le=400, description="Weight in pounds")
     year: str | None = Field(None, description="Academic year (e.g., Freshman, Junior)")
     is_active: bool | None = None
+    is_substitute: bool | None = Field(
+        None, description="Whether this player is a substitute who can play for multiple teams"
+    )
 
 
 class PlayerResponse(BaseModel):
@@ -231,6 +237,7 @@ class PlayerResponse(BaseModel):
     weight: int | None = None
     year: str | None = None
     is_active: bool = True
+    is_substitute: bool = False
 
 
 # Season Statistics Schemas

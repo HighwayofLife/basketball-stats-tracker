@@ -28,7 +28,7 @@ class ImportProcessor:
         self.db = db
         self.game_service = GameService(db)
         self.player_service = PlayerService(db)
-        self.stats_service = StatsEntryService(db)
+        self.stats_service = StatsEntryService(db, parse_quarter_shot_string, SHOT_MAPPING)
 
     def process_teams(self, team_data: dict[str, dict[str, int]]) -> tuple[int, int, int]:
         """Process team imports.
@@ -143,53 +143,55 @@ class ImportProcessor:
 
     def _names_match_simple(self, existing_name: str, new_name: str) -> bool:
         """Check if two names are similar enough to be considered the same player.
-        
+
         Uses conservative heuristics for common scorebook variations:
         - Exact prefix matching (John vs John M.)
         - Conservative abbreviations with length limit
-        
+
         Args:
             existing_name: Name currently in database
             new_name: Name from CSV import
-            
+
         Returns:
             True if names are similar enough to accept
         """
         existing_clean = existing_name.strip().lower()
         new_clean = new_name.strip().lower()
-        
+
         # Must have at least 3 characters for matching
         if len(existing_clean) < 3 or len(new_clean) < 3:
             return False
-            
+
         # Check if one is an exact prefix of the other (handles "John" vs "John M.")
         if existing_clean.startswith(new_clean) or new_clean.startswith(existing_clean):
             # But limit the length difference to avoid false positives
             length_diff = abs(len(existing_clean) - len(new_clean))
             if length_diff <= 5:  # Allow reasonable differences like "John" vs "John M."
                 return True
-                
+
         # Extract first names by splitting on space for multi-part names
         existing_parts = existing_clean.split()
         new_parts = new_clean.split()
-        
+
         if len(existing_parts) >= 1 and len(new_parts) >= 1:
             existing_first = existing_parts[0]
             new_first = new_parts[0]
-            
+
             # If first names match exactly and both have more parts, it's a match
             if existing_first == new_first and len(existing_parts) > 1 and len(new_parts) > 1:
                 return True
-                
+
             # Check if one first name is abbreviation of the other (Jonathan vs Jon)
             shorter_first = min(existing_first, new_first, key=len)
             longer_first = max(existing_first, new_first, key=len)
-            
-            if (len(shorter_first) >= 3 and 
-                longer_first.startswith(shorter_first) and 
-                len(longer_first) - len(shorter_first) <= 3):  # More conservative limit
+
+            if (
+                len(shorter_first) >= 3
+                and longer_first.startswith(shorter_first)
+                and len(longer_first) - len(shorter_first) <= 3
+            ):  # More conservative limit
                 return True
-                
+
         return False
 
     def process_game_stats(self, validated_data: GameStatsCSVInputSchema) -> bool:
@@ -284,15 +286,42 @@ class ImportProcessor:
             typer.echo(f"Error: Team '{player_stats.team_name}' not found.")
             return False
 
-        # Get or create the player
-        player = self.player_service.get_or_create_player(
-            team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
-        )
-        if not player:
-            typer.echo(
-                f"Error: Could not get or create player '{player_stats.player_name}' #{player_stats.jersey_number} on team '{player_stats.team_name}'."
+        # Check if this is a substitute player
+        is_substitute = False
+        playing_for_team_id = None
+
+        # Check if this is an unknown/unidentified shot
+        if player_stats.player_name and player_stats.player_name.strip().lower() in ["unknown", "unidentified"]:
+            # Create a special "Unknown Player" entry for this team and game
+            player_name = f"Unknown #{player_stats.jersey_number} ({team.name})"
+            player = self.player_service.get_or_create_player(
+                team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_name
             )
-            return False
+            if not player:
+                typer.echo("Error: Could not create unknown player entry.")
+                return False
+        # Check if this is a known substitute player
+        elif self._is_substitute_player(player_stats.player_name, player_stats.jersey_number):
+            is_substitute = True
+            playing_for_team_id = team.id
+
+            # Get or create substitute player
+            player = self.player_service.get_or_create_substitute_player(
+                jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
+            )
+            if not player:
+                typer.echo(f"Error: Could not create substitute player #{player_stats.jersey_number}.")
+                return False
+        else:
+            # Regular team player
+            player = self.player_service.get_or_create_player(
+                team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
+            )
+            if not player:
+                typer.echo(
+                    f"Error: Could not get or create player '{player_stats.player_name}' #{player_stats.jersey_number} on team '{player_stats.team_name}'."
+                )
+                return False
 
         # Process quarter statistics
         for quarter in range(1, 5):
@@ -307,6 +336,7 @@ class ImportProcessor:
                             player_id=player.id,
                             quarter=quarter,
                             stats=shot_stats,
+                            playing_for_team_id=playing_for_team_id,
                         )
                     except ValueError as e:
                         typer.echo(f"Warning: Invalid shot string for {player.name} Q{quarter}: {e}")
@@ -320,8 +350,37 @@ class ImportProcessor:
                     player_id=player.id,
                     quarter=5,  # OT is quarter 5
                     stats=shot_stats,
+                    playing_for_team_id=playing_for_team_id,
                 )
             except ValueError as e:
                 typer.echo(f"Warning: Invalid shot string for {player.name} OT: {e}")
 
         return True
+
+    def _is_substitute_player(self, player_name: str | None, jersey_number: str) -> bool:
+        """
+        Determine if a player is a substitute based on name and jersey number.
+
+        Args:
+            player_name: Player's name
+            jersey_number: Player's jersey number
+
+        Returns:
+            True if this is likely a substitute player
+        """
+        if not player_name:
+            return False
+
+        # Check if this player exists in the Guest Players team
+        guest_team = self.db.query(Team).filter_by(name="Guest Players").first()
+        if not guest_team:
+            return False
+
+        # Check if player exists as a substitute
+        existing_player = (
+            self.db.query(Player)
+            .filter_by(team_id=guest_team.id, name=player_name, jersey_number=jersey_number, is_substitute=True)
+            .first()
+        )
+
+        return existing_player is not None

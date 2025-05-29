@@ -7,7 +7,9 @@ from sqlalchemy.orm import Session
 from app.data_access.models import PlayerGameStats
 
 
-def create_player_game_stats(db: Session, game_id: int, player_id: int, fouls: int) -> PlayerGameStats:
+def create_player_game_stats(
+    db: Session, game_id: int, player_id: int, fouls: int, playing_for_team_id: int | None = None
+) -> PlayerGameStats:
     """
     Create a new player game statistics record.
 
@@ -16,11 +18,12 @@ def create_player_game_stats(db: Session, game_id: int, player_id: int, fouls: i
         game_id: ID of the game
         player_id: ID of the player
         fouls: Number of fouls committed by the player in the game
+        playing_for_team_id: ID of the team the player played for (for substitutes)
 
     Returns:
         The created PlayerGameStats instance
     """
-    stats = PlayerGameStats(game_id=game_id, player_id=player_id, fouls=fouls)
+    stats = PlayerGameStats(game_id=game_id, player_id=player_id, fouls=fouls, playing_for_team_id=playing_for_team_id)
     db.add(stats)
     db.commit()
     db.refresh(stats)
@@ -85,3 +88,19 @@ def get_player_game_stats(db: Session, game_id: int, player_id: int) -> PlayerGa
         .filter(PlayerGameStats.game_id == game_id, PlayerGameStats.player_id == player_id)
         .first()
     )
+
+
+def get_player_game_stats_by_game_and_player(db: Session, game_id: int, player_id: int) -> PlayerGameStats | None:
+    """
+    Get a player's game stats for a specific game.
+    (Alias for get_player_game_stats for backward compatibility)
+
+    Args:
+        db: SQLAlchemy database session
+        game_id: ID of the game
+        player_id: ID of the player
+
+    Returns:
+        PlayerGameStats instance if found, None otherwise
+    """
+    return get_player_game_stats(db, game_id, player_id)

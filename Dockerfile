@@ -43,11 +43,18 @@ CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--
 # Production stage
 FROM base AS production
 
+# Accept build arguments for version info
+ARG APP_VERSION=0.1.0
+ARG GIT_HASH=unknown
+
 # Install only runtime dependencies
 RUN pip install --no-cache-dir .
 
 # Copy application code
 COPY . .
+
+# Create version info file
+RUN echo "{\"version\": \"$APP_VERSION\", \"git_hash\": \"$GIT_HASH\", \"full_version\": \"v$APP_VERSION-$GIT_HASH\"}" > /app/app/VERSION.json
 
 # Set environment variables
 ENV PYTHONPATH=/app

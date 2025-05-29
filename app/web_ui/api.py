@@ -10,6 +10,8 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.config import VERSION_INFO
+
 from .routers import admin_router, auth_router, games_router, pages_router, players_router, reports_router, teams_router
 
 # Configure logger

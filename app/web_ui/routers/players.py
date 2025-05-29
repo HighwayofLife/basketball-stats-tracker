@@ -44,6 +44,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True):
                     weight=player.weight,
                     year=player.year,
                     is_active=player.is_active,
+                    is_substitute=player.is_substitute,
                 )
                 for player, team in players_teams
             ]
@@ -103,6 +104,7 @@ async def create_player(player_data: PlayerCreateRequest):
                 weight=player_data.weight,
                 year=player_data.year,
                 is_active=True,
+                is_substitute=player_data.is_substitute,
             )
             session.add(player)
             session.commit()
@@ -118,6 +120,7 @@ async def create_player(player_data: PlayerCreateRequest):
                 weight=player.weight,
                 year=player.year,
                 is_active=player.is_active,
+                is_substitute=player.is_substitute,
             )
     except HTTPException:
         raise
@@ -164,6 +167,7 @@ async def get_player(player_id: int):
                 weight=player.weight,
                 year=player.year,
                 is_active=player.is_active,
+                is_substitute=player.is_substitute,
             )
     except HTTPException:
         raise
@@ -218,6 +222,8 @@ async def update_player(player_id: int, player_data: PlayerUpdateRequest):
                 player.year = player_data.year
             if player_data.is_active is not None:
                 player.is_active = player_data.is_active
+            if player_data.is_substitute is not None:
+                player.is_substitute = player_data.is_substitute
 
             session.commit()
 
@@ -232,6 +238,7 @@ async def update_player(player_id: int, player_data: PlayerUpdateRequest):
                 weight=player.weight,
                 year=player.year,
                 is_active=player.is_active,
+                is_substitute=player.is_substitute,
             )
     except HTTPException:
         raise

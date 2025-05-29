@@ -17,6 +17,10 @@ APP_SERVICE_NAME = web # The web service in docker-compose.yml
 IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
+# Version information
+APP_VERSION = 0.1.0
+GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
 # Colors for terminal output
 BLUE=\033[0;34m
 GREEN=\033[0;32m
@@ -33,8 +37,11 @@ NC=\033[0m # No Color
 
 .PHONY: docker-build
 docker-build: ## Build the Docker image for production
-	@echo "${CYAN}Building production Docker image...${NC}"
-	@docker build --target production -t $(IMAGE_NAME) .
+	@echo "${CYAN}Building production Docker image with version v$(APP_VERSION)-$(GIT_HASH)...${NC}"
+	@docker build --target production \
+		--build-arg APP_VERSION=$(APP_VERSION) \
+		--build-arg GIT_HASH=$(GIT_HASH) \
+		-t $(IMAGE_NAME) .
 
 .PHONY: docker-run
 docker-run: docker-build ## Run the production Docker container

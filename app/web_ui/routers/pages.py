@@ -5,20 +5,16 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
+from app.web_ui.templates_config import templates
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["pages"])
-
-# Setup templates
-BASE_DIR = Path(__file__).resolve().parent.parent
-templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 
 
 def get_top_players_from_recent_week(session, limit=4):
@@ -199,6 +195,12 @@ async def team_detail_page(request: Request, team_id: int):
 async def players_page(request: Request):
     """Render the players management page."""
     return templates.TemplateResponse("players/index.html", {"request": request, "title": "Player Management"})
+
+
+@router.get("/substitutes", response_class=HTMLResponse)
+async def substitutes_page(request: Request):
+    """Render the substitute players management page."""
+    return templates.TemplateResponse("substitutes/index.html", {"request": request, "title": "Substitute Players"})
 
 
 @router.get("/games/{game_id}", response_class=HTMLResponse)

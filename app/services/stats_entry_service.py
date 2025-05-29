@@ -99,3 +99,88 @@ class StatsEntryService:
         )
 
         return updated_stats
+
+    def add_player_quarter_stats(
+        self, game_id: int, player_id: int, quarter: int, stats: dict, playing_for_team_id: int | None = None
+    ) -> bool:
+        """
+        Add statistics for a specific quarter for a player.
+
+        Args:
+            game_id: ID of the game
+            player_id: ID of the player
+            quarter: Quarter number (1-4 for regular, 5 for OT)
+            stats: Dictionary with shooting stats
+            playing_for_team_id: ID of team the player is playing for (for substitutes)
+
+        Returns:
+            True if successful
+        """
+        from app.data_access.crud.crud_player_game_stats import get_player_game_stats_by_game_and_player
+
+        try:
+            # Get or create player game stats
+            player_game_stats = get_player_game_stats_by_game_and_player(self._db_session, game_id, player_id)
+
+            if not player_game_stats:
+                # Create new player game stats
+                player_game_stats = create_player_game_stats(
+                    self._db_session,
+                    game_id=game_id,
+                    player_id=player_id,
+                    fouls=0,
+                    playing_for_team_id=playing_for_team_id,
+                )
+            elif playing_for_team_id and not player_game_stats.playing_for_team_id:
+                # Update playing_for_team_id if it's a substitute
+                player_game_stats.playing_for_team_id = playing_for_team_id
+                self._db_session.commit()
+
+            # Create quarter stats
+            create_player_quarter_stats(
+                self._db_session,
+                player_game_stats.id,
+                quarter,
+                {
+                    "ftm": stats.get("ftm", 0),
+                    "fta": stats.get("fta", 0),
+                    "fg2m": stats.get("fg2m", 0),
+                    "fg2a": stats.get("fg2a", 0),
+                    "fg3m": stats.get("fg3m", 0),
+                    "fg3a": stats.get("fg3a", 0),
+                },
+            )
+
+            # Update totals
+            self._update_player_game_totals(player_game_stats.id)
+
+            return True
+
+        except Exception as e:
+            print(f"Error adding quarter stats: {e}")
+            self._db_session.rollback()
+            return False
+
+    def _update_player_game_totals(self, player_game_stat_id: int) -> None:
+        """Update the total statistics for a player's game from quarter stats."""
+        from app.data_access.crud.crud_player_quarter_stats import get_player_quarter_stats_by_game_stat
+
+        # Get all quarter stats
+        quarter_stats = get_player_quarter_stats_by_game_stat(self._db_session, player_game_stat_id)
+
+        # Calculate totals
+        totals = {
+            "total_ftm": sum(q.ftm for q in quarter_stats),
+            "total_fta": sum(q.fta for q in quarter_stats),
+            "total_2pm": sum(q.fg2m for q in quarter_stats),
+            "total_2pa": sum(q.fg2a for q in quarter_stats),
+            "total_3pm": sum(q.fg3m for q in quarter_stats),
+            "total_3pa": sum(q.fg3a for q in quarter_stats),
+        }
+
+        # Update player game stats with totals
+        update_player_game_stats_totals(
+            self._db_session,
+            player_game_stat_id=player_game_stat_id,
+            totals=totals,
+        )

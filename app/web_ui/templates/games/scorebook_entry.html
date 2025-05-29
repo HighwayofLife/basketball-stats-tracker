@@ -292,11 +292,13 @@ code {
 <script>
 let teamsData = [];
 let playersData = [];
+let substitutePlayerNames = []; // List of known substitute player names
 
 // Initialize the page
 document.addEventListener('DOMContentLoaded', async function() {
     setDefaultDate();
     await loadTeamsAndPlayers();
+    await loadSubstitutePlayerNames();
     // Only add the first row if we successfully loaded data
     if (teamsData && teamsData.length > 0) {
         addPlayerRow(); // Add first row by default
@@ -349,6 +351,23 @@ async function loadTeamsAndPlayers() {
         document.getElementById('awayTeam').disabled = true;
         document.querySelector('button[onclick="saveGame()"]').disabled = true;
         document.querySelector('button[onclick="addPlayerRow()"]').disabled = true;
+    }
+}
+
+async function loadSubstitutePlayerNames() {
+    try {
+        // Load substitute player configuration
+        // For now, we'll hardcode some common substitute names
+        // In production, this would come from an API endpoint
+        substitutePlayerNames = [
+            // Add any configured substitute player names here
+            // These will be matched case-insensitively
+        ];
+        
+        // Make it available globally for CSV import
+        window.substitutePlayerNames = substitutePlayerNames;
+    } catch (error) {
+        console.error('Error loading substitute player names:', error);
     }
 }
 
@@ -989,14 +1008,28 @@ async function importCSV(event) {
                         team: teamName
                     });
                     
+                    // Check if this is an unknown player or potential substitute
+                    const isUnknown = playerName.toLowerCase() === 'unknown' || playerName.toLowerCase() === 'unidentified';
+                    const isSubstitute = window.substitutePlayerNames && 
+                                       window.substitutePlayerNames.includes(playerName.toLowerCase());
+                    
                     // Add visual indicator that this player needs to be created
                     // Update the player select to show it's a new player
                     const currentOption = playerSelect.options[playerSelect.selectedIndex];
-                    currentOption.text = `⚠️ NEW: ${playerName} #${jerseyNumber} (${teamName})`;
-                    currentOption.classList.add('text-warning');
+                    if (isUnknown) {
+                        currentOption.text = `❓ UNKNOWN: #${jerseyNumber} (${teamName})`;
+                        currentOption.classList.add('text-danger');
+                    } else if (isSubstitute) {
+                        currentOption.text = `🔄 SUB: ${playerName} #${jerseyNumber} (${teamName})`;
+                        currentOption.classList.add('text-info');
+                    } else {
+                        currentOption.text = `⚠️ NEW: ${playerName} #${jerseyNumber} (${teamName})`;
+                        currentOption.classList.add('text-warning');
+                    }
                     
                     // Store new player data on the row for later use
                     lastRow.dataset.newPlayer = 'true';
+                    lastRow.dataset.playerType = isUnknown ? 'unknown' : (isSubstitute ? 'substitute' : 'regular');
                     lastRow.dataset.playerName = playerName;
                     lastRow.dataset.jerseyNumber = jerseyNumber;
                     lastRow.dataset.teamName = teamName;

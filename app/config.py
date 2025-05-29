@@ -5,6 +5,7 @@ Handles both development and bundled (PyInstaller) environments.
 """
 
 import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -109,3 +110,36 @@ class ProductionSettings(Settings):
 env = os.getenv("ENVIRONMENT", "development").lower()
 
 settings = ProductionSettings() if env == "production" else DevelopmentSettings()
+
+
+# Version information
+def get_version_info() -> dict[str, str]:
+    """Get version information including app version and git commit hash."""
+    version = "0.1.0"  # This should match pyproject.toml
+    git_hash = "unknown"
+
+    # First, try to read from VERSION.json if it exists (for production builds)
+    version_file = BASE_DIR / "app" / "VERSION.json"
+    if version_file.exists():
+        try:
+            import json
+
+            with open(version_file) as f:
+                return json.load(f)
+        except Exception:
+            pass
+
+    # Otherwise, try to get git commit hash
+    try:
+        git_hash = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], cwd=BASE_DIR, stderr=subprocess.DEVNULL, text=True
+        ).strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Git not available or not a git repo
+        pass
+
+    return {"version": version, "git_hash": git_hash, "full_version": f"v{version}-{git_hash}"}
+
+
+# Get version info at startup
+VERSION_INFO = get_version_info()
