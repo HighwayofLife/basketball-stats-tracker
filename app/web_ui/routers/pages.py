@@ -317,3 +317,24 @@ async def player_detail_page(request: Request, player_id: int):
 async def scorebook_entry_page(request: Request):
     """Render the scorebook entry page."""
     return templates.TemplateResponse("games/scorebook_entry.html", {"request": request, "title": "Scorebook Entry"})
+
+
+@router.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request):
+    """Render the login page."""
+    return templates.TemplateResponse("auth/login.html", {"request": request, "title": "Login"})
+
+
+@router.get("/logout", response_class=HTMLResponse)
+async def logout_page(request: Request):
+    """Handle logout by clearing client-side storage and redirecting."""
+    # Since we're using JWT tokens stored client-side, we just need to redirect
+    # The actual token clearing happens client-side
+    return templates.TemplateResponse(
+        "base.html",
+        {
+            "request": request,
+            "title": "Logging out...",
+            "content": '<script>localStorage.removeItem("access_token"); localStorage.removeItem("token_type"); window.location.href = "/";</script>',
+        },
+    )

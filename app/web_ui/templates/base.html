@@ -23,9 +23,14 @@
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
                     <li><a href="/reports">Reports</a></li>
-                    <li><a href="/admin/data-corrections">Admin</a></li>
+                    <li id="admin-nav-item" style="display: none;"><a href="/admin/data-corrections">Admin</a></li>
                 </ul>
             </nav>
+            <div class="auth-status">
+                <span id="username-display" style="display: none; margin-right: 10px;"></span>
+                <a id="login-link" href="/login" style="display: none;">Login</a>
+                <a id="logout-link" href="/logout" style="display: none;">Logout</a>
+            </div>
         </div>
     </header>
 
@@ -46,6 +51,86 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    
+    <script>
+    // Check authentication status and update UI
+    async function updateAuthUI() {
+        const token = localStorage.getItem('access_token');
+        const loginLink = document.getElementById('login-link');
+        const logoutLink = document.getElementById('logout-link');
+        const usernameDisplay = document.getElementById('username-display');
+        const adminNavItem = document.getElementById('admin-nav-item');
+        
+        if (token) {
+            try {
+                const response = await fetch('/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const userData = await response.json();
+                    // Show logout link and username
+                    loginLink.style.display = 'none';
+                    logoutLink.style.display = 'inline';
+                    usernameDisplay.textContent = userData.username;
+                    usernameDisplay.style.display = 'inline';
+                    
+                    // Show admin menu if user is admin
+                    if (userData.role === 'ADMIN') {
+                        adminNavItem.style.display = 'inline';
+                    }
+                } else {
+                    // Token is invalid, clear it
+                    localStorage.removeItem('access_token');
+                    localStorage.removeItem('token_type');
+                    showLoggedOutUI();
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
+                showLoggedOutUI();
+            }
+        } else {
+            showLoggedOutUI();
+        }
+    }
+    
+    function showLoggedOutUI() {
+        const loginLink = document.getElementById('login-link');
+        const logoutLink = document.getElementById('logout-link');
+        const usernameDisplay = document.getElementById('username-display');
+        const adminNavItem = document.getElementById('admin-nav-item');
+        
+        loginLink.style.display = 'inline';
+        logoutLink.style.display = 'none';
+        usernameDisplay.style.display = 'none';
+        adminNavItem.style.display = 'none';
+    }
+    
+    // Update auth UI on page load
+    updateAuthUI();
+    
+    // Add authorization header to all fetch requests if token exists
+    const originalFetch = window.fetch;
+    window.fetch = function(...args) {
+        const token = localStorage.getItem('access_token');
+        if (token && args[1]) {
+            args[1].headers = {
+                ...args[1].headers,
+                'Authorization': `Bearer ${token}`
+            };
+        } else if (token && !args[1]) {
+            args[1] = {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            };
+        }
+        return originalFetch.apply(this, args);
+    };
+    </script>
+    
     {% block extra_scripts %}{% endblock %}
 </body>
 </html>
