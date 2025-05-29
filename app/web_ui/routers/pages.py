@@ -90,7 +90,7 @@ async def index(request: Request):
                 .options(
                     # Eagerly load relationships to avoid lazy loading issues
                     joinedload(models.Game.playing_team),
-                    joinedload(models.Game.opponent_team)
+                    joinedload(models.Game.opponent_team),
                 )
                 .order_by(models.Game.date.desc())
                 .limit(5)
@@ -130,8 +130,12 @@ async def index(request: Request):
                         {
                             "id": game.id,
                             "date": game.date,
-                            "home_team": game.playing_team.display_name or game.playing_team.name if game.playing_team else "Unknown",
-                            "away_team": game.opponent_team.display_name or game.opponent_team.name if game.opponent_team else "Unknown",
+                            "home_team": game.playing_team.display_name or game.playing_team.name
+                            if game.playing_team
+                            else "Unknown",
+                            "away_team": game.opponent_team.display_name or game.opponent_team.name
+                            if game.opponent_team
+                            else "Unknown",
                             "home_score": home_score,
                             "away_score": away_score,
                         }
