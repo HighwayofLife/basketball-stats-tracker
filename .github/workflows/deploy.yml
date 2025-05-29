@@ -33,6 +33,10 @@ jobs:
     - name: Set up Cloud SDK
       uses: google-github-actions/setup-gcloud@v2
 
+    - name: Install gcloud beta components
+      run: |
+        gcloud components install beta --quiet
+
     - name: Configure Docker for Artifact Registry
       run: |
         gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
