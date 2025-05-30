@@ -3,7 +3,7 @@
 import typer
 from sqlalchemy.exc import SQLAlchemyError
 
-import app.data_access.database_manager as db_manager
+from app.data_access.database_manager import db_manager
 from app.schemas.csv_schemas import GameStatsCSVInputSchema
 
 from .csv_parser import CSVParser
@@ -117,75 +117,65 @@ class ImportOrchestrator:
     def _display_game_stats_import_summary(self, game_stats_file: str, validated_data: GameStatsCSVInputSchema) -> None:
         """Display summary of game stats import data."""
         typer.echo(f"\nParsed game data from '{game_stats_file}':")
-        typer.echo(f"  - Home Team: {validated_data.game_info.Home}")
-        typer.echo(f"  - Visitor Team: {validated_data.game_info.Visitor}")
+        typer.echo(f"  - Home Team: {validated_data.game_info.HomeTeam}")
+        typer.echo(f"  - Visitor Team: {validated_data.game_info.VisitorTeam}")
         typer.echo(f"  - Date: {validated_data.game_info.Date}")
         typer.echo(f"  - Players with stats: {len(validated_data.player_stats)}")
 
     def _process_roster_import(self, team_data: dict, player_data: list) -> bool:
         """Process the roster import into the database."""
-        db = None
         try:
-            db = db_manager.get_session()
-            processor = ImportProcessor(db)
+            with db_manager.get_db_session() as db:
+                processor = ImportProcessor(db)
 
-            # Process teams
-            teams_added, teams_existing, teams_error = processor.process_teams(team_data)
+                # Process teams
+                teams_added, teams_existing, teams_error = processor.process_teams(team_data)
 
-            # Commit teams before processing players
-            try:
-                db.commit()
-            except SQLAlchemyError as e:
-                typer.echo(f"Error committing teams: {e}")
-                db.rollback()
-                return False
+                # Commit teams before processing players
+                try:
+                    db.commit()
+                except SQLAlchemyError as e:
+                    typer.echo(f"Error committing teams: {e}")
+                    db.rollback()
+                    return False
 
-            # Process players
-            players_processed, players_error = processor.process_players(player_data)
+                # Process players
+                players_processed, players_error = processor.process_players(player_data)
 
-            # Commit players
-            try:
-                db.commit()
-                typer.echo("\nImport completed:")
-                typer.echo(f"  - Teams: {teams_added} added, {teams_existing} existing, {teams_error} errors")
-                typer.echo(f"  - Players: {players_processed} processed, {players_error} errors")
-                return teams_error == 0 and players_error == 0
-            except SQLAlchemyError as e:
-                typer.echo(f"Error committing players: {e}")
-                db.rollback()
-                return False
+                # Commit players
+                try:
+                    db.commit()
+                    typer.echo("\nImport completed:")
+                    typer.echo(f"  - Teams: {teams_added} added, {teams_existing} existing, {teams_error} errors")
+                    typer.echo(f"  - Players: {players_processed} processed, {players_error} errors")
+                    return teams_error == 0 and players_error == 0
+                except SQLAlchemyError as e:
+                    typer.echo(f"Error committing players: {e}")
+                    db.rollback()
+                    return False
 
         except SQLAlchemyError as e:
             typer.echo(f"Database error: {e}")
             return False
-        finally:
-            if db:
-                db.close()
 
     def _process_game_stats_import(self, validated_data: GameStatsCSVInputSchema) -> bool:
         """Process the game stats import into the database."""
-        db = None
         try:
-            db = db_manager.get_session()
-            processor = ImportProcessor(db)
+            with db_manager.get_db_session() as db:
+                processor = ImportProcessor(db)
 
-            # Process game and stats
-            success = processor.process_game_stats(validated_data)
+                # Process game and stats
+                success = processor.process_game_stats(validated_data)
 
-            if success:
-                db.commit()
-                typer.echo("\nGame stats import completed successfully.")
-            else:
-                db.rollback()
-                typer.echo("\nGame stats import failed.")
+                if success:
+                    db.commit()
+                    typer.echo("\nGame stats import completed successfully.")
+                else:
+                    db.rollback()
+                    typer.echo("\nGame stats import failed.")
 
-            return success
+                return success
 
         except SQLAlchemyError as e:
             typer.echo(f"Database error: {e}")
-            if db:
-                db.rollback()
             return False
-        finally:
-            if db:
-                db.close()

@@ -336,8 +336,8 @@ async def get_player_stats(player_id: int):
                 "total_fouls": 0,
             }
 
-            recent_games = []
-            for stats, game in game_stats[:10]:  # Last 10 games
+            # Calculate career totals from all games
+            for stats, game in game_stats:
                 points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
                 career_stats["total_points"] += points
                 career_stats["total_ftm"] += stats.total_ftm
@@ -348,6 +348,10 @@ async def get_player_stats(player_id: int):
                 career_stats["total_3pa"] += stats.total_3pa
                 career_stats["total_fouls"] += stats.fouls
 
+            # Get recent games (last 10)
+            recent_games = []
+            for stats, game in game_stats[:10]:
+                points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
                 recent_games.append(
                     {
                         "game_id": game.id,
@@ -355,8 +359,14 @@ async def get_player_stats(player_id: int):
                         "opponent": game.opponent_team.name,
                         "points": points,
                         "ft": f"{stats.total_ftm}/{stats.total_fta}",
+                        "ftm": stats.total_ftm,
+                        "fta": stats.total_fta,
                         "fg2": f"{stats.total_2pm}/{stats.total_2pa}",
+                        "fg2m": stats.total_2pm,
+                        "fg2a": stats.total_2pa,
                         "fg3": f"{stats.total_3pm}/{stats.total_3pa}",
+                        "fg3m": stats.total_3pm,
+                        "fg3a": stats.total_3pa,
                         "fouls": stats.fouls,
                     }
                 )

@@ -10,6 +10,7 @@ from app.config import SHOT_MAPPING
 from app.data_access.models import Game, Player, Team
 from app.schemas.csv_schemas import GameStatsCSVInputSchema
 from app.services.game_service import GameService
+from app.services.game_state_service import GameStateService
 from app.services.player_service import PlayerService
 from app.services.score_calculation_service import ScoreCalculationService
 from app.services.stats_entry_service import StatsEntryService
@@ -27,6 +28,7 @@ class ImportProcessor:
         """
         self.db = db
         self.game_service = GameService(db)
+        self.game_state_service = GameStateService(db)
         self.player_service = PlayerService(db)
         self.stats_service = StatsEntryService(db, parse_quarter_shot_string, SHOT_MAPPING)
 
@@ -222,17 +224,17 @@ class ImportProcessor:
         """
         try:
             # Get or create teams
-            home_team = self._get_or_create_team(validated_data.game_info.Home)
-            visitor_team = self._get_or_create_team(validated_data.game_info.Visitor)
+            home_team = self._get_or_create_team(validated_data.game_info.HomeTeam)
+            visitor_team = self._get_or_create_team(validated_data.game_info.VisitorTeam)
 
             if not home_team or not visitor_team:
                 return False
 
             # Create the game
-            game = self.game_service.create_game(
+            game = self.game_state_service.create_game(
                 date=validated_data.game_info.Date,
-                playing_team_id=home_team.id,
-                opponent_team_id=visitor_team.id,
+                home_team_id=home_team.id,
+                away_team_id=visitor_team.id,
             )
 
             if not game:
@@ -298,9 +300,9 @@ class ImportProcessor:
             True if successful, False otherwise
         """
         # Get the team
-        team = self.db.query(Team).filter(Team.name == player_stats.team_name).first()
+        team = self.db.query(Team).filter(Team.name == player_stats.TeamName).first()
         if not team:
-            typer.echo(f"Error: Team '{player_stats.team_name}' not found.")
+            typer.echo(f"Error: Team '{player_stats.TeamName}' not found.")
             return False
 
         # Check if this is a substitute player
@@ -308,41 +310,41 @@ class ImportProcessor:
         playing_for_team_id = None
 
         # Check if this is an unknown/unidentified shot
-        if player_stats.player_name and player_stats.player_name.strip().lower() in ["unknown", "unidentified"]:
+        if player_stats.PlayerName and player_stats.PlayerName.strip().lower() in ["unknown", "unidentified"]:
             # Create a special "Unknown Player" entry for this team and game
-            player_name = f"Unknown #{player_stats.jersey_number} ({team.name})"
+            player_name = f"Unknown #{player_stats.PlayerJersey} ({team.name})"
             player = self.player_service.get_or_create_player(
-                team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_name
+                team_id=team.id, jersey_number=player_stats.PlayerJersey, player_name=player_name
             )
             if not player:
                 typer.echo("Error: Could not create unknown player entry.")
                 return False
         # Check if this is a known substitute player
-        elif self._is_substitute_player(player_stats.player_name, player_stats.jersey_number):
+        elif self._is_substitute_player(player_stats.PlayerName, player_stats.PlayerJersey):
             is_substitute = True
             playing_for_team_id = team.id
 
             # Get or create substitute player
             player = self.player_service.get_or_create_substitute_player(
-                jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
+                jersey_number=player_stats.PlayerJersey, player_name=player_stats.PlayerName
             )
             if not player:
-                typer.echo(f"Error: Could not create substitute player #{player_stats.jersey_number}.")
+                typer.echo(f"Error: Could not create substitute player #{player_stats.PlayerJersey}.")
                 return False
         else:
             # Regular team player
             player = self.player_service.get_or_create_player(
-                team_id=team.id, jersey_number=player_stats.jersey_number, player_name=player_stats.player_name
+                team_id=team.id, jersey_number=player_stats.PlayerJersey, player_name=player_stats.PlayerName
             )
             if not player:
                 typer.echo(
-                    f"Error: Could not get or create player '{player_stats.player_name}' #{player_stats.jersey_number} on team '{player_stats.team_name}'."
+                    f"Error: Could not get or create player '{player_stats.PlayerName}' #{player_stats.PlayerJersey} on team '{player_stats.TeamName}'."
                 )
                 return False
 
         # Process quarter statistics
         for quarter in range(1, 5):
-            quarter_key = f"quarter_{quarter}"
+            quarter_key = f"QT{quarter}Shots"
             if hasattr(player_stats, quarter_key):
                 shot_string = getattr(player_stats, quarter_key)
                 if shot_string and shot_string.strip():
