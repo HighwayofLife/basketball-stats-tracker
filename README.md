@@ -4,6 +4,24 @@ A comprehensive basketball statistics management system designed for small leagu
 
 ![Basketball Stats Tracker Interface](./assets/basketball-stats-tracker-app.png)
 
+<!-- PROJECT_STATS_START -->
+## 📊 Project Statistics
+
+| Metric | Value |
+|--------|-------|
+| **Tests** | 456 total (431 ✅ passed, 5 ❌ failed, 1 ⏭️ skipped, 19 ⚠️ errors) |
+| **Test Files** | 57 files (45 unit, 8 integration, 2 functional) |
+| **Code Coverage** | 61% (3,325 / 5,418 executable lines) |
+| **Source Code** | 79 Python files (14k total LOC) |
+| **Dependencies** | 40 total (core + dev/test) |
+| **Python Version** | 3.11+ |
+| **Code Quality** | Ruff linting + pytest |
+| **License** | MIT |
+| **Version** | 0.1.0 |
+
+> 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and code quality standards are met.
+<!-- PROJECT_STATS_END -->
+
 
 ## Features
 
@@ -114,6 +132,7 @@ For command-line usage, API integration, and development setup, see:
 
 - **[Developer Guide](docs/development.md)** - CLI commands, development setup, testing
 - **[Design Document](docs/design_doc.md)** - Technical architecture and database schema
+- **[Substitute Players Guide](docs/substitute_players_guide.md)** - Managing players who play for multiple teams
 
 ## Support
 

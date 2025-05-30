@@ -300,6 +300,13 @@ mcp-server: ## Run the Model Context Protocol server for easier database access
 	@echo "${CYAN}Starting MCP server...${NC}"
 	@python -m app.cli mcp-server
 
+# --- Statistics ---
+
+.PHONY: update-stats
+update-stats: ## Update project statistics in README.md
+	@echo "${CYAN}Updating project statistics in README.md...${NC}"
+	@python scripts/update_stats.py
+
 # --- Cleaning Targets ---
 
 .PHONY: clean
