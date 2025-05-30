@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const playerId = {{ player_id }};
     
     // Fetch player data
-    fetch(`/api/v1/players/${playerId}/stats`)
+    fetch(`/v1/players/${playerId}/stats`)
         .then(response => response.json())
         .then(data => {
             renderPlayerData(data);
@@ -257,7 +257,7 @@ function showUploadModal() {
         const playerId = {{ player_id }};
         
         try {
-            const response = await fetch(`/api/v1/players/${playerId}/upload-image`, {
+            const response = await fetch(`/v1/players/${playerId}/upload-image`, {
                 method: 'POST',
                 body: formData
             });

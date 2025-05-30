@@ -80,8 +80,6 @@ class PlayerService:
             # Create the Guest Players team if it doesn't exist
             guest_team = self._db_session.query(Team).filter_by(name="Guest Players").first()
             if not guest_team:
-                from app.data_access.models import Team
-
                 guest_team = Team(name="Guest Players", display_name="Guest Players")
                 self._db_session.add(guest_team)
                 self._db_session.commit()

@@ -28,8 +28,15 @@ class DataValidator:
             Validated GameStatsCSVInputSchema or None if validation fails
         """
         try:
+            # Map CSV fields to schema fields
+            mapped_game_info = {
+                "HomeTeam": game_info_data.get("Home", ""),
+                "VisitorTeam": game_info_data.get("Visitor", ""),
+                "Date": game_info_data.get("Date", ""),
+            }
+
             # Validate game info
-            game_info = GameInfoSchema(**game_info_data)
+            game_info = GameInfoSchema(**mapped_game_info)
 
             # Validate player stats
             player_stats = []
@@ -37,7 +44,18 @@ class DataValidator:
                 player_data = DataValidator._extract_player_data_from_row(row, player_stats_header)
                 if player_data:
                     try:
-                        validated_player = PlayerStatsRowSchema(**player_data)
+                        # Map extracted fields to schema fields
+                        mapped_player_data = {
+                            "TeamName": player_data.get("team_name", ""),
+                            "PlayerJersey": player_data.get("jersey_number", ""),
+                            "PlayerName": player_data.get("player_name", ""),
+                            "Fouls": int(player_data.get("fouls", 0)) if player_data.get("fouls") else 0,
+                            "QT1Shots": player_data.get("quarter_1", ""),
+                            "QT2Shots": player_data.get("quarter_2", ""),
+                            "QT3Shots": player_data.get("quarter_3", ""),
+                            "QT4Shots": player_data.get("quarter_4", ""),
+                        }
+                        validated_player = PlayerStatsRowSchema(**mapped_player_data)
                         player_stats.append(validated_player)
                     except ValidationError as e:
                         typer.echo(f"Warning: Invalid player data - {e}")
@@ -75,9 +93,9 @@ class DataValidator:
 
             if col.lower() == "team":
                 player_data["team_name"] = value
-            elif col.lower() == "player":
+            elif col.lower() in ["player", "player name"]:
                 player_data["player_name"] = value
-            elif col.lower() == "jersey" or col.lower() == "#":
+            elif col.lower() in ["jersey", "jersey number", "#"]:
                 try:
                     # Store jersey number as string but validate it can be parsed as int
                     jersey_num = str(int(value))
@@ -85,6 +103,8 @@ class DataValidator:
                 except (ValueError, TypeError):
                     typer.echo(f"Warning: Invalid jersey number '{value}'. Skipping player.")
                     return None
+            elif col.lower() == "fouls":
+                player_data["fouls"] = value
             elif col.lower().startswith("q") and col[1:].isdigit():
                 # This is a quarter column (Q1, Q2, etc.)
                 quarter_num = int(col[1:])
