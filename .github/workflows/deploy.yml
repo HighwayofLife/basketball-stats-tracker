@@ -64,19 +64,6 @@ jobs:
         docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
         docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
 
-    - name: Deploy to Cloud Run
-      run: |
-        gcloud run deploy ${{ env.SERVICE_NAME }} \
-          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
-          --region ${{ env.REGION }} \
-          --platform managed \
-          --allow-unauthenticated \
-          --port 8000 \
-          --memory 512Mi \
-          --cpu 1 \
-          --min-instances 0 \
-          --max-instances 10
-
     - name: Update Migration Job
       run: |
         # Delete existing migration job if it exists
@@ -94,6 +81,7 @@ jobs:
 
     - name: Run Database Migration
       run: |
+        echo "Running database migrations BEFORE deployment..."
         # Execute the migration
         EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
         echo "Migration execution: $EXECUTION_NAME"
@@ -102,13 +90,30 @@ jobs:
         for i in {1..30}; do
           STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
           if [ "$STATUS" = "Completed" ]; then
-            echo "Migration completed successfully"
+            echo "✅ Migration completed successfully - proceeding with deployment"
             break
           elif [ "$STATUS" = "Failed" ]; then
-            echo "Migration failed"
+            echo "❌ Migration failed - stopping deployment"
             gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" --limit=10 --format="table(timestamp,severity,textPayload)" --freshness=5m
             exit 1
           fi
           echo "Waiting for migration to complete... ($i/30)"
           sleep 10
         done
+
+    - name: Deploy to Cloud Run
+      run: |
+        echo "Deploying to Cloud Run (migrations completed successfully)..."
+        gcloud run deploy ${{ env.SERVICE_NAME }} \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --region ${{ env.REGION }} \
+          --platform managed \
+          --allow-unauthenticated \
+          --port 8000 \
+          --memory 512Mi \
+          --cpu 1 \
+          --min-instances 0 \
+          --max-instances 10 \
+          --set-env-vars="ENVIRONMENT=production" \
+          --set-env-vars="SECRET_KEY=${{ secrets.SECRET_KEY }}" \
+          --set-env-vars="DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@10.89.16.2:5432/basketball_stats"
