@@ -114,6 +114,4 @@ jobs:
           --cpu 1 \
           --min-instances 0 \
           --max-instances 10 \
-          --set-env-vars="ENVIRONMENT=production" \
-          --set-env-vars="SECRET_KEY=${{ secrets.SECRET_KEY }}" \
-          --set-env-vars="DATABASE_URL=postgresql://postgres:${{ secrets.DB_PASSWORD }}@10.89.16.2:5432/basketball_stats"
+          --set-env-vars="ENVIRONMENT=production,SECRET_KEY=${{ secrets.SECRET_KEY }}"
