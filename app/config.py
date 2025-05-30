@@ -115,7 +115,7 @@ settings = ProductionSettings() if env == "production" else DevelopmentSettings(
 # Version information
 def get_version_info() -> dict[str, str]:
     """Get version information including app version and git commit hash."""
-    version = "0.1.0"  # This should match pyproject.toml
+    version = "0.1.1"  # This should match pyproject.toml
     git_hash = "unknown"
 
     # First, try to read from VERSION.json if it exists (for production builds)

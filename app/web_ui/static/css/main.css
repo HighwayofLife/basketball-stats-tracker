@@ -44,9 +44,14 @@ body {
 
 .site-header .container {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  position: relative;
+  flex-wrap: nowrap;
+  gap: 20px;
+  min-height: 60px;
+}
+
+.site-title {
+  flex-shrink: 0;
 }
 
 .site-title a {
@@ -56,41 +61,30 @@ body {
   font-weight: bold;
 }
 
-/* Auth Status */
-.auth-status {
+.main-nav {
+  flex: 1;
   display: flex;
+  justify-content: center;
   align-items: center;
-  gap: 10px;
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.auth-status a {
-  color: var(--light-text);
-  text-decoration: none;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.auth-status a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-#username-display {
-  color: var(--light-text);
-  font-weight: 500;
+  margin: 0 20px;
 }
 
 .main-nav ul {
   display: flex;
+  align-items: center;
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .main-nav li {
   margin-left: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.main-nav li:first-child {
+  margin-left: 0;
 }
 
 .main-nav a {
@@ -103,6 +97,25 @@ body {
 
 .main-nav a:hover {
   background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Navigation divider */
+.nav-divider {
+  width: 1px;
+  height: 20px;
+  background-color: rgba(255, 255, 255, 0.3);
+  margin: 0 10px;
+}
+
+/* User navigation items */
+#user-nav-item {
+  gap: 10px;
+}
+
+#username-display {
+  color: var(--light-text);
+  font-weight: 500;
+  padding: 5px;
 }
 
 /* Main Content */
@@ -594,20 +607,42 @@ body {
 @media (max-width: 767px) {
   .site-header .container {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
+    text-align: center;
+    flex-wrap: wrap;
+  }
+
+  .site-title {
+    width: 100%;
+    margin-bottom: 10px;
   }
 
   .main-nav {
-    margin-top: 15px;
+    margin: 10px 0;
     width: 100%;
+    justify-content: center;
   }
 
   .main-nav ul {
     flex-wrap: wrap;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
   }
 
   .main-nav li {
-    margin: 5px 10px 5px 0;
+    margin: 5px;
+  }
+
+  .nav-divider {
+    display: none;
+  }
+
+  #user-nav-item,
+  #login-nav-item {
+    width: 100%;
+    justify-content: center;
+    margin-top: 10px;
   }
 
   .action-buttons {

@@ -19,7 +19,7 @@ def get_git_hash():
 def main():
     """Main function to capture and save version info."""
     # Read version from pyproject.toml
-    version = "0.1.0"  # This should be parsed from pyproject.toml in production
+    version = "0.1.1"  # This should be parsed from pyproject.toml in production
 
     # Get git hash
     git_hash = get_git_hash()

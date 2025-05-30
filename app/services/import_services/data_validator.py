@@ -95,7 +95,7 @@ class DataValidator:
                 player_data["team_name"] = value
             elif col.lower() in ["player", "player name"]:
                 player_data["player_name"] = value
-            elif col.lower() in ["jersey", "jersey number", "#"]:
+            elif col.lower() in ["jersey", "jersey number", "#", "number"]:
                 try:
                     # Store jersey number as string but validate it can be parsed as int
                     jersey_num = str(int(value))

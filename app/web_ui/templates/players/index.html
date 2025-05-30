@@ -15,6 +15,14 @@
         </select>
     </div>
     <div class="filter-group">
+        <label for="player-type-filter">Player Type:</label>
+        <select id="player-type-filter" class="filter-select">
+            <option value="">All Players</option>
+            <option value="regular">Regular Players</option>
+            <option value="substitute">Substitute Players</option>
+        </select>
+    </div>
+    <div class="filter-group">
         <label>
             <input type="checkbox" id="active-only" checked> Active players only
         </label>
@@ -330,6 +338,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Set up event listeners
     document.getElementById('team-filter').addEventListener('change', loadPlayers);
+    document.getElementById('player-type-filter').addEventListener('change', loadPlayers);
     document.getElementById('active-only').addEventListener('change', loadPlayers);
 });
 
@@ -357,11 +366,15 @@ async function loadTeams() {
 async function loadPlayers() {
     try {
         const teamId = document.getElementById('team-filter').value;
+        const playerType = document.getElementById('player-type-filter').value;
         const activeOnly = document.getElementById('active-only').checked;
         
         let url = `/v1/players/list?active_only=${activeOnly}`;
         if (teamId) {
             url += `&team_id=${teamId}`;
+        }
+        if (playerType) {
+            url += `&player_type=${playerType}`;
         }
         
         const response = await fetch(url);

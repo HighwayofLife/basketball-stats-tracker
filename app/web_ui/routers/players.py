@@ -18,7 +18,7 @@ router = APIRouter(prefix="/v1/players", tags=["players"])
 
 
 @router.get("/list", response_model=list[PlayerResponse])
-async def list_players(team_id: int | None = None, active_only: bool = True):
+async def list_players(team_id: int | None = None, active_only: bool = True, player_type: str | None = None):
     """Get a list of players with optional team filtering."""
     try:
         with get_db_session() as session:
@@ -29,6 +29,12 @@ async def list_players(team_id: int | None = None, active_only: bool = True):
 
             if active_only:
                 query = query.filter(models.Player.is_active)
+
+            if player_type:
+                if player_type == "substitute":
+                    query = query.filter(models.Player.is_substitute == True)
+                elif player_type == "regular":
+                    query = query.filter(models.Player.is_substitute == False)
 
             players_teams = query.order_by(models.Team.name, func.cast(models.Player.jersey_number, Integer)).all()
 

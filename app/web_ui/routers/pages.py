@@ -197,10 +197,6 @@ async def players_page(request: Request):
     return templates.TemplateResponse("players/index.html", {"request": request, "title": "Player Management"})
 
 
-@router.get("/substitutes", response_class=HTMLResponse)
-async def substitutes_page(request: Request):
-    """Render the substitute players management page."""
-    return templates.TemplateResponse("substitutes/index.html", {"request": request, "title": "Substitute Players"})
 
 
 @router.get("/games/{game_id}", response_class=HTMLResponse)
