@@ -5,6 +5,7 @@ from .database_commands import DatabaseCommands
 from .import_commands import ImportCommands
 from .listing_commands import ListingCommands
 from .report_commands import ReportCommands
+from .season_commands import SeasonCommands
 from .server_commands import ServerCommands
 from .stats_commands import StatsCommands
 
@@ -14,6 +15,7 @@ __all__ = [
     "ImportCommands",
     "ListingCommands",
     "ReportCommands",
+    "SeasonCommands",
     "ServerCommands",
     "StatsCommands",
 ]

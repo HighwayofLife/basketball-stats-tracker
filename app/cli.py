@@ -12,6 +12,7 @@ from app.services.cli_commands import (
     ImportCommands,
     ListingCommands,
     ReportCommands,
+    SeasonCommands,
     ServerCommands,
     StatsCommands,
 )
@@ -348,6 +349,113 @@ def deactivate_user(
         basketball-stats deactivate-user john_doe
     """
     AuthCommands.deactivate_user(username=username)
+
+
+# Season Management Commands
+@cli.command("season-create")
+def create_season(
+    name: str = typer.Option(..., "--name", "-n", help="Season name (e.g., 'Spring 2025')"),
+    code: str = typer.Option(..., "--code", "-c", help="Unique season code (e.g., '2025-spring')"),
+    start: str = typer.Option(..., "--start", "-s", help="Start date (YYYY-MM-DD)"),
+    end: str = typer.Option(..., "--end", "-e", help="End date (YYYY-MM-DD)"),
+    description: str = typer.Option(None, "--description", "-d", help="Season description"),
+    active: bool = typer.Option(False, "--active", help="Set as active season"),
+):
+    """
+    Create a new season.
+
+    Example:
+        basketball-stats season-create --name "Spring 2025" --code "2025-spring" --start 2025-03-01 --end 2025-06-30 --active
+    """
+    SeasonCommands.create_season(
+        name=name,
+        code=code,
+        start=start,
+        end=end,
+        description=description,
+        active=active,
+    )
+
+
+@cli.command("season-list")
+def list_seasons(
+    active_only: bool = typer.Option(False, "--active-only", help="Show only active season"),
+):
+    """
+    List all seasons.
+
+    Example:
+        basketball-stats season-list
+        basketball-stats season-list --active-only
+    """
+    SeasonCommands.list_seasons(active_only=active_only)
+
+
+@cli.command("season-activate")
+def activate_season(
+    season_id: int = typer.Argument(..., help="Season ID to activate"),
+):
+    """
+    Set a season as active.
+
+    Example:
+        basketball-stats season-activate 1
+    """
+    SeasonCommands.activate_season(season_id=season_id)
+
+
+@cli.command("season-update")
+def update_season(
+    season_id: int = typer.Argument(..., help="Season ID to update"),
+    name: str = typer.Option(None, "--name", "-n", help="New season name"),
+    start: str = typer.Option(None, "--start", "-s", help="New start date (YYYY-MM-DD)"),
+    end: str = typer.Option(None, "--end", "-e", help="New end date (YYYY-MM-DD)"),
+    description: str = typer.Option(None, "--description", "-d", help="New season description"),
+):
+    """
+    Update a season.
+
+    Example:
+        basketball-stats season-update 1 --name "Spring League 2025" --end 2025-07-15
+    """
+    SeasonCommands.update_season(
+        season_id=season_id,
+        name=name,
+        start=start,
+        end=end,
+        description=description,
+    )
+
+
+@cli.command("season-delete")
+def delete_season(
+    season_id: int = typer.Argument(..., help="Season ID to delete"),
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
+):
+    """
+    Delete a season (only if no games associated).
+
+    Example:
+        basketball-stats season-delete 1
+        basketball-stats season-delete 1 --force
+    """
+    SeasonCommands.delete_season(season_id=season_id, force=force)
+
+
+@cli.command("season-migrate")
+def migrate_seasons(
+    force: bool = typer.Option(False, "--force", "-f", help="Skip confirmation prompt"),
+):
+    """
+    Migrate existing games to the new season system.
+
+    This will create seasons from existing data and assign games to appropriate seasons.
+
+    Example:
+        basketball-stats season-migrate
+        basketball-stats season-migrate --force
+    """
+    SeasonCommands.migrate_seasons(force=force)
 
 
 if __name__ == "__main__":

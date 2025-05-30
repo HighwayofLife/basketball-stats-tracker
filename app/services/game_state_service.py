@@ -36,6 +36,7 @@ class GameStateService:
         location: str | None = None,
         scheduled_time: str | None = None,
         notes: str | None = None,
+        season_id: int | None = None,
     ) -> Game:
         """Create a new game.
 
@@ -57,6 +58,7 @@ class GameStateService:
             location=location,
             scheduled_time=datetime.strptime(scheduled_time, "%H:%M").time() if scheduled_time else None,
             notes=notes,
+            season_id=season_id,
         )
         self.session.add(game)
         self.session.flush()

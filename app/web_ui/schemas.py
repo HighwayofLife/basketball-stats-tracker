@@ -60,6 +60,7 @@ class GameCreateRequest(BaseModel):
     location: str | None = None
     scheduled_time: str | None = Field(None, description="Scheduled time in HH:MM format")
     notes: str | None = None
+    season_id: int | None = Field(None, description="Season ID (auto-determined from date if not provided)")
 
 
 class GameStartRequest(BaseModel):

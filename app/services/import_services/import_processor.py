@@ -13,6 +13,7 @@ from app.services.game_service import GameService
 from app.services.game_state_service import GameStateService
 from app.services.player_service import PlayerService
 from app.services.score_calculation_service import ScoreCalculationService
+from app.services.season_stats_service import SeasonStatsService
 from app.services.stats_entry_service import StatsEntryService
 from app.utils.input_parser import parse_quarter_shot_string
 
@@ -31,6 +32,7 @@ class ImportProcessor:
         self.game_state_service = GameStateService(db)
         self.player_service = PlayerService(db)
         self.stats_service = StatsEntryService(db, parse_quarter_shot_string, SHOT_MAPPING)
+        self.season_stats_service = SeasonStatsService(db)
 
     def process_teams(self, team_data: dict[str, dict[str, int]]) -> tuple[int, int, int]:
         """Process team imports.
@@ -230,11 +232,40 @@ class ImportProcessor:
             if not home_team or not visitor_team:
                 return False
 
+            # Convert date format if necessary
+            date_str = validated_data.game_info.Date
+            if "/" in date_str:
+                # Convert M/D/YYYY to YYYY-MM-DD
+                from datetime import datetime
+
+                date_obj = datetime.strptime(date_str, "%m/%d/%Y")
+                date_str = date_obj.strftime("%Y-%m-%d")
+
+            # Determine the season from the game date
+            from datetime import datetime
+
+            from app.services.season_service import SeasonService
+
+            game_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+
+            # Use SeasonService to find appropriate season
+            season_service = SeasonService(self.db)
+            season = season_service.get_season_for_date(game_date)
+
+            if not season:
+                # No season found for this date, use active season if available
+                season = season_service.get_active_season()
+                if season:
+                    typer.echo(
+                        f"Note: Game date {date_str} is outside active season '{season.name}', but using it anyway."
+                    )
+
             # Create the game
             game = self.game_state_service.create_game(
-                date=validated_data.game_info.Date,
+                date=date_str,
                 home_team_id=home_team.id,
                 away_team_id=visitor_team.id,
+                season_id=season.id if season else None,
             )
 
             if not game:
@@ -260,6 +291,42 @@ class ImportProcessor:
             typer.echo(f"\nProcessed {players_processed} player stats successfully.")
             if players_error > 0:
                 typer.echo(f"Failed to process {players_error} player stats.")
+
+            # Update season statistics for all players who played in this game
+            if players_processed > 0:
+                typer.echo("\nUpdating season statistics...")
+                season = self.season_stats_service.get_season_from_date(game.date)
+
+                # Get all unique player IDs from this game
+                player_ids = set()
+                for player_stats in validated_data.player_stats:
+                    # Get the team
+                    team = self.db.query(Team).filter(Team.name == player_stats.TeamName).first()
+                    if team:
+                        # Get the player
+                        player = (
+                            self.db.query(Player)
+                            .filter(Player.team_id == team.id, Player.jersey_number == player_stats.PlayerJersey)
+                            .first()
+                        )
+                        if player:
+                            player_ids.add(player.id)
+
+                # Update season stats for each player
+                for player_id in player_ids:
+                    try:
+                        self.season_stats_service.update_player_season_stats(player_id, season)
+                    except Exception as e:
+                        typer.echo(f"Warning: Failed to update season stats for player {player_id}: {e}")
+
+                # Update team season stats
+                try:
+                    self.season_stats_service.update_team_season_stats(home_team.id, season)
+                    self.season_stats_service.update_team_season_stats(visitor_team.id, season)
+                except Exception as e:
+                    typer.echo(f"Warning: Failed to update team season stats: {e}")
+
+                typer.echo("Season statistics updated.")
 
             return players_error == 0
 

@@ -283,6 +283,19 @@ async def create_game(game_data: GameCreateRequest):
     try:
         with get_db_session() as session:
             game_service = GameStateService(session)
+
+            # Determine season if not provided
+            season_id = game_data.season_id
+            if season_id is None:
+                from datetime import datetime
+
+                from app.services.season_stats_service import SeasonStatsService
+
+                game_date = datetime.strptime(game_data.date, "%Y-%m-%d").date()
+                season_service = SeasonStatsService(session)
+                season = season_service.get_or_create_season_from_date(game_date)
+                season_id = season.id if season else None
+
             game = game_service.create_game(
                 date=game_data.date,
                 home_team_id=game_data.home_team_id,
@@ -290,6 +303,7 @@ async def create_game(game_data: GameCreateRequest):
                 location=game_data.location,
                 scheduled_time=game_data.scheduled_time,
                 notes=game_data.notes,
+                season_id=season_id,
             )
 
             return GameSummary(
@@ -609,12 +623,23 @@ async def create_game_from_scorebook(scorebook_data: dict):
 
             # Create the game
             game_service = GameStateService(session)
+
+            # Determine season from game date
+            from datetime import datetime
+
+            from app.services.season_stats_service import SeasonStatsService
+
+            game_date = datetime.strptime(scorebook_data["date"], "%Y-%m-%d").date()
+            season_service = SeasonStatsService(session)
+            season = season_service.get_or_create_season_from_date(game_date)
+
             game = game_service.create_game(
                 date=scorebook_data["date"],
                 home_team_id=scorebook_data["home_team_id"],
                 away_team_id=scorebook_data["away_team_id"],
                 location=scorebook_data.get("location"),
                 notes=scorebook_data.get("notes"),
+                season_id=season.id if season else None,
             )
 
             # Process player statistics

@@ -113,6 +113,7 @@ class Game(Base, SoftDeleteMixin):
     __tablename__ = "games"
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     date: Mapped[dt.date] = mapped_column(Date, nullable=False)  # Using Date type for better query support
+    season_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("seasons.id"), nullable=True)
     playing_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
     opponent_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
     playing_team_score: Mapped[int | None] = mapped_column(Integer, nullable=True, default=0)
@@ -121,6 +122,7 @@ class Game(Base, SoftDeleteMixin):
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
+    season: Mapped["Season | None"] = relationship("Season", back_populates="games")
     playing_team: Mapped["Team"] = relationship("Team", back_populates="home_games", foreign_keys=[playing_team_id])
     opponent_team: Mapped["Team"] = relationship("Team", back_populates="away_games", foreign_keys=[opponent_team_id])
     player_game_stats: Mapped[list["PlayerGameStats"]] = relationship(
@@ -363,6 +365,35 @@ class TeamSeasonStats(Base):
             f"<TeamSeasonStats(id={self.id}, team_id={self.team_id}, "
             f"season='{self.season}', record={self.wins}-{self.losses})>"
         )
+
+
+class Season(Base):
+    """Represents a season or league period."""
+
+    __tablename__ = "seasons"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., "Spring 2025", "Summer League 2025"
+    code: Mapped[str] = mapped_column(String(20), unique=True, nullable=False)  # e.g., "2025-spring", "2025-summer"
+    start_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Relationships
+    games: Mapped[list["Game"]] = relationship("Game", back_populates="season")
+
+    __table_args__ = (
+        CheckConstraint("end_date > start_date", name="season_dates_check"),
+        Index("idx_season_dates", "start_date", "end_date"),
+    )
+
+    def __repr__(self):
+        return f"<Season(id={self.id}, name='{self.name}', code='{self.code}', active={self.is_active})>"
 
 
 class AuditLog(Base):

@@ -44,6 +44,7 @@ from app.data_access.crud.crud_player_season_stats import (
     get_season_players,
     update_player_season_stats,
 )
+from app.data_access.crud.crud_season import SeasonCRUD
 from app.data_access.crud.crud_team import create_team, get_all_teams, get_team_by_id, get_team_by_name
 from app.data_access.crud.crud_team_season_stats import (
     create_team_season_stats,
@@ -101,4 +102,6 @@ __all__ = [
     "get_team_all_seasons",
     "get_season_teams",
     "update_team_season_stats",
+    # Season CRUD
+    "SeasonCRUD",
 ]
