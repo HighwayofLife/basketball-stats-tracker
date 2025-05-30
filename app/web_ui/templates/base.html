@@ -19,19 +19,19 @@
                 <ul>
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/games">Games</a></li>
-                    <li><a href="/scorebook">Scorebook Entry</a></li>
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
-                    <li><a href="/substitutes">Substitutes</a></li>
                     <li><a href="/reports">Reports</a></li>
+                    <li><a href="/about">About</a></li>
                     <li id="admin-nav-item" style="display: none;"><a href="/admin/data-corrections">Admin</a></li>
+                    <li class="nav-divider"></li>
+                    <li id="login-nav-item" style="display: none;"><a id="login-link" href="/login">Login</a></li>
+                    <li id="user-nav-item" style="display: none;">
+                        <span id="username-display"></span>
+                        <a id="logout-link" href="/logout">Logout</a>
+                    </li>
                 </ul>
             </nav>
-            <div class="auth-status">
-                <span id="username-display" style="display: none; margin-right: 10px;"></span>
-                <a id="login-link" href="/login" style="display: none;">Login</a>
-                <a id="logout-link" href="/logout" style="display: none;">Logout</a>
-            </div>
         </div>
     </header>
 
@@ -58,8 +58,8 @@
     // Check authentication status and update UI
     async function updateAuthUI() {
         const token = localStorage.getItem('access_token');
-        const loginLink = document.getElementById('login-link');
-        const logoutLink = document.getElementById('logout-link');
+        const loginNavItem = document.getElementById('login-nav-item');
+        const userNavItem = document.getElementById('user-nav-item');
         const usernameDisplay = document.getElementById('username-display');
         const adminNavItem = document.getElementById('admin-nav-item');
         
@@ -73,15 +73,14 @@
                 
                 if (response.ok) {
                     const userData = await response.json();
-                    // Show logout link and username
-                    loginLink.style.display = 'none';
-                    logoutLink.style.display = 'inline';
+                    // Show user nav item with username and logout
+                    loginNavItem.style.display = 'none';
+                    userNavItem.style.display = 'flex';
                     usernameDisplay.textContent = userData.username;
-                    usernameDisplay.style.display = 'inline';
                     
                     // Show admin menu if user is admin
-                    if (userData.role === 'ADMIN') {
-                        adminNavItem.style.display = 'inline';
+                    if (userData.role === 'ADMIN' || userData.role === 'admin') {
+                        adminNavItem.style.display = 'flex';
                     }
                 } else {
                     // Token is invalid, clear it
@@ -99,14 +98,12 @@
     }
     
     function showLoggedOutUI() {
-        const loginLink = document.getElementById('login-link');
-        const logoutLink = document.getElementById('logout-link');
-        const usernameDisplay = document.getElementById('username-display');
+        const loginNavItem = document.getElementById('login-nav-item');
+        const userNavItem = document.getElementById('user-nav-item');
         const adminNavItem = document.getElementById('admin-nav-item');
         
-        loginLink.style.display = 'inline';
-        logoutLink.style.display = 'none';
-        usernameDisplay.style.display = 'none';
+        loginNavItem.style.display = 'flex';
+        userNavItem.style.display = 'none';
         adminNavItem.style.display = 'none';
     }
     

@@ -365,3 +365,9 @@ async def logout_page(request: Request):
             "content": '<script>localStorage.removeItem("access_token"); localStorage.removeItem("token_type"); window.location.href = "/";</script>',
         },
     )
+
+
+@router.get("/about", response_class=HTMLResponse)
+async def about_page(request: Request):
+    """Render the about page."""
+    return templates.TemplateResponse("about.html", {"request": request, "title": "About"})

@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}About{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="card">
+        <h1>About Basketball Stats Tracker</h1>
+        
+        <h2>What is Basketball Stats Tracker?</h2>
+        <p>Basketball Stats Tracker is a comprehensive web application designed to help small leagues, teams, and basketball enthusiasts manage and track game statistics efficiently. Whether you're running a recreational league, coaching a team, or just passionate about tracking basketball performance, this application provides all the tools you need.</p>
+        
+        <h2>Key Features</h2>
+        <ul>
+            <li><strong>Game Management:</strong> Create and track games with detailed statistics for every player</li>
+            <li><strong>Live Game Entry:</strong> Enter statistics in real-time during games with an intuitive interface</li>
+            <li><strong>Scorebook Import:</strong> Import traditional paper scorebook data via CSV files</li>
+            <li><strong>Player Profiles:</strong> Maintain comprehensive player information including height, position, and jersey numbers</li>
+            <li><strong>Team Management:</strong> Organize players into teams and track team performance</li>
+            <li><strong>Detailed Reports:</strong> Generate box scores, season statistics, and player performance reports</li>
+            <li><strong>Shot Tracking:</strong> Record made and missed shots by type (2-pointers, 3-pointers, free throws)</li>
+            <li><strong>Quarter-by-Quarter Stats:</strong> Track performance throughout the game with quarter breakdowns</li>
+        </ul>
+        
+        <h2>How It Works</h2>
+        <p>The Basketball Stats Tracker uses a unique shot string format for efficient data entry:</p>
+        <ul>
+            <li><strong>Shot Strings:</strong> Enter shots in the format "XY-Z" where:
+                <ul>
+                    <li>X = number of made shots</li>
+                    <li>Y = shot type (2 for 2-pointers, 3 for 3-pointers)</li>
+                    <li>Z = free throw results (x for makes, number for attempts)</li>
+                </ul>
+            </li>
+            <li><strong>Example:</strong> "22-1x" means 2 made 2-pointers, 1 missed 2-pointer, 1 made free throw, 1 missed free throw</li>
+        </ul>
+        
+        <h2>Why Use Basketball Stats Tracker?</h2>
+        <ul>
+            <li><strong>Save Time:</strong> Streamlined data entry reduces the time spent on statistics management</li>
+            <li><strong>Accuracy:</strong> Digital tracking eliminates manual calculation errors</li>
+            <li><strong>Insights:</strong> Detailed analytics help coaches and players understand performance trends</li>
+            <li><strong>Accessibility:</strong> Web-based interface accessible from any device</li>
+            <li><strong>Historical Data:</strong> Keep a permanent record of all games and performances</li>
+        </ul>
+        
+        <h2>Perfect For</h2>
+        <ul>
+            <li>Recreational basketball leagues</li>
+            <li>School and youth teams</li>
+            <li>Amateur basketball clubs</li>
+            <li>Basketball statisticians</li>
+            <li>Coaches looking to track player development</li>
+        </ul>
+        
+        <h2>Getting Started</h2>
+        <p>To get started with Basketball Stats Tracker:</p>
+        <ol>
+            <li>Create your teams in the <a href="/teams">Teams</a> section</li>
+            <li>Add players to your teams in the <a href="/players">Players</a> section</li>
+            <li>Create a new game in the <a href="/games">Games</a> section</li>
+            <li>Use Live Entry during games or import scorebook data afterwards</li>
+            <li>View detailed statistics and reports in the <a href="/reports">Reports</a> section</li>
+        </ol>
+        
+        <h2>Support</h2>
+        <p>For questions, feature requests, or bug reports, please visit our <a href="https://github.com/highwayoflife/basketball-stats-tracker" target="_blank">GitHub repository</a>.</p>
+    </div>
+</div>
+{% endblock %}
