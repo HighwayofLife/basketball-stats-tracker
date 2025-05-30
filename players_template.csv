@@ -1,10 +1,12 @@
-team_name,player_name,jersey_number
-Warriors,Stephen Curry,30
-Warriors,Klay Thompson,11
-Warriors,Draymond Green,23
-Lakers,LeBron James,23
-Lakers,Anthony Davis,3
-Celtics,Jayson Tatum,0
-Celtics,Jaylen Brown,7
-Bucks,Giannis Antetokounmpo,34
-Heat,Jimmy Butler,22
+team_name,player_name,jersey_number,position,height,weight,year,is_substitute
+Warriors,Stephen Curry,30,PG,75,185,Pro,
+Warriors,Klay Thompson,11,SG,78,215,Pro,
+Warriors,Draymond Green,23,PF,78,230,Pro,
+Lakers,LeBron James,23,SF,81,250,Pro,
+Lakers,Anthony Davis,3,PF,82,253,Pro,
+Celtics,Jayson Tatum,0,SF,80,210,Pro,
+Celtics,Jaylen Brown,7,SG,78,223,Pro,
+Bucks,Giannis Antetokounmpo,34,PF,83,242,Pro,
+Heat,Jimmy Butler,22,SF,79,230,Pro,
+Substitute,John Doe,1,,,,,true
+Substitute,Jane Smith,0,,,,,true
