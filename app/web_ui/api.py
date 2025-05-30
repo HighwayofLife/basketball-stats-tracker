@@ -56,6 +56,12 @@ if os.getenv("APP_ENV") == "production":
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for container/load balancer probes."""
+    return {"status": "ok", "version": VERSION_INFO["version"], "full_version": VERSION_INFO["full_version"]}
+
 # Include routers
 app.include_router(auth_router)  # Auth router first for authentication endpoints
 app.include_router(pages_router)
