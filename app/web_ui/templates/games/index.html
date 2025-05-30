@@ -69,12 +69,14 @@
         loadGames();
 
         // Set up event listeners
-        document.getElementById('team-filter').addEventListener('change', loadGames);
+        document.getElementById('team-filter').addEventListener('change', function() {
+            loadGames(1); // Reset to page 1 when filter changes
+        });
     });
 
     function loadGames(page = 1) {
         const limit = 20;
-        const offset = (page - 1) * limit;
+        const offset = Math.max(0, (parseInt(page) - 1) * limit);
         const teamId = document.getElementById('team-filter').value;
 
         let url = `/v1/games?limit=${limit}&offset=${offset}`;

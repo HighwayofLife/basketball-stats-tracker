@@ -12,6 +12,9 @@
   --success-color: #28a745;
   --error-color: #dc3545;
   --warning-color: #ffc107;
+  --beta-banner-color: #fff3cd;
+  --beta-banner-border: #ffeaa7;
+  --beta-banner-text: #856404;
 }
 
 * {
@@ -116,6 +119,50 @@ body {
   color: var(--light-text);
   font-weight: 500;
   padding: 5px;
+}
+
+/* Beta Banner */
+.beta-banner {
+  background-color: var(--beta-banner-color);
+  border-bottom: 2px solid var(--beta-banner-border);
+  color: var(--beta-banner-text);
+  padding: 12px 0;
+  text-align: center;
+  font-weight: 500;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.beta-banner .container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.beta-banner i {
+  font-size: 1.1rem;
+  color: var(--warning-color);
+}
+
+.beta-text strong {
+  font-weight: 700;
+}
+
+@media (max-width: 767px) {
+  .beta-banner {
+    padding: 10px 0;
+    font-size: 0.9rem;
+  }
+  
+  .beta-banner .container {
+    flex-direction: column;
+    gap: 5px;
+    text-align: center;
+  }
+  
+  .beta-text {
+    line-height: 1.4;
+  }
 }
 
 /* Main Content */

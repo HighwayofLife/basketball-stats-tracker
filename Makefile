@@ -18,7 +18,7 @@ IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
 # Version information
-APP_VERSION = 0.2.0
+APP_VERSION = 0.2.1
 GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Colors for terminal output
@@ -106,7 +106,7 @@ test: ## Run all tests (unit, integration, and UI validation)
 	@echo "${YELLOW}Step 2: Running UI validation tests${NC}"
 	@$(MAKE) test-ui-standalone
 
-.PHONY: test-container  
+.PHONY: test-container
 test-container: ensure-running ## Run unit and integration tests inside the container
 	@echo "${CYAN}Running unit and integration tests in container...${NC}"
 	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) pytest tests/unit/ tests/integration/ --ignore=tests/integration/test_ui_validation.py
