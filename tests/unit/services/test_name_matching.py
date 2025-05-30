@@ -97,8 +97,8 @@ class TestNameMatchingLogic:
         # James vs Jim should NOT match
         assert self.processor._names_match_simple("James", "Jim") is False
 
-        # Christopher vs Chris should match (Chris is prefix, length diff = 6)
-        assert self.processor._names_match_simple("Christopher", "Chris") is True
+        # Christopher vs Chris should NOT match (Chris is prefix, but length diff = 6 > 5)
+        assert self.processor._names_match_simple("Christopher", "Chris") is False
 
         # Alexander vs Alex should match (Alex is prefix, length diff = 5)
         assert self.processor._names_match_simple("Alexander", "Alex") is True

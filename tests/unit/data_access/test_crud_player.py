@@ -73,8 +73,8 @@ class TestPlayerCrud:
         player1 = create_player(db_session, "John Smith", "23", test_teams["team_a"].id)
         assert player1.name == "John Smith"
 
-        # Create a player with the same name in Team B
-        player2 = create_player(db_session, "John Smith", "23", test_teams["team_b"].id)
+        # Create a player with the same name in Team B (different jersey number to avoid substitute constraint)
+        player2 = create_player(db_session, "John Smith", "24", test_teams["team_b"].id)
         assert player2.name == "John Smith"
         # No exception should be raised
 

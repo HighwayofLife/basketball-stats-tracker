@@ -65,17 +65,15 @@ Missing required rows"""
             mock_echo.assert_called_once_with("Error: File '/path/to/missing.csv' not found.")
 
     @patch("typer.echo")
-    @patch("builtins.open", new_callable=mock_open)
-    def test_import_roster_from_csv_success(self, mock_file, mock_echo, sample_roster_csv_content):
+    def test_import_roster_from_csv_success(self, mock_echo, sample_roster_csv_content):
         """Test successful roster import."""
-        mock_file.return_value.read.return_value = sample_roster_csv_content
-
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("app.services.csv_import_service._read_and_validate_roster_csv") as mock_read,
-            patch("app.services.csv_import_service._process_roster_import") as mock_process,
+            patch("app.services.import_services.CSVParser.read_roster_csv") as mock_read,
+            patch("app.services.import_services.ImportOrchestrator._process_roster_import") as mock_process,
+            patch("app.services.import_services.ImportOrchestrator._display_roster_import_summary") as mock_display,
         ):
-            team_data = {"Lakers": {"count": 2}, "Warriors": {"count": 2}}
+            team_data = {"Lakers": {"player_count": 2}, "Warriors": {"player_count": 2}}
             player_data = [
                 {"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"},
                 {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": "3"},
@@ -100,17 +98,15 @@ Missing required rows"""
             assert result is False
 
     @patch("typer.echo")
-    @patch("builtins.open", new_callable=mock_open)
-    def test_import_roster_from_csv_dry_run(self, mock_file, mock_echo, sample_roster_csv_content):
+    def test_import_roster_from_csv_dry_run(self, mock_echo, sample_roster_csv_content):
         """Test roster import in dry run mode."""
-        mock_file.return_value.read.return_value = sample_roster_csv_content
-
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("app.services.csv_import_service._read_and_validate_roster_csv") as mock_read,
-            patch("app.services.csv_import_service._process_roster_import") as mock_process,
+            patch("app.services.import_services.CSVParser.read_roster_csv") as mock_read,
+            patch("app.services.import_services.ImportOrchestrator._process_roster_import") as mock_process,
+            patch("app.services.import_services.ImportOrchestrator._display_roster_import_summary") as mock_display,
         ):
-            team_data = {"Lakers": {"count": 2}}
+            team_data = {"Lakers": {"player_count": 2}}
             player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"}]
 
             mock_read.return_value = (team_data, player_data)
@@ -128,22 +124,20 @@ Missing required rows"""
             assert len(team_data) == 2
             assert "Lakers" in team_data
             assert "Warriors" in team_data
-            assert team_data["Lakers"]["count"] == 2
-            assert team_data["Warriors"]["count"] == 2
+            assert team_data["Lakers"]["player_count"] == 2
+            assert team_data["Warriors"]["player_count"] == 2
 
             assert len(player_data) == 4
             assert player_data[0]["name"] == "LeBron James"
             assert player_data[0]["jersey_number"] == "23"
 
-    @patch("typer.echo")
-    def test_read_and_validate_roster_csv_missing_headers(self, mock_echo, invalid_roster_csv_content):
+    def test_read_and_validate_roster_csv_missing_headers(self, invalid_roster_csv_content):
         """Test reading roster CSV with missing headers."""
         with patch("builtins.open", mock_open(read_data=invalid_roster_csv_content)):
-            team_data, player_data = csv_import_service._read_and_validate_roster_csv(Path("/path/to/roster.csv"))
-
-            assert not team_data
-            assert not player_data
-            mock_echo.assert_called_once()
+            with pytest.raises(ValueError) as exc_info:
+                csv_import_service._read_and_validate_roster_csv(Path("/path/to/roster.csv"))
+            
+            assert "CSV file missing required headers" in str(exc_info.value)
 
     @patch("typer.echo")
     def test_read_and_validate_roster_csv_invalid_jersey(self, mock_echo):
@@ -169,77 +163,78 @@ Lakers,LeBron James,twenty-three"""
             None,  # Warriors doesn't exist
         ]
 
-        team_data = {"Lakers": {"count": 2}, "Warriors": {"count": 2}}
+        team_data = {"Lakers": {"player_count": 2}, "Warriors": {"player_count": 2}}
 
-        teams_added, teams_existing, team_name_to_id = csv_import_service._process_teams(mock_db, team_data)
+        teams_added, teams_existing, teams_error = csv_import_service._process_teams(mock_db, team_data)
 
         assert teams_added == 1
         assert teams_existing == 1
-        assert "Lakers" in team_name_to_id
-        assert "Warriors" in team_name_to_id
+        assert teams_error == 0
 
     def test_process_players(self):
         """Test _process_players function with new players only."""
         mock_db = MagicMock()
 
-        # Mock the query chain - all players are new
-        mock_query = MagicMock()
-        mock_db.query.return_value = mock_query
-
-        # All queries return None (no existing players)
-        mock_filter = MagicMock()
-        mock_filter.first.return_value = None
-        mock_query.filter.return_value = mock_filter
+        # Mock the Team query for team lookup
+        team_mock = MagicMock(id=1, name="Lakers")
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            team_mock,  # First player team lookup
+            None,  # First player doesn't exist
+            team_mock,  # Second player team lookup  
+            None,  # Second player doesn't exist
+        ]
 
         player_data = [
             {"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"},
             {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": "3"},
         ]
-        team_name_to_id = {"Lakers": 1}
 
-        players_added, players_existing, players_error = csv_import_service._process_players(
-            mock_db, player_data, team_name_to_id
+        players_processed, players_error = csv_import_service._process_players(
+            mock_db, player_data
         )
 
-        assert players_added == 2
-        assert players_existing == 0
+        assert players_processed == 2
         assert players_error == 0
         # Verify new players were added to db
         assert mock_db.add.call_count == 2
 
     @patch("typer.echo")
-    def test_process_players_with_conflict(self, mock_echo):
+    @patch("app.services.import_services.ImportProcessor._names_match_simple")
+    def test_process_players_with_conflict(self, mock_names_match, mock_echo):
         """Test _process_players with player conflicts."""
         mock_db = MagicMock()
-        mock_query = MagicMock()
-        mock_db.query.return_value = mock_query
-
-        # Player exists with same jersey but different name
-        mock_query.filter.return_value.first.return_value = MagicMock(name="Different Player", jersey_number="23")
+        
+        # Mock team lookup
+        team_mock = MagicMock(id=1, name="Lakers")
+        # Mock existing player with different name
+        existing_player = MagicMock(name="Different Player", jersey_number="23")
+        
+        mock_db.query.return_value.filter.return_value.first.side_effect = [
+            team_mock,  # Team lookup
+            existing_player,  # Player lookup - conflict
+        ]
+        
+        # Names don't match
+        mock_names_match.return_value = False
 
         player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"}]
-        team_name_to_id = {"Lakers": 1}
 
-        players_added, players_existing, players_error = csv_import_service._process_players(
-            mock_db, player_data, team_name_to_id
+        players_processed, players_error = csv_import_service._process_players(
+            mock_db, player_data
         )
 
-        assert players_added == 0
-        assert players_existing == 0
+        assert players_processed == 0
         assert players_error == 1
 
     @patch("typer.echo")
-    @patch("builtins.open", new_callable=mock_open)
-    def test_import_game_stats_from_csv_success(self, mock_file, mock_echo, sample_game_stats_csv_content):
+    def test_import_game_stats_from_csv_success(self, mock_echo, sample_game_stats_csv_content):
         """Test successful game stats import."""
-        mock_file.return_value.read.return_value = sample_game_stats_csv_content
-
         with (
             patch("pathlib.Path.exists", return_value=True),
-            patch("app.services.csv_import_service._read_and_parse_game_stats_csv") as mock_read,
-            patch("app.services.csv_import_service._validate_game_stats_data") as mock_validate,
-            patch("app.services.csv_import_service._display_game_stats_import_summary") as mock_display,
-            patch("app.services.csv_import_service._process_game_stats_import") as mock_process,
+            patch("app.services.import_services.CSVParser.read_game_stats_csv") as mock_read,
+            patch("app.services.import_services.DataValidator.validate_game_stats_data") as mock_validate,
+            patch("app.services.import_services.ImportOrchestrator._display_game_stats_import_summary") as mock_display,
+            patch("app.services.import_services.ImportOrchestrator._process_game_stats_import") as mock_process,
         ):
             mock_read.return_value = (
                 {"Home": "Lakers", "Visitor": "Warriors", "Date": "2025-05-01"},
@@ -302,40 +297,30 @@ Lakers,LeBron James,twenty-three"""
 
     def test_validate_game_stats_data_valid(self):
         """Test validating valid game stats data."""
+        # Use the field names that the CSV parser returns
         game_info_data = {"Home": "Lakers", "Visitor": "Warriors", "Date": "2025-05-01"}
         player_stats_header = [
             "Team",
-            "Jersey Number",
-            "Player Name",
+            "Jersey Number",  # Match the expected header format
+            "Player Name",    # Match the expected header format
             "Fouls",
-            "QT1",
-            "QT2",
-            "QT3",
-            "QT4",
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
         ]
         player_stats_rows = [["Lakers", "23", "LeBron James", "2", "22-1x", "", "", ""]]
 
-        with patch("app.services.csv_import_service._process_player_stats_rows") as mock_process:
-            mock_process.return_value = [
-                PlayerStatsRowSchema(
-                    TeamName="Lakers",
-                    PlayerJersey="23",
-                    PlayerName="LeBron James",
-                    Fouls=2,
-                    QT1Shots="22-1x",
-                    QT2Shots="",
-                    QT3Shots="",
-                    QT4Shots="",
-                )
-            ]
+        result = csv_import_service._validate_game_stats_data(
+            game_info_data, player_stats_header, player_stats_rows
+        )
 
-            result = csv_import_service._validate_game_stats_data(
-                game_info_data, player_stats_header, player_stats_rows
-            )
-
-            assert result is not None
-            assert isinstance(result, GameStatsCSVInputSchema)
-            assert result.game_info.HomeTeam == "Lakers"
+        assert result is not None
+        assert isinstance(result, GameStatsCSVInputSchema)
+        assert result.game_info.HomeTeam == "Lakers"
+        assert result.game_info.VisitorTeam == "Warriors"
+        assert len(result.player_stats) == 1
+        assert result.player_stats[0].TeamName == "Lakers"
 
     @patch("typer.echo")
     def test_validate_game_stats_data_invalid(self, mock_echo):
@@ -355,35 +340,35 @@ Lakers,LeBron James,twenty-three"""
     def test_extract_player_data_from_row(self):
         """Test extracting player data from a row."""
         header = [
-            "Team Name",
-            "Player Jersey",
-            "Player Name",
+            "Team",
+            "Jersey",
+            "Player",
             "Fouls",
-            "QT1 Shots",
-            "QT2 Shots",
-            "QT3 Shots",
-            "QT4 Shots",
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
         ]
         row = ["Lakers", "23", "LeBron James", "2", "FT-", "22+", "33X", ""]
 
-        result = csv_import_service._extract_player_data_from_row(header, row, 0)
+        result = csv_import_service._extract_player_data_from_row(row, header)
 
-        assert result["TeamName"] == "Lakers"
-        assert result["PlayerJersey"] == "23"
-        assert result["PlayerName"] == "LeBron James"
-        assert result["Fouls"] == 2
-        assert result["QT1Shots"] == "FT-"
+        assert result["team_name"] == "Lakers"
+        assert result["jersey_number"] == "23"
+        assert result["player_name"] == "LeBron James"
+        assert result["quarter_1"] == "FT-"
+        assert result["quarter_2"] == "22+"
 
     @patch("typer.echo")
     def test_extract_player_data_from_row_invalid_values(self, mock_echo):
         """Test extracting player data with invalid values."""
-        header = ["Team Name", "Player Jersey", "Player Name", "Fouls"]
+        header = ["Team", "Jersey", "Player", "Fouls"]
         row = ["Lakers", "invalid", "LeBron James", "invalid"]
 
-        result = csv_import_service._extract_player_data_from_row(header, row, 0)
+        result = csv_import_service._extract_player_data_from_row(row, header)
 
-        assert result["PlayerJersey"] == "invalid"  # Should keep the string value
-        assert result["Fouls"] == 0  # Should default to 0
+        # Invalid jersey number should return None
+        assert result is None
 
     def test_process_game_stats_import(self):
         """Test processing game stats import - simplified version."""
@@ -412,96 +397,68 @@ Lakers,LeBron James,twenty-three"""
         assert len(validated_data.player_stats) == 1
         assert validated_data.player_stats[0].PlayerName == "LeBron James"
 
-    def test_record_player_stats_success(self):
+    @patch("app.services.import_services.ImportProcessor._process_player_game_stats")
+    def test_record_player_stats_success(self, mock_process_stats):
         """Test recording player stats successfully."""
+        mock_db = MagicMock()
         mock_game = MagicMock(id=1)
-        mock_team = MagicMock(id=1)
-        mock_player = MagicMock(id=1)
 
-        mock_game_service = MagicMock()
-        mock_game_service.get_or_create_team.return_value = mock_team
-
-        mock_player_service = MagicMock()
-        mock_player_service.get_or_create_player.return_value = mock_player
-
-        mock_stats_service = MagicMock()
-
-        player_stats = [
-            PlayerStatsRowSchema(
-                TeamName="Lakers",
-                PlayerJersey="23",
-                PlayerName="LeBron James",
-                Fouls=2,
-                QT1Shots="FT-",
-                QT2Shots="",
-                QT3Shots="",
-                QT4Shots="",
-            )
-        ]
-
-        players_processed, players_error = csv_import_service._record_player_stats(
-            mock_game, player_stats, mock_game_service, mock_player_service, mock_stats_service
+        player_stats = MagicMock(
+            team_name="Lakers",
+            jersey_number="23",
+            player_name="LeBron James",
+            quarter_1="FT-",
+            quarter_2="",
+            quarter_3="",
+            quarter_4="",
         )
 
-        assert players_processed == 1
-        assert players_error == 0
-        mock_stats_service.record_player_game_performance.assert_called_once()
+        mock_process_stats.return_value = True
+
+        result = csv_import_service._record_player_stats(
+            mock_db, mock_game, player_stats
+        )
+
+        assert result is True
+        mock_process_stats.assert_called_once_with(mock_game, player_stats)
 
     @patch("typer.echo")
-    def test_record_player_stats_with_error(self, mock_echo):
+    @patch("app.services.import_services.ImportProcessor._process_player_game_stats")
+    def test_record_player_stats_with_error(self, mock_process_stats, mock_echo):
         """Test recording player stats with errors."""
+        mock_db = MagicMock()
         mock_game = MagicMock(id=1)
-        mock_game_service = MagicMock()
-        mock_game_service.get_or_create_team.side_effect = ValueError("Team error")
 
-        player_stats = [
-            PlayerStatsRowSchema(
-                TeamName="Lakers",
-                PlayerJersey="23",
-                PlayerName="LeBron James",
-                Fouls=2,
-                QT1Shots="FT-",
-                QT2Shots="",
-                QT3Shots="",
-                QT4Shots="",
-            )
-        ]
-
-        players_processed, players_error = csv_import_service._record_player_stats(
-            mock_game, player_stats, mock_game_service, MagicMock(), MagicMock()
+        player_stats = MagicMock(
+            team_name="Lakers",
+            jersey_number="23",
+            player_name="LeBron James",
         )
 
-        assert players_processed == 0
-        assert players_error == 1
+        mock_process_stats.return_value = False
+
+        result = csv_import_service._record_player_stats(
+            mock_db, mock_game, player_stats
+        )
+
+        assert result is False
 
     @patch("typer.echo")
-    def test_record_player_stats_database_error(self, mock_echo):
+    @patch("app.services.import_services.ImportProcessor._process_player_game_stats")
+    def test_record_player_stats_database_error(self, mock_process_stats, mock_echo):
         """Test recording player stats with database error."""
+        mock_db = MagicMock()
         mock_game = MagicMock(id=1)
-        mock_team = MagicMock(id=1)
 
-        mock_game_service = MagicMock()
-        mock_game_service.get_or_create_team.return_value = mock_team
-
-        mock_player_service = MagicMock()
-        mock_player_service.get_or_create_player.side_effect = SQLAlchemyError("DB error")
-
-        player_stats = [
-            PlayerStatsRowSchema(
-                TeamName="Lakers",
-                PlayerJersey="23",
-                PlayerName="LeBron James",
-                Fouls=2,
-                QT1Shots="FT-",
-                QT2Shots="",
-                QT3Shots="",
-                QT4Shots="",
-            )
-        ]
-
-        players_processed, players_error = csv_import_service._record_player_stats(
-            mock_game, player_stats, mock_game_service, mock_player_service, MagicMock()
+        player_stats = MagicMock(
+            team_name="Lakers",
+            jersey_number="23",
+            player_name="LeBron James",
         )
 
-        assert players_processed == 0
-        assert players_error == 1
+        mock_process_stats.side_effect = SQLAlchemyError("DB error")
+
+        with pytest.raises(SQLAlchemyError):
+            csv_import_service._record_player_stats(
+                mock_db, mock_game, player_stats
+            )
