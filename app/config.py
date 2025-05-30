@@ -113,9 +113,24 @@ settings = ProductionSettings() if env == "production" else DevelopmentSettings(
 
 
 # Version information
+def get_version_from_pyproject() -> str:
+    """Read version from pyproject.toml."""
+    try:
+        import re
+        pyproject_path = BASE_DIR / "pyproject.toml"
+        if pyproject_path.exists():
+            content = pyproject_path.read_text()
+            match = re.search(r'^version = "([^"]+)"', content, re.MULTILINE)
+            if match:
+                return match.group(1)
+    except (FileNotFoundError, AttributeError):
+        pass
+    return "0.2.0"  # Fallback version
+
+
 def get_version_info() -> dict[str, str]:
     """Get version information including app version and git commit hash."""
-    version = "0.1.1"  # This should match pyproject.toml
+    version = get_version_from_pyproject()
     git_hash = "unknown"
 
     # First, try to read from VERSION.json if it exists (for production builds)

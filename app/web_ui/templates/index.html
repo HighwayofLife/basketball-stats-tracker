@@ -74,6 +74,7 @@
                     <div class="player-info">
                         <h3 class="team-name">{{ player.team_name }}</h3>
                         <p class="player-name">{{ player.name }}</p>
+                        <p class="game-info">{{ player.game_date }} vs {{ player.opponent }}</p>
                         <p class="player-stats">{{ player.points }} PTS, {{ player.fg_made }}/{{ player.fg_attempted }} FG ({{ "%.1f"|format(player.fg_percentage) }}%)<br>{{ player.fg3_made }}/{{ player.fg3_attempted }} 3PT ({{ "%.1f"|format(player.fg3_percentage) }}%)</p>
                     </div>
                 </div>

@@ -394,6 +394,13 @@ body {
   margin: 0 0 3px 0;
 }
 
+.player-info .game-info {
+  font-size: 0.8rem;
+  color: #6B7280;
+  margin: 0 0 5px 0;
+  font-style: italic;
+}
+
 .player-info .player-stats {
   font-size: 0.875rem;
   color: #374151;

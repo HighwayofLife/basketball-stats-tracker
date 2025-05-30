@@ -44,13 +44,17 @@ jobs:
         VERSION=$(grep -E '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
         echo "Extracted version: $VERSION"
+        # Get short hash (first 7 characters)
+        SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+        echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
+        echo "Short SHA: $SHORT_SHA"
 
     - name: Build Docker image
       run: |
         docker build \
           --target production \
           --build-arg APP_VERSION=${{ steps.version.outputs.VERSION }} \
-          --build-arg GIT_HASH=${{ github.sha }} \
+          --build-arg GIT_HASH=${{ steps.version.outputs.SHORT_SHA }} \
           -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
           -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
           .
@@ -72,3 +76,39 @@ jobs:
           --cpu 1 \
           --min-instances 0 \
           --max-instances 10
+
+    - name: Update Migration Job
+      run: |
+        # Delete existing migration job if it exists
+        gcloud run jobs delete basketball-stats-migrate --region=${{ env.REGION }} --quiet || true
+        
+        # Create new migration job with latest image
+        gcloud run jobs create basketball-stats-migrate \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --region ${{ env.REGION }} \
+          --args="alembic,upgrade,head" \
+          --set-env-vars="DATABASE_URL=${{ secrets.DATABASE_URL }},APP_ENV=production" \
+          --service-account=basketball-stats-run-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
+          --max-retries=1 \
+          --parallelism=1
+
+    - name: Run Database Migration
+      run: |
+        # Execute the migration
+        EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
+        echo "Migration execution: $EXECUTION_NAME"
+        
+        # Wait for completion and check status
+        for i in {1..30}; do
+          STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
+          if [ "$STATUS" = "Completed" ]; then
+            echo "Migration completed successfully"
+            break
+          elif [ "$STATUS" = "Failed" ]; then
+            echo "Migration failed"
+            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" --limit=10 --format="table(timestamp,severity,textPayload)" --freshness=5m
+            exit 1
+          fi
+          echo "Waiting for migration to complete... ($i/30)"
+          sleep 10
+        done

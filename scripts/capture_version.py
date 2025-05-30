@@ -2,8 +2,22 @@
 """Capture version information at build time."""
 
 import json
+import re
 import subprocess
 from pathlib import Path
+
+
+def get_version_from_pyproject():
+    """Read version from pyproject.toml."""
+    try:
+        pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
+        content = pyproject_path.read_text()
+        match = re.search(r'^version = "([^"]+)"', content, re.MULTILINE)
+        if match:
+            return match.group(1)
+    except (FileNotFoundError, AttributeError):
+        pass
+    return "0.2.0"  # Fallback version
 
 
 def get_git_hash():
@@ -19,7 +33,7 @@ def get_git_hash():
 def main():
     """Main function to capture and save version info."""
     # Read version from pyproject.toml
-    version = "0.1.1"  # This should be parsed from pyproject.toml in production
+    version = get_version_from_pyproject()
 
     # Get git hash
     git_hash = get_git_hash()

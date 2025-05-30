@@ -51,7 +51,8 @@ def create_app(test_config=None):
     # Simple health check route
     @app.route("/health")
     def health_check():
-        return {"status": "ok", "version": "0.1.0"}
+        from app.config import VERSION_INFO
+        return {"status": "ok", "version": VERSION_INFO["version"], "full_version": VERSION_INFO["full_version"]}
 
     return app
 

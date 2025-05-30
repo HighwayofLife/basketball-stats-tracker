@@ -32,11 +32,14 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
         return response
 
 
+# Import version info
+from app.config import VERSION_INFO
+
 # Create FastAPI application
 app = FastAPI(
     title="Basketball Stats Tracker",
     description="API for basketball statistics and analytics",
-    version="0.1.0",
+    version=VERSION_INFO["version"],
 )
 
 # Add middleware for proxy headers (Cloud Run)

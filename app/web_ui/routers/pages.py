@@ -40,7 +40,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
     # Calculate points and create player data
     top_players_data = []
-    for stat, player, team, _game in player_stats:
+    for stat, player, team, game in player_stats:
         points = ScoreCalculationService.calculate_player_points(stat)
 
         # Calculate field goal percentages
@@ -49,6 +49,10 @@ def get_top_players_from_recent_week(session, limit=4):
         fg_percentage = (fg_made / fg_attempted * 100) if fg_attempted > 0 else 0
 
         fg3_percentage = (stat.total_3pm / stat.total_3pa * 100) if stat.total_3pa > 0 else 0
+
+        # Determine opponent team
+        opponent_team = game.opponent_team if player.team_id == game.playing_team_id else game.playing_team
+        opponent_name = opponent_team.display_name or opponent_team.name if opponent_team else "Unknown"
 
         top_players_data.append(
             {
@@ -67,6 +71,9 @@ def get_top_players_from_recent_week(session, limit=4):
                 "total_3pa": stat.total_3pa,
                 "total_ftm": stat.total_ftm,
                 "total_fta": stat.total_fta,
+                "game_date": game.date,
+                "opponent": opponent_name,
+                "game_id": game.id,
             }
         )
 
