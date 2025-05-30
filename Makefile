@@ -18,7 +18,7 @@ IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
 # Version information
-APP_VERSION = 0.1.0
+APP_VERSION = 0.2.0
 GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Colors for terminal output
@@ -299,6 +299,53 @@ test-coverage: ensure-running ## Run all tests with coverage reporting inside th
 mcp-server: ## Run the Model Context Protocol server for easier database access
 	@echo "${CYAN}Starting MCP server...${NC}"
 	@python -m app.cli mcp-server
+
+# --- Production Deployment ---
+
+.PHONY: migrate-production
+migrate-production: ## Run database migration on production Cloud SQL
+	@echo "${CYAN}Running production database migration...${NC}"
+	@echo "${YELLOW}Executing migration job on Cloud Run...${NC}"
+	@gcloud run jobs execute basketball-stats-migrate --region=us-west1
+	@echo "${GREEN}Migration completed! Check logs with: make migration-logs${NC}"
+
+.PHONY: migration-logs
+migration-logs: ## View recent migration logs from production
+	@echo "${CYAN}Fetching migration logs...${NC}"
+	@gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" --limit=20 --format="table(timestamp,severity,textPayload)" --freshness=10m
+
+.PHONY: migration-status
+migration-status: ## Check status of recent migration executions
+	@echo "${CYAN}Checking migration execution status...${NC}"
+	@gcloud run jobs executions list --region=us-west1 --job=basketball-stats-migrate --limit=5
+
+.PHONY: deploy-production
+deploy-production: ## Deploy to production (build, push, deploy, migrate)
+	@echo "${CYAN}Starting full production deployment...${NC}"
+	@echo "${YELLOW}This will trigger the GitHub Actions pipeline for deployment.${NC}"
+	@echo "${YELLOW}Ensure your changes are committed and pushed to main branch.${NC}"
+	@echo "${RED}Press Ctrl+C to cancel or Enter to continue...${NC}"
+	@read
+	@echo "${CYAN}Triggering deployment via GitHub Actions...${NC}"
+	@gh workflow run deploy.yml
+	@echo "${GREEN}Deployment triggered! Monitor progress at: https://github.com/highwayoflife/basketball-stats-tracker/actions${NC}"
+
+.PHONY: production-status
+production-status: ## Check production service status
+	@echo "${CYAN}Checking production service status...${NC}"
+	@echo "${YELLOW}Cloud Run Service:${NC}"
+	@gcloud run services describe basketball-stats --region=us-west1 --format="table(status.conditions[0].type,status.observedGeneration,status.url)"
+	@echo ""
+	@echo "${YELLOW}Cloud SQL Instance:${NC}"
+	@gcloud sql instances describe basketball-stats-db --format="table(name,databaseVersion,state,ipAddresses[0].ipAddress)"
+	@echo ""
+	@echo "${YELLOW}Recent Application Logs:${NC}"
+	@gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=basketball-stats" --limit=5 --format="table(timestamp,severity,textPayload)"
+
+.PHONY: production-logs
+production-logs: ## View production application logs
+	@echo "${CYAN}Streaming production logs... (Press Ctrl+C to stop)${NC}"
+	@gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=basketball-stats"
 
 # --- Statistics ---
 
