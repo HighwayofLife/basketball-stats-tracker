@@ -22,10 +22,11 @@ class TestSubstitutePlayerHandling:
     def import_processor(self, mock_db):
         """Create an ImportProcessor instance with mocked dependencies."""
         with patch("app.services.import_services.import_processor.GameService"):
-            with patch("app.services.import_services.import_processor.PlayerService"):
-                with patch("app.services.import_services.import_processor.StatsEntryService"):
-                    processor = ImportProcessor(mock_db)
-                    return processor
+            with patch("app.services.import_services.import_processor.GameStateService"):
+                with patch("app.services.import_services.import_processor.PlayerService"):
+                    with patch("app.services.import_services.import_processor.StatsEntryService"):
+                        processor = ImportProcessor(mock_db)
+                        return processor
 
     def test_unknown_player_detection(self, import_processor, mock_db):
         """Test that 'unknown' player names are handled correctly."""
@@ -33,16 +34,15 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Blue Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock()
-        player_stats.team_name = "Blue Team"
-        player_stats.jersey_number = "99"
-        player_stats.player_name = "Unknown"
+        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats.TeamName = "Blue Team"
+        player_stats.PlayerJersey = "99"
+        player_stats.PlayerName = "Unknown"
         # Mock quarter data
-        player_stats.quarter_1 = ""
-        player_stats.quarter_2 = ""
-        player_stats.quarter_3 = ""
-        player_stats.quarter_4 = ""
-        player_stats.overtime = ""
+        player_stats.QT1Shots = ""
+        player_stats.QT2Shots = ""
+        player_stats.QT3Shots = ""
+        player_stats.QT4Shots = ""
 
         # Mock player service to return a player
         mock_player = Player(id=1, name="Unknown #99 (Blue Team)", jersey_number="99")
@@ -66,13 +66,15 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Red Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock()
-        player_stats.team_name = "Red Team"
-        player_stats.jersey_number = "00"
-        player_stats.player_name = "Unidentified"
+        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats.TeamName = "Red Team"
+        player_stats.PlayerJersey = "00"
+        player_stats.PlayerName = "Unidentified"
         # Mock quarter data
-        for q in ["quarter_1", "quarter_2", "quarter_3", "quarter_4", "overtime"]:
-            setattr(player_stats, q, "")
+        player_stats.QT1Shots = ""
+        player_stats.QT2Shots = ""
+        player_stats.QT3Shots = ""
+        player_stats.QT4Shots = ""
 
         # Mock player service
         mock_player = Player(id=2, name="Unknown #00 (Red Team)", jersey_number="00")
@@ -122,13 +124,15 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Green Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock()
-        player_stats.team_name = "Green Team"
-        player_stats.jersey_number = "0"
-        player_stats.player_name = "Sub Player"
+        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats.TeamName = "Green Team"
+        player_stats.PlayerJersey = "0"
+        player_stats.PlayerName = "Sub Player"
         # Mock quarter data
-        for q in ["quarter_1", "quarter_2", "quarter_3", "quarter_4", "overtime"]:
-            setattr(player_stats, q, "")
+        player_stats.QT1Shots = ""
+        player_stats.QT2Shots = ""
+        player_stats.QT3Shots = ""
+        player_stats.QT4Shots = ""
 
         # Mock substitute detection
         import_processor._is_substitute_player = Mock(return_value=True)
@@ -158,13 +162,15 @@ class TestSubstitutePlayerHandling:
         mock_db.query.return_value.filter.return_value.first.return_value = team
         mock_db.query.return_value.filter_by.return_value.first.return_value = None  # No guest team
 
-        player_stats = Mock()
-        player_stats.team_name = "Blue Team"
-        player_stats.jersey_number = "23"
-        player_stats.player_name = "Michael Jordan"
+        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats.TeamName = "Blue Team"
+        player_stats.PlayerJersey = "23"
+        player_stats.PlayerName = "Michael Jordan"
         # Mock quarter data
-        for q in ["quarter_1", "quarter_2", "quarter_3", "quarter_4", "overtime"]:
-            setattr(player_stats, q, "")
+        player_stats.QT1Shots = ""
+        player_stats.QT2Shots = ""
+        player_stats.QT3Shots = ""
+        player_stats.QT4Shots = ""
 
         # Mock player service
         mock_player = Player(id=4, name="Michael Jordan", jersey_number="23")
