@@ -85,6 +85,35 @@
     <!-- <script src="/static/js/main.js"></script> -->
     
     <script>
+    // Handle OAuth callback tokens from URL parameters
+    function handleOAuthTokens() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const tokenType = urlParams.get('token_type');
+        
+        if (accessToken && refreshToken && tokenType) {
+            // Store tokens in localStorage
+            localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('refresh_token', refreshToken);
+            localStorage.setItem('token_type', tokenType);
+            
+            // Clean up URL by removing token parameters
+            const newUrl = window.location.pathname + '?' + 
+                Array.from(urlParams.entries())
+                    .filter(([key]) => !['access_token', 'refresh_token', 'token_type'].includes(key))
+                    .map(([key, value]) => `${key}=${value}`)
+                    .join('&');
+            
+            // Replace the current URL without reloading the page
+            window.history.replaceState({}, document.title, newUrl.endsWith('?') ? newUrl.slice(0, -1) : newUrl);
+            
+            console.debug('OAuth tokens stored successfully');
+            return true;
+        }
+        return false;
+    }
+    
     // Check authentication status and update UI
     async function updateAuthUI() {
         const token = localStorage.getItem('access_token');
@@ -196,7 +225,8 @@
         });
     }
     
-    // Update auth UI on page load
+    // Handle OAuth tokens first, then update auth UI on page load
+    handleOAuthTokens();
     updateAuthUI();
     
     // Handle dropdown menu visibility

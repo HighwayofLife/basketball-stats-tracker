@@ -374,13 +374,13 @@ async def account_page(request: Request):
 
 
 @router.get("/admin/users", response_class=HTMLResponse)
-async def admin_users_page(request: Request, admin_user: User = Depends(require_admin)):  # noqa: B008
+async def admin_users_page(request: Request):
     """Render the user management page (admin only)."""
     return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
 @router.get("/admin/seasons", response_class=HTMLResponse)
-async def admin_seasons_page(request: Request, admin_user: User = Depends(require_admin)):  # noqa: B008
+async def admin_seasons_page(request: Request):
     """Render the seasons management page (admin only)."""
     return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
 

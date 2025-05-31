@@ -29,7 +29,7 @@ def upgrade():
 
     if not admin_exists:
         # Get password from environment variable (set by Terraform via Secret Manager)
-        default_password = os.environ.get('DEFAULT_ADMIN_PASSWORD')
+        default_password = os.environ.get("DEFAULT_ADMIN_PASSWORD")
 
         if not default_password:
             raise RuntimeError("❌ DEFAULT_ADMIN_PASSWORD environment variable is not set. Migration aborted.")
@@ -37,20 +37,20 @@ def upgrade():
             print("✅ Using secure password from DEFAULT_ADMIN_PASSWORD environment variable")
 
         # Hash the password
-        hashed_password = bcrypt.hashpw(default_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        hashed_password = bcrypt.hashpw(default_password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
         # Insert admin user
-        connection.execute(sa.text("""
+        connection.execute(
+            sa.text("""
             INSERT INTO users (username, email, hashed_password, full_name, role, is_active, created_at, updated_at)
             VALUES ('admin', 'admin@league-stats.net', :hashed_password, 'System Administrator', 'admin', true, :now, :now)
-        """), {
-            'hashed_password': hashed_password,
-            'now': datetime.utcnow()
-        })
+        """),
+            {"hashed_password": hashed_password, "now": datetime.utcnow()},
+        )
 
         print("✅ Default admin user created: username='admin'")
         print("📝 Login at: https://league-stats.net/login")
-        if not os.environ.get('DEFAULT_ADMIN_PASSWORD'):
+        if not os.environ.get("DEFAULT_ADMIN_PASSWORD"):
             print("⚠️  IMPORTANT: Change the admin password after first login!")
     else:
         print("ℹ️  Admin user already exists, skipping creation")

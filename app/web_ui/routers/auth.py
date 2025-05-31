@@ -163,18 +163,9 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         result = await oauth_handler.handle_google_callback(request)
         tokens = result["tokens"]
 
-        # Create response with redirect to home page
-        response = RedirectResponse(url="/", status_code=302)
-
-        # Set cookies for tokens (you might want to use httponly cookies in production)
-        response.set_cookie(
-            key="access_token",
-            value=tokens["access_token"],
-            httponly=True,
-            secure=True,
-            samesite="lax",
-            max_age=30 * 24 * 60 * 60,  # 30 days
-        )
+        # Create response with redirect to home page with tokens in URL fragment
+        # This allows JavaScript to access the tokens and store them in localStorage
+        response = RedirectResponse(url=f"/?access_token={tokens['access_token']}&refresh_token={tokens['refresh_token']}&token_type={tokens['token_type']}", status_code=302)
 
         return response
 

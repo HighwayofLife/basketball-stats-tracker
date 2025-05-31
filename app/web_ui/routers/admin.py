@@ -212,7 +212,7 @@ async def get_command_history():
 
 
 @router.get("/seasons")
-async def get_seasons(current_user: User = Depends(get_current_user)):
+async def get_seasons(current_user: User = Depends(require_admin)):
     """Get all seasons."""
     try:
         with get_db_session() as session:
@@ -225,7 +225,7 @@ async def get_seasons(current_user: User = Depends(get_current_user)):
 
 
 @router.post("/seasons")
-async def create_season(data: dict, current_user: User = Depends(get_current_user)):
+async def create_season(data: dict, current_user: User = Depends(require_admin)):
     """Create a new season."""
     try:
         with get_db_session() as session:
@@ -270,7 +270,7 @@ async def create_season(data: dict, current_user: User = Depends(get_current_use
 
 
 @router.put("/seasons/{season_id}")
-async def update_season(season_id: int, data: dict, current_user: User = Depends(get_current_user)):
+async def update_season(season_id: int, data: dict, current_user: User = Depends(require_admin)):
     """Update a season."""
     try:
         with get_db_session() as session:
@@ -304,7 +304,7 @@ async def update_season(season_id: int, data: dict, current_user: User = Depends
 
 
 @router.post("/seasons/{season_id}/activate")
-async def activate_season(season_id: int, current_user: User = Depends(get_current_user)):
+async def activate_season(season_id: int, current_user: User = Depends(require_admin)):
     """Set a season as active."""
     try:
         with get_db_session() as session:
@@ -324,7 +324,7 @@ async def activate_season(season_id: int, current_user: User = Depends(get_curre
 
 
 @router.delete("/seasons/{season_id}")
-async def delete_season(season_id: int, current_user: User = Depends(get_current_user)):
+async def delete_season(season_id: int, current_user: User = Depends(require_admin)):
     """Delete a season."""
     try:
         with get_db_session() as session:

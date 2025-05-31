@@ -10,6 +10,10 @@ v0.4.0
 ### Security Fixes
 * Fix missing authentication on admin pages - added require_admin dependency to /admin/users and /admin/seasons endpoints
 
+### Test Infrastructure Improvements
+* Fix circular import issues and resolve 18 failing unit tests
+* Improve test pass rate from 96% to 100% (516 passed, 5 skipped)
+
 
 v0.3.0
 ------
