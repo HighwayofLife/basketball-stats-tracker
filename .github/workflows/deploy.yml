@@ -87,19 +87,15 @@ jobs:
 
     - name: Update Migration Job
       run: |
-        # Delete existing migration job if it exists
-        gcloud run jobs delete basketball-stats-migrate --region=${{ env.REGION }} --quiet || true
-        
-        # Create new migration job with latest image using Secret Manager
-        gcloud run jobs create basketball-stats-migrate \
+        # Update the migration job image only, preserving Terraform-managed configuration
+        # This prevents overwriting VPC settings and other critical configuration
+        gcloud run jobs update basketball-stats-migrate \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
-          --region ${{ env.REGION }} \
-          --args="alembic,upgrade,head" \
-          --set-env-vars="APP_ENV=production" \
-          --set-secrets="DATABASE_URL=basketball-stats-migration-database-url:latest" \
-          --service-account=basketball-stats-run-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
-          --max-retries=1 \
-          --parallelism=1
+          --region ${{ env.REGION }} || {
+          echo "Migration job doesn't exist, it should be created by Terraform"
+          echo "Please run 'terraform apply' to create the migration job with proper VPC configuration"
+          exit 1
+        }
 
     - name: Run Database Migration
       run: |
