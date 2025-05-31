@@ -119,12 +119,6 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
     return tokens
 
 
-@router.get("/me", response_model=UserResponse)
-async def get_current_user_info(current_user: User = Depends(get_current_user)):
-    """Get current user information."""
-    return current_user
-
-
 @router.post("/change-password")
 async def change_password(
     password_data: PasswordChange, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -141,38 +135,6 @@ async def change_password(
         return {"message": "Password changed successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to change password")
-
-
-# Admin endpoints
-@router.get("/users", response_model=list[UserResponse])
-async def list_users(admin_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """List all users (admin only)."""
-    users = db.query(User).all()
-    return users
-
-
-@router.put("/users/{user_id}/role")
-async def update_user_role(
-    user_id: int, role: UserRole, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
-):
-    """Update user role (admin only)."""
-    auth_service = AuthService(db)
-
-    if auth_service.update_user_role(user_id, role):
-        return {"message": f"User role updated to {role.value}"}
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-
-@router.delete("/users/{user_id}")
-async def deactivate_user(user_id: int, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    """Deactivate a user (admin only)."""
-    auth_service = AuthService(db)
-
-    if auth_service.deactivate_user(user_id):
-        return {"message": "User deactivated successfully"}
-    else:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
 
 # OAuth endpoints
@@ -201,17 +163,22 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         result = await oauth_handler.handle_google_callback(request)
         tokens = result["tokens"]
 
-        # Create response with redirect to home page
+        # Create response with redirect to home page with tokens in URL fragment
+        # This allows JavaScript to access the tokens and store them in localStorage
         response = RedirectResponse(url="/", status_code=302)
-
-        # Set cookies for tokens (you might want to use httponly cookies in production)
         response.set_cookie(
             key="access_token",
             value=tokens["access_token"],
             httponly=True,
             secure=True,
-            samesite="lax",
-            max_age=30 * 24 * 60 * 60,  # 30 days
+            samesite="Strict",
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=True,
+            samesite="Strict",
         )
 
         return response

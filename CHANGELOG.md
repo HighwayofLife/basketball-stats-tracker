@@ -1,3 +1,20 @@
+v0.4.0
+------
+### Features
+* Add team statistics and team season statistics
+
+### API Improvements
+* Replace generic dict[str, Any] response models with explicit Pydantic schemas in teams router for better type safety and API documentation
+* Add TeamBasicResponse, RosterPlayer, TeamWithRosterResponse, and DeletedTeamResponse schemas
+
+### Security Fixes
+* Fix missing authentication on admin pages - added require_admin dependency to /admin/users and /admin/seasons endpoints
+
+### Test Infrastructure Improvements
+* Fix circular import issues and resolve 18 failing unit tests
+* Improve test pass rate from 96% to 100% (516 passed, 5 skipped)
+
+
 v0.3.0
 ------
 

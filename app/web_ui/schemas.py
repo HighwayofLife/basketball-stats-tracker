@@ -188,6 +188,39 @@ class TeamResponse(BaseModel):
     player_count: int = 0
 
 
+class TeamBasicResponse(BaseModel):
+    """Basic team information response schema."""
+
+    id: int
+    name: str
+    display_name: str | None = None
+
+
+class RosterPlayer(BaseModel):
+    """Player information for team roster."""
+
+    id: int
+    name: str
+    jersey_number: str
+
+
+class TeamWithRosterResponse(BaseModel):
+    """Team information with roster response schema."""
+
+    id: int
+    name: str
+    display_name: str | None = None
+    roster: list[RosterPlayer]
+
+
+class DeletedTeamResponse(BaseModel):
+    """Response schema for deleted team information."""
+
+    id: int
+    name: str
+    deleted_at: str | None = None
+
+
 class TeamDetailResponse(BaseModel):
     """Detailed response schema for team information."""
 
@@ -343,6 +376,72 @@ class SeasonSummaryResponse(BaseModel):
     top_scorers: list[PlayerRankingResponse]
     team_standings: list[TeamStandingsResponse]
     league_leaders: dict[str, list[PlayerRankingResponse]]  # Category -> Rankings
+
+
+# Team Stats Schemas
+
+
+class TeamInfo(BaseModel):
+    """Basic team information for stats response."""
+
+    id: int
+    name: str
+    display_name: str | None = None
+
+
+class TeamStatsData(BaseModel):
+    """Team statistics data structure."""
+
+    games_played: int
+    wins: int
+    losses: int
+    total_points_for: int
+    total_points_against: int
+    total_ftm: int
+    total_fta: int
+    total_2pm: int
+    total_2pa: int
+    total_3pm: int
+    total_3pa: int
+    win_percentage: float
+    ppg: float  # Points per game
+    opp_ppg: float  # Opponent points per game
+    point_diff: float  # Point differential
+    ft_percentage: float
+    fg2_percentage: float
+    fg3_percentage: float
+
+
+class SeasonStatsData(TeamStatsData):
+    """Season-specific team statistics with season identifier."""
+
+    season: str
+
+
+class RecentGameData(BaseModel):
+    """Recent game data for team stats."""
+
+    game_id: int
+    date: str  # ISO format date string
+    opponent: str
+    team_points: int
+    opponent_points: int
+    win: bool
+    ft: str  # Format: "made/attempted"
+    fg2: str  # Format: "made/attempted"
+    fg3: str  # Format: "made/attempted"
+    ft_percentage: int
+    fg2_percentage: int
+    fg3_percentage: int
+
+
+class TeamStatsResponse(BaseModel):
+    """Complete team statistics response."""
+
+    team: TeamInfo
+    career_stats: TeamStatsData
+    season_stats: SeasonStatsData | None = None
+    recent_games: list[RecentGameData]
 
 
 # Forward reference for circular dependency

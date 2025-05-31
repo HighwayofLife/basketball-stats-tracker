@@ -21,8 +21,16 @@
                     <li><a href="/games">Games</a></li>
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
-                    <li><a href="/reports">Reports</a></li>
                     <li><a href="/about">About</a></li>
+                    <li id="manage-nav-item" class="nav-dropdown" style="display: none;">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-tasks"></i> Manage <i class="fas fa-chevron-down"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                            <li><a href="/admin/seasons"><i class="fas fa-calendar-alt"></i> Seasons</a></li>
+                        </ul>
+                    </li>
                     <li id="admin-nav-item" class="nav-dropdown" style="display: none;">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-cog"></i> Admin <i class="fas fa-chevron-down"></i>
@@ -77,6 +85,35 @@
     <!-- <script src="/static/js/main.js"></script> -->
     
     <script>
+    // Handle OAuth callback tokens from URL parameters
+    function handleOAuthTokens() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const accessToken = urlParams.get('access_token');
+        const refreshToken = urlParams.get('refresh_token');
+        const tokenType = urlParams.get('token_type');
+        
+        if (accessToken && refreshToken && tokenType) {
+            // Store tokens in localStorage
+            localStorage.setItem('access_token', accessToken);
+            localStorage.setItem('refresh_token', refreshToken);
+            localStorage.setItem('token_type', tokenType);
+            
+            // Clean up URL by removing token parameters
+            const newUrl = window.location.pathname + '?' + 
+                Array.from(urlParams.entries())
+                    .filter(([key]) => !['access_token', 'refresh_token', 'token_type'].includes(key))
+                    .map(([key, value]) => `${key}=${value}`)
+                    .join('&');
+            
+            // Replace the current URL without reloading the page
+            window.history.replaceState({}, document.title, newUrl.endsWith('?') ? newUrl.slice(0, -1) : newUrl);
+            
+            console.debug('OAuth tokens stored successfully');
+            return true;
+        }
+        return false;
+    }
+    
     // Check authentication status and update UI
     async function updateAuthUI() {
         const token = localStorage.getItem('access_token');
@@ -84,6 +121,7 @@
         const userNavItem = document.getElementById('user-nav-item');
         const usernameDisplay = document.getElementById('username-display');
         const adminNavItem = document.getElementById('admin-nav-item');
+        const manageNavItem = document.getElementById('manage-nav-item');
         
         console.debug('Auth check - Token present:', !!token);
         
@@ -104,6 +142,12 @@
                     loginNavItem.style.display = 'none';
                     userNavItem.style.display = 'flex';
                     usernameDisplay.textContent = userData.username;
+                    
+                    // Show manage menu if user has write permissions (admin or user role)
+                    if (userData.role === 'ADMIN' || userData.role === 'admin' || 
+                        userData.role === 'USER' || userData.role === 'user') {
+                        manageNavItem.style.display = 'flex';
+                    }
                     
                     // Show admin menu if user is admin
                     if (userData.role === 'ADMIN' || userData.role === 'admin') {
@@ -130,53 +174,59 @@
         const loginNavItem = document.getElementById('login-nav-item');
         const userNavItem = document.getElementById('user-nav-item');
         const adminNavItem = document.getElementById('admin-nav-item');
+        const manageNavItem = document.getElementById('manage-nav-item');
         
         loginNavItem.style.display = 'flex';
         userNavItem.style.display = 'none';
         adminNavItem.style.display = 'none';
+        manageNavItem.style.display = 'none';
     }
     
     function setupDropdownBehavior() {
-        const dropdown = document.querySelector('.nav-dropdown');
-        const dropdownMenu = document.querySelector('.dropdown-menu');
+        const dropdowns = document.querySelectorAll('.nav-dropdown');
         
-        if (!dropdown || !dropdownMenu) return;
-        
-        let hideTimeout;
-        
-        // Show dropdown on hover
-        dropdown.addEventListener('mouseenter', function() {
-            clearTimeout(hideTimeout);
-            dropdownMenu.style.setProperty('display', 'block', 'important');
-        });
-        
-        // Hide dropdown when leaving dropdown area
-        dropdown.addEventListener('mouseleave', function() {
-            hideTimeout = setTimeout(function() {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }, 100); // Small delay to prevent flickering
-        });
-        
-        // Keep dropdown visible when hovering over menu
-        dropdownMenu.addEventListener('mouseenter', function() {
-            clearTimeout(hideTimeout);
-        });
-        
-        dropdownMenu.addEventListener('mouseleave', function() {
-            hideTimeout = setTimeout(function() {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }, 100);
-        });
-        
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!dropdown.contains(event.target)) {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }
+        dropdowns.forEach(function(dropdown) {
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+            
+            if (!dropdownMenu) return;
+            
+            let hideTimeout;
+            
+            // Show dropdown on hover
+            dropdown.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                dropdownMenu.style.setProperty('display', 'block', 'important');
+            });
+            
+            // Hide dropdown when leaving dropdown area
+            dropdown.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }, 100); // Small delay to prevent flickering
+            });
+            
+            // Keep dropdown visible when hovering over menu
+            dropdownMenu.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+            });
+            
+            dropdownMenu.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }, 100);
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!dropdown.contains(event.target)) {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }
+            });
         });
     }
     
-    // Update auth UI on page load
+    // Handle OAuth tokens first, then update auth UI on page load
+    handleOAuthTokens();
     updateAuthUI();
     
     // Handle dropdown menu visibility
@@ -186,17 +236,31 @@
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         const token = localStorage.getItem('access_token');
-        if (token && args[1]) {
-            args[1].headers = {
-                ...args[1].headers,
-                'Authorization': `Bearer ${token}`
-            };
-        } else if (token && !args[1]) {
-            args[1] = {
-                headers: {
+        
+        // Only add auth headers for endpoints that require authentication
+        const url = args[0];
+        const requiresAuth = typeof url === 'string' && (
+            url.includes('/auth/') ||
+            url.includes('/admin/') ||
+            url.includes('/v1/players/new') ||
+            url.includes('/v1/players/') && (args[1]?.method === 'PUT' || args[1]?.method === 'DELETE') ||
+            url.includes('/v1/teams/new') ||
+            url.includes('/v1/teams/') && (args[1]?.method === 'PUT' || args[1]?.method === 'DELETE')
+        );
+        
+        if (token && requiresAuth) {
+            if (args[1]) {
+                args[1].headers = {
+                    ...args[1].headers,
                     'Authorization': `Bearer ${token}`
-                }
-            };
+                };
+            } else {
+                args[1] = {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+            }
         }
         return originalFetch.apply(this, args);
     };

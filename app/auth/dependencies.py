@@ -27,32 +27,48 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
     Raises:
         HTTPException: If token is invalid or user not found
     """
+    import logging
+
+    logger = logging.getLogger(__name__)
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
+        detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    # Verify token
-    payload = verify_token(token)
-    if payload is None:
+    try:
+        # Verify token
+        payload = verify_token(token)
+        if payload is None:
+            logger.warning("Token verification failed - invalid token")
+            raise credentials_exception
+
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            logger.warning("Token verification failed - no user ID in token")
+            raise credentials_exception
+
+        # Get user from database
+        auth_service = AuthService(db)
+        user = auth_service.get_user_by_id(int(user_id))
+
+        if user is None:
+            logger.warning(f"User not found in database: {user_id}")
+            raise credentials_exception
+
+        if not user.is_active:
+            logger.warning(f"User {user_id} is inactive")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
+
+        logger.info(f"Successfully authenticated user: {user.username} (ID: {user.id})")
+        return user
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in get_current_user: {e}")
         raise credentials_exception
-
-    user_id: str = payload.get("sub")
-    if user_id is None:
-        raise credentials_exception
-
-    # Get user from database
-    auth_service = AuthService(db)
-    user = auth_service.get_user_by_id(int(user_id))
-
-    if user is None:
-        raise credentials_exception
-
-    if not user.is_active:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Inactive user")
-
-    return user
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

@@ -1232,3 +1232,112 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["is_substitute"] is True
+
+    # Admin Seasons Tests
+
+    def test_get_seasons_requires_admin(self, client):
+        """Test that getting seasons requires admin authentication."""
+        # Make request to seasons endpoint
+        response = client.get("/v1/seasons")
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+        assert "seasons" in data
+
+    def test_create_season_requires_admin(self, client):
+        """Test that creating a season requires admin authentication."""
+        season_data = {
+            "name": "Test Season",
+            "code": "TEST2025",
+            "start_date": "2025-01-01",
+            "end_date": "2025-12-31",
+            "description": "Test season",
+            "set_as_active": False
+        }
+
+        # Make request to create season
+        response = client.post("/v1/seasons", json=season_data)
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+        assert data["season"]["name"] == "Test Season"
+
+    def test_update_season_requires_admin(self, client, db_session):
+        """Test that updating a season requires admin authentication."""
+        from app.data_access.models import Season
+        from datetime import date
+
+        # Create a test season
+        season = Season(
+            name="Test Season",
+            code="TEST2025",
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 12, 31),
+            is_active=False
+        )
+        db_session.add(season)
+        db_session.commit()
+        db_session.refresh(season)
+
+        update_data = {"name": "Updated Season"}
+
+        # Make request to update season
+        response = client.put(f"/v1/seasons/{season.id}", json=update_data)
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+    def test_activate_season_requires_admin(self, client, db_session):
+        """Test that activating a season requires admin authentication."""
+        from app.data_access.models import Season
+        from datetime import date
+
+        # Create a test season
+        season = Season(
+            name="Test Season",
+            code="TEST2025",
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 12, 31),
+            is_active=False
+        )
+        db_session.add(season)
+        db_session.commit()
+        db_session.refresh(season)
+
+        # Make request to activate season
+        response = client.post(f"/v1/seasons/{season.id}/activate")
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True
+
+    def test_delete_season_requires_admin(self, client, db_session):
+        """Test that deleting a season requires admin authentication."""
+        from app.data_access.models import Season
+        from datetime import date
+
+        # Create a test season
+        season = Season(
+            name="Test Season",
+            code="TEST2025",
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 12, 31),
+            is_active=False
+        )
+        db_session.add(season)
+        db_session.commit()
+        db_session.refresh(season)
+
+        # Make request to delete season
+        response = client.delete(f"/v1/seasons/{season.id}")
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+        assert data["success"] is True

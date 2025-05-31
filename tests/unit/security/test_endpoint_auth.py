@@ -14,6 +14,7 @@ class TestEndpointAuthentication:
     def client(self):
         """Create test client."""
         from app.web_ui.api import app
+
         return TestClient(app)
 
     @pytest.fixture
@@ -163,11 +164,13 @@ class TestRoleBasedAuthorization:
     def client(self):
         """Create test client."""
         from app.web_ui.api import app
+
         return TestClient(app)
 
     def test_admin_endpoints_restricted_to_admin(self, client: TestClient):
         """Test that admin endpoints are restricted to admin users only."""
         from app.web_ui.api import app
+
         # This test would need proper setup with database
         # For now, we're testing the structure is in place
         assert hasattr(app, "dependency_overrides")  # FastAPI dependency system exists
@@ -189,6 +192,7 @@ class TestSecurityHeaders:
     def client(self):
         """Create test client."""
         from app.web_ui.api import app
+
         return TestClient(app)
 
     def test_cors_headers_present(self, client: TestClient):
@@ -212,6 +216,7 @@ class TestInputValidation:
     def client(self):
         """Create test client."""
         from app.web_ui.api import app
+
         return TestClient(app)
 
     def test_xss_prevention_in_api(self, client: TestClient):

@@ -2,11 +2,13 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
+from app.auth.dependencies import require_admin
+from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
@@ -198,7 +200,9 @@ async def teams_page(request: Request):
 @router.get("/teams/{team_id}", response_class=HTMLResponse)
 async def team_detail_page(request: Request, team_id: int):
     """Render the team detail page."""
-    return templates.TemplateResponse("teams/detail.html", {"request": request, "title": "Team Details"})
+    return templates.TemplateResponse(
+        "teams/detail.html", {"request": request, "title": "Team Details", "team_id": team_id}
+    )
 
 
 @router.get("/players", response_class=HTMLResponse)
@@ -221,7 +225,10 @@ async def game_detail_page(request: Request, game_id: int):
                 "games/detail.html",
                 {
                     "request": request,
-                    "title": f"{game.opponent_team.display_name or game.opponent_team.name} @ {game.playing_team.display_name or game.playing_team.name}",
+                    "title": (
+                        f"{game.opponent_team.display_name or game.opponent_team.name} @ "
+                        f"{game.playing_team.display_name or game.playing_team.name}"
+                    ),
                     "game_id": game_id,
                 },
             )
@@ -372,6 +379,12 @@ async def admin_users_page(request: Request):
     return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
+@router.get("/admin/seasons", response_class=HTMLResponse)
+async def admin_seasons_page(request: Request):
+    """Render the seasons management page (admin only)."""
+    return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
+
+
 @router.get("/logout", response_class=HTMLResponse)
 async def logout_page(request: Request):
     """Handle logout by clearing client-side storage and redirecting."""
@@ -382,7 +395,11 @@ async def logout_page(request: Request):
         {
             "request": request,
             "title": "Logging out...",
-            "content": '<script>localStorage.removeItem("access_token"); localStorage.removeItem("token_type"); window.location.href = "/";</script>',
+            "content": (
+                '<script>localStorage.removeItem("access_token"); '
+                'localStorage.removeItem("token_type"); '
+                'window.location.href = "/";</script>'
+            ),
         },
     )
 
