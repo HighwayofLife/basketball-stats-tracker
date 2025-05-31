@@ -369,8 +369,11 @@ class TestAuthRouter:
 
         response = client.put("/auth/users/1/role", json={"role": "invalid_role"})
 
-        assert response.status_code == 400
-        assert "Invalid role" in response.json()["detail"]
+        # Pydantic validation should return 422 for invalid enum value
+        assert response.status_code == 422
+        # The error will be in the validation error format
+        error_detail = response.json()["detail"][0]["msg"]
+        assert "input should be" in error_detail.lower() or "validation error" in error_detail.lower()
 
     def test_deactivate_user_admin(self, client, mock_admin_user):
         """Test deactivating user as admin."""
