@@ -32,9 +32,7 @@ def upgrade():
         default_password = os.environ.get('DEFAULT_ADMIN_PASSWORD')
 
         if not default_password:
-            # Fallback for development/testing environments
-            default_password = "admin123"
-            print("⚠️  Using fallback password - DEFAULT_ADMIN_PASSWORD not set")
+            raise RuntimeError("❌ DEFAULT_ADMIN_PASSWORD environment variable is not set. Migration aborted.")
         else:
             print("✅ Using secure password from DEFAULT_ADMIN_PASSWORD environment variable")
 
