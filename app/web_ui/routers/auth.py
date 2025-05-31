@@ -119,8 +119,6 @@ async def refresh_token(token_data: TokenRefresh, db: Session = Depends(get_db))
     return tokens
 
 
-
-
 @router.post("/change-password")
 async def change_password(
     password_data: PasswordChange, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
@@ -137,12 +135,6 @@ async def change_password(
         return {"message": "Password changed successfully"}
     else:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to change password")
-
-
-
-
-
-
 
 
 # OAuth endpoints

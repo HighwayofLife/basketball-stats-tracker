@@ -225,7 +225,10 @@ async def game_detail_page(request: Request, game_id: int):
                 "games/detail.html",
                 {
                     "request": request,
-                    "title": f"{game.opponent_team.display_name or game.opponent_team.name} @ {game.playing_team.display_name or game.playing_team.name}",
+                    "title": (
+                        f"{game.opponent_team.display_name or game.opponent_team.name} @ "
+                        f"{game.playing_team.display_name or game.playing_team.name}"
+                    ),
                     "game_id": game_id,
                 },
             )
@@ -371,13 +374,13 @@ async def account_page(request: Request):
 
 
 @router.get("/admin/users", response_class=HTMLResponse)
-async def admin_users_page(request: Request, admin_user: User = Depends(require_admin)):
+async def admin_users_page(request: Request, admin_user: User = Depends(require_admin)):  # noqa: B008
     """Render the user management page (admin only)."""
     return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
 @router.get("/admin/seasons", response_class=HTMLResponse)
-async def admin_seasons_page(request: Request, admin_user: User = Depends(require_admin)):
+async def admin_seasons_page(request: Request, admin_user: User = Depends(require_admin)):  # noqa: B008
     """Render the seasons management page (admin only)."""
     return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
 
@@ -392,7 +395,11 @@ async def logout_page(request: Request):
         {
             "request": request,
             "title": "Logging out...",
-            "content": '<script>localStorage.removeItem("access_token"); localStorage.removeItem("token_type"); window.location.href = "/";</script>',
+            "content": (
+                '<script>localStorage.removeItem("access_token"); '
+                'localStorage.removeItem("token_type"); '
+                'window.location.href = "/";</script>'
+            ),
         },
     )
 
