@@ -1,6 +1,5 @@
 """Unit tests for TeamRepository."""
 
-
 from app.data_access.models import Game, Player, Team
 from app.repositories.team_repository import TeamRepository
 
@@ -126,6 +125,7 @@ class TestTeamRepository:
 
         # Create a game where team1 is playing team
         from datetime import date
+
         game = Game(id=1, playing_team_id=1, opponent_team_id=2, date=date(2025, 3, 1))
         db_session.add(game)
         db_session.commit()
@@ -147,6 +147,7 @@ class TestTeamRepository:
 
         # Create a game where team2 is opponent team
         from datetime import date
+
         game = Game(id=1, playing_team_id=1, opponent_team_id=2, date=date(2025, 3, 1))
         db_session.add(game)
         db_session.commit()
@@ -181,14 +182,10 @@ class TestTeamRepository:
             name="Lakers",
             display_name="Los Angeles Lakers",
             is_deleted=True,
-            deleted_at=datetime(2025, 1, 1, 12, 0, 0)
+            deleted_at=datetime(2025, 1, 1, 12, 0, 0),
         )
         team3 = Team(
-            id=3,
-            name="Bulls",
-            display_name="Chicago Bulls",
-            is_deleted=True,
-            deleted_at=datetime(2025, 1, 2, 12, 0, 0)
+            id=3, name="Bulls", display_name="Chicago Bulls", is_deleted=True, deleted_at=datetime(2025, 1, 2, 12, 0, 0)
         )
 
         db_session.add(team1)

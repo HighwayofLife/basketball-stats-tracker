@@ -107,32 +107,48 @@ class TestTeamStatsService:
         # Create player stats
         stats = [
             PlayerGameStats(
-                player_id=1, game_id=1,
-                total_ftm=5, total_fta=6,
-                total_2pm=8, total_2pa=12,
-                total_3pm=3, total_3pa=5,
-                fouls=2
+                player_id=1,
+                game_id=1,
+                total_ftm=5,
+                total_fta=6,
+                total_2pm=8,
+                total_2pa=12,
+                total_3pm=3,
+                total_3pa=5,
+                fouls=2,
             ),
             PlayerGameStats(
-                player_id=2, game_id=1,
-                total_ftm=3, total_fta=4,
-                total_2pm=6, total_2pa=10,
-                total_3pm=2, total_3pa=4,
-                fouls=3
+                player_id=2,
+                game_id=1,
+                total_ftm=3,
+                total_fta=4,
+                total_2pm=6,
+                total_2pa=10,
+                total_3pm=2,
+                total_3pa=4,
+                fouls=3,
             ),
             PlayerGameStats(
-                player_id=3, game_id=1,
-                total_ftm=4, total_fta=5,
-                total_2pm=5, total_2pa=8,
-                total_3pm=1, total_3pa=3,
-                fouls=1
+                player_id=3,
+                game_id=1,
+                total_ftm=4,
+                total_fta=5,
+                total_2pm=5,
+                total_2pa=8,
+                total_3pm=1,
+                total_3pa=3,
+                fouls=1,
             ),
             PlayerGameStats(
-                player_id=4, game_id=1,
-                total_ftm=2, total_fta=3,
-                total_2pm=4, total_2pa=7,
-                total_3pm=2, total_3pa=4,
-                fouls=2
+                player_id=4,
+                game_id=1,
+                total_ftm=2,
+                total_fta=3,
+                total_2pm=4,
+                total_2pa=7,
+                total_3pm=2,
+                total_3pa=4,
+                fouls=2,
             ),
         ]
 
@@ -198,12 +214,7 @@ class TestTeamStatsService:
         # Create multiple games
         games = []
         for i in range(3):
-            game = Game(
-                id=i + 1,
-                playing_team_id=1,
-                opponent_team_id=2,
-                date=datetime.date(2025, 5, 1 + i * 7)
-            )
+            game = Game(id=i + 1, playing_team_id=1, opponent_team_id=2, date=datetime.date(2025, 5, 1 + i * 7))
             db_session.add(game)
             games.append(game)
         db_session.commit()
@@ -212,19 +223,27 @@ class TestTeamStatsService:
         for i, game in enumerate(games):
             # Team 1 player stats
             stat1 = PlayerGameStats(
-                player_id=1, game_id=game.id,
-                total_ftm=3 + i, total_fta=4 + i,
-                total_2pm=5 + i, total_2pa=8 + i,
-                total_3pm=2 + i, total_3pa=4 + i,
-                fouls=2
+                player_id=1,
+                game_id=game.id,
+                total_ftm=3 + i,
+                total_fta=4 + i,
+                total_2pm=5 + i,
+                total_2pa=8 + i,
+                total_3pm=2 + i,
+                total_3pa=4 + i,
+                fouls=2,
             )
             # Team 2 player stats
             stat2 = PlayerGameStats(
-                player_id=2, game_id=game.id,
-                total_ftm=2 + i, total_fta=3 + i,
-                total_2pm=4 + i, total_2pa=6 + i,
-                total_3pm=1 + i, total_3pa=3 + i,
-                fouls=1
+                player_id=2,
+                game_id=game.id,
+                total_ftm=2 + i,
+                total_fta=3 + i,
+                total_2pm=4 + i,
+                total_2pa=6 + i,
+                total_3pm=1 + i,
+                total_3pa=3 + i,
+                fouls=1,
             )
             db_session.add(stat1)
             db_session.add(stat2)
