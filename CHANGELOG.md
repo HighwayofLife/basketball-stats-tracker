@@ -7,6 +7,7 @@ v0.3.0
 * Implement role-based access control (Admin, User)
 * Add team-based data access restrictions
 * Create user management and account pages
+* Create a default admin using a secure password from env
 
 ### Changes
 * Enhance security with mandatory JWT secret key validation
