@@ -85,13 +85,18 @@
         const usernameDisplay = document.getElementById('username-display');
         const adminNavItem = document.getElementById('admin-nav-item');
         
+        console.debug('Auth check - Token present:', !!token);
+        
         if (token) {
             try {
+                console.debug('Making request to /auth/me with token');
                 const response = await fetch('/auth/me', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
+                
+                console.debug('Auth response status:', response.status);
                 
                 if (response.ok) {
                     const userData = await response.json();
@@ -106,6 +111,7 @@
                     }
                 } else {
                     // Token is invalid, clear it
+                    console.debug('Auth failed, clearing token. Response:', response.status, response.statusText);
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('token_type');
                     showLoggedOutUI();
@@ -115,6 +121,7 @@
                 showLoggedOutUI();
             }
         } else {
+            console.debug('No token found, showing logged out UI');
             showLoggedOutUI();
         }
     }
@@ -129,8 +136,51 @@
         adminNavItem.style.display = 'none';
     }
     
+    function setupDropdownBehavior() {
+        const dropdown = document.querySelector('.nav-dropdown');
+        const dropdownMenu = document.querySelector('.dropdown-menu');
+        
+        if (!dropdown || !dropdownMenu) return;
+        
+        let hideTimeout;
+        
+        // Show dropdown on hover
+        dropdown.addEventListener('mouseenter', function() {
+            clearTimeout(hideTimeout);
+            dropdownMenu.style.setProperty('display', 'block', 'important');
+        });
+        
+        // Hide dropdown when leaving dropdown area
+        dropdown.addEventListener('mouseleave', function() {
+            hideTimeout = setTimeout(function() {
+                dropdownMenu.style.setProperty('display', 'none', 'important');
+            }, 100); // Small delay to prevent flickering
+        });
+        
+        // Keep dropdown visible when hovering over menu
+        dropdownMenu.addEventListener('mouseenter', function() {
+            clearTimeout(hideTimeout);
+        });
+        
+        dropdownMenu.addEventListener('mouseleave', function() {
+            hideTimeout = setTimeout(function() {
+                dropdownMenu.style.setProperty('display', 'none', 'important');
+            }, 100);
+        });
+        
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!dropdown.contains(event.target)) {
+                dropdownMenu.style.setProperty('display', 'none', 'important');
+            }
+        });
+    }
+    
     // Update auth UI on page load
     updateAuthUI();
+    
+    // Handle dropdown menu visibility
+    setupDropdownBehavior();
     
     // Add authorization header to all fetch requests if token exists
     const originalFetch = window.fetch;

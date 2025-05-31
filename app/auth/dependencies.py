@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.data_access.db_session import get_db_session
+from app.web_ui.dependencies import get_db
 
 from .jwt_handler import verify_token
 from .models import User, UserRole
@@ -14,7 +14,7 @@ from .service import AuthService
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     """Get current authenticated user from JWT token.
 
     Args:
@@ -90,7 +90,7 @@ async def require_admin(current_user: User = Depends(get_current_active_user)) -
 
 
 async def get_optional_current_user(
-    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db_session)
+    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User | None:
     """Get current user if authenticated, None otherwise.
 
@@ -137,7 +137,7 @@ async def require_team_access(team_id: int, current_user: User = Depends(get_cur
 
 
 async def require_player_access(
-    player_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db_session)
+    player_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ) -> User:
     """Require access to specific player (admin, team member, or the player themselves).
 
@@ -174,7 +174,7 @@ async def require_player_access(
 
 
 async def require_game_access(
-    game_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db_session)
+    game_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
 ) -> User:
     """Require access to specific game (admin or team involved in game).
 

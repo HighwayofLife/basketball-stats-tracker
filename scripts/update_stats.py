@@ -37,26 +37,26 @@ def get_test_stats():
 
     # Look for test summary in stdout (pytest outputs to stdout with -q flag)
     full_output = stdout + stderr
-    
+
     # Strip ANSI color codes
-    ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
-    clean_output = ansi_escape.sub('', full_output)
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    clean_output = ansi_escape.sub("", full_output)
 
     # Parse test counts from summary line like "==== 65 passed in 0.05s ===="
     # or "==== 40 failed, 501 passed, 3 skipped, 1 warning, 4 errors in 10.53s ===="
     summary_pattern = r"=+\s*(.*?)\s*in\s+[\d.]+s\s*=+"
     summary_match = re.search(summary_pattern, clean_output)
-    
+
     if summary_match:
         summary_text = summary_match.group(1)
         # Parse individual counts from the summary
         count_patterns = [
             (r"(\d+)\s+passed", "passed"),
-            (r"(\d+)\s+failed", "failed"), 
+            (r"(\d+)\s+failed", "failed"),
             (r"(\d+)\s+skipped", "skipped"),
-            (r"(\d+)\s+error", "errors")  # Note: singular 'error' in some cases
+            (r"(\d+)\s+error", "errors"),  # Note: singular 'error' in some cases
         ]
-        
+
         for pattern, status in count_patterns:
             match = re.search(pattern, summary_text)
             if match:
@@ -147,7 +147,7 @@ def generate_stats_table(
     test_status = format_test_status(test_results)
     test_files_str = f"{test_files['total']} files ({test_files['unit']} unit, {test_files['integration']} integration, {test_files['functional']} functional)"
     coverage_str = f"{coverage_percent}% ({coverage_lines['covered']:,} / {coverage_lines['total']:,} executable lines)"
-    source_str = f"{python_files} Python files ({total_loc//1000}k total LOC)"
+    source_str = f"{python_files} Python files ({total_loc // 1000}k total LOC)"
 
     table = f"""## 📊 Project Statistics
 
@@ -161,7 +161,7 @@ def generate_stats_table(
 | **Python Version** | 3.11+ |
 | **Code Quality** | Ruff linting + pytest |
 | **License** | MIT |
-| **Version** | {project_info['version']} |
+| **Version** | {project_info["version"]} |
 
 > 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and code quality standards are met."""
 

@@ -72,11 +72,11 @@ class TestScorebookAPI:
                 new_session.close()
 
         app.dependency_overrides[get_db] = override_get_db
-        
+
         # Override authentication dependencies for testing
         from app.auth.dependencies import get_current_user, require_admin
         from app.auth.models import User, UserRole
-        
+
         def mock_current_user():
             """Mock current user for testing."""
             user = User(
@@ -85,14 +85,14 @@ class TestScorebookAPI:
                 email="test@example.com",
                 role=UserRole.ADMIN,  # Use admin to bypass all auth checks
                 is_active=True,
-                provider="local"
+                provider="local",
             )
             return user
-            
+
         def mock_admin_user():
             """Mock admin user for testing."""
             return mock_current_user()
-            
+
         app.dependency_overrides[get_current_user] = mock_current_user
         app.dependency_overrides[require_admin] = mock_admin_user
 

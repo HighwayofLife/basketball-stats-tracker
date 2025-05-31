@@ -128,14 +128,20 @@ body {
 
 .dropdown-toggle {
   cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: block;
+  width: auto;
+  min-width: 120px;
 }
 
 .dropdown-menu {
-  display: none;
+  display: none !important;
   position: absolute;
   top: 100%;
   left: 0;
-  background-color: var(--card-bg);
+  background-color: var(--card-background);
   min-width: 200px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   border-radius: 4px;
@@ -144,6 +150,7 @@ body {
   list-style: none;
   padding: 0;
   margin: 0;
+  margin-top: 5px;
 }
 
 .dropdown-menu li {
@@ -163,7 +170,7 @@ body {
 }
 
 .dropdown-menu a:hover {
-  background-color: var(--hover-bg);
+  background-color: rgba(255, 107, 0, 0.1);
 }
 
 .dropdown-menu a i {
@@ -173,6 +180,11 @@ body {
 }
 
 .nav-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* Ensure dropdown stays visible when hovering over menu items */
+.nav-dropdown .dropdown-menu:hover {
   display: block;
 }
 

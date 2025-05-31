@@ -21,13 +21,10 @@ class TestEndpointAuthentication:
     def regular_user(self, db_session: Session) -> User:
         """Create a regular user for testing."""
         from app.auth.service import AuthService
-        
+
         auth_service = AuthService(db_session)
         user = auth_service.create_user(
-            username="testuser",
-            password="testpassword123",
-            email="test@example.com",
-            role=UserRole.USER
+            username="testuser", password="testpassword123", email="test@example.com", role=UserRole.USER
         )
         # Set team_id separately if needed
         user.team_id = 1
@@ -38,13 +35,10 @@ class TestEndpointAuthentication:
     def admin_user(self, db_session: Session) -> User:
         """Create an admin user for testing."""
         from app.auth.service import AuthService
-        
+
         auth_service = AuthService(db_session)
         user = auth_service.create_user(
-            username="admin",
-            password="adminpassword123",
-            email="admin@example.com",
-            role=UserRole.ADMIN
+            username="admin", password="adminpassword123", email="admin@example.com", role=UserRole.ADMIN
         )
         # Set team_id separately if needed
         user.team_id = 1
@@ -55,7 +49,7 @@ class TestEndpointAuthentication:
     def auth_headers(self, regular_user: User):
         """Create auth headers for regular user."""
         from app.auth.jwt_handler import create_access_token
-        
+
         token = create_access_token(data={"sub": str(regular_user.id)})
         return {"Authorization": f"Bearer {token}"}
 
@@ -63,28 +57,19 @@ class TestEndpointAuthentication:
     def admin_headers(self, admin_user: User):
         """Create auth headers for admin user."""
         from app.auth.jwt_handler import create_access_token
-        
+
         token = create_access_token(data={"sub": str(admin_user.id)})
         return {"Authorization": f"Bearer {token}"}
 
     def test_games_endpoints_require_auth(self, client: TestClient, auth_headers: dict):
         """Test that game endpoints require authentication."""
         # Test create game - should fail without auth
-        response = client.post("/v1/games", json={
-            "date": "2024-01-01",
-            "home_team_id": 1,
-            "away_team_id": 2
-        })
+        response = client.post("/v1/games", json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2})
         assert response.status_code == 401
 
         # Test with auth - should pass authentication (may fail validation)
-        response = client.post("/v1/games", 
-            json={
-                "date": "2024-01-01", 
-                "home_team_id": 1,
-                "away_team_id": 2
-            },
-            headers=auth_headers
+        response = client.post(
+            "/v1/games", json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2}, headers=auth_headers
         )
         # Should not be 401 (unauthenticated)
         assert response.status_code != 401
@@ -92,23 +77,16 @@ class TestEndpointAuthentication:
     def test_players_endpoints_require_auth(self, client: TestClient, auth_headers: dict):
         """Test that player endpoints require authentication."""
         # Test create player - should fail without auth
-        response = client.post("/v1/players/new", json={
-            "name": "Test Player",
-            "team_id": 1,
-            "jersey_number": "99",
-            "position": "Guard"
-        })
+        response = client.post(
+            "/v1/players/new", json={"name": "Test Player", "team_id": 1, "jersey_number": "99", "position": "Guard"}
+        )
         assert response.status_code == 401
 
         # Test with auth - should pass authentication (may fail validation)
-        response = client.post("/v1/players/new",
-            json={
-                "name": "Test Player",
-                "team_id": 1,
-                "jersey_number": "99", 
-                "position": "Guard"
-            },
-            headers=auth_headers
+        response = client.post(
+            "/v1/players/new",
+            json={"name": "Test Player", "team_id": 1, "jersey_number": "99", "position": "Guard"},
+            headers=auth_headers,
         )
         # Should not be 401 (unauthenticated)
         assert response.status_code != 401
@@ -116,16 +94,11 @@ class TestEndpointAuthentication:
     def test_teams_endpoints_require_auth(self, client: TestClient, auth_headers: dict):
         """Test that team endpoints require authentication."""
         # Test create team - should fail without auth
-        response = client.post("/v1/teams/new", json={
-            "name": "Test Team"
-        })
+        response = client.post("/v1/teams/new", json={"name": "Test Team"})
         assert response.status_code == 401
 
         # Test with auth - should pass authentication (may fail validation)
-        response = client.post("/v1/teams/new",
-            json={"name": "Test Team"},
-            headers=auth_headers
-        )
+        response = client.post("/v1/teams/new", json={"name": "Test Team"}, headers=auth_headers)
         # Should not be 401 (unauthenticated)
         assert response.status_code != 401
 
@@ -137,7 +110,7 @@ class TestEndpointAuthentication:
 
         # Test admin endpoint with admin user - should pass authorization
         response = client.post("/v1/data-corrections/undo", headers=admin_headers)
-        # Should not be 403 (forbidden) 
+        # Should not be 403 (forbidden)
         assert response.status_code != 403
 
     def test_unauthorized_access_returns_401(self, client: TestClient):
@@ -157,24 +130,22 @@ class TestEndpointAuthentication:
                 response = client.put(endpoint, json=data)
             elif method == "DELETE":
                 response = client.delete(endpoint)
-            
+
             assert response.status_code == 401, f"Endpoint {method} {endpoint} should require authentication"
 
     def test_jwt_token_validation(self, client: TestClient):
         """Test JWT token validation."""
         # Test with invalid token
         invalid_headers = {"Authorization": "Bearer invalid_token"}
-        response = client.post("/v1/games", 
-            json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2},
-            headers=invalid_headers
+        response = client.post(
+            "/v1/games", json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2}, headers=invalid_headers
         )
         assert response.status_code == 401
 
         # Test with malformed token
         malformed_headers = {"Authorization": "Bearer"}
-        response = client.post("/v1/games",
-            json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2},
-            headers=malformed_headers
+        response = client.post(
+            "/v1/games", json={"date": "2024-01-01", "home_team_id": 1, "away_team_id": 2}, headers=malformed_headers
         )
         assert response.status_code == 401
 
@@ -202,18 +173,18 @@ class TestRoleBasedAuthorization:
         """Test that admin endpoints are restricted to admin users only."""
         from app.auth.service import AuthService
         from app.auth.jwt_handler import create_access_token
-        
+
         # This test would need proper setup with database
         # For now, we're testing the structure is in place
-        assert hasattr(app, 'dependency_overrides')  # FastAPI dependency system exists
+        assert hasattr(app, "dependency_overrides")  # FastAPI dependency system exists
 
     def test_team_based_access_control(self):
         """Test that team-based access control is implemented."""
         from app.auth.dependencies import require_team_access, require_player_access, require_game_access
-        
+
         # Verify the functions exist
         assert callable(require_team_access)
-        assert callable(require_player_access) 
+        assert callable(require_player_access)
         assert callable(require_game_access)
 
 
@@ -242,7 +213,7 @@ class TestSecurityHeaders:
 class TestInputValidation:
     """Test input validation and sanitization."""
 
-    @pytest.fixture  
+    @pytest.fixture
     def client(self):
         """Create test client."""
         return TestClient(app)
@@ -254,15 +225,11 @@ class TestInputValidation:
             "javascript:alert('xss')",
             "<img src=x onerror=alert('xss')>",
         ]
-        
+
         # Test these payloads in various inputs
         for payload in xss_payloads:
             # Test in player name
-            response = client.post("/v1/players/new", json={
-                "name": payload,
-                "team_id": 1,
-                "jersey_number": "1"
-            })
+            response = client.post("/v1/players/new", json={"name": payload, "team_id": 1, "jersey_number": "1"})
             # Should either reject or sanitize the input
             # Not test implementation as auth will block this anyway
 
@@ -273,7 +240,7 @@ class TestInputValidation:
             "1' OR '1'='1",
             "1; DELETE FROM players; --",
         ]
-        
+
         # These should be handled by SQLAlchemy ORM
         # This is a placeholder for demonstrating security awareness
         assert len(sql_payloads) > 0  # Basic assertion to make test pass

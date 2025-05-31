@@ -24,10 +24,10 @@ class TestOAuthIntegration:
                 mock_google = Mock()
                 mock_google.authorize_redirect = Mock(return_value="https://accounts.google.com/oauth/authorize?...")
                 mock_oauth.google = mock_google
-                
+
                 client = TestClient(app)
                 response = client.get("/auth/google/login", follow_redirects=False)
-                
+
                 assert response.status_code == 307  # Temporary redirect
                 assert "accounts.google.com" in str(mock_google.authorize_redirect.call_args)
 
@@ -36,7 +36,7 @@ class TestOAuthIntegration:
         with patch("app.auth.oauth.OAUTH_ENABLED", False):
             client = TestClient(app)
             response = client.get("/auth/google/login")
-            
+
             assert response.status_code == 503
             assert response.json()["detail"] == "OAuth is not configured"
 
@@ -54,25 +54,25 @@ class TestOAuthIntegration:
                         "sub": "google-123456",
                     }
                 }
-                
+
                 # Make authorize_access_token async
                 mock_google.authorize_access_token = AsyncMock(return_value=mock_token)
                 mock_oauth.google = mock_google
-                
+
                 # Override the database dependency
                 def override_get_db():
                     yield db_session
-                
+
                 app.dependency_overrides[get_db_session] = override_get_db
-                
+
                 try:
                     client = TestClient(app)
                     response = client.get("/auth/google/callback?code=test-code", follow_redirects=False)
-                    
+
                     # Should redirect to home page
                     assert response.status_code == 302
                     assert response.headers["location"] == "/"
-                    
+
                     # Check user was created
                     user = db_session.query(User).filter_by(email="newuser@example.com").first()
                     assert user is not None
@@ -81,10 +81,10 @@ class TestOAuthIntegration:
                     assert user.provider == "google"
                     assert user.provider_id == "google-123456"
                     assert user.hashed_password is None
-                    
+
                     # Check cookie was set
                     assert "access_token" in response.cookies
-                    
+
                 finally:
                     app.dependency_overrides.clear()
 
@@ -101,7 +101,7 @@ class TestOAuthIntegration:
         )
         db_session.add(existing_user)
         db_session.commit()
-        
+
         with patch("app.auth.oauth.OAUTH_ENABLED", True):
             with patch("app.auth.oauth.oauth") as mock_oauth:
                 # Mock Google OAuth response
@@ -113,29 +113,29 @@ class TestOAuthIntegration:
                         "sub": "google-existing",
                     }
                 }
-                
+
                 mock_google.authorize_access_token = AsyncMock(return_value=mock_token)
                 mock_oauth.google = mock_google
-                
+
                 # Override the database dependency
                 def override_get_db():
                     yield db_session
-                
+
                 app.dependency_overrides[get_db_session] = override_get_db
-                
+
                 try:
                     client = TestClient(app)
                     response = client.get("/auth/google/callback?code=test-code", follow_redirects=False)
-                    
+
                     # Should redirect to home page
                     assert response.status_code == 302
                     assert response.headers["location"] == "/"
-                    
+
                     # Check user was updated
                     db_session.refresh(existing_user)
                     assert existing_user.full_name == "Updated Name"
                     assert existing_user.last_login is not None
-                    
+
                 finally:
                     app.dependency_overrides.clear()
 
@@ -146,16 +146,14 @@ class TestOAuthIntegration:
             with patch("app.auth.oauth.OAUTH_ENABLED", True):
                 client = TestClient(app)
                 response = client.get("/auth/oauth/status")
-                
+
                 assert response.status_code == 200
                 assert response.json()["oauth_enabled"] is True
-        
+
         # Test when disabled
         with patch("app.auth.oauth.OAUTH_ENABLED", False):
             client = TestClient(app)
             response = client.get("/auth/oauth/status")
-            
+
             assert response.status_code == 200
             assert response.json()["oauth_enabled"] is False
-
-

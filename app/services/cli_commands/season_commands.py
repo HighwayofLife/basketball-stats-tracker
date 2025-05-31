@@ -81,15 +81,17 @@ class SeasonCommands:
 
             for season in seasons:
                 status = "ACTIVE" if season["is_active"] else "Inactive"
-                rows.append([
-                    season["id"],
-                    season["name"],
-                    season["code"],
-                    season["start_date"],
-                    season["end_date"],
-                    season["game_count"],
-                    status,
-                ])
+                rows.append(
+                    [
+                        season["id"],
+                        season["name"],
+                        season["code"],
+                        season["start_date"],
+                        season["end_date"],
+                        season["game_count"],
+                        status,
+                    ]
+                )
 
             typer.echo("\nSeasons:")
             typer.echo(tabulate(rows, headers=headers, tablefmt="grid"))

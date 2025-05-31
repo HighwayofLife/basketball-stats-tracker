@@ -26,17 +26,18 @@ class AuthCommands:
         try:
             # Check for password in environment first, then prompt
             import os
+
             password = os.getenv("ADMIN_PASSWORD")
-            
+
             if not password:
                 # Prompt for password securely
                 password = typer.prompt("Password", hide_input=True)
                 password_confirm = typer.prompt("Confirm password", hide_input=True)
-                
+
                 if password != password_confirm:
                     typer.echo("❌ Passwords do not match.")
                     raise typer.Exit(1)
-            
+
             with db_manager.get_db_session() as db:
                 auth_service = AuthService(db)
 

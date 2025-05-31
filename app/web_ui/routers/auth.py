@@ -164,9 +164,7 @@ async def update_user_role(
 
 
 @router.delete("/users/{user_id}")
-async def deactivate_user(
-    user_id: int, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
-):
+async def deactivate_user(user_id: int, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)):
     """Deactivate a user (admin only)."""
     auth_service = AuthService(db)
 
@@ -238,9 +236,7 @@ async def get_current_user_profile(current_user: User = Depends(get_current_user
 
 @router.put("/profile", response_model=UserResponse)
 async def update_profile(
-    profile_data: ProfileUpdate,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    profile_data: ProfileUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     """Update user profile information."""
     auth_service = AuthService(db)
@@ -250,10 +246,7 @@ async def update_profile(
         if profile_data.email != current_user.email:
             existing_user = auth_service.get_user_by_email(profile_data.email)
             if existing_user and existing_user.id != current_user.id:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Email address is already in use"
-                )
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email address is already in use")
 
         # Update user profile
         current_user.email = profile_data.email
@@ -269,10 +262,7 @@ async def update_profile(
         raise
     except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to update profile"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update profile")
 
 
 @router.get("/users", response_model=list[UserResponse])
@@ -283,10 +273,7 @@ async def get_all_users(admin_user: User = Depends(require_admin), db: Session =
 
 @router.put("/users/{user_id}/role")
 async def update_user_role(
-    user_id: int,
-    role_data: dict,
-    admin_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
+    user_id: int, role_data: dict, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
 ):
     """Update user role (admin only)."""
     auth_service = AuthService(db)
@@ -295,33 +282,24 @@ async def update_user_role(
         role_str = role_data.get("role")
         if not role_str or role_str not in ["admin", "user", "viewer"]:
             raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid role. Must be admin, user, or viewer"
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role. Must be admin, user, or viewer"
             )
 
         role = UserRole(role_str)
         success = auth_service.update_user_role(user_id, role)
 
         if not success:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
-            )
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
         return {"message": "User role updated successfully"}
 
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.post("/users/{user_id}/deactivate")
 async def deactivate_user_endpoint(
-    user_id: int,
-    admin_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
+    user_id: int, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
 ):
     """Deactivate a user (admin only)."""
     auth_service = AuthService(db)
@@ -329,19 +307,14 @@ async def deactivate_user_endpoint(
     success = auth_service.deactivate_user(user_id)
 
     if not success:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     return {"message": "User deactivated successfully"}
 
 
 @router.post("/users/{user_id}/activate")
 async def activate_user_endpoint(
-    user_id: int,
-    admin_user: User = Depends(require_admin),
-    db: Session = Depends(get_db)
+    user_id: int, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
 ):
     """Activate a user (admin only)."""
     auth_service = AuthService(db)
@@ -349,10 +322,7 @@ async def activate_user_endpoint(
     # Add activate method to auth service
     user = auth_service.get_user_by_id(user_id)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found"
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     user.is_active = True
     db.commit()

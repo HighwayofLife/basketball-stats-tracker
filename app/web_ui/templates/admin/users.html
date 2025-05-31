@@ -70,7 +70,7 @@
 .users-table {
     width: 100%;
     border-collapse: collapse;
-    background: var(--card-bg);
+    background: var(--card-background);
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -90,7 +90,7 @@
 }
 
 .users-table tr:hover {
-    background-color: var(--hover-bg);
+    background-color: rgba(255, 107, 0, 0.05);
 }
 
 .status-badge {
@@ -146,7 +146,7 @@
 }
 
 .modal-content {
-    background-color: var(--card-bg);
+    background-color: var(--card-background);
     margin: 15% auto;
     padding: 2rem;
     border-radius: 8px;
@@ -197,7 +197,7 @@
     border: 1px solid var(--border-color);
     border-radius: 4px;
     font-size: 1rem;
-    background-color: var(--input-bg);
+    background-color: var(--card-background);
     color: var(--text-color);
     box-sizing: border-box;
 }
@@ -342,6 +342,46 @@
     </div>
 </div>
 
+<!-- Change Role Modal -->
+<div id="role-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Change User Role</h3>
+            <span class="close" onclick="closeRoleModal()">&times;</span>
+        </div>
+        
+        <form id="role-form">
+            <input type="hidden" id="role-user-id">
+            
+            <div class="form-group">
+                <label id="role-username-label">Username:</label>
+                <p id="role-username-display" style="font-weight: bold; margin: 0 0 1rem 0;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label>Current Role:</label>
+                <p id="role-current-display" style="margin: 0 0 1rem 0;"></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="role-new-role">New Role</label>
+                <select id="role-new-role" name="new_role" class="form-control" required>
+                    <option value="viewer">Viewer - Can view data only</option>
+                    <option value="user">User - Can view and edit data</option>
+                    <option value="admin">Admin - Full access including user management</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-warning">
+                    <i class="fas fa-user-tag"></i> Change Role
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeRoleModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
 let users = [];
 let editingUserId = null;
@@ -466,6 +506,11 @@ function closeUserModal() {
     editingUserId = null;
 }
 
+// Close role modal
+function closeRoleModal() {
+    document.getElementById('role-modal').style.display = 'none';
+}
+
 // Handle user form submission
 document.getElementById('user-form').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -522,37 +567,18 @@ document.getElementById('user-form').addEventListener('submit', async function(e
 });
 
 // Change user role
-async function changeUserRole(userId) {
+function changeUserRole(userId) {
     const user = users.find(u => u.id === userId);
     if (!user) return;
     
-    const newRole = prompt(`Change role for ${user.username}.\nCurrent role: ${user.role}\n\nEnter new role (admin/user/viewer):`, user.role);
-    if (!newRole || !['admin', 'user', 'viewer'].includes(newRole.toLowerCase())) {
-        return;
-    }
+    // Populate role modal
+    document.getElementById('role-user-id').value = userId;
+    document.getElementById('role-username-display').textContent = user.username;
+    document.getElementById('role-current-display').textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    document.getElementById('role-new-role').value = user.role;
     
-    const token = localStorage.getItem('access_token');
-    
-    try {
-        const response = await fetch(`/auth/users/${userId}/role`, {
-            method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ role: newRole.toLowerCase() })
-        });
-
-        if (response.ok) {
-            showAlert('User role updated successfully', 'success');
-            await loadUsers();
-        } else {
-            const errorData = await response.json();
-            showAlert(errorData.detail || 'Failed to update user role', 'error');
-        }
-    } catch (error) {
-        showAlert('Error updating user role: ' + error.message, 'error');
-    }
+    // Show modal
+    document.getElementById('role-modal').style.display = 'block';
 }
 
 // Deactivate user
@@ -634,11 +660,46 @@ function showAlert(message, type) {
     window.scrollTo(0, 0);
 }
 
+// Handle role form submission
+document.getElementById('role-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('access_token');
+    const userId = document.getElementById('role-user-id').value;
+    const newRole = document.getElementById('role-new-role').value;
+    
+    try {
+        const response = await fetch(`/auth/users/${userId}/role`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ role: newRole })
+        });
+
+        if (response.ok) {
+            showAlert('User role updated successfully', 'success');
+            closeRoleModal();
+            await loadUsers();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to update user role', 'error');
+        }
+    } catch (error) {
+        showAlert('Error updating user role: ' + error.message, 'error');
+    }
+});
+
 // Close modal when clicking outside
 window.onclick = function(event) {
-    const modal = document.getElementById('user-modal');
-    if (event.target === modal) {
+    const userModal = document.getElementById('user-modal');
+    const roleModal = document.getElementById('role-modal');
+    
+    if (event.target === userModal) {
         closeUserModal();
+    } else if (event.target === roleModal) {
+        closeRoleModal();
     }
 }
 </script>

@@ -9,13 +9,12 @@ v0.3.0
 * Create user management and account pages
 
 ### Changes
-* Update application version to 0.3.0
 * Enhance security with mandatory JWT secret key validation
 * Add OAuth provider fields to user model
 * Implement comprehensive authentication middleware
 
 ### Fixes
-* Enforce JWT secret key requirements for production security
+* Fix test command to fail fast instead of continuing on errors
 
 ### Documentation / Tests
 * Add comprehensive authentication test suite
