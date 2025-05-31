@@ -1,3 +1,9 @@
+v0.4.0
+------
+### Features
+* Add team statistics and team season statistics
+
+
 v0.3.0
 ------
 

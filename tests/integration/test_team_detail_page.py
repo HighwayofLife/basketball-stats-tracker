@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from app.auth.models import User  # Import User model to resolve SQLAlchemy relationships
 from app.data_access.models import Game, Player, PlayerGameStats, Team, TeamSeasonStats
 from app.web_ui.api import app
 
@@ -77,9 +78,9 @@ def team_with_full_data(db_session: Session):
         for j in range(5):
             opponent_player = Player(
                 id=100 + i * 5 + j,
-                name=f"Opponent {j + 1}",
+                name=f"Opponent {i * 5 + j + 1}",  # Make names unique across games
                 team_id=opponent.id,
-                jersey_number=str(j + 1),
+                jersey_number=str(i * 5 + j + 1),  # Make jersey numbers unique
                 is_active=True
             )
             db_session.add(opponent_player)
