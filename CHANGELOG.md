@@ -12,6 +12,7 @@ v0.3.0
 * Enhance security with mandatory JWT secret key validation
 * Add OAuth provider fields to user model
 * Implement comprehensive authentication middleware
+* Github action now just uploads and reloads the app/image, no longer overrides terraform configs
 
 ### Fixes
 * Fix test command to fail fast instead of continuing on errors

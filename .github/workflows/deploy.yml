@@ -123,18 +123,14 @@ jobs:
           sleep 10
         done
 
-    - name: Deploy to Cloud Run
+    - name: Update Cloud Run Image
       run: |
-        echo "Deploying to Cloud Run (migrations completed successfully)..."
-        gcloud run deploy ${{ env.SERVICE_NAME }} \
+        echo "Updating Cloud Run service with new image (preserving Terraform-managed configuration)..."
+        
+        # Update only the container image, preserving all other Terraform-managed configuration
+        # This prevents conflicts between GitHub Actions and Terraform
+        gcloud run services update ${{ env.SERVICE_NAME }} \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
-          --region ${{ env.REGION }} \
-          --platform managed \
-          --allow-unauthenticated \
-          --port 8000 \
-          --memory 512Mi \
-          --cpu 1 \
-          --min-instances 0 \
-          --max-instances 10 \
-          --set-env-vars="ENVIRONMENT=production" \
-          --set-secrets="SECRET_KEY=basketball-stats-secret-key:latest,DATABASE_URL=basketball-stats-database-url:latest"
+          --region ${{ env.REGION }}
+        
+        echo "✅ Image updated successfully. Service configuration remains managed by Terraform."
