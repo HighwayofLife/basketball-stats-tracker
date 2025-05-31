@@ -102,7 +102,7 @@ logs: ## Follow logs from the application container
 test: ## Run all tests (unit, integration, and UI validation)
 	@echo "${CYAN}Running comprehensive test suite...${NC}"
 	@echo "${YELLOW}Step 1: Running unit and integration tests in container${NC}"
-	@$(MAKE) test-container || echo "${RED}Some container tests failed, continuing with UI tests...${NC}"
+	@$(MAKE) test-container
 	@echo "${YELLOW}Step 2: Running UI validation tests${NC}"
 	@$(MAKE) test-ui-standalone
 
