@@ -13,7 +13,28 @@ env:
   SERVICE_NAME: basketball-stats
 
 jobs:
+  validate-config:
+    name: Validate Configuration
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate Required GCP Configuration
+        run: |
+          # Validate that we have the necessary service account and WIF configuration
+          if [ -z "${{ secrets.WIF_PROVIDER }}" ]; then
+            echo "❌ WIF_PROVIDER is not set"
+            exit 1
+          fi
+          
+          if [ -z "${{ secrets.WIF_SERVICE_ACCOUNT }}" ]; then
+            echo "❌ WIF_SERVICE_ACCOUNT is not set"
+            exit 1
+          fi
+          
+          echo "✅ All required GCP configuration is present"
+          echo "Note: Secrets are now managed through Google Secret Manager"
+
   build-and-deploy:
+    needs: [validate-config]
     runs-on: ubuntu-latest
     
     permissions:
@@ -69,12 +90,13 @@ jobs:
         # Delete existing migration job if it exists
         gcloud run jobs delete basketball-stats-migrate --region=${{ env.REGION }} --quiet || true
         
-        # Create new migration job with latest image
+        # Create new migration job with latest image using Secret Manager
         gcloud run jobs create basketball-stats-migrate \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
           --region ${{ env.REGION }} \
           --args="alembic,upgrade,head" \
-          --set-env-vars="DATABASE_URL=${{ secrets.DATABASE_URL }},APP_ENV=production" \
+          --set-env-vars="APP_ENV=production" \
+          --set-secrets="DATABASE_URL=basketball-stats-migration-database-url:latest" \
           --service-account=basketball-stats-run-sa@${{ env.PROJECT_ID }}.iam.gserviceaccount.com \
           --max-retries=1 \
           --parallelism=1
@@ -114,4 +136,5 @@ jobs:
           --cpu 1 \
           --min-instances 0 \
           --max-instances 10 \
-          --set-env-vars="ENVIRONMENT=production,SECRET_KEY=${{ secrets.SECRET_KEY }},DATABASE_URL=${{ secrets.DATABASE_URL }}"
+          --set-env-vars="ENVIRONMENT=production" \
+          --set-secrets="SECRET_KEY=basketball-stats-secret-key:latest,DATABASE_URL=basketball-stats-database-url:latest"
