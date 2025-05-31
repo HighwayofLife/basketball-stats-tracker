@@ -23,12 +23,24 @@
                     <li><a href="/players">Players</a></li>
                     <li><a href="/reports">Reports</a></li>
                     <li><a href="/about">About</a></li>
-                    <li id="admin-nav-item" style="display: none;"><a href="/admin/data-corrections">Admin</a></li>
+                    <li id="admin-nav-item" class="nav-dropdown" style="display: none;">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-cog"></i> Admin <i class="fas fa-chevron-down"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="/admin/data-corrections"><i class="fas fa-edit"></i> Data Corrections</a></li>
+                            <li><a href="/admin/users"><i class="fas fa-users"></i> User Management</a></li>
+                        </ul>
+                    </li>
                     <li class="nav-divider"></li>
                     <li id="login-nav-item" style="display: none;"><a id="login-link" href="/login">Login</a></li>
                     <li id="user-nav-item" style="display: none;">
-                        <span id="username-display"></span>
-                        <a id="logout-link" href="/logout">Logout</a>
+                        <a href="/account" title="Account Settings">
+                            <i class="fas fa-user"></i> <span id="username-display"></span>
+                        </a>
+                        <a id="logout-link" href="/logout" title="Logout">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
                     </li>
                 </ul>
             </nav>

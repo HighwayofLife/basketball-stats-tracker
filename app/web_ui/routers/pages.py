@@ -1,7 +1,6 @@
 """HTML pages router for Basketball Stats Tracker."""
 
 import logging
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
@@ -133,12 +132,16 @@ async def index(request: Request):
                         {
                             "id": game.id,
                             "date": game.date,
-                            "home_team": game.playing_team.display_name or game.playing_team.name
-                            if game.playing_team
-                            else "Unknown",
-                            "away_team": game.opponent_team.display_name or game.opponent_team.name
-                            if game.opponent_team
-                            else "Unknown",
+                            "home_team": (
+                                game.playing_team.display_name or game.playing_team.name
+                                if game.playing_team
+                                else "Unknown"
+                            ),
+                            "away_team": (
+                                game.opponent_team.display_name or game.opponent_team.name
+                                if game.opponent_team
+                                else "Unknown"
+                            ),
                             "home_score": home_score,
                             "away_score": away_score,
                         }
@@ -202,8 +205,6 @@ async def team_detail_page(request: Request, team_id: int):
 async def players_page(request: Request):
     """Render the players management page."""
     return templates.TemplateResponse("players/index.html", {"request": request, "title": "Player Management"})
-
-
 
 
 @router.get("/games/{game_id}", response_class=HTMLResponse)
@@ -357,6 +358,18 @@ async def scorebook_entry_page(request: Request):
 async def login_page(request: Request):
     """Render the login page."""
     return templates.TemplateResponse("auth/login.html", {"request": request, "title": "Login"})
+
+
+@router.get("/account", response_class=HTMLResponse)
+async def account_page(request: Request):
+    """Render the account management page."""
+    return templates.TemplateResponse("auth/account.html", {"request": request, "title": "Account Settings"})
+
+
+@router.get("/admin/users", response_class=HTMLResponse)
+async def admin_users_page(request: Request):
+    """Render the user management page (admin only)."""
+    return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
 @router.get("/logout", response_class=HTMLResponse)

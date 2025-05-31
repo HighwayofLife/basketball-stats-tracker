@@ -3,8 +3,10 @@
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_user, require_admin
+from app.auth.models import User
 from app.data_access import models
 from app.data_access.crud.crud_audit_log import get_recent_audit_logs
 from app.data_access.db_session import get_db_session
@@ -48,7 +50,7 @@ async def get_player_quarter_stats(stats_id: int):
 
 
 @router.put("/player-game-stats/{stats_id}/quarters")
-async def update_player_quarter_stats(stats_id: int, data: dict):
+async def update_player_quarter_stats(stats_id: int, data: dict, current_user: User = Depends(get_current_user)):
     """Update quarter stats for a player with automatic total recalculation."""
     try:
         with get_db_session() as session:
@@ -93,7 +95,7 @@ async def update_player_quarter_stats(stats_id: int, data: dict):
 
 
 @router.post("/data-corrections/undo")
-async def undo_last_correction():
+async def undo_last_correction(current_user: User = Depends(require_admin)):
     """Undo the last data correction."""
     try:
         with get_db_session() as session:

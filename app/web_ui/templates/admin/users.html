@@ -1,0 +1,645 @@
+{% extends "base.html" %}
+
+{% block title %}User Management{% endblock %}
+
+{% block extra_head %}
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.btn-warning:hover {
+    background-color: #e0a800;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-bg);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.users-table th,
+.users-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.users-table th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.users-table tr:hover {
+    background-color: var(--hover-bg);
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.role-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.role-admin {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.role-user {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.role-viewer {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: var(--card-bg);
+    margin: 15% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.actions-column {
+    white-space: nowrap;
+}
+
+.actions-column .btn {
+    margin-right: 0.5rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .users-table {
+        font-size: 0.875rem;
+    }
+    
+    .users-table th,
+    .users-table td {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        margin: 10% auto;
+        width: 95%;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2><i class="fas fa-users"></i> User Management</h2>
+    <button class="btn btn-primary" onclick="showCreateUserModal()">
+        <i class="fas fa-plus"></i> Create User
+    </button>
+</div>
+
+<div id="alerts"></div>
+
+<div class="users-container">
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner fa-spin"></i> Loading users...
+    </div>
+    
+    <table class="users-table" id="users-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Last Login</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="users-tbody">
+        </tbody>
+    </table>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div id="user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Create User</h3>
+            <span class="close" onclick="closeUserModal()">&times;</span>
+        </div>
+        
+        <form id="user-form">
+            <input type="hidden" id="user-id" name="user_id">
+            
+            <div class="form-group">
+                <label for="modal-username">Username</label>
+                <input type="text" id="modal-username" name="username" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-email">Email</label>
+                <input type="email" id="modal-email" name="email" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-full-name">Full Name</label>
+                <input type="text" id="modal-full-name" name="full_name" class="form-control">
+            </div>
+            
+            <div class="form-group" id="password-group">
+                <label for="modal-password">Password</label>
+                <input type="password" id="modal-password" name="password" class="form-control">
+                <small class="text-muted">Leave blank to keep current password (edit mode)</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-role">Role</label>
+                <select id="modal-role" name="role" class="form-control" required>
+                    <option value="viewer">Viewer</option>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> <span id="submit-text">Create User</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let users = [];
+let editingUserId = null;
+
+// Load users on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadUsers();
+});
+
+// Load all users
+async function loadUsers() {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+
+    try {
+        const response = await fetch('/auth/users', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            users = await response.json();
+            displayUsers();
+        } else if (response.status === 403) {
+            showAlert('Access denied. Admin privileges required.', 'error');
+        } else {
+            showAlert('Failed to load users', 'error');
+        }
+    } catch (error) {
+        showAlert('Error loading users: ' + error.message, 'error');
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('users-table').style.display = 'table';
+    }
+}
+
+// Display users in table
+function displayUsers() {
+    const tbody = document.getElementById('users-tbody');
+    tbody.innerHTML = '';
+
+    users.forEach(user => {
+        const row = document.createElement('tr');
+        
+        const statusClass = user.is_active ? 'status-active' : 'status-inactive';
+        const statusText = user.is_active ? 'Active' : 'Inactive';
+        
+        const roleClass = `role-${user.role}`;
+        const roleText = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+        
+        const createdDate = user.created_at ? new Date(user.created_at).toLocaleDateString() : '-';
+        const lastLogin = user.last_login ? new Date(user.last_login).toLocaleDateString() : 'Never';
+        
+        row.innerHTML = `
+            <td>${user.username}</td>
+            <td>${user.email}</td>
+            <td>${user.full_name || '-'}</td>
+            <td><span class="role-badge ${roleClass}">${roleText}</span></td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>${createdDate}</td>
+            <td>${lastLogin}</td>
+            <td class="actions-column">
+                <button class="btn btn-sm btn-primary" onclick="editUser(${user.id})" title="Edit User">
+                    <i class="fas fa-edit"></i>
+                </button>
+                <button class="btn btn-sm btn-warning" onclick="changeUserRole(${user.id})" title="Change Role">
+                    <i class="fas fa-user-tag"></i>
+                </button>
+                ${user.is_active ? 
+                    `<button class="btn btn-sm btn-danger" onclick="deactivateUser(${user.id})" title="Deactivate User">
+                        <i class="fas fa-user-times"></i>
+                    </button>` :
+                    `<button class="btn btn-sm btn-secondary" onclick="activateUser(${user.id})" title="Activate User">
+                        <i class="fas fa-user-check"></i>
+                    </button>`
+                }
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Show create user modal
+function showCreateUserModal() {
+    editingUserId = null;
+    document.getElementById('modal-title').textContent = 'Create User';
+    document.getElementById('submit-text').textContent = 'Create User';
+    document.getElementById('user-form').reset();
+    document.getElementById('user-id').value = '';
+    document.getElementById('modal-password').required = true;
+    document.getElementById('user-modal').style.display = 'block';
+}
+
+// Edit user
+function editUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    editingUserId = userId;
+    document.getElementById('modal-title').textContent = 'Edit User';
+    document.getElementById('submit-text').textContent = 'Update User';
+    
+    document.getElementById('user-id').value = user.id;
+    document.getElementById('modal-username').value = user.username;
+    document.getElementById('modal-email').value = user.email;
+    document.getElementById('modal-full-name').value = user.full_name || '';
+    document.getElementById('modal-role').value = user.role;
+    document.getElementById('modal-password').value = '';
+    document.getElementById('modal-password').required = false;
+    
+    document.getElementById('user-modal').style.display = 'block';
+}
+
+// Close user modal
+function closeUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+    editingUserId = null;
+}
+
+// Handle user form submission
+document.getElementById('user-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('access_token');
+    const formData = new FormData(e.target);
+    
+    const userData = {
+        username: formData.get('username'),
+        email: formData.get('email'),
+        full_name: formData.get('full_name') || null,
+        role: formData.get('role')
+    };
+    
+    if (formData.get('password')) {
+        userData.password = formData.get('password');
+    }
+    
+    try {
+        let response;
+        if (editingUserId) {
+            // Update existing user
+            response = await fetch(`/auth/users/${editingUserId}/role`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ role: userData.role })
+            });
+        } else {
+            // Create new user
+            response = await fetch('/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(userData)
+            });
+        }
+
+        if (response.ok) {
+            showAlert(editingUserId ? 'User updated successfully' : 'User created successfully', 'success');
+            closeUserModal();
+            await loadUsers();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to save user', 'error');
+        }
+    } catch (error) {
+        showAlert('Error saving user: ' + error.message, 'error');
+    }
+});
+
+// Change user role
+async function changeUserRole(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    const newRole = prompt(`Change role for ${user.username}.\nCurrent role: ${user.role}\n\nEnter new role (admin/user/viewer):`, user.role);
+    if (!newRole || !['admin', 'user', 'viewer'].includes(newRole.toLowerCase())) {
+        return;
+    }
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`/auth/users/${userId}/role`, {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ role: newRole.toLowerCase() })
+        });
+
+        if (response.ok) {
+            showAlert('User role updated successfully', 'success');
+            await loadUsers();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to update user role', 'error');
+        }
+    } catch (error) {
+        showAlert('Error updating user role: ' + error.message, 'error');
+    }
+}
+
+// Deactivate user
+async function deactivateUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    if (!confirm(`Are you sure you want to deactivate user "${user.username}"?\n\nThis will prevent them from logging in.`)) {
+        return;
+    }
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`/auth/users/${userId}/deactivate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            showAlert('User deactivated successfully', 'success');
+            await loadUsers();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to deactivate user', 'error');
+        }
+    } catch (error) {
+        showAlert('Error deactivating user: ' + error.message, 'error');
+    }
+}
+
+// Activate user
+async function activateUser(userId) {
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`/auth/users/${userId}/activate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            showAlert('User activated successfully', 'success');
+            await loadUsers();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to activate user', 'error');
+        }
+    } catch (error) {
+        showAlert('Error activating user: ' + error.message, 'error');
+    }
+}
+
+// Show alert message
+function showAlert(message, type) {
+    const alertsContainer = document.getElementById('alerts');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.textContent = message;
+    
+    alertsContainer.innerHTML = '';
+    alertsContainer.appendChild(alertDiv);
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    // Scroll to top to show alert
+    window.scrollTo(0, 0);
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('user-modal');
+    if (event.target === modal) {
+        closeUserModal();
+    }
+}
+</script>
+{% endblock %}

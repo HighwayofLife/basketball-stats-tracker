@@ -1,8 +1,14 @@
 # pylint: disable=R0903,E1136  # Too few public methods, unsubscriptable-object (SQLAlchemy Mapped)
 """SQLAlchemy ORM models for the basketball stats application."""
 
+from __future__ import annotations
+
 import datetime as dt
 from datetime import datetime, time
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.auth.models import User
 
 from sqlalchemy import (
     JSON,
@@ -52,6 +58,7 @@ class Team(Base, SoftDeleteMixin):
     away_games: Mapped[list["Game"]] = relationship(
         "Game", back_populates="opponent_team", foreign_keys="Game.opponent_team_id"
     )
+    users: Mapped[list["User"]] = relationship("User", back_populates="team")
 
     def __repr__(self):
         return f"<Team(id={self.id}, name='{self.name}', display_name='{self.display_name}')>"

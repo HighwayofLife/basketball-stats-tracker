@@ -1,0 +1,384 @@
+{% extends "base.html" %}
+
+{% block title %}Account Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+.account-section {
+    background: var(--card-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+
+.account-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-secondary {
+    background-color: var(--secondary-color);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.user-info {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+@media (max-width: 768px) {
+    .user-info {
+        grid-template-columns: 1fr;
+    }
+}
+
+.password-requirements {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+}
+
+.password-requirements ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="account-container">
+    <div id="alerts"></div>
+
+    <!-- User Information Section -->
+    <div class="account-section">
+        <h3><i class="fas fa-user"></i> Profile Information</h3>
+        <form id="profile-form">
+            <div class="user-info">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" class="form-control" readonly>
+                    <small class="text-muted">Username cannot be changed</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="full_name">Full Name</label>
+                    <input type="text" id="full_name" name="full_name" class="form-control">
+                </div>
+                
+                <div class="form-group">
+                    <label for="role">Role</label>
+                    <input type="text" id="role" name="role" class="form-control" readonly>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Profile
+            </button>
+        </form>
+    </div>
+
+    <!-- Password Change Section -->
+    <div class="account-section">
+        <h3><i class="fas fa-lock"></i> Change Password</h3>
+        <form id="password-form">
+            <div class="form-group">
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" class="form-control" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" class="form-control" required>
+                <div class="password-requirements">
+                    <strong>Password requirements:</strong>
+                    <ul>
+                        <li>At least 8 characters long</li>
+                        <li>Include uppercase and lowercase letters</li>
+                        <li>Include at least one number</li>
+                        <li>Include at least one special character</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+            </div>
+            
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-key"></i> Change Password
+            </button>
+        </form>
+    </div>
+
+    <!-- Account Information -->
+    <div class="account-section">
+        <h3><i class="fas fa-info-circle"></i> Account Information</h3>
+        <div class="user-info">
+            <div>
+                <strong>Account Created:</strong>
+                <span id="created_at">-</span>
+            </div>
+            <div>
+                <strong>Last Login:</strong>
+                <span id="last_login">-</span>
+            </div>
+            <div>
+                <strong>Account Status:</strong>
+                <span id="account_status" class="badge badge-success">Active</span>
+            </div>
+            <div>
+                <strong>Authentication Method:</strong>
+                <span id="auth_provider">Local Account</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentUser = null;
+
+// Load user data on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadUserData();
+});
+
+// Load current user data
+async function loadUserData() {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+
+    try {
+        const response = await fetch('/auth/me', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            currentUser = await response.json();
+            populateUserForm();
+        } else {
+            showAlert('Failed to load user data', 'error');
+        }
+    } catch (error) {
+        showAlert('Error loading user data: ' + error.message, 'error');
+    }
+}
+
+// Populate form with user data
+function populateUserForm() {
+    document.getElementById('username').value = currentUser.username || '';
+    document.getElementById('email').value = currentUser.email || '';
+    document.getElementById('full_name').value = currentUser.full_name || '';
+    document.getElementById('role').value = (currentUser.role || '').charAt(0).toUpperCase() + (currentUser.role || '').slice(1);
+    
+    // Format dates
+    if (currentUser.created_at) {
+        document.getElementById('created_at').textContent = new Date(currentUser.created_at).toLocaleDateString();
+    }
+    
+    if (currentUser.last_login) {
+        document.getElementById('last_login').textContent = new Date(currentUser.last_login).toLocaleDateString();
+    } else {
+        document.getElementById('last_login').textContent = 'Never';
+    }
+    
+    // Set auth provider
+    document.getElementById('auth_provider').textContent = 
+        currentUser.provider === 'google' ? 'Google OAuth' : 'Local Account';
+}
+
+// Handle profile form submission
+document.getElementById('profile-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('access_token');
+    const formData = new FormData(e.target);
+    
+    try {
+        const response = await fetch('/auth/profile', {
+            method: 'PUT',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                email: formData.get('email'),
+                full_name: formData.get('full_name')
+            })
+        });
+
+        if (response.ok) {
+            showAlert('Profile updated successfully', 'success');
+            await loadUserData(); // Reload user data
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to update profile', 'error');
+        }
+    } catch (error) {
+        showAlert('Error updating profile: ' + error.message, 'error');
+    }
+});
+
+// Handle password form submission
+document.getElementById('password-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const newPassword = formData.get('new_password');
+    const confirmPassword = formData.get('confirm_password');
+    
+    // Validate password match
+    if (newPassword !== confirmPassword) {
+        showAlert('New passwords do not match', 'error');
+        return;
+    }
+    
+    // Validate password strength
+    if (!validatePassword(newPassword)) {
+        showAlert('Password does not meet requirements', 'error');
+        return;
+    }
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch('/auth/change-password', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                current_password: formData.get('current_password'),
+                new_password: newPassword
+            })
+        });
+
+        if (response.ok) {
+            showAlert('Password changed successfully', 'success');
+            e.target.reset(); // Clear form
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to change password', 'error');
+        }
+    } catch (error) {
+        showAlert('Error changing password: ' + error.message, 'error');
+    }
+});
+
+// Validate password strength
+function validatePassword(password) {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+    
+    return password.length >= minLength && hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
+}
+
+// Show alert message
+function showAlert(message, type) {
+    const alertsContainer = document.getElementById('alerts');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.textContent = message;
+    
+    alertsContainer.innerHTML = '';
+    alertsContainer.appendChild(alertDiv);
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    // Scroll to top to show alert
+    window.scrollTo(0, 0);
+}
+</script>
+{% endblock %}

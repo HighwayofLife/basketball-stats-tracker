@@ -9,8 +9,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.middleware.sessions import SessionMiddleware
 
-from app.config import VERSION_INFO
+from app.config import VERSION_INFO, settings
 
 from .routers import admin_router, auth_router, games_router, pages_router, players_router, reports_router, teams_router
 
@@ -41,6 +42,9 @@ app = FastAPI(
     description="API for basketball statistics and analytics",
     version=VERSION_INFO["version"],
 )
+
+# Add session middleware for OAuth
+app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY or "dev-session-key")
 
 # Add middleware for proxy headers (Cloud Run)
 app.add_middleware(ProxyHeadersMiddleware)

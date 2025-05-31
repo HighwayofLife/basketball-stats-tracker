@@ -18,7 +18,7 @@ IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
 # Version information
-APP_VERSION = 0.2.1
+APP_VERSION = 0.3.0
 GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Colors for terminal output

@@ -2,8 +2,10 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_user, require_admin
+from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.reports import ReportGenerator
@@ -278,7 +280,7 @@ async def get_box_score(game_id: int):
 
 
 @router.post("", response_model=GameSummary)
-async def create_game(game_data: GameCreateRequest):
+async def create_game(game_data: GameCreateRequest, current_user: User = Depends(get_current_user)):
     """Create a new game."""
     try:
         with get_db_session() as session:
@@ -324,7 +326,7 @@ async def create_game(game_data: GameCreateRequest):
 
 
 @router.post("/{game_id}/start")
-async def start_game(game_id: int, start_data: GameStartRequest):
+async def start_game(game_id: int, start_data: GameStartRequest, current_user: User = Depends(get_current_user)):
     """Start a game with starting lineups."""
     try:
         with get_db_session() as session:
@@ -348,7 +350,7 @@ async def start_game(game_id: int, start_data: GameStartRequest):
 
 
 @router.post("/{game_id}/events/shot", response_model=GameEventResponse)
-async def record_shot(game_id: int, shot_data: RecordShotRequest):
+async def record_shot(game_id: int, shot_data: RecordShotRequest, current_user: User = Depends(get_current_user)):
     """Record a shot attempt."""
     try:
         with get_db_session() as session:
@@ -380,7 +382,7 @@ async def record_shot(game_id: int, shot_data: RecordShotRequest):
 
 
 @router.post("/{game_id}/events/foul", response_model=GameEventResponse)
-async def record_foul(game_id: int, foul_data: RecordFoulRequest):
+async def record_foul(game_id: int, foul_data: RecordFoulRequest, current_user: User = Depends(get_current_user)):
     """Record a foul."""
     try:
         with get_db_session() as session:
@@ -410,7 +412,9 @@ async def record_foul(game_id: int, foul_data: RecordFoulRequest):
 
 
 @router.post("/{game_id}/players/substitute")
-async def substitute_players(game_id: int, sub_data: SubstitutionRequest):
+async def substitute_players(
+    game_id: int, sub_data: SubstitutionRequest, current_user: User = Depends(get_current_user)
+):
     """Substitute players during a game."""
     try:
         with get_db_session() as session:
@@ -431,7 +435,7 @@ async def substitute_players(game_id: int, sub_data: SubstitutionRequest):
 
 
 @router.post("/{game_id}/end-quarter")
-async def end_quarter(game_id: int):
+async def end_quarter(game_id: int, current_user: User = Depends(get_current_user)):
     """End the current quarter."""
     try:
         with get_db_session() as session:
@@ -451,7 +455,7 @@ async def end_quarter(game_id: int):
 
 
 @router.post("/{game_id}/finalize")
-async def finalize_game(game_id: int):
+async def finalize_game(game_id: int, current_user: User = Depends(get_current_user)):
     """Finalize a game."""
     try:
         with get_db_session() as session:
@@ -490,7 +494,7 @@ async def get_live_game_state(game_id: int):
 
 
 @router.delete("/{game_id}/events/last")
-async def undo_last_event(game_id: int):
+async def undo_last_event(game_id: int, current_user: User = Depends(get_current_user)):
     """Undo the last event in a game."""
     try:
         with get_db_session() as session:
@@ -506,7 +510,7 @@ async def undo_last_event(game_id: int):
 
 
 @router.put("/{game_id}/stats/batch-update")
-async def batch_update_game_stats(game_id: int, updates: dict):
+async def batch_update_game_stats(game_id: int, updates: dict, current_user: User = Depends(get_current_user)):
     """Batch update player stats for a game with undo support."""
     try:
         with get_db_session() as session:
@@ -560,7 +564,7 @@ async def get_deleted_games():
 
 
 @router.post("/{game_id}/restore")
-async def restore_game(game_id: int):
+async def restore_game(game_id: int, current_user: User = Depends(require_admin)):
     """Restore a soft-deleted game."""
     try:
         with get_db_session() as session:
@@ -597,7 +601,7 @@ async def restore_game(game_id: int):
 
 
 @router.post("/scorebook")
-async def create_game_from_scorebook(scorebook_data: dict):
+async def create_game_from_scorebook(scorebook_data: dict, current_user: User = Depends(get_current_user)):
     """Create a game from scorebook data entry."""
     try:
         with get_db_session() as session:

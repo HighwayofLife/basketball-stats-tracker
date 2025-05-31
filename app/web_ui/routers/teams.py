@@ -5,6 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import get_current_user, require_admin
+from app.auth.models import User
 from app.data_access.models import Team
 from app.repositories import PlayerRepository, TeamRepository
 from app.services.audit_log_service import AuditLogService
@@ -127,7 +129,11 @@ async def get_team_detail(
 
 
 @router.post("/new", response_model=TeamResponse)
-async def create_team(team_data: TeamCreateRequest, team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
+async def create_team(
+    team_data: TeamCreateRequest,
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    current_user: User = Depends(get_current_user),
+):
     """Create a new team."""
     try:
         # Check if team name already exists
@@ -149,6 +155,7 @@ async def update_team(
     team_id: int,
     team_data: TeamUpdateRequest,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    current_user: User = Depends(get_current_user),
 ):
     """Update a team."""
     try:
@@ -192,7 +199,11 @@ async def update_team(
 
 
 @router.delete("/{team_id}")
-async def delete_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
+async def delete_team(
+    team_id: int,
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    current_user: User = Depends(get_current_user),
+):
     """Delete a team and all its players."""
     try:
         team = team_repo.get_by_id(team_id)
@@ -233,7 +244,12 @@ async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_reposit
 
 
 @router.post("/{team_id}/restore")
-async def restore_team(team_id: int, team_repo: TeamRepository = Depends(get_team_repository), db=Depends(get_db)):  # noqa: B008
+async def restore_team(
+    team_id: int,
+    team_repo: TeamRepository = Depends(get_team_repository),
+    db=Depends(get_db),  # noqa: B008
+    current_user: User = Depends(require_admin),
+):
     """Restore a soft-deleted team."""
     try:
         team = team_repo.get_by_id(team_id)
