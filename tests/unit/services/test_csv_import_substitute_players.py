@@ -3,9 +3,7 @@
 import csv
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from app.data_access.models import Player, Team
 from app.services.import_services.csv_parser import CSVParser

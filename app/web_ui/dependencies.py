@@ -1,23 +1,11 @@
 """Dependency injection for FastAPI application."""
 
-from collections.abc import Generator
-
 from fastapi import Depends
 from sqlalchemy.orm import Session
 
-from app.data_access.db_session import get_db_session
+from app.dependencies import get_db
 from app.repositories import GameRepository, PlayerRepository, TeamRepository
 from app.services.game_state_service import GameStateService
-
-
-def get_db() -> Generator[Session, None, None]:
-    """Get database session dependency.
-
-    Yields:
-        Database session
-    """
-    with get_db_session() as session:
-        yield session
 
 
 def get_team_repository(db: Session = Depends(get_db)) -> TeamRepository:  # noqa: B008

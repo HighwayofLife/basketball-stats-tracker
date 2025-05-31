@@ -1,8 +1,7 @@
 """Service layer for season management."""
 
 import logging
-from datetime import date, datetime
-from typing import Optional
+from datetime import date
 
 from sqlalchemy.orm import Session
 
@@ -30,9 +29,9 @@ class SeasonService:
         code: str,
         start_date: date,
         end_date: date,
-        description: Optional[str] = None,
+        description: str | None = None,
         set_as_active: bool = False,
-    ) -> tuple[bool, str, Optional[Season]]:
+    ) -> tuple[bool, str, Season | None]:
         """Create a new season.
 
         Args:
@@ -79,11 +78,11 @@ class SeasonService:
     def update_season(
         self,
         season_id: int,
-        name: Optional[str] = None,
-        start_date: Optional[date] = None,
-        end_date: Optional[date] = None,
-        description: Optional[str] = None,
-    ) -> tuple[bool, str, Optional[Season]]:
+        name: str | None = None,
+        start_date: date | None = None,
+        end_date: date | None = None,
+        description: str | None = None,
+    ) -> tuple[bool, str, Season | None]:
         """Update a season.
 
         Args:
@@ -178,7 +177,7 @@ class SeasonService:
             logger.error(f"Error deleting season: {e}")
             return False, f"Failed to delete season: {str(e)}"
 
-    def get_active_season(self) -> Optional[Season]:
+    def get_active_season(self) -> Season | None:
         """Get the currently active season.
 
         Returns:
@@ -186,7 +185,7 @@ class SeasonService:
         """
         return self.season_crud.get_active_season()
 
-    def get_season_for_date(self, game_date: date) -> Optional[Season]:
+    def get_season_for_date(self, game_date: date) -> Season | None:
         """Get the season that contains a specific date.
 
         Args:

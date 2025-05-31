@@ -34,7 +34,6 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
 
 
 # Import version info
-from app.config import VERSION_INFO
 
 # Create FastAPI application
 app = FastAPI(

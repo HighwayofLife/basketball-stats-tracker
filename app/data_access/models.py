@@ -51,14 +51,14 @@ class Team(Base, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String, nullable=True)
 
-    players: Mapped[list["Player"]] = relationship("Player", back_populates="team", cascade="all, delete-orphan")
-    home_games: Mapped[list["Game"]] = relationship(
+    players: Mapped[list[Player]] = relationship("Player", back_populates="team", cascade="all, delete-orphan")
+    home_games: Mapped[list[Game]] = relationship(
         "Game", back_populates="playing_team", foreign_keys="Game.playing_team_id"
     )
-    away_games: Mapped[list["Game"]] = relationship(
+    away_games: Mapped[list[Game]] = relationship(
         "Game", back_populates="opponent_team", foreign_keys="Game.opponent_team_id"
     )
-    users: Mapped[list["User"]] = relationship("User", back_populates="team")
+    users: Mapped[list[User]] = relationship("User", back_populates="team")
 
     def __repr__(self):
         return f"<Team(id={self.id}, name='{self.name}', display_name='{self.display_name}')>"
@@ -84,14 +84,14 @@ class Player(Base, SoftDeleteMixin):
     thumbnail_image: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to player thumbnail image
     is_substitute: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # Flag for substitute players
 
-    team: Mapped["Team"] = relationship("Team", back_populates="players")
-    game_stats: Mapped[list["PlayerGameStats"]] = relationship(
+    team: Mapped[Team] = relationship("Team", back_populates="players")
+    game_stats: Mapped[list[PlayerGameStats]] = relationship(
         "PlayerGameStats", back_populates="player", cascade="all, delete-orphan"
     )
-    game_events: Mapped[list["GameEvent"]] = relationship(
+    game_events: Mapped[list[GameEvent]] = relationship(
         "GameEvent", back_populates="player", cascade="all, delete-orphan"
     )
-    active_rosters: Mapped[list["ActiveRoster"]] = relationship(
+    active_rosters: Mapped[list[ActiveRoster]] = relationship(
         "ActiveRoster", back_populates="player", cascade="all, delete-orphan"
     )
 
@@ -129,19 +129,19 @@ class Game(Base, SoftDeleteMixin):
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    season: Mapped["Season | None"] = relationship("Season", back_populates="games")
-    playing_team: Mapped["Team"] = relationship("Team", back_populates="home_games", foreign_keys=[playing_team_id])
-    opponent_team: Mapped["Team"] = relationship("Team", back_populates="away_games", foreign_keys=[opponent_team_id])
-    player_game_stats: Mapped[list["PlayerGameStats"]] = relationship(
+    season: Mapped[Season | None] = relationship("Season", back_populates="games")
+    playing_team: Mapped[Team] = relationship("Team", back_populates="home_games", foreign_keys=[playing_team_id])
+    opponent_team: Mapped[Team] = relationship("Team", back_populates="away_games", foreign_keys=[opponent_team_id])
+    player_game_stats: Mapped[list[PlayerGameStats]] = relationship(
         "PlayerGameStats", back_populates="game", cascade="all, delete-orphan"
     )
-    game_state: Mapped["GameState | None"] = relationship(
+    game_state: Mapped[GameState | None] = relationship(
         "GameState", back_populates="game", uselist=False, cascade="all, delete-orphan"
     )
-    game_events: Mapped[list["GameEvent"]] = relationship(
+    game_events: Mapped[list[GameEvent]] = relationship(
         "GameEvent", back_populates="game", cascade="all, delete-orphan"
     )
-    active_rosters: Mapped[list["ActiveRoster"]] = relationship(
+    active_rosters: Mapped[list[ActiveRoster]] = relationship(
         "ActiveRoster", back_populates="game", cascade="all, delete-orphan"
     )
 
@@ -177,10 +177,10 @@ class PlayerGameStats(Base):
         Integer, ForeignKey("teams.id"), nullable=True
     )  # Team the player played for (for substitutes)
 
-    game: Mapped["Game"] = relationship("Game", back_populates="player_game_stats")
-    player: Mapped["Player"] = relationship("Player", back_populates="game_stats")
-    playing_for_team: Mapped["Team | None"] = relationship("Team", foreign_keys=[playing_for_team_id])
-    quarter_stats: Mapped[list["PlayerQuarterStats"]] = relationship(
+    game: Mapped[Game] = relationship("Game", back_populates="player_game_stats")
+    player: Mapped[Player] = relationship("Player", back_populates="game_stats")
+    playing_for_team: Mapped[Team | None] = relationship("Team", foreign_keys=[playing_for_team_id])
+    quarter_stats: Mapped[list[PlayerQuarterStats]] = relationship(
         "PlayerQuarterStats", back_populates="player_game_stat", cascade="all, delete-orphan"
     )
 
@@ -211,7 +211,7 @@ class PlayerQuarterStats(Base):
     fg3m: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     fg3a: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
-    player_game_stat: Mapped["PlayerGameStats"] = relationship("PlayerGameStats", back_populates="quarter_stats")
+    player_game_stat: Mapped[PlayerGameStats] = relationship("PlayerGameStats", back_populates="quarter_stats")
 
     __table_args__ = (
         UniqueConstraint("player_game_stat_id", "quarter_number", name="uq_player_game_quarter"),
@@ -245,7 +245,7 @@ class GameState(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    game: Mapped["Game"] = relationship("Game", back_populates="game_state")
+    game: Mapped[Game] = relationship("Game", back_populates="game_state")
 
     __table_args__ = (CheckConstraint("current_quarter >= 1 AND current_quarter <= 4", name="check_quarter_number"),)
 
@@ -271,9 +271,9 @@ class GameEvent(Base):
     details: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # User ID
 
-    game: Mapped["Game"] = relationship("Game", back_populates="game_events")
-    player: Mapped["Player | None"] = relationship("Player", back_populates="game_events")
-    team: Mapped["Team | None"] = relationship("Team")
+    game: Mapped[Game] = relationship("Game", back_populates="game_events")
+    player: Mapped[Player | None] = relationship("Player", back_populates="game_events")
+    team: Mapped[Team | None] = relationship("Team")
 
     def __repr__(self):
         return (
@@ -296,9 +296,9 @@ class ActiveRoster(Base):
     is_starter: Mapped[bool] = mapped_column(Boolean, default=False)
     is_substitute: Mapped[bool] = mapped_column(Boolean, default=False)  # Flag if player is substituting for this game
 
-    game: Mapped["Game"] = relationship("Game", back_populates="active_rosters")
-    player: Mapped["Player"] = relationship("Player", back_populates="active_rosters")
-    team: Mapped["Team"] = relationship("Team")
+    game: Mapped[Game] = relationship("Game", back_populates="active_rosters")
+    player: Mapped[Player] = relationship("Player", back_populates="active_rosters")
+    team: Mapped[Team] = relationship("Team")
 
     __table_args__ = (UniqueConstraint("game_id", "player_id", name="uq_game_player"),)
 
@@ -329,7 +329,7 @@ class PlayerSeasonStats(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    player: Mapped["Player"] = relationship("Player")
+    player: Mapped[Player] = relationship("Player")
 
     __table_args__ = (UniqueConstraint("player_id", "season", name="uq_player_season"),)
 
@@ -363,7 +363,7 @@ class TeamSeasonStats(Base):
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
-    team: Mapped["Team"] = relationship("Team")
+    team: Mapped[Team] = relationship("Team")
 
     __table_args__ = (UniqueConstraint("team_id", "season", name="uq_team_season"),)
 
@@ -392,7 +392,7 @@ class Season(Base):
     )
 
     # Relationships
-    games: Mapped[list["Game"]] = relationship("Game", back_populates="season")
+    games: Mapped[list[Game]] = relationship("Game", back_populates="season")
 
     __table_args__ = (
         CheckConstraint("end_date > start_date", name="season_dates_check"),

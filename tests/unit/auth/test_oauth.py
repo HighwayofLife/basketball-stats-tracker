@@ -1,13 +1,13 @@
 """Tests for OAuth functionality."""
 
 import os
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.auth.oauth import OAuthHandler, OAUTH_ENABLED
+from app.auth.oauth import OAuthHandler
 from app.auth.service import AuthService
 
 
@@ -19,6 +19,7 @@ class TestOAuthIntegration:
         with patch.dict(os.environ, {"GOOGLE_CLIENT_ID": "test-id", "GOOGLE_CLIENT_SECRET": "test-secret"}):
             # Need to reload the module to pick up env changes
             import importlib
+
             import app.auth.oauth
 
             importlib.reload(app.auth.oauth)
@@ -30,6 +31,7 @@ class TestOAuthIntegration:
         with patch.dict(os.environ, {}, clear=True):
             # Need to reload the module to pick up env changes
             import importlib
+
             import app.auth.oauth
 
             importlib.reload(app.auth.oauth)

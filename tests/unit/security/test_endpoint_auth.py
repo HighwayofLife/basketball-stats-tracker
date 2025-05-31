@@ -5,8 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.auth.models import User, UserRole
-from app.data_access.models import Game, Player, Team
-from app.main import app
+from app.web_ui.api import app
 
 
 class TestEndpointAuthentication:
@@ -171,8 +170,6 @@ class TestRoleBasedAuthorization:
 
     def test_admin_endpoints_restricted_to_admin(self, client: TestClient):
         """Test that admin endpoints are restricted to admin users only."""
-        from app.auth.service import AuthService
-        from app.auth.jwt_handler import create_access_token
 
         # This test would need proper setup with database
         # For now, we're testing the structure is in place
@@ -180,7 +177,7 @@ class TestRoleBasedAuthorization:
 
     def test_team_based_access_control(self):
         """Test that team-based access control is implemented."""
-        from app.auth.dependencies import require_team_access, require_player_access, require_game_access
+        from app.auth.dependencies import require_game_access, require_player_access, require_team_access
 
         # Verify the functions exist
         assert callable(require_team_access)

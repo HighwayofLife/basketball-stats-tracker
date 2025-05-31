@@ -6,6 +6,8 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+from app.auth.models import UserRole
+
 
 class GameSummary(BaseModel):
     """Basic information about a basketball game."""
@@ -46,6 +48,12 @@ class BoxScoreResponse(BaseModel):
     game_date: str  # Using string since that's what the model uses
     home_team: TeamStats
     away_team: TeamStats
+
+
+class RoleUpdateRequest(BaseModel):
+    """Request to update a user's role."""
+
+    role: UserRole = Field(..., description="The new role for the user")
 
 
 # Live Game Entry Schemas
