@@ -165,7 +165,21 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
         # Create response with redirect to home page with tokens in URL fragment
         # This allows JavaScript to access the tokens and store them in localStorage
-        response = RedirectResponse(url=f"/?access_token={tokens['access_token']}&refresh_token={tokens['refresh_token']}&token_type={tokens['token_type']}", status_code=302)
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie(
+            key="access_token",
+            value=tokens["access_token"],
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
+        response.set_cookie(
+            key="refresh_token",
+            value=tokens["refresh_token"],
+            httponly=True,
+            secure=True,
+            samesite="Strict",
+        )
 
         return response
 
