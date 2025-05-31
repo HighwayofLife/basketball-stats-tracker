@@ -196,28 +196,10 @@ async def get_team_stats(
         }
 
         # Calculate derived stats
-        if career_stats["games_played"] > 0:
-            career_stats["win_percentage"] = round(career_stats["wins"] / career_stats["games_played"] * 100, 1)
-            career_stats["ppg"] = round(career_stats["total_points_for"] / career_stats["games_played"], 1)
-            career_stats["opp_ppg"] = round(career_stats["total_points_against"] / career_stats["games_played"], 1)
-            career_stats["point_diff"] = round(career_stats["ppg"] - career_stats["opp_ppg"], 1)
-        else:
-            career_stats["win_percentage"] = 0
-            career_stats["ppg"] = 0
-            career_stats["opp_ppg"] = 0
-            career_stats["point_diff"] = 0
+        career_stats.update(calculate_derived_stats(career_stats))
 
         # Calculate shooting percentages
-        career_stats["ft_percentage"] = (
-            round(career_stats["total_ftm"] / career_stats["total_fta"] * 100, 1)
-            if career_stats["total_fta"] > 0
-            else 0
-        )
-        career_stats["fg2_percentage"] = (
-            round(career_stats["total_2pm"] / career_stats["total_2pa"] * 100, 1)
-            if career_stats["total_2pa"] > 0
-            else 0
-        )
+        career_stats.update(calculate_shooting_percentages(career_stats))
         career_stats["fg3_percentage"] = (
             round(career_stats["total_3pm"] / career_stats["total_3pa"] * 100, 1)
             if career_stats["total_3pa"] > 0
