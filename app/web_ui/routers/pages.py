@@ -372,6 +372,12 @@ async def admin_users_page(request: Request):
     return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
+@router.get("/admin/seasons", response_class=HTMLResponse)
+async def admin_seasons_page(request: Request):
+    """Render the seasons management page."""
+    return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
+
+
 @router.get("/logout", response_class=HTMLResponse)
 async def logout_page(request: Request):
     """Handle logout by clearing client-side storage and redirecting."""

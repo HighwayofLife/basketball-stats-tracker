@@ -21,8 +21,16 @@
                     <li><a href="/games">Games</a></li>
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
-                    <li><a href="/reports">Reports</a></li>
                     <li><a href="/about">About</a></li>
+                    <li id="manage-nav-item" class="nav-dropdown" style="display: none;">
+                        <a href="#" class="dropdown-toggle">
+                            <i class="fas fa-tasks"></i> Manage <i class="fas fa-chevron-down"></i>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a href="/reports"><i class="fas fa-chart-bar"></i> Reports</a></li>
+                            <li><a href="/admin/seasons"><i class="fas fa-calendar-alt"></i> Seasons</a></li>
+                        </ul>
+                    </li>
                     <li id="admin-nav-item" class="nav-dropdown" style="display: none;">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-cog"></i> Admin <i class="fas fa-chevron-down"></i>
@@ -84,6 +92,7 @@
         const userNavItem = document.getElementById('user-nav-item');
         const usernameDisplay = document.getElementById('username-display');
         const adminNavItem = document.getElementById('admin-nav-item');
+        const manageNavItem = document.getElementById('manage-nav-item');
         
         console.debug('Auth check - Token present:', !!token);
         
@@ -104,6 +113,12 @@
                     loginNavItem.style.display = 'none';
                     userNavItem.style.display = 'flex';
                     usernameDisplay.textContent = userData.username;
+                    
+                    // Show manage menu if user has write permissions (admin or user role)
+                    if (userData.role === 'ADMIN' || userData.role === 'admin' || 
+                        userData.role === 'USER' || userData.role === 'user') {
+                        manageNavItem.style.display = 'flex';
+                    }
                     
                     // Show admin menu if user is admin
                     if (userData.role === 'ADMIN' || userData.role === 'admin') {
@@ -130,49 +145,54 @@
         const loginNavItem = document.getElementById('login-nav-item');
         const userNavItem = document.getElementById('user-nav-item');
         const adminNavItem = document.getElementById('admin-nav-item');
+        const manageNavItem = document.getElementById('manage-nav-item');
         
         loginNavItem.style.display = 'flex';
         userNavItem.style.display = 'none';
         adminNavItem.style.display = 'none';
+        manageNavItem.style.display = 'none';
     }
     
     function setupDropdownBehavior() {
-        const dropdown = document.querySelector('.nav-dropdown');
-        const dropdownMenu = document.querySelector('.dropdown-menu');
+        const dropdowns = document.querySelectorAll('.nav-dropdown');
         
-        if (!dropdown || !dropdownMenu) return;
-        
-        let hideTimeout;
-        
-        // Show dropdown on hover
-        dropdown.addEventListener('mouseenter', function() {
-            clearTimeout(hideTimeout);
-            dropdownMenu.style.setProperty('display', 'block', 'important');
-        });
-        
-        // Hide dropdown when leaving dropdown area
-        dropdown.addEventListener('mouseleave', function() {
-            hideTimeout = setTimeout(function() {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }, 100); // Small delay to prevent flickering
-        });
-        
-        // Keep dropdown visible when hovering over menu
-        dropdownMenu.addEventListener('mouseenter', function() {
-            clearTimeout(hideTimeout);
-        });
-        
-        dropdownMenu.addEventListener('mouseleave', function() {
-            hideTimeout = setTimeout(function() {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }, 100);
-        });
-        
-        // Hide dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            if (!dropdown.contains(event.target)) {
-                dropdownMenu.style.setProperty('display', 'none', 'important');
-            }
+        dropdowns.forEach(function(dropdown) {
+            const dropdownMenu = dropdown.querySelector('.dropdown-menu');
+            
+            if (!dropdownMenu) return;
+            
+            let hideTimeout;
+            
+            // Show dropdown on hover
+            dropdown.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+                dropdownMenu.style.setProperty('display', 'block', 'important');
+            });
+            
+            // Hide dropdown when leaving dropdown area
+            dropdown.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }, 100); // Small delay to prevent flickering
+            });
+            
+            // Keep dropdown visible when hovering over menu
+            dropdownMenu.addEventListener('mouseenter', function() {
+                clearTimeout(hideTimeout);
+            });
+            
+            dropdownMenu.addEventListener('mouseleave', function() {
+                hideTimeout = setTimeout(function() {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }, 100);
+            });
+            
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!dropdown.contains(event.target)) {
+                    dropdownMenu.style.setProperty('display', 'none', 'important');
+                }
+            });
         });
     }
     

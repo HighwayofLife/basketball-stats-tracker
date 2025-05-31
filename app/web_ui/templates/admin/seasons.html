@@ -1,0 +1,640 @@
+{% extends "base.html" %}
+
+{% block title %}Season Management{% endblock %}
+
+{% block extra_head %}
+<style>
+.admin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.seasons-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--card-background);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.seasons-table th,
+.seasons-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.seasons-table th {
+    background-color: var(--primary-color);
+    color: white;
+    font-weight: 600;
+}
+
+.seasons-table tr:hover {
+    background-color: rgba(255, 107, 0, 0.05);
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.status-active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-inactive {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    margin: 10% auto;
+    padding: 2rem;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 600px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.close {
+    color: #aaa;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover {
+    color: #000;
+}
+
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color);
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background-color: var(--card-background);
+    color: var(--text-color);
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.form-row {
+    display: flex;
+    gap: 1rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+    width: auto;
+}
+
+.alert {
+    padding: 1rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.actions-column {
+    white-space: nowrap;
+}
+
+.actions-column .btn {
+    margin-right: 0.5rem;
+}
+
+.loading {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+    .seasons-table {
+        font-size: 0.875rem;
+    }
+    
+    .seasons-table th,
+    .seasons-table td {
+        padding: 0.5rem;
+    }
+    
+    .modal-content {
+        margin: 5% auto;
+        width: 95%;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+    <h2><i class="fas fa-calendar-alt"></i> Season Management</h2>
+    <button class="btn btn-primary" onclick="showCreateSeasonModal()">
+        <i class="fas fa-plus"></i> Create Season
+    </button>
+</div>
+
+<div id="alerts"></div>
+
+<div class="seasons-container">
+    <div id="loading" class="loading">
+        <i class="fas fa-spinner fa-spin"></i> Loading seasons...
+    </div>
+    
+    <table class="seasons-table" id="seasons-table" style="display: none;">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Code</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Status</th>
+                <th>Games</th>
+                <th>Description</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="seasons-tbody">
+        </tbody>
+    </table>
+</div>
+
+<!-- Create/Edit Season Modal -->
+<div id="season-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">Create Season</h3>
+            <span class="close" onclick="closeSeasonModal()">&times;</span>
+        </div>
+        
+        <form id="season-form">
+            <input type="hidden" id="season-id" name="season_id">
+            
+            <div class="form-group">
+                <label for="modal-name">Season Name</label>
+                <input type="text" id="modal-name" name="name" class="form-control" required 
+                       placeholder="e.g., Spring 2025">
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-code">Season Code</label>
+                <input type="text" id="modal-code" name="code" class="form-control" required 
+                       placeholder="e.g., 2025-spring">
+                <small class="text-muted">Unique identifier for the season</small>
+            </div>
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="modal-start-date">Start Date</label>
+                    <input type="date" id="modal-start-date" name="start_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="modal-end-date">End Date</label>
+                    <input type="date" id="modal-end-date" name="end_date" class="form-control" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="modal-description">Description (Optional)</label>
+                <textarea id="modal-description" name="description" class="form-control" rows="3" 
+                          placeholder="Brief description of the season..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <div class="checkbox-group">
+                    <input type="checkbox" id="modal-set-active" name="set_as_active">
+                    <label for="modal-set-active">Set as active season</label>
+                </div>
+                <small class="text-muted">New games will default to the active season</small>
+            </div>
+            
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> <span id="submit-text">Create Season</span>
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="closeSeasonModal()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let seasons = [];
+let editingSeasonId = null;
+
+// Load seasons on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    await loadSeasons();
+});
+
+// Load all seasons
+async function loadSeasons() {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        window.location.href = '/login';
+        return;
+    }
+
+    try {
+        const response = await fetch('/v1/seasons', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            seasons = data.seasons;
+            displaySeasons();
+        } else if (response.status === 403) {
+            showAlert('Access denied. Login required.', 'error');
+        } else {
+            showAlert('Failed to load seasons', 'error');
+        }
+    } catch (error) {
+        showAlert('Error loading seasons: ' + error.message, 'error');
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('seasons-table').style.display = 'table';
+    }
+}
+
+// Display seasons in table
+function displaySeasons() {
+    const tbody = document.getElementById('seasons-tbody');
+    tbody.innerHTML = '';
+
+    if (seasons.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                <i class="fas fa-calendar-times"></i> No seasons found. Create your first season to get started.
+            </td>
+        `;
+        tbody.appendChild(row);
+        return;
+    }
+
+    seasons.forEach(season => {
+        const row = document.createElement('tr');
+        
+        const statusClass = season.is_active ? 'status-active' : 'status-inactive';
+        const statusText = season.is_active ? 'Active' : 'Inactive';
+        
+        const startDate = new Date(season.start_date).toLocaleDateString();
+        const endDate = new Date(season.end_date).toLocaleDateString();
+        
+        row.innerHTML = `
+            <td><strong>${season.name}</strong></td>
+            <td><code>${season.code}</code></td>
+            <td>${startDate}</td>
+            <td>${endDate}</td>
+            <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+            <td>${season.game_count} games</td>
+            <td>${season.description || '-'}</td>
+            <td class="actions-column">
+                <button class="btn btn-sm btn-primary" onclick="editSeason(${season.id})" title="Edit Season">
+                    <i class="fas fa-edit"></i>
+                </button>
+                ${!season.is_active ? 
+                    `<button class="btn btn-sm btn-success" onclick="activateSeason(${season.id})" title="Set as Active">
+                        <i class="fas fa-check"></i>
+                    </button>` : ''
+                }
+                ${season.game_count === 0 ? 
+                    `<button class="btn btn-sm btn-danger" onclick="deleteSeason(${season.id})" title="Delete Season">
+                        <i class="fas fa-trash"></i>
+                    </button>` :
+                    `<button class="btn btn-sm btn-secondary" disabled title="Cannot delete season with games">
+                        <i class="fas fa-trash"></i>
+                    </button>`
+                }
+            </td>
+        `;
+        
+        tbody.appendChild(row);
+    });
+}
+
+// Show create season modal
+function showCreateSeasonModal() {
+    editingSeasonId = null;
+    document.getElementById('modal-title').textContent = 'Create Season';
+    document.getElementById('submit-text').textContent = 'Create Season';
+    document.getElementById('season-form').reset();
+    document.getElementById('season-id').value = '';
+    document.getElementById('modal-set-active').style.display = 'inline';
+    document.getElementById('season-modal').style.display = 'block';
+}
+
+// Edit season
+function editSeason(seasonId) {
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+    
+    editingSeasonId = seasonId;
+    document.getElementById('modal-title').textContent = 'Edit Season';
+    document.getElementById('submit-text').textContent = 'Update Season';
+    
+    document.getElementById('season-id').value = season.id;
+    document.getElementById('modal-name').value = season.name;
+    document.getElementById('modal-code').value = season.code;
+    document.getElementById('modal-code').disabled = true; // Don't allow code changes
+    document.getElementById('modal-start-date').value = season.start_date;
+    document.getElementById('modal-end-date').value = season.end_date;
+    document.getElementById('modal-description').value = season.description || '';
+    document.getElementById('modal-set-active').style.display = 'none'; // Hide for edits
+    
+    document.getElementById('season-modal').style.display = 'block';
+}
+
+// Close season modal
+function closeSeasonModal() {
+    document.getElementById('season-modal').style.display = 'none';
+    document.getElementById('modal-code').disabled = false;
+    editingSeasonId = null;
+}
+
+// Handle season form submission
+document.getElementById('season-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const token = localStorage.getItem('access_token');
+    const formData = new FormData(e.target);
+    
+    const seasonData = {
+        name: formData.get('name'),
+        code: formData.get('code'),
+        start_date: formData.get('start_date'),
+        end_date: formData.get('end_date'),
+        description: formData.get('description') || null,
+        set_as_active: formData.get('set_as_active') === 'on'
+    };
+    
+    try {
+        let response;
+        if (editingSeasonId) {
+            // Update existing season
+            response = await fetch(`/v1/seasons/${editingSeasonId}`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(seasonData)
+            });
+        } else {
+            // Create new season
+            response = await fetch('/v1/seasons', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(seasonData)
+            });
+        }
+
+        if (response.ok) {
+            const data = await response.json();
+            showAlert(data.message, 'success');
+            closeSeasonModal();
+            await loadSeasons();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to save season', 'error');
+        }
+    } catch (error) {
+        showAlert('Error saving season: ' + error.message, 'error');
+    }
+});
+
+// Activate season
+async function activateSeason(seasonId) {
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+    
+    if (!confirm(`Set "${season.name}" as the active season?\n\nThis will make it the default for new games.`)) {
+        return;
+    }
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`/v1/seasons/${seasonId}/activate`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            showAlert(data.message, 'success');
+            await loadSeasons();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to activate season', 'error');
+        }
+    } catch (error) {
+        showAlert('Error activating season: ' + error.message, 'error');
+    }
+}
+
+// Delete season
+async function deleteSeason(seasonId) {
+    const season = seasons.find(s => s.id === seasonId);
+    if (!season) return;
+    
+    if (!confirm(`Are you sure you want to delete season "${season.name}"?\n\nThis action cannot be undone.`)) {
+        return;
+    }
+    
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`/v1/seasons/${seasonId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            showAlert(data.message, 'success');
+            await loadSeasons();
+        } else {
+            const errorData = await response.json();
+            showAlert(errorData.detail || 'Failed to delete season', 'error');
+        }
+    } catch (error) {
+        showAlert('Error deleting season: ' + error.message, 'error');
+    }
+}
+
+// Show alert message
+function showAlert(message, type) {
+    const alertsContainer = document.getElementById('alerts');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type}`;
+    alertDiv.textContent = message;
+    
+    alertsContainer.innerHTML = '';
+    alertsContainer.appendChild(alertDiv);
+    
+    // Auto-hide success messages after 5 seconds
+    if (type === 'success') {
+        setTimeout(() => {
+            alertDiv.remove();
+        }, 5000);
+    }
+    
+    // Scroll to top to show alert
+    window.scrollTo(0, 0);
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const seasonModal = document.getElementById('season-modal');
+    
+    if (event.target === seasonModal) {
+        closeSeasonModal();
+    }
+}
+</script>
+{% endblock %}

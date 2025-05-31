@@ -10,6 +10,7 @@ from app.auth.models import User
 from app.data_access.models import Team
 from app.repositories import PlayerRepository, TeamRepository
 from app.services.audit_log_service import AuditLogService
+from app.services.season_stats_service import SeasonStatsService
 
 from ..dependencies import get_db, get_player_repository, get_team_repository
 from ..schemas import PlayerResponse, TeamCreateRequest, TeamDetailResponse, TeamResponse, TeamUpdateRequest
@@ -126,6 +127,224 @@ async def get_team_detail(
     except Exception as e:
         logger.error(f"Error retrieving team {team_id}: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve team") from e
+
+
+@router.get("/{team_id}/stats", response_model=dict[str, Any])
+async def get_team_stats(
+    team_id: int,
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    db=Depends(get_db),  # noqa: B008
+):
+    """Get team statistics including career and current season stats."""
+    try:
+        team = team_repo.get_by_id(team_id)
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+
+        stats_service = SeasonStatsService(db)
+
+        # Get current season stats
+        season_stats = None
+        current_season = None
+        try:
+            # Get latest game to determine current season
+            from sqlalchemy import desc
+
+            from app.data_access.models import Game
+
+            latest_game = (
+                db.query(Game)
+                .filter((Game.playing_team_id == team_id) | (Game.opponent_team_id == team_id))
+                .order_by(desc(Game.date))
+                .first()
+            )
+
+            if latest_game:
+                current_season = stats_service.get_season_from_date(latest_game.date)
+                season_stats = stats_service.update_team_season_stats(team_id, current_season)
+        except Exception as e:
+            logger.warning(f"Error getting current season stats for team {team_id}: {e}")
+
+        # Get all-time/career stats by aggregating all season stats
+        from app.data_access.models import TeamSeasonStats
+
+        all_season_stats = db.query(TeamSeasonStats).filter(TeamSeasonStats.team_id == team_id).all()
+
+        # Calculate career totals
+        career_stats = {
+            "games_played": sum(s.games_played for s in all_season_stats),
+            "wins": sum(s.wins for s in all_season_stats),
+            "losses": sum(s.losses for s in all_season_stats),
+            "total_points_for": sum(s.total_points_for for s in all_season_stats),
+            "total_points_against": sum(s.total_points_against for s in all_season_stats),
+            "total_ftm": sum(s.total_ftm for s in all_season_stats),
+            "total_fta": sum(s.total_fta for s in all_season_stats),
+            "total_2pm": sum(s.total_2pm for s in all_season_stats),
+            "total_2pa": sum(s.total_2pa for s in all_season_stats),
+            "total_3pm": sum(s.total_3pm for s in all_season_stats),
+            "total_3pa": sum(s.total_3pa for s in all_season_stats),
+        }
+
+        # Calculate derived stats
+        if career_stats["games_played"] > 0:
+            career_stats["win_percentage"] = round(career_stats["wins"] / career_stats["games_played"] * 100, 1)
+            career_stats["ppg"] = round(career_stats["total_points_for"] / career_stats["games_played"], 1)
+            career_stats["opp_ppg"] = round(career_stats["total_points_against"] / career_stats["games_played"], 1)
+            career_stats["point_diff"] = round(career_stats["ppg"] - career_stats["opp_ppg"], 1)
+        else:
+            career_stats["win_percentage"] = 0
+            career_stats["ppg"] = 0
+            career_stats["opp_ppg"] = 0
+            career_stats["point_diff"] = 0
+
+        # Calculate shooting percentages
+        career_stats["ft_percentage"] = (
+            round(career_stats["total_ftm"] / career_stats["total_fta"] * 100, 1)
+            if career_stats["total_fta"] > 0
+            else 0
+        )
+        career_stats["fg2_percentage"] = (
+            round(career_stats["total_2pm"] / career_stats["total_2pa"] * 100, 1)
+            if career_stats["total_2pa"] > 0
+            else 0
+        )
+        career_stats["fg3_percentage"] = (
+            round(career_stats["total_3pm"] / career_stats["total_3pa"] * 100, 1)
+            if career_stats["total_3pa"] > 0
+            else 0
+        )
+
+        # Format season stats if available
+        formatted_season_stats = None
+        if season_stats:
+            formatted_season_stats = {
+                "season": current_season,
+                "games_played": season_stats.games_played,
+                "wins": season_stats.wins,
+                "losses": season_stats.losses,
+                "total_points_for": season_stats.total_points_for,
+                "total_points_against": season_stats.total_points_against,
+                "total_ftm": season_stats.total_ftm,
+                "total_fta": season_stats.total_fta,
+                "total_2pm": season_stats.total_2pm,
+                "total_2pa": season_stats.total_2pa,
+                "total_3pm": season_stats.total_3pm,
+                "total_3pa": season_stats.total_3pa,
+            }
+
+            # Calculate derived stats
+            if formatted_season_stats["games_played"] > 0:
+                formatted_season_stats["win_percentage"] = round(
+                    formatted_season_stats["wins"] / formatted_season_stats["games_played"] * 100, 1
+                )
+                formatted_season_stats["ppg"] = round(
+                    formatted_season_stats["total_points_for"] / formatted_season_stats["games_played"], 1
+                )
+                formatted_season_stats["opp_ppg"] = round(
+                    formatted_season_stats["total_points_against"] / formatted_season_stats["games_played"], 1
+                )
+                formatted_season_stats["point_diff"] = round(
+                    formatted_season_stats["ppg"] - formatted_season_stats["opp_ppg"], 1
+                )
+            else:
+                formatted_season_stats["win_percentage"] = 0
+                formatted_season_stats["ppg"] = 0
+                formatted_season_stats["opp_ppg"] = 0
+                formatted_season_stats["point_diff"] = 0
+
+            # Calculate shooting percentages
+            formatted_season_stats["ft_percentage"] = (
+                round(formatted_season_stats["total_ftm"] / formatted_season_stats["total_fta"] * 100, 1)
+                if formatted_season_stats["total_fta"] > 0
+                else 0
+            )
+            formatted_season_stats["fg2_percentage"] = (
+                round(formatted_season_stats["total_2pm"] / formatted_season_stats["total_2pa"] * 100, 1)
+                if formatted_season_stats["total_2pa"] > 0
+                else 0
+            )
+            formatted_season_stats["fg3_percentage"] = (
+                round(formatted_season_stats["total_3pm"] / formatted_season_stats["total_3pa"] * 100, 1)
+                if formatted_season_stats["total_3pa"] > 0
+                else 0
+            )
+
+        # Get recent games for team
+        from app.data_access.models import Game, Player, PlayerGameStats
+
+        recent_games = (
+            db.query(Game)
+            .filter((Game.playing_team_id == team_id) | (Game.opponent_team_id == team_id))
+            .order_by(desc(Game.date))
+            .limit(10)
+            .all()
+        )
+
+        recent_games_data = []
+        for game in recent_games:
+            # Calculate team totals for this game
+            team_stats_query = (
+                db.query(PlayerGameStats)
+                .join(Player)
+                .filter(PlayerGameStats.game_id == game.id, Player.team_id == team_id)
+                .all()
+            )
+
+            team_points = sum(ps.total_ftm + (ps.total_2pm * 2) + (ps.total_3pm * 3) for ps in team_stats_query)
+            team_ftm = sum(ps.total_ftm for ps in team_stats_query)
+            team_fta = sum(ps.total_fta for ps in team_stats_query)
+            team_2pm = sum(ps.total_2pm for ps in team_stats_query)
+            team_2pa = sum(ps.total_2pa for ps in team_stats_query)
+            team_3pm = sum(ps.total_3pm for ps in team_stats_query)
+            team_3pa = sum(ps.total_3pa for ps in team_stats_query)
+
+            # Get opponent info and points
+            opponent_team_id = game.opponent_team_id if game.playing_team_id == team_id else game.playing_team_id
+            opponent_team = team_repo.get_by_id(opponent_team_id)
+            opponent_name = opponent_team.display_name or opponent_team.name if opponent_team else "Unknown"
+
+            # Calculate opponent points
+            opp_stats_query = (
+                db.query(PlayerGameStats)
+                .join(Player)
+                .filter(PlayerGameStats.game_id == game.id, Player.team_id == opponent_team_id)
+                .all()
+            )
+            opp_points = sum(ps.total_ftm + (ps.total_2pm * 2) + (ps.total_3pm * 3) for ps in opp_stats_query)
+
+            recent_games_data.append(
+                {
+                    "game_id": game.id,
+                    "date": game.date.isoformat(),
+                    "opponent": opponent_name,
+                    "team_points": team_points,
+                    "opponent_points": opp_points,
+                    "win": team_points > opp_points,
+                    "ft": f"{team_ftm}/{team_fta}",
+                    "fg2": f"{team_2pm}/{team_2pa}",
+                    "fg3": f"{team_3pm}/{team_3pa}",
+                    "ft_percentage": round(team_ftm / team_fta * 100) if team_fta > 0 else 0,
+                    "fg2_percentage": round(team_2pm / team_2pa * 100) if team_2pa > 0 else 0,
+                    "fg3_percentage": round(team_3pm / team_3pa * 100) if team_3pa > 0 else 0,
+                }
+            )
+
+        return {
+            "team": {
+                "id": team.id,
+                "name": team.name,
+                "display_name": team.display_name,
+            },
+            "career_stats": career_stats,
+            "season_stats": formatted_season_stats,
+            "recent_games": recent_games_data,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving team stats for {team_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve team statistics") from e
 
 
 @router.post("/new", response_model=TeamResponse)

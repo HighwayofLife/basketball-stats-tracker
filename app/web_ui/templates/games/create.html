@@ -16,6 +16,14 @@
         </div>
         
         <div class="form-group">
+            <label for="season">Season</label>
+            <select class="form-control" id="season" required>
+                <option value="">Select Season</option>
+            </select>
+            <small class="text-muted">The season this game belongs to</small>
+        </div>
+        
+        <div class="form-group">
             <label for="home-team">Home Team</label>
             <select class="form-control" id="home-team" required>
                 <option value="">Select Home Team</option>
@@ -113,12 +121,57 @@
     background-color: #5a6268;
     border-color: #545b62;
 }
+
+.text-muted {
+    color: #6c757d !important;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+    display: block;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', async () => {
     // Set today's date as default
     document.getElementById('game-date').valueAsDate = new Date();
+    
+    // Load seasons
+    try {
+        const token = localStorage.getItem('access_token');
+        const response = await fetch('/v1/seasons', {
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            const seasons = data.seasons;
+            const seasonSelect = document.getElementById('season');
+            
+            seasons.forEach(season => {
+                const option = new Option(season.name, season.id);
+                if (season.is_active) {
+                    option.selected = true; // Set active season as default
+                }
+                seasonSelect.add(option);
+            });
+            
+            if (seasons.length === 0) {
+                const option = new Option('No seasons available - Create one first', '');
+                option.disabled = true;
+                seasonSelect.add(option);
+            }
+        } else {
+            console.error('Error loading seasons:', response.status);
+            const option = new Option('Error loading seasons', '');
+            option.disabled = true;
+            document.getElementById('season').add(option);
+        }
+    } catch (error) {
+        console.error('Error loading seasons:', error);
+        const option = new Option('Error loading seasons', '');
+        option.disabled = true;
+        document.getElementById('season').add(option);
+    }
     
     // Load teams
     try {
@@ -144,9 +197,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         const homeTeamId = parseInt(document.getElementById('home-team').value);
         const awayTeamId = parseInt(document.getElementById('away-team').value);
+        const seasonId = parseInt(document.getElementById('season').value);
         
         if (homeTeamId === awayTeamId) {
             alert('Home and away teams must be different');
+            return;
+        }
+        
+        if (!seasonId) {
+            alert('Please select a season for this game');
             return;
         }
         
@@ -154,6 +213,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             date: document.getElementById('game-date').value,
             home_team_id: homeTeamId,
             away_team_id: awayTeamId,
+            season_id: seasonId,
             scheduled_time: document.getElementById('game-time').value || null,
             location: document.getElementById('location').value || null,
             notes: document.getElementById('notes').value || null

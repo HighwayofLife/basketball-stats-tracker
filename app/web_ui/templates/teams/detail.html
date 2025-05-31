@@ -1,41 +1,16 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="team-header">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-        <div>
-            <h2 id="team-display-name">Loading...</h2>
-            <p id="team-name" class="text-muted" style="margin-bottom: 0.5rem;">Loading...</p>
-            <p id="player-count" class="text-muted">0 players</p>
-        </div>
-        <div>
-            <a href="/teams" class="btn btn-secondary">← Back to Teams</a>
-            <button class="btn btn-primary" onclick="showAddPlayerModal()">Add Player</button>
+<div id="team-data">
+    <!-- Loading state -->
+    <div class="card text-center">
+        <div class="d-flex justify-content-center align-items-center">
+            <div class="spinner-border text-primary me-2" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <span>Loading team data...</span>
         </div>
     </div>
-</div>
-
-<!-- Players Table -->
-<div class="card">
-    <h3>Team Roster</h3>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Name</th>
-                <th>Position</th>
-                <th>Height</th>
-                <th>Weight</th>
-                <th>Year</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="players-table-body">
-            <tr>
-                <td colspan="7" class="loading-message">Loading players...</td>
-            </tr>
-        </tbody>
-    </table>
 </div>
 
 <!-- Add/Edit Player Modal -->
@@ -115,7 +90,7 @@
 </div>
 
 <style>
-/* Modal styles (same as teams/index.html) */
+/* Modal styles */
 .modal {
     position: fixed;
     z-index: 1000;
@@ -256,58 +231,284 @@ let deletePlayerId = null;
 document.addEventListener('DOMContentLoaded', () => {
     const pathParts = window.location.pathname.split('/');
     teamId = parseInt(pathParts[2]); // /teams/{team_id}
-    loadTeamDetail();
+    loadTeamData();
 });
 
-async function loadTeamDetail() {
+async function loadTeamData() {
     try {
-        const response = await fetch(`/v1/teams/${teamId}/detail`);
-        if (!response.ok) {
+        // Fetch both team details and stats in parallel
+        const [teamResponse, statsResponse] = await Promise.all([
+            fetch(`/v1/teams/${teamId}/detail`),
+            fetch(`/v1/teams/${teamId}/stats`)
+        ]);
+
+        if (!teamResponse.ok || !statsResponse.ok) {
             throw new Error('Team not found');
         }
-        
-        const team = await response.json();
-        
-        // Update page header
-        document.getElementById('team-display-name').textContent = team.display_name || team.name;
-        document.getElementById('team-name').textContent = `Short name: ${team.name}`;
-        document.getElementById('player-count').textContent = `${team.players.length} player${team.players.length !== 1 ? 's' : ''}`;
-        
-        // Update players table
-        const tableBody = document.getElementById('players-table-body');
-        tableBody.innerHTML = '';
-        
-        if (team.players.length === 0) {
-            const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="7">No players on this team. <a href="#" onclick="showAddPlayerModal()">Add the first player</a>.</td>';
-            tableBody.appendChild(row);
-        } else {
-            team.players.forEach(player => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td><strong>#${player.jersey_number}</strong></td>
-                    <td>${player.name}</td>
-                    <td>${player.position || '-'}</td>
-                    <td>${player.height ? formatHeight(player.height) : '-'}</td>
-                    <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
-                    <td>${player.year || '-'}</td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="showDeletePlayerModal(${player.id}, '${player.name}')">Delete</button>
-                        </div>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-        
+
+        const teamData = await teamResponse.json();
+        const statsData = await statsResponse.json();
+
+        renderTeamData(teamData, statsData);
     } catch (error) {
-        console.error('Error loading team:', error);
-        document.getElementById('team-name').textContent = 'Error loading team';
-        const tableBody = document.getElementById('players-table-body');
-        tableBody.innerHTML = '<tr><td colspan="7" class="error-message">Failed to load team details.</td></tr>';
+        console.error('Error:', error);
+        document.getElementById('team-data').innerHTML = `
+            <div class="alert alert-danger">
+                <p class="mb-0">Error loading team data. Please try again later.</p>
+            </div>
+        `;
     }
+}
+
+function renderTeamData(teamData, statsData) {
+    const team = teamData;
+    const careerStats = statsData.career_stats;
+    const seasonStats = statsData.season_stats;
+    const recentGames = statsData.recent_games;
+
+    document.getElementById('team-data').innerHTML = `
+        <!-- Team Header -->
+        <div class="card mb-4">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <div class="rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                            <i class="fas fa-users fa-3x text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <h1 class="h2 mb-2 text-white">${team.display_name || team.name}</h1>
+                        <div class="mb-2">
+                            <span class="text-white-50">Team: ${team.name}</span>
+                        </div>
+                        <div class="small text-white-50">
+                            ${team.players.length} player${team.players.length !== 1 ? 's' : ''}
+                        </div>
+                    </div>
+                    <div class="col-auto">
+                        <a href="/teams" class="btn btn-outline-light me-2">
+                            <i class="fas fa-arrow-left me-2"></i>Back to Teams
+                        </a>
+                        <button onclick="showAddPlayerModal()" class="btn btn-light">
+                            <i class="fas fa-plus me-2"></i>Add Player
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="row mb-4">
+            <!-- Career Stats -->
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Career Statistics</h5>
+                        <div class="row text-center">
+                            <div class="col-6 mb-3">
+                                <div class="border-end">
+                                    <h4 class="mb-0 text-primary">${careerStats.games_played}</h4>
+                                    <small class="text-muted">Games Played</small>
+                                </div>
+                            </div>
+                            <div class="col-6 mb-3">
+                                <h4 class="mb-0 text-primary">${careerStats.wins}-${careerStats.losses}</h4>
+                                <small class="text-muted">Win-Loss Record</small>
+                            </div>
+                            <div class="col-6">
+                                <div class="border-end">
+                                    <h4 class="mb-0 text-primary">${careerStats.win_percentage}%</h4>
+                                    <small class="text-muted">Win Percentage</small>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <h4 class="mb-0 text-primary">${careerStats.ppg}</h4>
+                                <small class="text-muted">Points Per Game</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="shooting-stats">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Free Throws</span>
+                                <strong>${careerStats.total_ftm}/${careerStats.total_fta} (${careerStats.ft_percentage}%)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>2-Pointers</span>
+                                <strong>${careerStats.total_2pm}/${careerStats.total_2pa} (${careerStats.fg2_percentage}%)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>3-Pointers</span>
+                                <strong>${careerStats.total_3pm}/${careerStats.total_3pa} (${careerStats.fg3_percentage}%)</strong>
+                            </div>
+                            <hr class="my-2">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Points For/Against</span>
+                                <strong>${careerStats.total_points_for}/${careerStats.total_points_against}</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>Point Differential</span>
+                                <strong>${careerStats.point_diff > 0 ? '+' : ''}${careerStats.point_diff}</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Season Stats -->
+            <div class="col-md-6 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Current Season Statistics</h5>
+                        ${seasonStats ? `
+                            <div class="row text-center">
+                                <div class="col-6 mb-3">
+                                    <div class="border-end">
+                                        <h4 class="mb-0 text-primary">${seasonStats.games_played}</h4>
+                                        <small class="text-muted">Games Played</small>
+                                    </div>
+                                </div>
+                                <div class="col-6 mb-3">
+                                    <h4 class="mb-0 text-primary">${seasonStats.wins}-${seasonStats.losses}</h4>
+                                    <small class="text-muted">Win-Loss Record</small>
+                                </div>
+                                <div class="col-6">
+                                    <div class="border-end">
+                                        <h4 class="mb-0 text-primary">${seasonStats.win_percentage}%</h4>
+                                        <small class="text-muted">Win Percentage</small>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <h4 class="mb-0 text-primary">${seasonStats.ppg}</h4>
+                                    <small class="text-muted">Points Per Game</small>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="shooting-stats">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Free Throws</span>
+                                    <strong>${seasonStats.total_ftm}/${seasonStats.total_fta} (${seasonStats.ft_percentage}%)</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>2-Pointers</span>
+                                    <strong>${seasonStats.total_2pm}/${seasonStats.total_2pa} (${seasonStats.fg2_percentage}%)</strong>
+                                </div>
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>3-Pointers</span>
+                                    <strong>${seasonStats.total_3pm}/${seasonStats.total_3pa} (${seasonStats.fg3_percentage}%)</strong>
+                                </div>
+                                <hr class="my-2">
+                                <div class="d-flex justify-content-between mb-2">
+                                    <span>Points For/Against</span>
+                                    <strong>${seasonStats.total_points_for}/${seasonStats.total_points_against}</strong>
+                                </div>
+                                <div class="d-flex justify-content-between">
+                                    <span>Point Differential</span>
+                                    <strong>${seasonStats.point_diff > 0 ? '+' : ''}${seasonStats.point_diff}</strong>
+                                </div>
+                            </div>
+                        ` : `
+                            <p class="text-muted">No season statistics available yet.</p>
+                        `}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Games -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Recent Games</h5>
+                ${recentGames.length > 0 ? `
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Opponent</th>
+                                    <th class="text-center">Score</th>
+                                    <th class="text-center">Result</th>
+                                    <th class="text-center">FT</th>
+                                    <th class="text-center">FT%</th>
+                                    <th class="text-center">2PT</th>
+                                    <th class="text-center">2PT%</th>
+                                    <th class="text-center">3PT</th>
+                                    <th class="text-center">3PT%</th>
+                                    <th class="text-center">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${recentGames.map(game => `
+                                <tr>
+                                    <td>${new Date(game.date).toLocaleDateString()}</td>
+                                    <td>${game.opponent}</td>
+                                    <td class="text-center">${game.team_points}-${game.opponent_points}</td>
+                                    <td class="text-center">
+                                        <span class="badge bg-${game.win ? 'success' : 'danger'}">${game.win ? 'W' : 'L'}</span>
+                                    </td>
+                                    <td class="text-center">${game.ft}</td>
+                                    <td class="text-center">${game.ft_percentage}%</td>
+                                    <td class="text-center">${game.fg2}</td>
+                                    <td class="text-center">${game.fg2_percentage}%</td>
+                                    <td class="text-center">${game.fg3}</td>
+                                    <td class="text-center">${game.fg3_percentage}%</td>
+                                    <td class="text-center">
+                                        <a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a>
+                                    </td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : `
+                    <p class="text-muted">No games played yet.</p>
+                `}
+            </div>
+        </div>
+
+        <!-- Team Roster -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Team Roster</h5>
+                ${team.players.length > 0 ? `
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Name</th>
+                                    <th>Position</th>
+                                    <th>Height</th>
+                                    <th>Weight</th>
+                                    <th>Year</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${team.players.map(player => `
+                                <tr>
+                                    <td><strong>#${player.jersey_number}</strong></td>
+                                    <td><a href="/players/${player.id}" class="text-decoration-none">${player.name}</a></td>
+                                    <td>${player.position || '-'}</td>
+                                    <td>${player.height ? formatHeight(player.height) : '-'}</td>
+                                    <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
+                                    <td>${player.year || '-'}</td>
+                                    <td>
+                                        <div class="action-buttons">
+                                            <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
+                                            <button class="btn btn-sm btn-danger" onclick="showDeletePlayerModal(${player.id}, '${player.name}')">Delete</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                ` : `
+                    <p class="text-muted">No players on this team. <a href="#" onclick="showAddPlayerModal()">Add the first player</a>.</p>
+                `}
+            </div>
+        </div>
+    `;
 }
 
 function formatHeight(inches) {
@@ -407,7 +608,7 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
         
         if (response.ok) {
             closePlayerModal();
-            await loadTeamDetail();
+            await loadTeamData();
         } else {
             const error = await response.json();
             alert(`Error: ${error.detail}`);
@@ -427,7 +628,7 @@ async function confirmDeletePlayer() {
         if (response.ok) {
             const result = await response.json();
             closeDeletePlayerModal();
-            await loadTeamDetail();
+            await loadTeamData();
             
             // Show message about deactivation vs deletion
             if (result.message.includes('deactivated')) {
