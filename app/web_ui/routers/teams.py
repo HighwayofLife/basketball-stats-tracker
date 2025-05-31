@@ -1,7 +1,6 @@
 """Teams router for Basketball Stats Tracker."""
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -13,23 +12,34 @@ from app.services.audit_log_service import AuditLogService
 from app.services.season_stats_service import SeasonStatsService
 
 from ..dependencies import get_db, get_player_repository, get_team_repository
-from ..schemas import PlayerResponse, TeamCreateRequest, TeamDetailResponse, TeamResponse, TeamUpdateRequest
+from ..schemas import (
+    DeletedTeamResponse,
+    PlayerResponse,
+    RosterPlayer,
+    TeamBasicResponse,
+    TeamCreateRequest,
+    TeamDetailResponse,
+    TeamResponse,
+    TeamStatsResponse,
+    TeamUpdateRequest,
+    TeamWithRosterResponse,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/teams", tags=["teams"])
 
 
-@router.get("", response_model=list[dict[str, Any]])
+@router.get("", response_model=list[TeamBasicResponse])
 async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get a list of all teams."""
     try:
         teams: list = team_repo.get_all()
         return [
-            {
-                "id": team.id,
-                "name": team.name,
-                "display_name": team.display_name,
-            }
+            TeamBasicResponse(
+                id=team.id,
+                name=team.name,
+                display_name=team.display_name,
+            )
             for team in teams
         ]
     except Exception as e:
@@ -56,7 +66,7 @@ async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_re
         raise HTTPException(status_code=500, detail="Failed to retrieve teams") from e
 
 
-@router.get("/{team_id}", response_model=dict[str, Any])
+@router.get("/{team_id}", response_model=TeamWithRosterResponse)
 async def get_team(
     team_id: int,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
@@ -71,19 +81,19 @@ async def get_team(
         # Get team roster
         players = player_repo.get_team_players(team_id)
 
-        return {
-            "id": team.id,
-            "name": team.name,
-            "display_name": team.display_name,
-            "roster": [
-                {
-                    "id": player.id,
-                    "name": player.name,
-                    "jersey_number": player.jersey_number,
-                }
+        return TeamWithRosterResponse(
+            id=team.id,
+            name=team.name,
+            display_name=team.display_name,
+            roster=[
+                RosterPlayer(
+                    id=player.id,
+                    name=player.name,
+                    jersey_number=player.jersey_number,
+                )
                 for player in players
             ],
-        }
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -129,7 +139,7 @@ async def get_team_detail(
         raise HTTPException(status_code=500, detail="Failed to retrieve team") from e
 
 
-@router.get("/{team_id}/stats", response_model=dict[str, Any])
+@router.get("/{team_id}/stats", response_model=TeamStatsResponse)
 async def get_team_stats(
     team_id: int,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
@@ -148,7 +158,7 @@ async def get_team_stats(
         current_season = None
         try:
             # Get latest game to determine current season
-            from sqlalchemy import desc
+            from sqlalchemy import desc, func
 
             from app.data_access.models import Game
 
@@ -281,50 +291,47 @@ async def get_team_stats(
         )
 
         recent_games_data = []
-        for game in recent_games:
-            # Calculate team totals for this game
-            # Batch query to fetch and aggregate player stats for all games in recent_games
-            stats_query = (
-                db.query(
-                    PlayerGameStats.game_id,
-                    Player.team_id,
-                    func.sum(PlayerGameStats.total_ftm).label("total_ftm"),
-                    func.sum(PlayerGameStats.total_fta).label("total_fta"),
-                    func.sum(PlayerGameStats.total_2pm).label("total_2pm"),
-                    func.sum(PlayerGameStats.total_2pa).label("total_2pa"),
-                    func.sum(PlayerGameStats.total_3pm).label("total_3pm"),
-                    func.sum(PlayerGameStats.total_3pa).label("total_3pa"),
-                    func.sum(
-                        PlayerGameStats.total_ftm + (PlayerGameStats.total_2pm * 2) + (PlayerGameStats.total_3pm * 3)
-                    ).label("total_points"),
-                )
-                .join(Player)
-                .filter(PlayerGameStats.game_id.in_([game.id for game in recent_games]))
-                .group_by(PlayerGameStats.game_id, Player.team_id)
-                .all()
+
+        # Batch query to fetch and aggregate player stats for all games in recent_games
+        stats_query = (
+            db.query(
+                PlayerGameStats.game_id,
+                Player.team_id,
+                func.sum(PlayerGameStats.total_ftm).label("total_ftm"),
+                func.sum(PlayerGameStats.total_fta).label("total_fta"),
+                func.sum(PlayerGameStats.total_2pm).label("total_2pm"),
+                func.sum(PlayerGameStats.total_2pa).label("total_2pa"),
+                func.sum(PlayerGameStats.total_3pm).label("total_3pm"),
+                func.sum(PlayerGameStats.total_3pa).label("total_3pa"),
+                func.sum(
+                    PlayerGameStats.total_ftm + (PlayerGameStats.total_2pm * 2) + (PlayerGameStats.total_3pm * 3)
+                ).label("total_points"),
             )
+            .join(Player)
+            .filter(PlayerGameStats.game_id.in_([game.id for game in recent_games]))
+            .group_by(PlayerGameStats.game_id, Player.team_id)
+            .all()
+        )
 
-            # Organize stats by game_id and team_id for quick lookup
-            stats_by_game_and_team = {
-                (stat.game_id, stat.team_id): stat for stat in stats_query
-            }
+        # Organize stats by game_id and team_id for quick lookup
+        stats_by_game_and_team = {(stat.game_id, stat.team_id): stat for stat in stats_query}
 
-            for game in recent_games:
-                team_stats = stats_by_game_and_team.get((game.id, team_id), None)
-                opponent_stats = stats_by_game_and_team.get((game.id, opponent_team_id), None)
-
-                team_points = team_stats.total_points if team_stats else 0
-                team_ftm = team_stats.total_ftm if team_stats else 0
-                team_fta = team_stats.total_fta if team_stats else 0
-                team_2pm = team_stats.total_2pm if team_stats else 0
-                team_2pa = team_stats.total_2pa if team_stats else 0
-                team_3pm = team_stats.total_3pm if team_stats else 0
-                team_3pa = team_stats.total_3pa if team_stats else 0
-
-            # Get opponent info and points
+        for game in recent_games:
+            # Get opponent info first
             opponent_team_id = game.opponent_team_id if game.playing_team_id == team_id else game.playing_team_id
             opponent_team = team_repo.get_by_id(opponent_team_id)
             opponent_name = opponent_team.display_name or opponent_team.name if opponent_team else "Unknown"
+
+            team_stats = stats_by_game_and_team.get((game.id, team_id), None)
+            opponent_stats = stats_by_game_and_team.get((game.id, opponent_team_id), None)
+
+            team_points = team_stats.total_points if team_stats else 0
+            team_ftm = team_stats.total_ftm if team_stats else 0
+            team_fta = team_stats.total_fta if team_stats else 0
+            team_2pm = team_stats.total_2pm if team_stats else 0
+            team_2pa = team_stats.total_2pa if team_stats else 0
+            team_3pm = team_stats.total_3pm if team_stats else 0
+            team_3pa = team_stats.total_3pa if team_stats else 0
 
             # Calculate opponent points
             opponent_points = opponent_stats.total_points if opponent_stats else 0
@@ -335,8 +342,8 @@ async def get_team_stats(
                     "date": game.date.isoformat(),
                     "opponent": opponent_name,
                     "team_points": team_points,
-                    "opponent_points": opp_points,
-                    "win": team_points > opp_points,
+                    "opponent_points": opponent_points,
+                    "win": team_points > opponent_points,
                     "ft": f"{team_ftm}/{team_fta}",
                     "fg2": f"{team_2pm}/{team_2pa}",
                     "fg3": f"{team_3pm}/{team_3pa}",
@@ -368,7 +375,7 @@ async def get_team_stats(
 async def create_team(
     team_data: TeamCreateRequest,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),  # noqa: B008
 ):
     """Create a new team."""
     try:
@@ -391,7 +398,7 @@ async def update_team(
     team_id: int,
     team_data: TeamUpdateRequest,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),  # noqa: B008
 ):
     """Update a team."""
     try:
@@ -438,7 +445,7 @@ async def update_team(
 async def delete_team(
     team_id: int,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),  # noqa: B008
 ):
     """Delete a team and all its players."""
     try:
@@ -461,17 +468,17 @@ async def delete_team(
         raise HTTPException(status_code=500, detail="Failed to delete team") from e
 
 
-@router.get("/deleted", response_model=list[dict[str, Any]])
+@router.get("/deleted", response_model=list[DeletedTeamResponse])
 async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get all soft-deleted teams."""
     try:
         deleted_teams = team_repo.get_deleted_teams()
         return [
-            {
-                "id": team.id,
-                "name": team.name,
-                "deleted_at": team.deleted_at.isoformat() if team.deleted_at else None,
-            }
+            DeletedTeamResponse(
+                id=team.id,
+                name=team.name,
+                deleted_at=team.deleted_at.isoformat() if team.deleted_at else None,
+            )
             for team in deleted_teams
         ]
     except Exception as e:
@@ -482,9 +489,9 @@ async def get_deleted_teams(team_repo: TeamRepository = Depends(get_team_reposit
 @router.post("/{team_id}/restore")
 async def restore_team(
     team_id: int,
-    team_repo: TeamRepository = Depends(get_team_repository),
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
     db=Depends(get_db),  # noqa: B008
-    current_user: User = Depends(require_admin),
+    current_user: User = Depends(require_admin),  # noqa: B008
 ):
     """Restore a soft-deleted team."""
     try:

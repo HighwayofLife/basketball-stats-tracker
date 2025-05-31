@@ -200,7 +200,9 @@ async def teams_page(request: Request):
 @router.get("/teams/{team_id}", response_class=HTMLResponse)
 async def team_detail_page(request: Request, team_id: int):
     """Render the team detail page."""
-    return templates.TemplateResponse("teams/detail.html", {"request": request, "title": "Team Details"})
+    return templates.TemplateResponse(
+        "teams/detail.html", {"request": request, "title": "Team Details", "team_id": team_id}
+    )
 
 
 @router.get("/players", response_class=HTMLResponse)

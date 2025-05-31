@@ -223,14 +223,12 @@
 </style>
 
 <script>
-let teamId = null;
+let teamId = {{ team_id }};
 let currentPlayerId = null;
 let deletePlayerId = null;
 
-// Get team ID from URL
+// Load team data when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    const pathParts = window.location.pathname.split('/');
-    teamId = parseInt(pathParts[2]); // /teams/{team_id}
     loadTeamData();
 });
 
