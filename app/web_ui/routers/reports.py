@@ -10,6 +10,8 @@ from fastapi.requests import Request
 from fastapi.responses import HTMLResponse, StreamingResponse
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import get_current_user
+from app.auth.models import User
 from app.data_access.crud import (
     crud_game,
     crud_player,
@@ -420,10 +422,12 @@ async def get_player_season_report(
         "season": season or "All",
         "season_stats": {
             "games_played": season_stats.games_played if season_stats else len(game_stats),
-            "points": total_points
-            if not season_stats
-            else stats_calculator.calculate_points(
-                season_stats.total_ftm, season_stats.total_2pm, season_stats.total_3pm
+            "points": (
+                total_points
+                if not season_stats
+                else stats_calculator.calculate_points(
+                    season_stats.total_ftm, season_stats.total_2pm, season_stats.total_3pm
+                )
             ),
             "assists": 0,  # Not tracked
             "rebounds": 0,  # Not tracked
@@ -593,6 +597,7 @@ async def export_report(
     id: int,
     db: Annotated[Session, Depends(get_db)],
     format: Annotated[str, Query(regex="^(csv|json)$")] = "csv",
+    current_user: User = Depends(get_current_user),
 ):
     """Export report data in various formats."""
     if report_type == "box-score":

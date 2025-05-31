@@ -34,7 +34,9 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Blue Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats = Mock(
+            spec=["TeamName", "PlayerJersey", "PlayerName", "QT1Shots", "QT2Shots", "QT3Shots", "QT4Shots"]
+        )
         player_stats.TeamName = "Blue Team"
         player_stats.PlayerJersey = "99"
         player_stats.PlayerName = "Unknown"
@@ -66,7 +68,9 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Red Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats = Mock(
+            spec=["TeamName", "PlayerJersey", "PlayerName", "QT1Shots", "QT2Shots", "QT3Shots", "QT4Shots"]
+        )
         player_stats.TeamName = "Red Team"
         player_stats.PlayerJersey = "00"
         player_stats.PlayerName = "Unidentified"
@@ -96,7 +100,7 @@ class TestSubstitutePlayerHandling:
         """Test the _is_substitute_player method."""
         # Mock no guest team exists
         mock_db.query.return_value.filter_by.return_value.first.return_value = None
-        
+
         # Test with empty configuration
         assert import_processor._is_substitute_player("John Doe", "1") is False
 
@@ -110,7 +114,7 @@ class TestSubstitutePlayerHandling:
             None,  # But no substitute player exists
         ]
         assert import_processor._is_substitute_player("John Doe", "1") is False
-        
+
         # Mock substitute player exists
         mock_db.query.return_value.filter_by.return_value.first.side_effect = [
             guest_team,  # Guest team exists
@@ -124,7 +128,9 @@ class TestSubstitutePlayerHandling:
         team = Team(id=1, name="Green Team")
         mock_db.query.return_value.filter.return_value.first.return_value = team
 
-        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats = Mock(
+            spec=["TeamName", "PlayerJersey", "PlayerName", "QT1Shots", "QT2Shots", "QT3Shots", "QT4Shots"]
+        )
         player_stats.TeamName = "Green Team"
         player_stats.PlayerJersey = "0"
         player_stats.PlayerName = "Sub Player"
@@ -157,12 +163,14 @@ class TestSubstitutePlayerHandling:
         """Test that regular players are handled normally."""
         # Setup
         team = Team(id=1, name="Blue Team")
-        
+
         # Mock team lookup and _is_substitute_player to return False
         mock_db.query.return_value.filter.return_value.first.return_value = team
         mock_db.query.return_value.filter_by.return_value.first.return_value = None  # No guest team
 
-        player_stats = Mock(spec=['TeamName', 'PlayerJersey', 'PlayerName', 'QT1Shots', 'QT2Shots', 'QT3Shots', 'QT4Shots'])
+        player_stats = Mock(
+            spec=["TeamName", "PlayerJersey", "PlayerName", "QT1Shots", "QT2Shots", "QT3Shots", "QT4Shots"]
+        )
         player_stats.TeamName = "Blue Team"
         player_stats.PlayerJersey = "23"
         player_stats.PlayerName = "Michael Jordan"
@@ -233,15 +241,15 @@ class TestPlayerServiceSubstitutes:
 
         # Set up the query mocks for multiple filter patterns
         mock_query = mock_db.query.return_value
-        
+
         # For Team query with filter_by(name="Guest Players")
         mock_team_filter = Mock()
         mock_team_filter.first.return_value = guest_team
-        
+
         # For Player query with filter_by(team_id=99, jersey_number="00", is_substitute=True)
         mock_player_filter = Mock()
         mock_player_filter.first.return_value = existing_player
-        
+
         # Set up filter_by to return different mocks based on arguments
         def filter_by_side_effect(**kwargs):
             if "name" in kwargs and kwargs["name"] == "Guest Players":
@@ -249,7 +257,7 @@ class TestPlayerServiceSubstitutes:
             elif "team_id" in kwargs and "jersey_number" in kwargs:
                 return mock_player_filter
             return Mock()
-        
+
         mock_query.filter_by.side_effect = filter_by_side_effect
 
         with patch("app.data_access.crud.crud_team.get_team_by_name", return_value=guest_team):
@@ -264,18 +272,18 @@ class TestPlayerServiceSubstitutes:
         """Test that substitute players get default names when not provided."""
         # Mock guest team
         guest_team = Team(id=99, name="Guest Players")
-        
+
         # Set up the query mocks
         mock_query = mock_db.query.return_value
-        
+
         # For Team query with filter_by(name="Guest Players")
         mock_team_filter = Mock()
         mock_team_filter.first.return_value = guest_team
-        
+
         # For Player query - no existing player
         mock_player_filter = Mock()
         mock_player_filter.first.return_value = None
-        
+
         # Set up filter_by to return different mocks based on arguments
         def filter_by_side_effect(**kwargs):
             if "name" in kwargs and kwargs["name"] == "Guest Players":
@@ -283,7 +291,7 @@ class TestPlayerServiceSubstitutes:
             elif "team_id" in kwargs and "jersey_number" in kwargs:
                 return mock_player_filter
             return Mock()
-        
+
         mock_query.filter_by.side_effect = filter_by_side_effect
 
         with patch("app.data_access.crud.crud_team.get_team_by_name", return_value=guest_team):
@@ -298,7 +306,7 @@ class TestPlayerServiceSubstitutes:
             # Reset mocks and test with "unknown" name
             mock_db.reset_mock()
             mock_player_filter.first.return_value = None  # Still no existing player
-            
+
             result = player_service.get_or_create_substitute_player("2", "Unknown")
 
             # Assert default name was used

@@ -117,6 +117,7 @@ def get_version_from_pyproject() -> str:
     """Read version from pyproject.toml."""
     try:
         import re
+
         pyproject_path = BASE_DIR / "pyproject.toml"
         if pyproject_path.exists():
             content = pyproject_path.read_text()

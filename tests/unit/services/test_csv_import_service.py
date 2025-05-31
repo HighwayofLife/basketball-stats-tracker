@@ -136,7 +136,7 @@ Missing required rows"""
         with patch("builtins.open", mock_open(read_data=invalid_roster_csv_content)):
             with pytest.raises(ValueError) as exc_info:
                 csv_import_service._read_and_validate_roster_csv(Path("/path/to/roster.csv"))
-            
+
             assert "CSV file missing required headers" in str(exc_info.value)
 
     @patch("typer.echo")
@@ -180,7 +180,7 @@ Lakers,LeBron James,twenty-three"""
         mock_db.query.return_value.filter.return_value.first.side_effect = [
             team_mock,  # First player team lookup
             None,  # First player doesn't exist
-            team_mock,  # Second player team lookup  
+            team_mock,  # Second player team lookup
             None,  # Second player doesn't exist
         ]
 
@@ -189,9 +189,7 @@ Lakers,LeBron James,twenty-three"""
             {"team_name": "Lakers", "name": "Anthony Davis", "jersey_number": "3"},
         ]
 
-        players_processed, players_error = csv_import_service._process_players(
-            mock_db, player_data
-        )
+        players_processed, players_error = csv_import_service._process_players(mock_db, player_data)
 
         assert players_processed == 2
         assert players_error == 0
@@ -203,25 +201,23 @@ Lakers,LeBron James,twenty-three"""
     def test_process_players_with_conflict(self, mock_names_match, mock_echo):
         """Test _process_players with player conflicts."""
         mock_db = MagicMock()
-        
+
         # Mock team lookup
         team_mock = MagicMock(id=1, name="Lakers")
         # Mock existing player with different name
         existing_player = MagicMock(name="Different Player", jersey_number="23")
-        
+
         mock_db.query.return_value.filter.return_value.first.side_effect = [
             team_mock,  # Team lookup
             existing_player,  # Player lookup - conflict
         ]
-        
+
         # Names don't match
         mock_names_match.return_value = False
 
         player_data = [{"team_name": "Lakers", "name": "LeBron James", "jersey_number": "23"}]
 
-        players_processed, players_error = csv_import_service._process_players(
-            mock_db, player_data
-        )
+        players_processed, players_error = csv_import_service._process_players(mock_db, player_data)
 
         assert players_processed == 0
         assert players_error == 1
@@ -302,7 +298,7 @@ Lakers,LeBron James,twenty-three"""
         player_stats_header = [
             "Team",
             "Jersey Number",  # Match the expected header format
-            "Player Name",    # Match the expected header format
+            "Player Name",  # Match the expected header format
             "Fouls",
             "Q1",
             "Q2",
@@ -311,9 +307,7 @@ Lakers,LeBron James,twenty-three"""
         ]
         player_stats_rows = [["Lakers", "23", "LeBron James", "2", "22-1x", "", "", ""]]
 
-        result = csv_import_service._validate_game_stats_data(
-            game_info_data, player_stats_header, player_stats_rows
-        )
+        result = csv_import_service._validate_game_stats_data(game_info_data, player_stats_header, player_stats_rows)
 
         assert result is not None
         assert isinstance(result, GameStatsCSVInputSchema)
@@ -415,9 +409,7 @@ Lakers,LeBron James,twenty-three"""
 
         mock_process_stats.return_value = True
 
-        result = csv_import_service._record_player_stats(
-            mock_db, mock_game, player_stats
-        )
+        result = csv_import_service._record_player_stats(mock_db, mock_game, player_stats)
 
         assert result is True
         mock_process_stats.assert_called_once_with(mock_game, player_stats)
@@ -437,9 +429,7 @@ Lakers,LeBron James,twenty-three"""
 
         mock_process_stats.return_value = False
 
-        result = csv_import_service._record_player_stats(
-            mock_db, mock_game, player_stats
-        )
+        result = csv_import_service._record_player_stats(mock_db, mock_game, player_stats)
 
         assert result is False
 
@@ -459,6 +449,4 @@ Lakers,LeBron James,twenty-three"""
         mock_process_stats.side_effect = SQLAlchemyError("DB error")
 
         with pytest.raises(SQLAlchemyError):
-            csv_import_service._record_player_stats(
-                mock_db, mock_game, player_stats
-            )
+            csv_import_service._record_player_stats(mock_db, mock_game, player_stats)

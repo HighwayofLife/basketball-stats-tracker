@@ -4,9 +4,11 @@ import logging
 import os
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import Integer, func
 
+from app.auth.dependencies import get_current_user, require_admin
+from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.utils import stats_calculator
@@ -62,7 +64,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True, pla
 
 
 @router.post("/new", response_model=PlayerResponse)
-async def create_player(player_data: PlayerCreateRequest):
+async def create_player(player_data: PlayerCreateRequest, current_user: User = Depends(get_current_user)):
     """Create a new player."""
     try:
         with get_db_session() as session:
@@ -183,7 +185,9 @@ async def get_player(player_id: int):
 
 
 @router.put("/{player_id}", response_model=PlayerResponse)
-async def update_player(player_id: int, player_data: PlayerUpdateRequest):
+async def update_player(
+    player_id: int, player_data: PlayerUpdateRequest, current_user: User = Depends(get_current_user)
+):
     """Update a player."""
     try:
         with get_db_session() as session:
@@ -254,7 +258,7 @@ async def update_player(player_id: int, player_data: PlayerUpdateRequest):
 
 
 @router.delete("/{player_id}")
-async def delete_player(player_id: int):
+async def delete_player(player_id: int, current_user: User = Depends(get_current_user)):
     """Delete a player (actually deactivates them if they have game stats)."""
     try:
         with get_db_session() as session:
@@ -405,29 +409,39 @@ async def get_player_stats(player_id: int):
                     "total_2pa": season_stats_record.total_2pa,
                     "total_3pm": season_stats_record.total_3pm,
                     "total_3pa": season_stats_record.total_3pa,
-                    "ppg": round(
-                        (
-                            season_stats_record.total_ftm
-                            + season_stats_record.total_2pm * 2
-                            + season_stats_record.total_3pm * 3
+                    "ppg": (
+                        round(
+                            (
+                                season_stats_record.total_ftm
+                                + season_stats_record.total_2pm * 2
+                                + season_stats_record.total_3pm * 3
+                            )
+                            / season_stats_record.games_played,
+                            1,
                         )
-                        / season_stats_record.games_played,
-                        1,
-                    )
-                    if season_stats_record.games_played > 0
-                    else 0,
-                    "fpg": round(season_stats_record.total_fouls / season_stats_record.games_played, 1)
-                    if season_stats_record.games_played > 0
-                    else 0,
-                    "ft_percentage": round(season_stats_record.total_ftm / season_stats_record.total_fta * 100, 1)
-                    if season_stats_record.total_fta > 0
-                    else 0,
-                    "fg2_percentage": round(season_stats_record.total_2pm / season_stats_record.total_2pa * 100, 1)
-                    if season_stats_record.total_2pa > 0
-                    else 0,
-                    "fg3_percentage": round(season_stats_record.total_3pm / season_stats_record.total_3pa * 100, 1)
-                    if season_stats_record.total_3pa > 0
-                    else 0,
+                        if season_stats_record.games_played > 0
+                        else 0
+                    ),
+                    "fpg": (
+                        round(season_stats_record.total_fouls / season_stats_record.games_played, 1)
+                        if season_stats_record.games_played > 0
+                        else 0
+                    ),
+                    "ft_percentage": (
+                        round(season_stats_record.total_ftm / season_stats_record.total_fta * 100, 1)
+                        if season_stats_record.total_fta > 0
+                        else 0
+                    ),
+                    "fg2_percentage": (
+                        round(season_stats_record.total_2pm / season_stats_record.total_2pa * 100, 1)
+                        if season_stats_record.total_2pa > 0
+                        else 0
+                    ),
+                    "fg3_percentage": (
+                        round(season_stats_record.total_3pm / season_stats_record.total_3pa * 100, 1)
+                        if season_stats_record.total_3pa > 0
+                        else 0
+                    ),
                 }
             else:
                 season_stats = None
@@ -456,7 +470,9 @@ async def get_player_stats(player_id: int):
 
 
 @router.post("/{player_id}/upload-image")
-async def upload_player_image(player_id: int, file: UploadFile = File(...)):
+async def upload_player_image(
+    player_id: int, file: UploadFile = File(...), current_user: User = Depends(get_current_user)
+):
     """Upload a thumbnail image for a player."""
     try:
         # Validate file type
@@ -514,7 +530,7 @@ async def upload_player_image(player_id: int, file: UploadFile = File(...)):
 
 
 @router.post("/{player_id}/restore")
-async def restore_player(player_id: int):
+async def restore_player(player_id: int, current_user: User = Depends(require_admin)):
     """Restore a soft-deleted player."""
     try:
         with get_db_session() as session:

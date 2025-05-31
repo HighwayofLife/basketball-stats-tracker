@@ -47,7 +47,14 @@ class AuthService:
 
         # Create new user
         hashed_password = get_password_hash(password)
-        user = User(username=username, email=email, hashed_password=hashed_password, full_name=full_name, role=role)
+        user = User(
+            username=username,
+            email=email,
+            hashed_password=hashed_password,
+            full_name=full_name,
+            role=role,
+            provider="local",  # Mark as locally created user
+        )
 
         self.db.add(user)
         self.db.commit()
@@ -71,7 +78,11 @@ class AuthService:
         if not user:
             return None
 
-        if not verify_password(password, user.hashed_password):
+        # OAuth users cannot login with password
+        if user.provider != "local":
+            return None
+
+        if not user.hashed_password or not verify_password(password, user.hashed_password):
             return None
 
         if not user.is_active:
@@ -180,3 +191,63 @@ class AuthService:
         refresh_token = create_refresh_token(refresh_token_data)
 
         return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+    def get_user_by_email(self, email: str) -> User | None:
+        """Get user by email.
+
+        Args:
+            email: Email address
+
+        Returns:
+            User object if found, None otherwise
+        """
+        return self.db.query(User).filter(User.email == email).first()
+
+    def create_oauth_user(
+        self,
+        username: str,
+        email: str,
+        full_name: str | None,
+        provider: str,
+        provider_id: str,
+        role: UserRole = UserRole.USER,
+    ) -> User:
+        """Create a new OAuth user.
+
+        Args:
+            username: Username
+            email: Email address
+            full_name: Full name
+            provider: OAuth provider (e.g., 'google')
+            provider_id: Unique ID from provider
+            role: User role (defaults to USER)
+
+        Returns:
+            Created user object
+        """
+        user = User(
+            username=username,
+            email=email,
+            full_name=full_name,
+            role=role,
+            provider=provider,
+            provider_id=provider_id,
+            hashed_password=None,  # OAuth users don't have passwords
+        )
+
+        self.db.add(user)
+        self.db.commit()
+        self.db.refresh(user)
+
+        return user
+
+    def update_last_login(self, user_id: int) -> None:
+        """Update user's last login timestamp.
+
+        Args:
+            user_id: User ID
+        """
+        user = self.get_user_by_id(user_id)
+        if user:
+            user.last_login = datetime.utcnow()
+            self.db.commit()

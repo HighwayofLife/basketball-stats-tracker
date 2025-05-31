@@ -78,10 +78,10 @@ def test_import_game_template(cli_runner, template_csv_path, db_session, monkeyp
     # Refresh the session to see committed changes
     db_session.commit()
     db_session.expire_all()
-    
+
     # Check game stats were created
     player_game_stats = db_session.query(PlayerGameStats).all()
-    # Also check quarter stats  
+    # Also check quarter stats
     player_quarter_stats = db_session.query(PlayerQuarterStats).all()
     print(f"Number of player game stats: {len(player_game_stats)}")
     print(f"Number of player quarter stats: {len(player_quarter_stats)}")

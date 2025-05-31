@@ -121,6 +121,73 @@ body {
   padding: 5px;
 }
 
+/* Dropdown navigation */
+.nav-dropdown {
+  position: relative;
+}
+
+.dropdown-toggle {
+  cursor: pointer;
+  padding: 5px 10px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  display: block;
+  width: auto;
+  min-width: 120px;
+}
+
+.dropdown-menu {
+  display: none !important;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: var(--card-background);
+  min-width: 200px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  z-index: 1000;
+  border: 1px solid var(--border-color);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  margin-top: 5px;
+}
+
+.dropdown-menu li {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dropdown-menu li:last-child {
+  border-bottom: none;
+}
+
+.dropdown-menu a {
+  display: block;
+  padding: 12px 16px;
+  color: var(--text-color);
+  text-decoration: none;
+  transition: background-color 0.2s ease;
+}
+
+.dropdown-menu a:hover {
+  background-color: rgba(255, 107, 0, 0.1);
+}
+
+.dropdown-menu a i {
+  margin-right: 8px;
+  width: 16px;
+  text-align: center;
+}
+
+.nav-dropdown:hover .dropdown-menu {
+  display: block;
+}
+
+/* Ensure dropdown stays visible when hovering over menu items */
+.nav-dropdown .dropdown-menu:hover {
+  display: block;
+}
+
 /* Beta Banner */
 .beta-banner {
   background-color: var(--beta-banner-color);

@@ -48,51 +48,49 @@ class SeasonStatsService:
             return f"{game_date.year}-{game_date.year + 1}"
         # Otherwise, it's part of the current year's season
         return f"{game_date.year - 1}-{game_date.year}"
-    
+
     def get_or_create_season_from_date(self, game_date: date) -> "Season | None":
         """Get or create a Season object based on a date.
-        
+
         Args:
             game_date: The date to determine season for
-            
+
         Returns:
             Season object or None if unable to determine season
         """
         from app.data_access.models import Season
-        
+
         # Determine season code based on date
         # For simplicity, we'll use the year-based season approach
         season_string = self.get_season_from_date(game_date)
-        
+
         # Create a season code (e.g., "2024-2025" becomes "2024-25")
-        years = season_string.split('-')
+        years = season_string.split("-")
         if len(years) == 2:
             season_code = f"{years[0]}-{years[1][-2:]}"
             season_name = f"Season {season_string}"
         else:
             return None
-            
+
         # Check if season exists
-        season = self.db_session.query(Season).filter(
-            Season.code == season_code
-        ).first()
-        
+        season = self.db_session.query(Season).filter(Season.code == season_code).first()
+
         if not season:
             # Create new season with reasonable defaults
             # Season starts in October and ends in May
             start_year = int(years[0])
             end_year = int(years[1])
-            
+
             season = Season(
                 name=season_name,
                 code=season_code,
                 start_date=date(start_year, 10, 1),  # October 1st
-                end_date=date(end_year, 5, 31),      # May 31st
-                is_active=True  # Assume active
+                end_date=date(end_year, 5, 31),  # May 31st
+                is_active=True,  # Assume active
             )
             self.db_session.add(season)
             self.db_session.flush()
-            
+
         return season
 
     def update_player_season_stats(self, player_id: int, season: str | None = None) -> PlayerSeasonStats | None:

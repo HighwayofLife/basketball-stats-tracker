@@ -162,21 +162,22 @@ class TestUIValidation:
             players = players_response.json()
             if players:
                 player_id = players[0]["id"]
-                
+
                 # Test the player detail page loads
                 detail_response = requests.get(f"{BASE_URL}/players/{player_id}")
                 assert detail_response.status_code == 200
-                
+
                 # Check that the JavaScript uses correct API URLs (without /api prefix)
                 content = detail_response.text
-                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), \
+                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
                     "Player detail page should use /v1/players/ID/stats endpoint"
-                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), \
+                )
+                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
                     "Player detail page should use /v1/players/ID/upload-image endpoint"
-                
+                )
+
                 # Ensure incorrect API URLs are not present
-                assert "/api/v1/players" not in content, \
-                    "Player detail page should not use /api/v1/players prefix"
+                assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
 
     def test_teams_page_loads(self, docker_containers):
         """Test that the teams page loads successfully."""

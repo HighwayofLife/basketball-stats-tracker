@@ -4,7 +4,7 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.data_access.db_session import get_db_session
+from app.web_ui.dependencies import get_db
 
 from .jwt_handler import verify_token
 from .models import User, UserRole
@@ -14,7 +14,7 @@ from .service import AuthService
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db_session)) -> User:
+async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
     """Get current authenticated user from JWT token.
 
     Args:
@@ -90,7 +90,7 @@ async def require_admin(current_user: User = Depends(get_current_active_user)) -
 
 
 async def get_optional_current_user(
-    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db_session)
+    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User | None:
     """Get current user if authenticated, None otherwise.
 
@@ -108,3 +108,102 @@ async def get_optional_current_user(
         return await get_current_user(token, db)
     except HTTPException:
         return None
+
+
+async def require_team_access(team_id: int, current_user: User = Depends(get_current_active_user)) -> User:
+    """Require access to specific team (admin or team member).
+
+    Args:
+        team_id: ID of the team to check access for
+        current_user: Current active user
+
+    Returns:
+        Current user if access is allowed
+
+    Raises:
+        HTTPException: If user doesn't have access to the team
+    """
+    # Admin users have access to all teams
+    if current_user.role == UserRole.ADMIN:
+        return current_user
+
+    # Check if user belongs to the team
+    if current_user.team_id != team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied: You can only access your own team's data"
+        )
+
+    return current_user
+
+
+async def require_player_access(
+    player_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
+) -> User:
+    """Require access to specific player (admin, team member, or the player themselves).
+
+    Args:
+        player_id: ID of the player to check access for
+        current_user: Current active user
+        db: Database session
+
+    Returns:
+        Current user if access is allowed
+
+    Raises:
+        HTTPException: If user doesn't have access to the player
+    """
+    # Admin users have access to all players
+    if current_user.role == UserRole.ADMIN:
+        return current_user
+
+    # Get player to check team
+    from app.data_access.models import Player
+
+    player = db.query(Player).filter(Player.id == player_id).first()
+    if not player:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Player not found")
+
+    # Check if user belongs to the same team as the player
+    if current_user.team_id != player.team_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied: You can only access players from your own team",
+        )
+
+    return current_user
+
+
+async def require_game_access(
+    game_id: int, current_user: User = Depends(get_current_active_user), db: Session = Depends(get_db)
+) -> User:
+    """Require access to specific game (admin or team involved in game).
+
+    Args:
+        game_id: ID of the game to check access for
+        current_user: Current active user
+        db: Database session
+
+    Returns:
+        Current user if access is allowed
+
+    Raises:
+        HTTPException: If user doesn't have access to the game
+    """
+    # Admin users have access to all games
+    if current_user.role == UserRole.ADMIN:
+        return current_user
+
+    # Get game to check teams
+    from app.data_access.models import Game
+
+    game = db.query(Game).filter(Game.id == game_id).first()
+    if not game:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Game not found")
+
+    # Check if user's team is involved in the game
+    if current_user.team_id not in [game.playing_team_id, game.opponent_team_id]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Access denied: You can only access games involving your team"
+        )
+
+    return current_user

@@ -208,20 +208,22 @@ class SeasonService:
         """
         seasons = self.season_crud.list_seasons(include_inactive)
         result = []
-        
+
         for season in seasons:
             game_count = self.season_crud.get_season_game_count(season.id)
-            result.append({
-                "id": season.id,
-                "name": season.name,
-                "code": season.code,
-                "start_date": season.start_date.isoformat(),
-                "end_date": season.end_date.isoformat(),
-                "is_active": season.is_active,
-                "description": season.description,
-                "game_count": game_count,
-            })
-        
+            result.append(
+                {
+                    "id": season.id,
+                    "name": season.name,
+                    "code": season.code,
+                    "start_date": season.start_date.isoformat(),
+                    "end_date": season.end_date.isoformat(),
+                    "is_active": season.is_active,
+                    "description": season.description,
+                    "game_count": game_count,
+                }
+            )
+
         return result
 
     def migrate_existing_games(self) -> tuple[bool, str]:
@@ -237,18 +239,10 @@ class SeasonService:
         try:
             # Get all unique season strings from PlayerSeasonStats and TeamSeasonStats
             from app.data_access.models import PlayerSeasonStats, TeamSeasonStats
-            
-            player_seasons = (
-                self.db_session.query(PlayerSeasonStats.season)
-                .distinct()
-                .all()
-            )
-            team_seasons = (
-                self.db_session.query(TeamSeasonStats.season)
-                .distinct()
-                .all()
-            )
-            
+
+            player_seasons = self.db_session.query(PlayerSeasonStats.season).distinct().all()
+            team_seasons = self.db_session.query(TeamSeasonStats.season).distinct().all()
+
             # Combine and deduplicate
             season_strings = set()
             for (season_str,) in player_seasons:
@@ -257,9 +251,9 @@ class SeasonService:
             for (season_str,) in team_seasons:
                 if season_str:
                     season_strings.add(season_str)
-            
+
             created_seasons = []
-            
+
             # Create Season records for each unique season string
             for season_str in sorted(season_strings):
                 # Parse "YYYY-YYYY" format
@@ -267,11 +261,11 @@ class SeasonService:
                     start_year, end_year = season_str.split("-")
                     start_year = int(start_year)
                     end_year = int(end_year)
-                    
+
                     # Traditional basketball season: October to April
                     start_date = date(start_year, 10, 1)
                     end_date = date(end_year, 4, 30)
-                    
+
                     # Create season if it doesn't exist
                     existing = self.season_crud.get_by_code(season_str)
                     if not existing:
@@ -288,27 +282,23 @@ class SeasonService:
                 except Exception as e:
                     logger.warning(f"Failed to parse season string '{season_str}': {e}")
                     continue
-            
+
             # Assign games to seasons based on their dates
-            games_without_season = (
-                self.db_session.query(Game)
-                .filter(Game.season_id.is_(None))
-                .all()
-            )
-            
+            games_without_season = self.db_session.query(Game).filter(Game.season_id.is_(None)).all()
+
             games_updated = 0
             for game in games_without_season:
                 season = self.season_crud.get_season_for_date(game.date)
                 if season:
                     game.season_id = season.id
                     games_updated += 1
-            
+
             self.db_session.commit()
-            
+
             message = f"Migration complete: Created {len(created_seasons)} seasons, updated {games_updated} games"
             logger.info(message)
             return True, message
-            
+
         except Exception as e:
             logger.error(f"Error migrating games to seasons: {e}")
             self.db_session.rollback()

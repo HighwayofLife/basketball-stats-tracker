@@ -27,7 +27,7 @@ def get_test_stats():
     print("📊 Gathering test statistics...")
 
     # Run tests with coverage in container
-    cmd = "docker compose exec -T web pytest --cov=app --cov-report=term tests/"
+    cmd = "docker compose exec -T web pytest --cov=app --cov-report=term tests/ --tb=no -q"
     stdout, stderr, returncode = run_command(cmd)
 
     # Parse test results
@@ -35,20 +35,37 @@ def get_test_stats():
     coverage_percent = "Unknown"
     coverage_lines = {"covered": 0, "total": 0}
 
-    # Look for test summary in stderr (pytest outputs to stderr)
+    # Look for test summary in stdout (pytest outputs to stdout with -q flag)
     full_output = stdout + stderr
 
-    # Parse test counts from output like "5 failed, 431 passed, 1 skipped, 19 errors"
-    test_pattern = r"(\d+)\s+(failed|passed|skipped|errors)"
-    matches = re.findall(test_pattern, full_output)
+    # Strip ANSI color codes
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+    clean_output = ansi_escape.sub("", full_output)
 
-    for count, status in matches:
-        test_results[status] = int(count)
+    # Parse test counts from summary line like "==== 65 passed in 0.05s ===="
+    # or "==== 40 failed, 501 passed, 3 skipped, 1 warning, 4 errors in 10.53s ===="
+    summary_pattern = r"=+\s*(.*?)\s*in\s+[\d.]+s\s*=+"
+    summary_match = re.search(summary_pattern, clean_output)
+
+    if summary_match:
+        summary_text = summary_match.group(1)
+        # Parse individual counts from the summary
+        count_patterns = [
+            (r"(\d+)\s+passed", "passed"),
+            (r"(\d+)\s+failed", "failed"),
+            (r"(\d+)\s+skipped", "skipped"),
+            (r"(\d+)\s+error", "errors"),  # Note: singular 'error' in some cases
+        ]
+
+        for pattern, status in count_patterns:
+            match = re.search(pattern, summary_text)
+            if match:
+                test_results[status] = int(match.group(1))
 
     test_results["total"] = sum(test_results.values())
 
-    # Parse coverage percentage from output like "TOTAL ... 61%"
-    coverage_match = re.search(r"TOTAL\s+(\d+)\s+(\d+)\s+(\d+)%", full_output)
+    # Parse coverage percentage from output like "TOTAL                  6004   5659     6%"
+    coverage_match = re.search(r"TOTAL\s+(\d+)\s+(\d+)\s+(\d+)%", clean_output)
     if coverage_match:
         total_lines = int(coverage_match.group(1))
         uncovered_lines = int(coverage_match.group(2))
@@ -130,7 +147,7 @@ def generate_stats_table(
     test_status = format_test_status(test_results)
     test_files_str = f"{test_files['total']} files ({test_files['unit']} unit, {test_files['integration']} integration, {test_files['functional']} functional)"
     coverage_str = f"{coverage_percent}% ({coverage_lines['covered']:,} / {coverage_lines['total']:,} executable lines)"
-    source_str = f"{python_files} Python files ({total_loc//1000}k total LOC)"
+    source_str = f"{python_files} Python files ({total_loc // 1000}k total LOC)"
 
     table = f"""## 📊 Project Statistics
 
@@ -144,7 +161,7 @@ def generate_stats_table(
 | **Python Version** | 3.11+ |
 | **Code Quality** | Ruff linting + pytest |
 | **License** | MIT |
-| **Version** | {project_info['version']} |
+| **Version** | {project_info["version"]} |
 
 > 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and code quality standards are met."""
 
