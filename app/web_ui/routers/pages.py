@@ -2,11 +2,13 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
+from app.auth.dependencies import require_admin
+from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
@@ -367,14 +369,14 @@ async def account_page(request: Request):
 
 
 @router.get("/admin/users", response_class=HTMLResponse)
-async def admin_users_page(request: Request):
+async def admin_users_page(request: Request, admin_user: User = Depends(require_admin)):
     """Render the user management page (admin only)."""
     return templates.TemplateResponse("admin/users.html", {"request": request, "title": "User Management"})
 
 
 @router.get("/admin/seasons", response_class=HTMLResponse)
-async def admin_seasons_page(request: Request):
-    """Render the seasons management page."""
+async def admin_seasons_page(request: Request, admin_user: User = Depends(require_admin)):
+    """Render the seasons management page (admin only)."""
     return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
 
 

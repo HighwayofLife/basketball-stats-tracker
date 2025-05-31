@@ -3,6 +3,9 @@ v0.4.0
 ### Features
 * Add team statistics and team season statistics
 
+### Security Fixes
+* Fix missing authentication on admin pages - added require_admin dependency to /admin/users and /admin/seasons endpoints
+
 
 v0.3.0
 ------
