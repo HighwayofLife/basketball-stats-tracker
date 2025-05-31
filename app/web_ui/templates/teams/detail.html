@@ -32,7 +32,7 @@
                         <input type="number" id="jersey-number" name="jersey_number" required min="0" max="99">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="position">Position</label>
@@ -50,7 +50,7 @@
                         <input type="text" id="year" name="year" placeholder="e.g., Freshman, Senior">
                     </div>
                 </div>
-                
+
                 <div class="form-row">
                     <div class="form-group">
                         <label for="height">Height (inches)</label>
@@ -61,7 +61,7 @@
                         <input type="number" id="weight" name="weight" min="100" max="400" placeholder="e.g., 180">
                     </div>
                 </div>
-                
+
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save Player</button>
                     <button type="button" class="btn btn-secondary" onclick="closePlayerModal()">Cancel</button>
@@ -206,16 +206,16 @@
     .form-row {
         grid-template-columns: 1fr;
     }
-    
+
     .modal-content {
         width: 95%;
         margin: 5% auto;
     }
-    
+
     .form-actions {
         flex-direction: column;
     }
-    
+
     .action-buttons {
         flex-direction: column;
     }
@@ -249,10 +249,9 @@ async function loadTeamData() {
 
         renderTeamData(teamData, statsData);
     } catch (error) {
-        console.error('Error:', error);
         document.getElementById('team-data').innerHTML = `
             <div class="alert alert-danger">
-                <p class="mb-0">Error loading team data. Please try again later.</p>
+                <p class="mb-0">Error loading team data: ${error.message}</p>
             </div>
         `;
     }
@@ -264,7 +263,9 @@ function renderTeamData(teamData, statsData) {
     const seasonStats = statsData.season_stats;
     const recentGames = statsData.recent_games;
 
-    document.getElementById('team-data').innerHTML = `
+    const teamDataElement = document.getElementById('team-data');
+
+    teamDataElement.innerHTML = `
         <!-- Team Header -->
         <div class="card mb-4">
             <div class="card-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
@@ -526,10 +527,10 @@ async function editPlayer(playerId) {
     try {
         const response = await fetch(`/v1/players/${playerId}`);
         const player = await response.json();
-        
+
         currentPlayerId = playerId;
         document.getElementById('player-modal-title').textContent = 'Edit Player';
-        
+
         // Fill form with current data
         document.getElementById('player-name').value = player.name;
         document.getElementById('jersey-number').value = player.jersey_number;
@@ -537,7 +538,7 @@ async function editPlayer(playerId) {
         document.getElementById('year').value = player.year || '';
         document.getElementById('height').value = player.height || '';
         document.getElementById('weight').value = player.weight || '';
-        
+
         document.getElementById('player-modal').style.display = 'block';
     } catch (error) {
         console.error('Error loading player:', error);
@@ -564,7 +565,7 @@ function closeDeletePlayerModal() {
 // Form submission
 document.getElementById('player-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    
+
     const formData = new FormData(e.target);
     const playerData = {
         name: formData.get('name').trim(),
@@ -575,17 +576,17 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
         height: formData.get('height') ? parseInt(formData.get('height')) : null,
         weight: formData.get('weight') ? parseInt(formData.get('weight')) : null
     };
-    
+
     if (!playerData.name) {
         alert('Player name is required');
         return;
     }
-    
+
     if (!playerData.jersey_number && playerData.jersey_number !== 0) {
         alert('Jersey number is required');
         return;
     }
-    
+
     try {
         let response;
         if (currentPlayerId) {
@@ -603,7 +604,7 @@ document.getElementById('player-form').addEventListener('submit', async (e) => {
                 body: JSON.stringify(playerData)
             });
         }
-        
+
         if (response.ok) {
             closePlayerModal();
             await loadTeamData();
@@ -622,12 +623,12 @@ async function confirmDeletePlayer() {
         const response = await fetch(`/v1/players/${deletePlayerId}`, {
             method: 'DELETE'
         });
-        
+
         if (response.ok) {
             const result = await response.json();
             closeDeletePlayerModal();
             await loadTeamData();
-            
+
             // Show message about deactivation vs deletion
             if (result.message.includes('deactivated')) {
                 alert('Player has been deactivated (they have existing game statistics).');
@@ -646,7 +647,7 @@ async function confirmDeletePlayer() {
 window.onclick = function(event) {
     const playerModal = document.getElementById('player-modal');
     const deleteModal = document.getElementById('delete-player-modal');
-    
+
     if (event.target === playerModal) {
         closePlayerModal();
     }

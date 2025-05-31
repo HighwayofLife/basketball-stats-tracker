@@ -236,17 +236,31 @@
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
         const token = localStorage.getItem('access_token');
-        if (token && args[1]) {
-            args[1].headers = {
-                ...args[1].headers,
-                'Authorization': `Bearer ${token}`
-            };
-        } else if (token && !args[1]) {
-            args[1] = {
-                headers: {
+        
+        // Only add auth headers for endpoints that require authentication
+        const url = args[0];
+        const requiresAuth = typeof url === 'string' && (
+            url.includes('/auth/') ||
+            url.includes('/admin/') ||
+            url.includes('/v1/players/new') ||
+            url.includes('/v1/players/') && (args[1]?.method === 'PUT' || args[1]?.method === 'DELETE') ||
+            url.includes('/v1/teams/new') ||
+            url.includes('/v1/teams/') && (args[1]?.method === 'PUT' || args[1]?.method === 'DELETE')
+        );
+        
+        if (token && requiresAuth) {
+            if (args[1]) {
+                args[1].headers = {
+                    ...args[1].headers,
                     'Authorization': `Bearer ${token}`
-                }
-            };
+                };
+            } else {
+                args[1] = {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                };
+            }
         }
         return originalFetch.apply(this, args);
     };

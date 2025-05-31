@@ -29,6 +29,52 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/teams", tags=["teams"])
 
 
+def calculate_derived_stats(stats: dict) -> dict:
+    """Calculate derived statistics like averages and percentages."""
+    derived = {}
+
+    if stats["games_played"] > 0:
+        derived["win_percentage"] = round(stats["wins"] / stats["games_played"] * 100, 1)
+        derived["ppg"] = round(stats["total_points_for"] / stats["games_played"], 1)
+        derived["opp_ppg"] = round(stats["total_points_against"] / stats["games_played"], 1)
+        derived["point_diff"] = round(derived["ppg"] - derived["opp_ppg"], 1)
+    else:
+        derived["win_percentage"] = 0
+        derived["ppg"] = 0
+        derived["opp_ppg"] = 0
+        derived["point_diff"] = 0
+
+    return derived
+
+
+def calculate_shooting_percentages(stats: dict) -> dict:
+    """Calculate shooting percentages for different shot types."""
+    percentages = {}
+
+    # Free throw percentage
+    percentages["ft_percentage"] = (
+        round(stats["total_ftm"] / stats["total_fta"] * 100, 1)
+        if stats["total_fta"] > 0
+        else 0
+    )
+
+    # 2-point field goal percentage
+    percentages["fg2_percentage"] = (
+        round(stats["total_2pm"] / stats["total_2pa"] * 100, 1)
+        if stats["total_2pa"] > 0
+        else 0
+    )
+
+    # 3-point field goal percentage
+    percentages["fg3_percentage"] = (
+        round(stats["total_3pm"] / stats["total_3pa"] * 100, 1)
+        if stats["total_3pa"] > 0
+        else 0
+    )
+
+    return percentages
+
+
 @router.get("", response_model=list[TeamBasicResponse])
 async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
     """Get a list of all teams."""
@@ -157,20 +203,15 @@ async def get_team_stats(
         season_stats = None
         current_season = None
         try:
-            # Get latest game to determine current season
+            # Get the active season from the Season table
             from sqlalchemy import desc, func
 
-            from app.data_access.models import Game
+            from app.data_access.models import Season
 
-            latest_game = (
-                db.query(Game)
-                .filter((Game.playing_team_id == team_id) | (Game.opponent_team_id == team_id))
-                .order_by(desc(Game.date))
-                .first()
-            )
+            active_season = db.query(Season).filter(Season.is_active == True).first()
 
-            if latest_game:
-                current_season = stats_service.get_season_from_date(latest_game.date)
+            if active_season:
+                current_season = active_season.code
                 season_stats = stats_service.update_team_season_stats(team_id, current_season)
         except Exception as e:
             logger.warning(f"Error getting current season stats for team {team_id}: {e}")
@@ -200,11 +241,6 @@ async def get_team_stats(
 
         # Calculate shooting percentages
         career_stats.update(calculate_shooting_percentages(career_stats))
-        career_stats["fg3_percentage"] = (
-            round(career_stats["total_3pm"] / career_stats["total_3pa"] * 100, 1)
-            if career_stats["total_3pa"] > 0
-            else 0
-        )
 
         # Format season stats if available
         formatted_season_stats = None
@@ -224,42 +260,9 @@ async def get_team_stats(
                 "total_3pa": season_stats.total_3pa,
             }
 
-            # Calculate derived stats
-            if formatted_season_stats["games_played"] > 0:
-                formatted_season_stats["win_percentage"] = round(
-                    formatted_season_stats["wins"] / formatted_season_stats["games_played"] * 100, 1
-                )
-                formatted_season_stats["ppg"] = round(
-                    formatted_season_stats["total_points_for"] / formatted_season_stats["games_played"], 1
-                )
-                formatted_season_stats["opp_ppg"] = round(
-                    formatted_season_stats["total_points_against"] / formatted_season_stats["games_played"], 1
-                )
-                formatted_season_stats["point_diff"] = round(
-                    formatted_season_stats["ppg"] - formatted_season_stats["opp_ppg"], 1
-                )
-            else:
-                formatted_season_stats["win_percentage"] = 0
-                formatted_season_stats["ppg"] = 0
-                formatted_season_stats["opp_ppg"] = 0
-                formatted_season_stats["point_diff"] = 0
-
-            # Calculate shooting percentages
-            formatted_season_stats["ft_percentage"] = (
-                round(formatted_season_stats["total_ftm"] / formatted_season_stats["total_fta"] * 100, 1)
-                if formatted_season_stats["total_fta"] > 0
-                else 0
-            )
-            formatted_season_stats["fg2_percentage"] = (
-                round(formatted_season_stats["total_2pm"] / formatted_season_stats["total_2pa"] * 100, 1)
-                if formatted_season_stats["total_2pa"] > 0
-                else 0
-            )
-            formatted_season_stats["fg3_percentage"] = (
-                round(formatted_season_stats["total_3pm"] / formatted_season_stats["total_3pa"] * 100, 1)
-                if formatted_season_stats["total_3pa"] > 0
-                else 0
-            )
+            # Calculate derived stats and shooting percentages using helper functions
+            formatted_season_stats.update(calculate_derived_stats(formatted_season_stats))
+            formatted_season_stats.update(calculate_shooting_percentages(formatted_season_stats))
 
         # Get recent games for team
         from app.data_access.models import Game, Player, PlayerGameStats
