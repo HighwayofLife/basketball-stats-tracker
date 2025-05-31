@@ -48,6 +48,17 @@ def apply_hotfix():
             if 'team_id' not in existing_columns:
                 logger.info("Adding team_id column...")
                 conn.execute(text("ALTER TABLE users ADD COLUMN team_id INTEGER"))
+            
+            # Check if foreign key constraint exists
+            result = conn.execute(text("""
+                SELECT constraint_name 
+                FROM information_schema.table_constraints 
+                WHERE table_name = 'users' 
+                AND constraint_type = 'FOREIGN KEY'
+            """))
+            existing_constraints = [row[0] for row in result]
+            if 'fk_users_team_id' not in existing_constraints:
+                logger.info("Adding foreign key constraint fk_users_team_id...")
                 conn.execute(text("ALTER TABLE users ADD CONSTRAINT fk_users_team_id FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE SET NULL"))
             
             # Mark migration as complete
