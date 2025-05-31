@@ -283,20 +283,43 @@ async def get_team_stats(
         recent_games_data = []
         for game in recent_games:
             # Calculate team totals for this game
-            team_stats_query = (
-                db.query(PlayerGameStats)
+            # Batch query to fetch and aggregate player stats for all games in recent_games
+            stats_query = (
+                db.query(
+                    PlayerGameStats.game_id,
+                    Player.team_id,
+                    func.sum(PlayerGameStats.total_ftm).label("total_ftm"),
+                    func.sum(PlayerGameStats.total_fta).label("total_fta"),
+                    func.sum(PlayerGameStats.total_2pm).label("total_2pm"),
+                    func.sum(PlayerGameStats.total_2pa).label("total_2pa"),
+                    func.sum(PlayerGameStats.total_3pm).label("total_3pm"),
+                    func.sum(PlayerGameStats.total_3pa).label("total_3pa"),
+                    func.sum(
+                        PlayerGameStats.total_ftm + (PlayerGameStats.total_2pm * 2) + (PlayerGameStats.total_3pm * 3)
+                    ).label("total_points"),
+                )
                 .join(Player)
-                .filter(PlayerGameStats.game_id == game.id, Player.team_id == team_id)
+                .filter(PlayerGameStats.game_id.in_([game.id for game in recent_games]))
+                .group_by(PlayerGameStats.game_id, Player.team_id)
                 .all()
             )
 
-            team_points = sum(ps.total_ftm + (ps.total_2pm * 2) + (ps.total_3pm * 3) for ps in team_stats_query)
-            team_ftm = sum(ps.total_ftm for ps in team_stats_query)
-            team_fta = sum(ps.total_fta for ps in team_stats_query)
-            team_2pm = sum(ps.total_2pm for ps in team_stats_query)
-            team_2pa = sum(ps.total_2pa for ps in team_stats_query)
-            team_3pm = sum(ps.total_3pm for ps in team_stats_query)
-            team_3pa = sum(ps.total_3pa for ps in team_stats_query)
+            # Organize stats by game_id and team_id for quick lookup
+            stats_by_game_and_team = {
+                (stat.game_id, stat.team_id): stat for stat in stats_query
+            }
+
+            for game in recent_games:
+                team_stats = stats_by_game_and_team.get((game.id, team_id), None)
+                opponent_stats = stats_by_game_and_team.get((game.id, opponent_team_id), None)
+
+                team_points = team_stats.total_points if team_stats else 0
+                team_ftm = team_stats.total_ftm if team_stats else 0
+                team_fta = team_stats.total_fta if team_stats else 0
+                team_2pm = team_stats.total_2pm if team_stats else 0
+                team_2pa = team_stats.total_2pa if team_stats else 0
+                team_3pm = team_stats.total_3pm if team_stats else 0
+                team_3pa = team_stats.total_3pa if team_stats else 0
 
             # Get opponent info and points
             opponent_team_id = game.opponent_team_id if game.playing_team_id == team_id else game.playing_team_id
@@ -304,13 +327,7 @@ async def get_team_stats(
             opponent_name = opponent_team.display_name or opponent_team.name if opponent_team else "Unknown"
 
             # Calculate opponent points
-            opp_stats_query = (
-                db.query(PlayerGameStats)
-                .join(Player)
-                .filter(PlayerGameStats.game_id == game.id, Player.team_id == opponent_team_id)
-                .all()
-            )
-            opp_points = sum(ps.total_ftm + (ps.total_2pm * 2) + (ps.total_3pm * 3) for ps in opp_stats_query)
+            opponent_points = opponent_stats.total_points if opponent_stats else 0
 
             recent_games_data.append(
                 {
