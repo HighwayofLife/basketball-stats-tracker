@@ -11,6 +11,7 @@ from app.data_access import models
 from app.data_access.crud.crud_audit_log import get_recent_audit_logs
 from app.data_access.db_session import get_db_session
 from app.services.data_correction_service import DataCorrectionService
+from app.services.season_service import SeasonService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["admin"])
@@ -208,3 +209,135 @@ async def get_command_history():
     except Exception as e:
         logger.error(f"Error getting command history: {e}")
         raise HTTPException(status_code=500, detail="Failed to get command history") from e
+
+
+@router.get("/seasons")
+async def get_seasons(current_user: User = Depends(get_current_user)):
+    """Get all seasons."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+            seasons = season_service.list_seasons()
+            return {"seasons": seasons}
+    except Exception as e:
+        logger.error(f"Error getting seasons: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get seasons") from e
+
+
+@router.post("/seasons")
+async def create_season(data: dict, current_user: User = Depends(get_current_user)):
+    """Create a new season."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+
+            from datetime import datetime
+
+            start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
+            end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
+
+            success, message, season = season_service.create_season(
+                name=data["name"],
+                code=data["code"],
+                start_date=start_date,
+                end_date=end_date,
+                description=data.get("description"),
+                set_as_active=data.get("set_as_active", False),
+            )
+
+            if success:
+                return {
+                    "success": True,
+                    "message": message,
+                    "season": {
+                        "id": season.id,
+                        "name": season.name,
+                        "code": season.code,
+                        "start_date": season.start_date.isoformat(),
+                        "end_date": season.end_date.isoformat(),
+                        "is_active": season.is_active,
+                        "description": season.description,
+                    },
+                }
+            else:
+                raise HTTPException(status_code=400, detail=message)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating season: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create season") from e
+
+
+@router.put("/seasons/{season_id}")
+async def update_season(season_id: int, data: dict, current_user: User = Depends(get_current_user)):
+    """Update a season."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+
+            start_date = None
+            end_date = None
+            if "start_date" in data:
+                start_date = datetime.strptime(data["start_date"], "%Y-%m-%d").date()
+            if "end_date" in data:
+                end_date = datetime.strptime(data["end_date"], "%Y-%m-%d").date()
+
+            success, message, season = season_service.update_season(
+                season_id=season_id,
+                name=data.get("name"),
+                start_date=start_date,
+                end_date=end_date,
+                description=data.get("description"),
+            )
+
+            if success:
+                return {"success": True, "message": message}
+            else:
+                raise HTTPException(status_code=400, detail=message)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating season: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update season") from e
+
+
+@router.post("/seasons/{season_id}/activate")
+async def activate_season(season_id: int, current_user: User = Depends(get_current_user)):
+    """Set a season as active."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+            success, message = season_service.set_active_season(season_id)
+
+            if success:
+                return {"success": True, "message": message}
+            else:
+                raise HTTPException(status_code=400, detail=message)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error activating season: {e}")
+        raise HTTPException(status_code=500, detail="Failed to activate season") from e
+
+
+@router.delete("/seasons/{season_id}")
+async def delete_season(season_id: int, current_user: User = Depends(get_current_user)):
+    """Delete a season."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+            success, message = season_service.delete_season(season_id)
+
+            if success:
+                return {"success": True, "message": message}
+            else:
+                raise HTTPException(status_code=400, detail=message)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting season: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete season") from e

@@ -5,7 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.auth.models import User, UserRole
-from app.data_access.models import Team, Player, Game
+from app.data_access.models import Player, Team
 from app.main import app
 
 
@@ -166,8 +166,9 @@ class TestSecurityWorkflow:
 
     def test_jwt_token_expiration_handling(self, client: TestClient, team1_user: User):
         """Test handling of expired JWT tokens."""
-        from app.auth.jwt_handler import create_access_token
         from datetime import timedelta
+
+        from app.auth.jwt_handler import create_access_token
 
         # Create an expired token (negative expiration)
         expired_token = create_access_token(data={"sub": str(team1_user.id)}, expires_delta=timedelta(seconds=-1))

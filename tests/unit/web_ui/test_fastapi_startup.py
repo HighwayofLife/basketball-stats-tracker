@@ -73,14 +73,26 @@ def test_fastapi_app_no_automatic_migrations():
 
 def test_production_environment_variables():
     """Test that the app starts correctly with production environment variables."""
+    import sys
+
     prod_env = {
         "ENVIRONMENT": "production",
+        "APP_ENV": "production",  # This is what the middleware check uses
         "SECRET_KEY": "test-secret-key-for-production",
         "DATABASE_URL": "postgresql://user:pass@localhost:5432/testdb",
     }
 
     with patch.dict(os.environ, prod_env, clear=False):
         try:
+            # Clear the module cache to ensure fresh import with new env vars
+            modules_to_reload = [
+                "app.web_ui.api",
+                "app.config",  # Config module might cache environment variables
+            ]
+            for module_name in modules_to_reload:
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+
             from app.web_ui.api import app
 
             client = TestClient(app)
@@ -89,8 +101,8 @@ def test_production_environment_variables():
             assert app is not None
 
             # Verify middleware is configured for production
-            middleware_types = [type(middleware).__name__ for middleware in app.user_middleware]
-            assert "TrustedHostMiddleware" in middleware_types
+            middleware_classes = [middleware.cls.__name__ for middleware in app.user_middleware]
+            assert "TrustedHostMiddleware" in middleware_classes
 
         except Exception as e:
             pytest.fail(f"FastAPI app failed to start in production mode: {e}")
@@ -151,8 +163,6 @@ def test_no_blocking_database_operations_at_startup():
     with patch("app.data_access.database_manager.create_engine", side_effect=track_db_operation("create_engine")):
         with patch("sqlalchemy.orm.sessionmaker", side_effect=track_db_operation("sessionmaker")):
             try:
-                from app.web_ui.api import app
-
                 # Some database setup is expected, but no blocking operations
                 allowed_operations = ["create_engine"]  # Engine creation is lazy and OK
                 blocking_operations = [op for op in database_operations if op not in allowed_operations]

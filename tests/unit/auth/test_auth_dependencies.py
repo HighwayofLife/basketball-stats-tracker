@@ -1,10 +1,11 @@
 """Unit tests for authentication dependencies."""
 
-import pytest
 from unittest.mock import Mock, patch
+
+import pytest
 from fastapi import HTTPException, status
 
-from app.auth.dependencies import get_current_user, require_admin, get_current_active_user
+from app.auth.dependencies import get_current_active_user, get_current_user, require_admin
 from app.auth.models import User, UserRole
 
 

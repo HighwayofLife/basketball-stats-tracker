@@ -1,10 +1,8 @@
 """Unit tests for name matching logic."""
 
-import pytest
 from unittest.mock import Mock
 
 # Import the class just to access the method
-from app.services.import_services.import_processor import ImportProcessor
 
 
 class TestNameMatchingLogic:

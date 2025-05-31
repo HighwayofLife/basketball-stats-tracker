@@ -12,7 +12,8 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User, UserRole
 from app.auth.oauth import OAUTH_ENABLED, OAuthHandler, oauth
 from app.auth.service import AuthService
-from app.web_ui.dependencies import get_db
+from app.dependencies import get_db
+from app.web_ui.schemas import RoleUpdateRequest
 
 router = APIRouter(prefix="/auth", tags=["authentication"])
 
@@ -273,20 +274,13 @@ async def get_all_users(admin_user: User = Depends(require_admin), db: Session =
 
 @router.put("/users/{user_id}/role")
 async def update_user_role(
-    user_id: int, role_data: dict, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
+    user_id: int, role_data: RoleUpdateRequest, admin_user: User = Depends(require_admin), db: Session = Depends(get_db)
 ):
     """Update user role (admin only)."""
     auth_service = AuthService(db)
 
     try:
-        role_str = role_data.get("role")
-        if not role_str or role_str not in ["admin", "user", "viewer"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid role. Must be admin, user, or viewer"
-            )
-
-        role = UserRole(role_str)
-        success = auth_service.update_user_role(user_id, role)
+        success = auth_service.update_user_role(user_id, role_data.role)
 
         if not success:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")

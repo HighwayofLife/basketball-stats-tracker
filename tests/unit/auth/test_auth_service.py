@@ -1,12 +1,13 @@
 """Unit tests for the authentication service."""
 
-import pytest
 from datetime import datetime
 from unittest.mock import MagicMock, patch
+
+import pytest
 from sqlalchemy.orm import Session
 
-from app.auth.service import AuthService
 from app.auth.models import User, UserRole
+from app.auth.service import AuthService
 
 
 class TestAuthService:

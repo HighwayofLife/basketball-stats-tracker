@@ -34,7 +34,6 @@ class ProxyHeadersMiddleware(BaseHTTPMiddleware):
 
 
 # Import version info
-from app.config import VERSION_INFO
 
 # Create FastAPI application
 app = FastAPI(
@@ -65,7 +64,9 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 @app.get("/health")
 async def health_check():
     """Health check endpoint for container/load balancer probes."""
-    return {"status": "ok", "version": VERSION_INFO["version"], "full_version": VERSION_INFO["full_version"]}
+    version = VERSION_INFO.get("version", "unknown") if VERSION_INFO else "unknown"
+    full_version = VERSION_INFO.get("full_version", "unknown") if VERSION_INFO else "unknown"
+    return {"status": "ok", "version": version, "full_version": full_version}
 
 
 # Include routers

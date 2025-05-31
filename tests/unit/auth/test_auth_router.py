@@ -1,9 +1,9 @@
 """Unit tests for authentication router endpoints."""
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
 from fastapi.testclient import TestClient
-from fastapi import HTTPException, status
 
 from app.auth.models import User, UserRole
 from app.web_ui.routers.auth import router
@@ -42,6 +42,7 @@ class TestAuthRouter:
     def client(self, mock_user, mock_admin_user):
         """Create a test client."""
         from fastapi import FastAPI
+
         from app.auth.dependencies import get_current_user, require_admin
         from app.web_ui.dependencies import get_db
 
@@ -205,7 +206,7 @@ class TestAuthRouter:
             )
 
             assert response.status_code == 200
-            assert "Password updated successfully" in response.json()["message"]
+            assert "Password changed successfully" in response.json()["message"]
 
     def test_change_password_wrong_current(self, client, mock_user):
         """Test password change with wrong current password."""
@@ -242,16 +243,18 @@ class TestAuthRouter:
         """Test successful profile update."""
         with (
             patch("app.web_ui.routers.auth.AuthService") as mock_service_class,
-            patch("app.web_ui.routers.auth.get_db") as mock_get_db,
-            patch("app.web_ui.routers.auth.get_current_user") as mock_get_user,
         ):
             mock_service = Mock()
             mock_service_class.return_value = mock_service
             mock_service.get_user_by_email.return_value = None  # Email not taken
-            mock_get_user.return_value = mock_user
+
+            # Use the app's dependency override mechanism
+            from app.auth.dependencies import get_current_user
+            from app.dependencies import get_db
 
             mock_db = Mock()
-            mock_get_db.return_value = mock_db
+            client.app.dependency_overrides[get_db] = lambda: mock_db
+            client.app.dependency_overrides[get_current_user] = lambda: mock_user
 
             response = client.put("/auth/profile", json={"email": "newemail@example.com", "full_name": "New Full Name"})
 
@@ -283,50 +286,94 @@ class TestAuthRouter:
 
     def test_get_all_users_admin(self, client, mock_admin_user):
         """Test getting all users as admin."""
-        with (
-            patch("app.web_ui.routers.auth.require_admin") as mock_require_admin,
-            patch("app.web_ui.routers.auth.get_db") as mock_get_db,
-        ):
-            mock_require_admin.return_value = mock_admin_user
-            mock_db = Mock()
-            mock_get_db.return_value = mock_db
+        from app.auth.dependencies import require_admin
+        from app.dependencies import get_db
 
-            mock_users = [mock_admin_user]
-            mock_db.query.return_value.all.return_value = mock_users
+        mock_db = Mock()
+        # Create real user-like objects for JSON serialization
+        mock_user_data = {
+            "id": 1,
+            "username": "admin",
+            "email": "admin@example.com",
+            "full_name": "Admin User",
+            "role": "admin",
+            "is_active": True,
+            "provider": "local",
+            "team_id": None,
+        }
+        mock_user_obj = Mock()
+        for key, value in mock_user_data.items():
+            setattr(mock_user_obj, key, value)
 
-            response = client.get("/auth/users")
+        mock_users = [mock_user_obj]
+        mock_db.query.return_value.all.return_value = mock_users
 
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data) == 1
-            assert data[0]["username"] == "admin"
+        client.app.dependency_overrides[get_db] = lambda: mock_db
+        client.app.dependency_overrides[require_admin] = lambda: mock_admin_user
 
-    def test_update_user_role_admin(self, client, mock_admin_user):
+        response = client.get("/auth/users")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["username"] == "admin"
+
+    def test_update_user_role_admin(self, mock_admin_user):
         """Test updating user role as admin."""
+        # Create a fresh client to ensure updated router is loaded
+        import importlib
+
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        # Reload the schemas and auth router to get the latest changes
+        from app.web_ui import schemas
+        from app.web_ui.routers import auth
+
+        importlib.reload(schemas)
+        importlib.reload(auth)
+
+        app = FastAPI()
+        app.include_router(auth.router)
+
         with (
             patch("app.web_ui.routers.auth.AuthService") as mock_service_class,
-            patch("app.web_ui.routers.auth.get_db") as mock_get_db,
-            patch("app.web_ui.routers.auth.require_admin") as mock_require_admin,
         ):
             mock_service = Mock()
             mock_service_class.return_value = mock_service
             mock_service.update_user_role.return_value = True
-            mock_require_admin.return_value = mock_admin_user
 
+            from app.auth.dependencies import require_admin
+            from app.dependencies import get_db
+
+            mock_db = Mock()
+            app.dependency_overrides[get_db] = lambda: mock_db
+            app.dependency_overrides[require_admin] = lambda: mock_admin_user
+
+            client = TestClient(app)
             response = client.put("/auth/users/1/role", json={"role": "admin"})
 
+            if response.status_code != 200:
+                print(f"Status: {response.status_code}, Body: {response.text}")
             assert response.status_code == 200
             assert "User role updated successfully" in response.json()["message"]
 
     def test_update_user_role_invalid_role(self, client, mock_admin_user):
         """Test updating user role with invalid role."""
-        with patch("app.web_ui.routers.auth.require_admin") as mock_require_admin:
-            mock_require_admin.return_value = mock_admin_user
+        from app.auth.dependencies import require_admin
+        from app.dependencies import get_db
 
-            response = client.put("/auth/users/1/role", json={"role": "invalid_role"})
+        mock_db = Mock()
+        client.app.dependency_overrides[get_db] = lambda: mock_db
+        client.app.dependency_overrides[require_admin] = lambda: mock_admin_user
 
-            assert response.status_code == 400
-            assert "Invalid role" in response.json()["detail"]
+        response = client.put("/auth/users/1/role", json={"role": "invalid_role"})
+
+        # Pydantic validation should return 422 for invalid enum value
+        assert response.status_code == 422
+        # The error will be in the validation error format
+        error_detail = response.json()["detail"][0]["msg"]
+        assert "input should be" in error_detail.lower() or "validation error" in error_detail.lower()
 
     def test_deactivate_user_admin(self, client, mock_admin_user):
         """Test deactivating user as admin."""
@@ -349,8 +396,6 @@ class TestAuthRouter:
         """Test activating user as admin."""
         with (
             patch("app.web_ui.routers.auth.AuthService") as mock_service_class,
-            patch("app.web_ui.routers.auth.get_db") as mock_get_db,
-            patch("app.web_ui.routers.auth.require_admin") as mock_require_admin,
         ):
             mock_service = Mock()
             mock_service_class.return_value = mock_service
@@ -358,10 +403,13 @@ class TestAuthRouter:
             mock_user = Mock()
             mock_user.is_active = False
             mock_service.get_user_by_id.return_value = mock_user
-            mock_require_admin.return_value = mock_admin_user
+
+            from app.auth.dependencies import require_admin
+            from app.dependencies import get_db
 
             mock_db = Mock()
-            mock_get_db.return_value = mock_db
+            client.app.dependency_overrides[get_db] = lambda: mock_db
+            client.app.dependency_overrides[require_admin] = lambda: mock_admin_user
 
             response = client.post("/auth/users/1/activate")
 

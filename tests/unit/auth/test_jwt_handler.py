@@ -1,14 +1,15 @@
 """Unit tests for JWT token handling."""
 
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime, timedelta
+from unittest.mock import patch
+
+import pytest
 
 from app.auth.jwt_handler import (
-    verify_password,
-    get_password_hash,
     create_access_token,
     create_refresh_token,
+    get_password_hash,
+    verify_password,
     verify_token,
 )
 
@@ -167,6 +168,7 @@ class TestJWTConfiguration:
             with pytest.raises(ValueError, match="JWT_SECRET_KEY environment variable must be set"):
                 # This will trigger the module-level code that checks for JWT_SECRET_KEY
                 import importlib
+
                 import app.auth.jwt_handler
 
                 importlib.reload(app.auth.jwt_handler)
@@ -176,6 +178,7 @@ class TestJWTConfiguration:
         with patch.dict("os.environ", {"JWT_SECRET_KEY": "short"}, clear=True):
             with pytest.raises(ValueError, match="JWT_SECRET_KEY must be at least 32 characters long"):
                 import importlib
+
                 import app.auth.jwt_handler
 
                 importlib.reload(app.auth.jwt_handler)
@@ -186,6 +189,7 @@ class TestJWTConfiguration:
         with patch.dict("os.environ", {"JWT_SECRET_KEY": long_key}, clear=True):
             try:
                 import importlib
+
                 import app.auth.jwt_handler
 
                 importlib.reload(app.auth.jwt_handler)

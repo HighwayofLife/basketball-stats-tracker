@@ -147,8 +147,8 @@ class TestSeasonManagementRegression:
         with patch("sqlalchemy.create_engine", side_effect=track_db_ops):
             with patch("app.data_access.database_manager.create_engine", side_effect=track_db_ops):
                 try:
-                    from app.data_access.models import Season
                     from app.data_access.crud.crud_season import SeasonCRUD
+                    from app.data_access.models import Season
 
                     # Imports should succeed without database operations
                     assert Season is not None
