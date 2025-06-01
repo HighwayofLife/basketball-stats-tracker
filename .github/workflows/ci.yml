@@ -40,6 +40,8 @@ jobs:
           ruff check . --output-format=github
           
       - name: Run unit tests
+        env:
+          JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
         run: |
           pytest tests/unit/ -v --tb=short
           
