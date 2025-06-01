@@ -1,6 +1,5 @@
 """Dependency injection for FastAPI application."""
 
-
 from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
@@ -59,9 +58,7 @@ def get_game_state_service(db: Session = Depends(get_db)) -> GameStateService:  
     return GameStateService(db)
 
 
-def get_template_auth_context(
-    request: Request, current_user: User | None = Depends(get_optional_current_user)
-) -> dict:
+def get_template_auth_context(request: Request, current_user: User | None = Depends(get_optional_current_user)) -> dict:
     """Get authentication context for templates.
 
     Args:

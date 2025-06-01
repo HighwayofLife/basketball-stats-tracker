@@ -125,8 +125,36 @@ async def get_optional_current_user(request: Request, db: Session = Depends(get_
         return None
 
     try:
-        return await get_current_user(token, db)
-    except HTTPException:
+        # Manually verify token and get user (bypass OAuth2 scheme)
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Verify JWT token
+        credentials_exception = HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+        try:
+            payload = verify_token(token)
+            user_id = payload.get("sub")
+            if user_id is None:
+                return None
+        except Exception:
+            return None
+
+        # Get user from database
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if user is None:
+            return None
+
+        if not user.is_active:
+            return None
+
+        return user
+
+    except Exception:
         return None
 
 
