@@ -389,11 +389,25 @@ async def get_player_stats(player_id: int):
                 career_stats["ppg"] = 0.0
                 career_stats["fpg"] = 0.0
 
-            # Get season stats
-            current_season = "2024-2025"  # You might want to calculate this dynamically
-            season_stats_record = (
-                session.query(models.PlayerSeasonStats).filter_by(player_id=player_id, season=current_season).first()
-            )
+            # Get season stats using the same pattern as team stats
+            season_stats_record = None
+            current_season = None
+            try:
+                # Get the active season from the Season table
+                from sqlalchemy import desc, func
+                from app.data_access.models import Season
+                from app.services.season_stats_service import SeasonStatsService
+
+                stats_service = SeasonStatsService(session)
+                active_season = session.query(Season).filter(Season.is_active == True).first()
+
+                if active_season:
+                    current_season = active_season.code
+                    # Update player season stats to ensure they're current
+                    season_stats_record = stats_service.update_player_season_stats(player_id, current_season)
+            except Exception as e:
+                logger.warning(f"Error getting current season stats for player {player_id}: {e}")
+                season_stats_record = None
 
             if season_stats_record:
                 season_stats = {
