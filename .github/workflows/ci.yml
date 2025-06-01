@@ -48,7 +48,8 @@ jobs:
         env:
           JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
         run: |
-          pytest tests/unit/ -v --tb=short
+          mkdir -p junit
+          pytest tests/unit/ -v --tb=short --junitxml=junit/unit-test-results.xml
           
   # Docker build test (lighter than full PR validation)
   docker-build-test:

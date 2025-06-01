@@ -101,7 +101,10 @@ class SeasonStatsService:
             season: Season to update (if None, updates current season)
 
         Returns:
-            Updated PlayerSeasonStats object or None if no games found
+            Updated PlayerSeasonStats object or None if:
+            - No games found for the player in the specified season
+            - Specified season record is not found in the database
+            - Unable to determine season from game data
         """
         # Get all games for the player in the season
         query = self.db_session.query(PlayerGameStats).join(Game).filter(PlayerGameStats.player_id == player_id)
@@ -169,7 +172,9 @@ class SeasonStatsService:
             season: Season to update (if None, updates current season)
 
         Returns:
-            Updated TeamSeasonStats object or None if no games found
+            Updated TeamSeasonStats object or None if:
+            - No games found for the team in the specified season
+            - Specified season record is not found in the database
         """
         # Get all games for the team in the season
         query = self.db_session.query(Game).filter(
