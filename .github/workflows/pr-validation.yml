@@ -5,6 +5,12 @@ on:
     branches: [main, master]
     types: [opened, synchronize, reopened]
 
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+  actions: read
+
 env:
   PYTHON_VERSION: "3.11"
   
@@ -269,6 +275,12 @@ jobs:
         with:
           pattern: '*-test-results'
           merge-multiple: true
+          
+      - name: List downloaded files
+        run: |
+          echo "Downloaded files:"
+          find . -name "*.xml" -type f || echo "No XML files found"
+          ls -la
           
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
