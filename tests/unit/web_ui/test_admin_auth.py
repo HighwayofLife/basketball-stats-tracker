@@ -2,9 +2,9 @@
 Unit tests for admin authentication requirements.
 """
 
+
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
 
 from app.data_access.models import Base
 from app.web_ui.api import app
@@ -46,6 +46,7 @@ class TestAdminAuthentication:
     def admin_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with admin user authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -99,6 +100,7 @@ class TestAdminAuthentication:
     def non_admin_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with non-admin user authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -128,9 +130,10 @@ class TestAdminAuthentication:
         app.dependency_overrides[get_db] = override_get_db
 
         # Mock non-admin user authentication
+        from fastapi import HTTPException, status
+
         from app.auth.dependencies import get_current_user, require_admin
         from app.auth.models import User, UserRole
-        from fastapi import HTTPException, status
 
         def mock_regular_user():
             """Mock regular user for testing."""
@@ -146,7 +149,7 @@ class TestAdminAuthentication:
         def mock_require_admin():
             """Mock require_admin that fails for non-admin users."""
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Admin access required"
             )
 
@@ -160,6 +163,7 @@ class TestAdminAuthentication:
     def unauthenticated_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with no authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -189,8 +193,9 @@ class TestAdminAuthentication:
         app.dependency_overrides[get_db] = override_get_db
 
         # Mock unauthenticated state
-        from app.auth.dependencies import get_current_user, require_admin
         from fastapi import HTTPException, status
+
+        from app.auth.dependencies import get_current_user, require_admin
 
         def mock_unauthenticated():
             """Mock unauthenticated state."""
