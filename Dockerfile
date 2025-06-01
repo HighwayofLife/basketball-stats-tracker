@@ -44,7 +44,7 @@ CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--
 FROM base AS production
 
 # Accept build arguments for version info
-ARG APP_VERSION=0.4.1
+ARG APP_VERSION=0.4.2
 ARG GIT_HASH=unknown
 
 # Install only runtime dependencies

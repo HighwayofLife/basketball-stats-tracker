@@ -18,7 +18,7 @@ IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
 # Version information
-APP_VERSION = 0.4.1
+APP_VERSION = 0.4.2
 GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Colors for terminal output
@@ -361,6 +361,12 @@ clean: ## Remove temporary files (pycache, pytest cache, coverage reports, build
 	@echo "${YELLOW}Cleaning up temporary files...${NC}"
 	@find . -type f -name '*.py[co]' -delete -o -type d -name __pycache__ -delete -o -type d -name .pytest_cache -delete
 	@rm -rf htmlcov/ reports/ build/ dist/ *.egg-info/ .coverage
+
+.PHONY: fix-line-endings
+fix-line-endings: ## Convert all text files from CRLF to LF line endings
+	@echo "${CYAN}Converting CRLF to LF line endings...${NC}"
+	@chmod +x scripts/convert_line_endings.sh
+	@./scripts/convert_line_endings.sh
 
 # --- Package Application ---
 

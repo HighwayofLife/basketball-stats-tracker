@@ -87,6 +87,19 @@ class TestTeamStatsService:
         db_session.add(team2)
         db_session.commit()
 
+        # Create season for the test
+        from app.data_access.models import Season
+        season = Season(
+            id=1,
+            name="Season 2024-2025",
+            code="2024-2025",
+            start_date=datetime.date(2024, 10, 1),
+            end_date=datetime.date(2025, 5, 31),
+            is_active=True,
+        )
+        db_session.add(season)
+        db_session.commit()
+
         # Create players
         players = [
             Player(id=1, name="Player 1", team_id=1, jersey_number="1", is_active=True),

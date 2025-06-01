@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basketball_stats_tracker"
-version = "0.4.1"
+version = "0.4.2"
 description = "A simple web app for tracking basketball game statistics."
 authors = [
   { name = "David 'Jedi' Lewis", email = "highwayoflife@gmail.com" }
@@ -116,8 +116,17 @@ select = [ # Select rule codes to enable (Examples)
     "C4", # flake8-comprehensions
     "SIM",# flake8-simplify
 ]
-ignore = [] # Rule codes to ignore (if any specific ones cause issues)
+ignore = [
+    "B008", # B008: Function calls in argument defaults - valid for FastAPI Depends()
+    "SIM117", # SIM117: Multiple with statements - sometimes clearer as nested
+]
 # fixable = ["ALL"] # Optionally enable auto-fixing for all possible rules
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**/*.py" = [
+    "F841", # Local variable assigned but never used - common in tests for assertions
+    "SIM117", # Multiple with statements - nested mocking is common in tests
+]
 
 [tool.ruff.format]
 quote-style = "double" # Prefer double quotes
