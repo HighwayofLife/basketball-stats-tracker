@@ -41,6 +41,20 @@ class TestSeasonStatisticsIntegration:
         player3 = create_player(db_session, "Stephen Curry", 30, team2.id)
         player4 = create_player(db_session, "Klay Thompson", 11, team2.id)
 
+        # Create season
+        from app.data_access.models import Season
+        import datetime as dt
+        season = Season(
+            name="Season 2024-2025",
+            code="2024-2025",
+            start_date=dt.date(2024, 9, 1),
+            end_date=dt.date(2025, 6, 30),
+            is_active=True,
+            description="Test season for 2024-2025"
+        )
+        db_session.add(season)
+        db_session.commit()
+
         # Create games
         game1 = create_game(db_session, "2024-11-01", team1.id, team2.id)
         game2 = create_game(db_session, "2024-11-05", team2.id, team1.id)
