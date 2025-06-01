@@ -337,8 +337,7 @@ class TestGameStateService:
 
         mock_db_session.query.return_value.filter.return_value.first.return_value = mock_game
         (
-            mock_db_session.query.return_value.filter.return_value.order_by.return_value
-            .limit.return_value.all.return_value
+            mock_db_session.query.return_value.filter.return_value.order_by.return_value.limit.return_value.all.return_value
         ) = [mock_event]
 
         result = service.get_live_game_state(1)

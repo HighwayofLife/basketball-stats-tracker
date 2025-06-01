@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Apply hotfix to production database to add missing columns."""
 
+import logging
 import os
 import sys
+
 from sqlalchemy import create_engine, text
-import logging
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)

@@ -48,14 +48,14 @@ def test_client():
 
     # Clear any existing overrides first
     app.dependency_overrides.clear()
-    
+
     # Set up auth mocks
     app.dependency_overrides[get_current_user] = mock_current_user
     app.dependency_overrides[require_admin] = mock_admin_user
 
     client = TestClient(app)
     yield client
-    
+
     # Clean up
     app.dependency_overrides.clear()
 

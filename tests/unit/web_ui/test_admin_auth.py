@@ -2,7 +2,6 @@
 Unit tests for admin authentication requirements.
 """
 
-
 import pytest
 from fastapi.testclient import TestClient
 
@@ -148,10 +147,7 @@ class TestAdminAuthentication:
 
         def mock_require_admin():
             """Mock require_admin that fails for non-admin users."""
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Admin access required"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
         app.dependency_overrides[get_current_user] = mock_regular_user
         app.dependency_overrides[require_admin] = mock_require_admin
@@ -199,10 +195,7 @@ class TestAdminAuthentication:
 
         def mock_unauthenticated():
             """Mock unauthenticated state."""
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
         app.dependency_overrides[get_current_user] = mock_unauthenticated
         app.dependency_overrides[require_admin] = mock_unauthenticated

@@ -1253,7 +1253,7 @@ class TestAPIEndpoints:
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
             "description": "Test season",
-            "set_as_active": False
+            "set_as_active": False,
         }
 
         # Make request to create season
@@ -1277,7 +1277,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()
@@ -1305,7 +1305,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()
@@ -1331,7 +1331,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()

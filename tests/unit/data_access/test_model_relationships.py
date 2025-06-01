@@ -513,9 +513,7 @@ class TestModelRelationships:
         assert active_players == 1
 
         inactive_players = (
-            db_session.query(Player)
-            .filter(Player.team_id == team.id, Player.is_active.is_(False))
-            .count()
+            db_session.query(Player).filter(Player.team_id == team.id, Player.is_active.is_(False)).count()
         )
         assert inactive_players == 1
 

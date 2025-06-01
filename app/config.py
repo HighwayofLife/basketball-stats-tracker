@@ -147,6 +147,7 @@ def get_version_info() -> dict[str, str]:
 
     # Otherwise, try to get git commit hash
     import contextlib
+
     with contextlib.suppress(subprocess.CalledProcessError, FileNotFoundError):
         git_hash = subprocess.check_output(
             ["git", "rev-parse", "--short", "HEAD"], cwd=BASE_DIR, stderr=subprocess.DEVNULL, text=True

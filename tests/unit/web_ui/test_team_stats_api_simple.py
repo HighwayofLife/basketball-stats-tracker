@@ -9,7 +9,9 @@ from app.repositories.team_repository import TeamRepository
 from app.services.season_stats_service import SeasonStatsService
 
 
-@pytest.mark.skip(reason="SQLAlchemy model relationship issues with User model - Team model references User but it's not available during testing")
+@pytest.mark.skip(
+    reason="SQLAlchemy model relationship issues with User model - Team model references User but it's not available during testing"
+)
 class TestTeamStatsService:
     """Test team statistics service functionality."""
 
@@ -92,6 +94,7 @@ class TestTeamStatsService:
 
         # Create season for the test
         from app.data_access.models import Season
+
         season = Season(
             id=1,
             name="Season 2024-2025",
