@@ -19,8 +19,7 @@ depends_on = None
 def upgrade():
     # Handle SQLite vs PostgreSQL differences
     from sqlalchemy import Date
-    import sqlalchemy as sa
-    
+
     bind = op.get_bind()
     if bind.dialect.name == 'sqlite':
         # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
@@ -32,9 +31,9 @@ def upgrade():
 
 
 def downgrade():
-    # Handle SQLite vs PostgreSQL differences  
+    # Handle SQLite vs PostgreSQL differences
     from sqlalchemy import String
-    
+
     bind = op.get_bind()
     if bind.dialect.name == 'sqlite':
         # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
