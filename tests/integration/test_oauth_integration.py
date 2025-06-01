@@ -23,7 +23,9 @@ class TestOAuthIntegration:
             with patch("app.web_ui.routers.auth.oauth") as mock_oauth:
                 # Mock the authorize_redirect method
                 mock_google = Mock()
-                mock_google.authorize_redirect = AsyncMock(return_value=RedirectResponse("https://accounts.google.com/oauth/authorize?..."))
+                mock_google.authorize_redirect = AsyncMock(
+                    return_value=RedirectResponse("https://accounts.google.com/oauth/authorize?...")
+                )
                 mock_oauth.google = mock_google
 
                 client = TestClient(app)

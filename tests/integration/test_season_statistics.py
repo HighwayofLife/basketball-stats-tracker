@@ -50,7 +50,7 @@ class TestSeasonStatisticsIntegration:
             start_date=dt.date(2024, 9, 1),
             end_date=dt.date(2025, 6, 30),
             is_active=True,
-            description="Test season for 2024-2025"
+            description="Test season for 2024-2025",
         )
         db_session.add(season)
         db_session.commit()

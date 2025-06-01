@@ -21,7 +21,7 @@ def upgrade():
     from sqlalchemy import Date
 
     bind = op.get_bind()
-    if bind.dialect.name == 'sqlite':
+    if bind.dialect.name == "sqlite":
         # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
         # SQLite will just store dates as strings which works fine
         pass
@@ -35,7 +35,7 @@ def downgrade():
     from sqlalchemy import String
 
     bind = op.get_bind()
-    if bind.dialect.name == 'sqlite':
+    if bind.dialect.name == "sqlite":
         # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
         pass
     else:
