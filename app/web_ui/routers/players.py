@@ -394,16 +394,25 @@ async def get_player_stats(player_id: int):
             season_stats_record = None
             current_season = None
             try:
-                # Get the active season from the Season table
-                from app.data_access.models import Season
+                from app.data_access.models import PlayerSeasonStats, Season
 
                 stats_service = SeasonStatsService(session)
+
+                # First, check if there's an active season
                 active_season = session.query(Season).filter(Season.is_active).first()
 
                 if active_season:
                     current_season = active_season.code
                     # Update player season stats to ensure they're current
                     season_stats_record = stats_service.update_player_season_stats(player_id, current_season)
+                else:
+                    # If no active season, get the most recent season stats for the player
+                    season_stats_record = (
+                        session.query(PlayerSeasonStats)
+                        .filter(PlayerSeasonStats.player_id == player_id)
+                        .order_by(PlayerSeasonStats.season.desc())
+                        .first()
+                    )
             except Exception as e:
                 logger.warning(f"Error getting current season stats for player {player_id}: {e}")
                 season_stats_record = None
