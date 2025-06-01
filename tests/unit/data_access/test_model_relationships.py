@@ -5,6 +5,7 @@ Test module for database model relationships.
 from datetime import date, datetime
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.data_access.models import (
     ActiveRoster,
@@ -474,7 +475,7 @@ class TestModelRelationships:
         db_session.add(player2)
 
         # This should raise an integrity error due to unique constraint
-        with pytest.raises(Exception):  # Could be IntegrityError or similar
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
         db_session.rollback()
@@ -491,7 +492,7 @@ class TestModelRelationships:
         db_session.add(player3)
 
         # This should also raise an integrity error
-        with pytest.raises(Exception):  # Could be IntegrityError or similar
+        with pytest.raises(IntegrityError):
             db_session.commit()
 
         db_session.rollback()
@@ -508,10 +509,14 @@ class TestModelRelationships:
         db_session.commit()  # Should succeed
 
         # Verify players exist
-        active_players = db_session.query(Player).filter(Player.team_id == team.id, Player.is_active == True).count()
+        active_players = db_session.query(Player).filter(Player.team_id == team.id, Player.is_active.is_(True)).count()
         assert active_players == 1
 
-        inactive_players = db_session.query(Player).filter(Player.team_id == team.id, Player.is_active == False).count()
+        inactive_players = (
+            db_session.query(Player)
+            .filter(Player.team_id == team.id, Player.is_active.is_(False))
+            .count()
+        )
         assert inactive_players == 1
 
     def test_model_string_representations(self, db_session):

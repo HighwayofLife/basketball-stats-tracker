@@ -1267,8 +1267,9 @@ class TestAPIEndpoints:
 
     def test_update_season_requires_admin(self, client, db_session):
         """Test that updating a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
@@ -1294,8 +1295,9 @@ class TestAPIEndpoints:
 
     def test_activate_season_requires_admin(self, client, db_session):
         """Test that activating a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
@@ -1319,8 +1321,9 @@ class TestAPIEndpoints:
 
     def test_delete_season_requires_admin(self, client, db_session):
         """Test that deleting a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
