@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
-from app.data_access.db_session import get_db_session
+from app.dependencies import get_db
 from app.web_ui.api import app
 
 
@@ -63,7 +63,7 @@ class TestOAuthIntegration:
                 def override_get_db():
                     yield db_session
 
-                app.dependency_overrides[get_db_session] = override_get_db
+                app.dependency_overrides[get_db] = override_get_db
 
                 try:
                     client = TestClient(app)
@@ -121,7 +121,7 @@ class TestOAuthIntegration:
                 def override_get_db():
                     yield db_session
 
-                app.dependency_overrides[get_db_session] = override_get_db
+                app.dependency_overrides[get_db] = override_get_db
 
                 try:
                     client = TestClient(app)
