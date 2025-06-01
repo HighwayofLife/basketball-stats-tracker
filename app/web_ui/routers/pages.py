@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
+from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
 
 logger = logging.getLogger(__name__)
@@ -82,7 +83,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request):
+async def index(auth_context: dict = Depends(get_template_auth_context)):
     """Render the dashboard home page."""
     try:
         with get_db_session() as session:
@@ -154,33 +155,31 @@ async def index(request: Request):
             # Get top players from recent games
             top_players = get_top_players_from_recent_week(session, limit=4)
 
-            return templates.TemplateResponse(
-                "index.html",
-                {
-                    "request": request,
-                    "title": "Basketball Stats Dashboard",
-                    "recent_games": recent_games_data,
-                    "top_players": top_players,
-                },
-            )
+            context = {
+                **auth_context,
+                "title": "Basketball Stats Dashboard",
+                "recent_games": recent_games_data,
+                "top_players": top_players,
+            }
+
+            return templates.TemplateResponse("index.html", context)
     except Exception as e:
         logger.error(f"Error rendering dashboard: {e}")
         # Return an empty dashboard instead of error
-        return templates.TemplateResponse(
-            "index.html",
-            {
-                "request": request,
-                "title": "Basketball Stats Dashboard",
-                "recent_games": [],
-                "top_players": [],
-            },
-        )
+        context = {
+            **auth_context,
+            "title": "Basketball Stats Dashboard",
+            "recent_games": [],
+            "top_players": [],
+        }
+        return templates.TemplateResponse("index.html", context)
 
 
 @router.get("/games", response_class=HTMLResponse)
-async def games_page(request: Request):
+async def games_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the games list page."""
-    return templates.TemplateResponse("games/index.html", {"request": request, "title": "Basketball Games"})
+    context = {**auth_context, "title": "Basketball Games"}
+    return templates.TemplateResponse("games/index.html", context)
 
 
 @router.get("/games/create", response_class=HTMLResponse)
@@ -190,9 +189,10 @@ async def create_game_page(request: Request):
 
 
 @router.get("/teams", response_class=HTMLResponse)
-async def teams_page(request: Request):
+async def teams_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the teams management page."""
-    return templates.TemplateResponse("teams/index.html", {"request": request, "title": "Team Management"})
+    context = {**auth_context, "title": "Team Management"}
+    return templates.TemplateResponse("teams/index.html", context)
 
 
 @router.get("/teams/{team_id}", response_class=HTMLResponse)
@@ -204,9 +204,10 @@ async def team_detail_page(request: Request, team_id: int):
 
 
 @router.get("/players", response_class=HTMLResponse)
-async def players_page(request: Request):
+async def players_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the players management page."""
-    return templates.TemplateResponse("players/index.html", {"request": request, "title": "Player Management"})
+    context = {**auth_context, "title": "Player Management"}
+    return templates.TemplateResponse("players/index.html", context)
 
 
 @router.get("/games/{game_id}", response_class=HTMLResponse)

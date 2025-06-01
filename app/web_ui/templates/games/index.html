@@ -7,10 +7,12 @@
 {% block content %}
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <h2>Basketball Games</h2>
+    {% if is_authenticated %}
     <div class="header-actions" style="display: flex; gap: 10px;">
         <a href="/scorebook" class="btn btn-primary">Scorebook Entry</a>
         <a href="/games/create" class="btn btn-primary">Create New Game</a>
     </div>
+    {% endif %}
 </div>
 
 <div class="filters">

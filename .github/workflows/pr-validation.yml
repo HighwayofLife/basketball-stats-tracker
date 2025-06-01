@@ -13,7 +13,7 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.11"
-  
+
 jobs:
   # Build validation - ensures Docker image can be built
   docker-build:
@@ -22,10 +22,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
+
       - name: Extract version info
         id: version
         run: |
@@ -33,7 +33,7 @@ jobs:
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
-          
+
       - name: Build Docker image
         uses: docker/build-push-action@v5
         with:
@@ -54,12 +54,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
@@ -67,18 +67,18 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-            
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
-          
+
       - name: Run Ruff linter
         run: |
           echo "::group::Running Ruff linter"
           ruff check . --output-format=github
           echo "::endgroup::"
-          
+
       - name: Check code formatting with Ruff
         run: |
           echo "::group::Checking code formatting"
@@ -92,12 +92,12 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
@@ -105,12 +105,12 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-            
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[test]"
-          
+
       - name: Run unit tests with coverage
         env:
           JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
@@ -120,14 +120,14 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             --junitxml=junit/unit-test-results.xml
-            
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-results
           path: junit/unit-test-results.xml
-          
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
@@ -154,16 +154,16 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-          
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Cache pip packages
         uses: actions/cache@v4
         with:
@@ -171,19 +171,19 @@ jobs:
           key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
           restore-keys: |
             ${{ runner.os }}-pip-
-            
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[test]"
-          
+
       - name: Run database migrations
         env:
           DATABASE_URL: postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats
           DEFAULT_ADMIN_PASSWORD: ci-test-admin-password-12345
         run: |
           alembic upgrade head
-          
+
       - name: Run integration tests
         env:
           DATABASE_URL: postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats
@@ -195,14 +195,14 @@ jobs:
             --cov-report=xml \
             --cov-report=term-missing \
             --junitxml=junit/integration-test-results.xml
-            
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results
           path: junit/integration-test-results.xml
-          
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
@@ -218,47 +218,47 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
-          
+
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[test]"
-          
+
       - name: Start services with Docker Compose
         run: |
           docker compose up -d
           # Wait for services to be ready
           docker compose exec -T web bash -c "for i in {1..30}; do basketball-stats health-check && break || sleep 2; done"
-          
+
       - name: Run UI validation tests
         run: |
           pytest tests/integration/test_ui_validation.py -v \
             --junitxml=junit/ui-test-results.xml
-            
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ui-test-results
           path: junit/ui-test-results.xml
-          
+
       - name: Collect Docker logs on failure
         if: failure()
         run: |
           docker compose logs > docker-compose-logs.txt
-          
+
       - name: Upload Docker logs
         uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: docker-logs
           path: docker-compose-logs.txt
-          
+
       - name: Stop services
         if: always()
         run: docker compose down -v
@@ -275,23 +275,22 @@ jobs:
         with:
           pattern: '*-test-results'
           merge-multiple: true
-          
       - name: List downloaded files
         run: |
           echo "Downloaded files:"
           find . -name "*.xml" -type f || echo "No XML files found"
           ls -la
-          
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
           files: |
             junit/**/*.xml
+            **/*-test-results.xml
           check_name: Test Results
           comment_title: Test Results Summary
           fail_on: test failures
-          
+
   # Security scanning
   security-scan:
     name: Security Scan
@@ -299,7 +298,7 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        
+
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
@@ -308,7 +307,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
-          
+
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         with:

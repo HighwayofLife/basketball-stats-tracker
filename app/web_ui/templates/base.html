@@ -9,6 +9,11 @@
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
+    <!-- Device-specific stylesheets -->
+    <link rel="stylesheet" href="/static/css/smartphone-portrait.css">
+    <link rel="stylesheet" href="/static/css/smartphone-landscape.css">
+    <link rel="stylesheet" href="/static/css/tablet-portrait.css">
+    <link rel="stylesheet" href="/static/css/tablet-landscape.css">
     {% block extra_head %}{% endblock %}
 </head>
 <body>
@@ -22,7 +27,8 @@
                     <li><a href="/teams">Teams</a></li>
                     <li><a href="/players">Players</a></li>
                     <li><a href="/about">About</a></li>
-                    <li id="manage-nav-item" class="nav-dropdown" style="display: none;">
+                    {% if is_authenticated %}
+                    <li class="nav-dropdown">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-tasks"></i> Manage <i class="fas fa-chevron-down"></i>
                         </a>
@@ -31,7 +37,9 @@
                             <li><a href="/admin/seasons"><i class="fas fa-calendar-alt"></i> Seasons</a></li>
                         </ul>
                     </li>
-                    <li id="admin-nav-item" class="nav-dropdown" style="display: none;">
+                    {% endif %}
+                    {% if is_admin %}
+                    <li class="nav-dropdown">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-cog"></i> Admin <i class="fas fa-chevron-down"></i>
                         </a>
@@ -40,16 +48,20 @@
                             <li><a href="/admin/users"><i class="fas fa-users"></i> User Management</a></li>
                         </ul>
                     </li>
+                    {% endif %}
                     <li class="nav-divider"></li>
-                    <li id="login-nav-item" style="display: none;"><a id="login-link" href="/login">Login</a></li>
-                    <li id="user-nav-item" style="display: none;">
+                    {% if is_authenticated %}
+                    <li>
                         <a href="/account" title="Account Settings">
-                            <i class="fas fa-user"></i> <span id="username-display"></span>
+                            <i class="fas fa-user"></i> {{ current_user.username }}
                         </a>
-                        <a id="logout-link" href="/logout" title="Logout">
+                        <a href="/logout" title="Logout">
                             <i class="fas fa-sign-out-alt"></i> Logout
                         </a>
                     </li>
+                    {% else %}
+                    <li><a href="/login">Login</a></li>
+                    {% endif %}
                 </ul>
             </nav>
         </div>

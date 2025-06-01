@@ -1,3 +1,11 @@
+v0.4.3
+------
+
+### Features
+
+### Fixes
+* Fix issue with user authentication not being properly checked in templates
+
 v0.4.2
 ------
 
@@ -8,7 +16,7 @@ v0.4.2
 * Fix E712 errors - replace `== True` comparisons with direct boolean checks
 * Fix line length violations and simplify code patterns
 
-### Bug Fixes  
+### Bug Fixes
 * Fix player stats API endpoint to return season_stats when no active season exists
 * Update player stats endpoint to fall back to most recent season stats if no active season
 * Fix missing `get_db_session` import in web UI dependencies module causing test failures
