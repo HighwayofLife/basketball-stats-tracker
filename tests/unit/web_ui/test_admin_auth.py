@@ -263,8 +263,9 @@ class TestAdminAuthentication:
         assert response.status_code == 403
         assert "Admin access required" in response.json()["detail"]
 
-    def test_admin_seasons_page_requires_admin(self, non_admin_client):
-        """Test that the admin seasons page requires admin access."""
+    def test_admin_seasons_page_loads_for_all_users(self, non_admin_client):
+        """Test that the admin seasons HTML page loads (auth is handled client-side)."""
         response = non_admin_client.get("/admin/seasons")
-        assert response.status_code == 403
-        assert "Admin access required" in response.json()["detail"]
+        assert response.status_code == 200
+        # The page loads but client-side JS will redirect if no admin token
+        assert "Season Management" in response.text

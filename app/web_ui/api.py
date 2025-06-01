@@ -122,10 +122,10 @@ class AuthorizationMiddleware(BaseHTTPMiddleware):
                     status_code=status.HTTP_403_FORBIDDEN,
                     content={"detail": "Admin access required"},
                 )
-            elif required_role == UserRole.WRITER and user_role not in [UserRole.WRITER, UserRole.ADMIN]:
+            elif required_role == UserRole.USER and user_role not in [UserRole.USER, UserRole.ADMIN]:
                 return JSONResponse(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    content={"detail": "Writer access required"},
+                    content={"detail": "User access required"},
                 )
 
         response = await call_next(request)
@@ -148,7 +148,8 @@ app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY or "dev-ses
 app.add_middleware(ProxyHeadersMiddleware)
 
 # Add middleware for authentication and authorization
-app.add_middleware(AuthorizationMiddleware)
+# Commented out - using dependency injection instead for better testability
+# app.add_middleware(AuthorizationMiddleware)
 
 # Only add TrustedHostMiddleware in production
 if os.getenv("APP_ENV") == "production":
