@@ -1,0 +1,428 @@
+/* Basketball Stats Tracker - Smartphone Portrait Styles */
+/* Target: Devices with max-width 480px in portrait orientation */
+
+@media screen and (max-width: 480px) and (orientation: portrait) {
+  
+  /* Container and layout adjustments */
+  .container {
+    padding: 0 15px;
+  }
+  
+  /* Header improvements */
+  .site-header {
+    padding: 10px 0;
+  }
+  
+  .site-header .container {
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    min-height: auto;
+  }
+  
+  .site-title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 5px;
+  }
+  
+  .site-title a {
+    font-size: 1.3rem;
+  }
+  
+  /* Navigation improvements */
+  .main-nav {
+    width: 100%;
+    margin: 0;
+    justify-content: center;
+  }
+  
+  .main-nav ul {
+    flex-direction: column;
+    width: 100%;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .main-nav li {
+    margin: 0;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .main-nav a {
+    display: block;
+    padding: 12px 20px;
+    width: 100%;
+    border-radius: 6px;
+    font-size: 0.95rem;
+  }
+  
+  .nav-divider {
+    display: none;
+  }
+  
+  /* Dropdown adjustments for mobile */
+  .nav-dropdown {
+    width: 100%;
+  }
+  
+  .dropdown-toggle {
+    width: 100%;
+    text-align: center;
+  }
+  
+  .dropdown-menu {
+    position: static !important;
+    display: block !important;
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.1);
+    margin-top: 5px;
+    border-radius: 6px;
+  }
+  
+  .dropdown-menu li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  .dropdown-menu a {
+    color: var(--light-text);
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .dropdown-menu a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  /* Beta banner adjustments */
+  .beta-banner {
+    padding: 8px 0;
+    font-size: 0.85rem;
+  }
+  
+  .beta-banner .container {
+    flex-direction: column;
+    gap: 5px;
+  }
+  
+  /* Main content spacing */
+  .site-content {
+    padding: 20px 0;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  /* Card improvements */
+  .card {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 6px;
+  }
+  
+  .card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+  }
+  
+  /* Dashboard layout */
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .game-content-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .sidebar {
+    order: -1;
+  }
+  
+  /* Quick actions improvements */
+  .quick-actions-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 15px 0;
+  }
+  
+  .quick-action-btn {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 1rem;
+    justify-content: center;
+    min-height: 50px;
+  }
+  
+  .quick-action-btn .icon {
+    font-size: 1.4rem;
+  }
+  
+  /* Action buttons */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    justify-content: stretch;
+  }
+  
+  .action-btn {
+    width: 100%;
+    min-width: auto;
+    padding: 20px 15px;
+    font-size: 0.95rem;
+  }
+  
+  .action-btn .icon {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+  }
+  
+  /* Table improvements */
+  .data-table {
+    font-size: 0.85rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  
+  .data-table thead,
+  .data-table tbody,
+  .data-table th,
+  .data-table td,
+  .data-table tr {
+    display: block;
+  }
+  
+  .data-table thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  
+  .data-table tr {
+    border: 1px solid var(--border-color);
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: var(--card-background);
+    padding: 15px;
+  }
+  
+  .data-table td {
+    border: none;
+    padding: 8px 0;
+    position: relative;
+    padding-left: 40%;
+    text-align: right;
+    white-space: normal;
+  }
+  
+  .data-table td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    left: 6px;
+    width: 35%;
+    padding-right: 10px;
+    white-space: nowrap;
+    font-weight: bold;
+    text-align: left;
+    color: var(--secondary-color);
+  }
+  
+  /* Top players adjustments */
+  .top-players-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .top-player-box {
+    padding: 12px;
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  .player-info .player-name {
+    font-size: 1rem;
+  }
+  
+  .player-info .team-name {
+    font-size: 0.8rem;
+  }
+  
+  .player-info .game-info {
+    font-size: 0.75rem;
+  }
+  
+  .player-info .player-stats {
+    font-size: 0.8rem;
+  }
+  
+  /* Button improvements */
+  .btn, .action-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    min-height: 44px;
+    border-radius: 6px;
+  }
+  
+  .btn-sm {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    min-height: 36px;
+  }
+  
+  .btn + .btn {
+    margin-left: 0;
+    margin-top: 0.5rem;
+  }
+  
+  /* Tabs improvements */
+  .tabs {
+    flex-direction: column;
+    border-bottom: none;
+    gap: 5px;
+  }
+  
+  .tab-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+    margin-bottom: 5px;
+  }
+  
+  .tab-btn.active {
+    background-color: var(--primary-color);
+    color: var(--light-text);
+    border-color: var(--primary-color);
+  }
+  
+  /* Filter improvements */
+  .filters {
+    margin-bottom: 15px;
+  }
+  
+  .filter-group {
+    margin-bottom: 12px;
+  }
+  
+  .filter-select {
+    width: 100%;
+    max-width: none;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+  }
+  
+  /* Game header improvements */
+  .game-header h2 {
+    font-size: 1.5rem;
+  }
+  
+  .game-score {
+    font-size: 1.3rem;
+  }
+  
+  /* Chart container */
+  .chart-container {
+    height: 300px;
+    margin: 15px 0;
+  }
+  
+  /* Footer adjustments */
+  .site-footer {
+    padding: 15px 0;
+    margin-top: 30px;
+  }
+  
+  .site-footer .version-info {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.75rem;
+  }
+  
+  /* Form improvements */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 15px;
+  }
+  
+  /* Pagination improvements */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+  }
+  
+  .pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    margin: 0;
+  }
+  
+  /* Loading and error messages */
+  .loading-message,
+  .error-message {
+    padding: 15px;
+    font-size: 0.95rem;
+  }
+  
+  /* Responsive text adjustments */
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.4rem; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1.1rem; }
+  h5 { font-size: 1rem; }
+  h6 { font-size: 0.95rem; }
+  
+  /* Improve touch targets */
+  a, button, input, select, textarea {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* Hide elements that don't work well on small screens */
+  .desktop-only {
+    display: none !important;
+  }
+  
+  /* Utility classes for mobile */
+  .mobile-hidden {
+    display: none !important;
+  }
+  
+  .mobile-visible {
+    display: block !important;
+  }
+  
+  .mobile-center {
+    text-align: center !important;
+  }
+  
+  .mobile-full-width {
+    width: 100% !important;
+  }
+  
+}
