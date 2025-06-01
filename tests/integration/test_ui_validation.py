@@ -41,7 +41,7 @@ class DockerContainerManager:
         # Stop any existing containers (ignore errors)
         try:
             subprocess.run(
-                ["docker-compose", "down", "--remove-orphans"],
+                ["docker", "compose", "down", "--remove-orphans"],
                 capture_output=True,
                 timeout=30,
                 check=False,  # Don't fail if containers aren't running
@@ -50,7 +50,7 @@ class DockerContainerManager:
             logger.warning("Timeout stopping existing containers, continuing...")
 
         # Start containers
-        result = subprocess.run(["docker-compose", "up", "-d"], capture_output=True, text=True, timeout=120)
+        result = subprocess.run(["docker", "compose", "up", "-d"], capture_output=True, text=True, timeout=120)
 
         if result.returncode != 0:
             raise RuntimeError(f"Failed to start containers: {result.stderr}")
@@ -65,7 +65,7 @@ class DockerContainerManager:
         """Stop and clean up Docker containers."""
         if self.containers_started:
             logger.info("Stopping Docker containers...")
-            subprocess.run(["docker-compose", "down", "--remove-orphans"], capture_output=True, timeout=30)
+            subprocess.run(["docker", "compose", "down", "--remove-orphans"], capture_output=True, timeout=30)
             self.containers_started = False
             logger.info("Docker containers stopped")
 
@@ -293,7 +293,7 @@ def test_container_health_check():
 
         # Verify containers are running
         result = subprocess.run(
-            ["docker-compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
+            ["docker", "compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
         )
 
         running_services = result.stdout.strip().split("\n") if result.stdout.strip() else []
@@ -305,7 +305,7 @@ def test_container_health_check():
 
         # Verify containers are stopped
         result = subprocess.run(
-            ["docker-compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
+            ["docker", "compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
         )
 
         running_services = result.stdout.strip().split("\n") if result.stdout.strip() else []
