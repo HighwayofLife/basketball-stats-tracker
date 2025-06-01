@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="logout-container">
+    <h2>Logging out...</h2>
+    <p>Please wait while we log you out.</p>
+</div>
+
+<script>
+// Clear localStorage tokens
+localStorage.removeItem("access_token");
+localStorage.removeItem("refresh_token");
+localStorage.removeItem("token_type");
+
+// Clear cookies by setting them to expire in the past
+document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict";
+document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; secure; samesite=strict";
+
+// For local development, also try without secure flag
+document.cookie = "access_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+document.cookie = "refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+
+// Redirect to home page after a short delay
+setTimeout(function() {
+    window.location.href = "/";
+}, 100);
+</script>
+{% endblock %}

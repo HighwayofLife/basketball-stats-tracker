@@ -53,23 +53,17 @@ def calculate_shooting_percentages(stats: dict) -> dict:
 
     # Free throw percentage
     percentages["ft_percentage"] = (
-        round(stats["total_ftm"] / stats["total_fta"] * 100, 1)
-        if stats["total_fta"] > 0
-        else 0
+        round(stats["total_ftm"] / stats["total_fta"] * 100, 1) if stats["total_fta"] > 0 else 0
     )
 
     # 2-point field goal percentage
     percentages["fg2_percentage"] = (
-        round(stats["total_2pm"] / stats["total_2pa"] * 100, 1)
-        if stats["total_2pa"] > 0
-        else 0
+        round(stats["total_2pm"] / stats["total_2pa"] * 100, 1) if stats["total_2pa"] > 0 else 0
     )
 
     # 3-point field goal percentage
     percentages["fg3_percentage"] = (
-        round(stats["total_3pm"] / stats["total_3pa"] * 100, 1)
-        if stats["total_3pa"] > 0
-        else 0
+        round(stats["total_3pm"] / stats["total_3pa"] * 100, 1) if stats["total_3pa"] > 0 else 0
     )
 
     return percentages
@@ -208,7 +202,7 @@ async def get_team_stats(
 
             from app.data_access.models import Season
 
-            active_season = db.query(Season).filter(Season.is_active == True).first()
+            active_season = db.query(Season).filter(Season.is_active).first()
 
             if active_season:
                 current_season = active_season.code

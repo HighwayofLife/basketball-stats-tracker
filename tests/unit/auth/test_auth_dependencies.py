@@ -70,7 +70,7 @@ class TestAuthDependencies:
                 await get_current_user("invalid_token", mock_db)
 
             assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-            assert "Could not validate credentials" in exc_info.value.detail
+            assert "Not authenticated" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_get_current_user_token_missing_sub(self, mock_db):
@@ -82,7 +82,7 @@ class TestAuthDependencies:
                 await get_current_user("token_without_sub", mock_db)
 
             assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-            assert "Could not validate credentials" in exc_info.value.detail
+            assert "Not authenticated" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_get_current_user_user_not_found(self, mock_db):
@@ -101,7 +101,7 @@ class TestAuthDependencies:
                 await get_current_user("valid_token", mock_db)
 
             assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
-            assert "Could not validate credentials" in exc_info.value.detail
+            assert "Not authenticated" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_get_current_user_inactive_user(self, mock_db):

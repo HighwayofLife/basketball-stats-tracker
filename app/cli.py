@@ -365,7 +365,8 @@ def create_season(
     Create a new season.
 
     Example:
-        basketball-stats season-create --name "Spring 2025" --code "2025-spring" --start 2025-03-01 --end 2025-06-30 --active
+        basketball-stats season-create --name "Spring 2025" --code "2025-spring" \\
+            --start 2025-03-01 --end 2025-06-30 --active
     """
     SeasonCommands.create_season(
         name=name,

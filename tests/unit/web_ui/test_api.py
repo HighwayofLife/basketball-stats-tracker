@@ -1253,7 +1253,7 @@ class TestAPIEndpoints:
             "start_date": "2025-01-01",
             "end_date": "2025-12-31",
             "description": "Test season",
-            "set_as_active": False
+            "set_as_active": False,
         }
 
         # Make request to create season
@@ -1267,8 +1267,9 @@ class TestAPIEndpoints:
 
     def test_update_season_requires_admin(self, client, db_session):
         """Test that updating a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
@@ -1276,7 +1277,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()
@@ -1294,8 +1295,9 @@ class TestAPIEndpoints:
 
     def test_activate_season_requires_admin(self, client, db_session):
         """Test that activating a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
@@ -1303,7 +1305,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()
@@ -1319,8 +1321,9 @@ class TestAPIEndpoints:
 
     def test_delete_season_requires_admin(self, client, db_session):
         """Test that deleting a season requires admin authentication."""
-        from app.data_access.models import Season
         from datetime import date
+
+        from app.data_access.models import Season
 
         # Create a test season
         season = Season(
@@ -1328,7 +1331,7 @@ class TestAPIEndpoints:
             code="TEST2025",
             start_date=date(2025, 1, 1),
             end_date=date(2025, 12, 31),
-            is_active=False
+            is_active=False,
         )
         db_session.add(season)
         db_session.commit()

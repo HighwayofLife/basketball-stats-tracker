@@ -107,9 +107,10 @@ class SeasonService:
                 return False, "Start date must be before end date", None
 
             # Check for overlapping seasons if dates changed
-            if start_date or end_date:
-                if self.season_crud.check_overlapping_seasons(check_start, check_end, exclude_id=season_id):
-                    return False, "New dates overlap with an existing season", None
+            if (start_date or end_date) and self.season_crud.check_overlapping_seasons(
+                check_start, check_end, exclude_id=season_id
+            ):
+                return False, "New dates overlap with an existing season", None
 
             # Update the season
             season = self.season_crud.update(

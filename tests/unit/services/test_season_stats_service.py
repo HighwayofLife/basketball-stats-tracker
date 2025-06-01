@@ -133,7 +133,9 @@ class TestSeasonStatsService:
 
         mock_query = MagicMock()
         mock_query.all.return_value = [stats1, stats2]
-        mock_db_session.query.return_value.join.return_value.join.return_value.filter.return_value.options.return_value = mock_query
+        (
+            mock_db_session.query.return_value.join.return_value.join.return_value.filter.return_value.options.return_value
+        ) = mock_query
 
         rankings = season_stats_service.get_player_rankings("ppg", limit=2)
 
@@ -167,7 +169,9 @@ class TestSeasonStatsService:
         )
 
         mock_query_result = [stats1, stats2]
-        mock_db_session.query.return_value.join.return_value.filter.return_value.options.return_value.all.return_value = mock_query_result
+        (
+            mock_db_session.query.return_value.join.return_value.filter.return_value.options.return_value.all.return_value
+        ) = mock_query_result
 
         standings = season_stats_service.get_team_standings()
 

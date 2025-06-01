@@ -17,15 +17,27 @@ depends_on = None
 
 
 def upgrade():
-    # Use Alembic's alter_column method instead of recreating the table
-    # This is more database-agnostic
+    # Handle SQLite vs PostgreSQL differences
     from sqlalchemy import Date
 
-    op.alter_column("games", "date", type_=Date(), postgresql_using="date::date")
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
+        # SQLite will just store dates as strings which works fine
+        pass
+    else:
+        # PostgreSQL and other databases
+        op.alter_column("games", "date", type_=Date(), postgresql_using="date::date")
 
 
 def downgrade():
-    # Use Alembic's alter_column method to revert the column type
+    # Handle SQLite vs PostgreSQL differences
     from sqlalchemy import String
 
-    op.alter_column("games", "date", type_=String(), postgresql_using="date::text")
+    bind = op.get_bind()
+    if bind.dialect.name == "sqlite":
+        # SQLite doesn't support ALTER COLUMN TYPE, so we skip this migration
+        pass
+    else:
+        # PostgreSQL and other databases
+        op.alter_column("games", "date", type_=String(), postgresql_using="date::text")

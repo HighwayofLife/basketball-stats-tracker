@@ -23,16 +23,46 @@ from app.services.game_state_service import GameStateService
 from app.web_ui.api import app
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def test_client():
     """Create a test client for the FastAPI app."""
-    return TestClient(app)
+    # Override authentication dependencies for testing
+    from app.auth.dependencies import get_current_user, require_admin
+    from app.auth.models import User, UserRole
+
+    def mock_current_user():
+        """Mock current user for testing."""
+        user = User(
+            id=1,
+            username="testuser",
+            email="test@example.com",
+            role=UserRole.ADMIN,  # Use admin to bypass all auth checks
+            is_active=True,
+            provider="local",
+        )
+        return user
+
+    def mock_admin_user():
+        """Mock admin user for testing."""
+        return mock_current_user()
+
+    # Clear any existing overrides first
+    app.dependency_overrides.clear()
+
+    # Set up auth mocks
+    app.dependency_overrides[get_current_user] = mock_current_user
+    app.dependency_overrides[require_admin] = mock_admin_user
+
+    client = TestClient(app)
+    yield client
+
+    # Clean up
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
 def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
     """Mock the database manager to use the test session."""
-    from sqlalchemy import create_engine
     from sqlalchemy.orm import sessionmaker
 
     # Ensure database is created with proper schema
@@ -42,12 +72,8 @@ def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
 
     @contextmanager
     def get_db_session_mock():
-        # Always create a new engine with the same URL to ensure consistent schema
-        engine = create_engine(test_db_file_url, connect_args={"check_same_thread": False})
-
-        # Debug logging removed - mock is working correctly
-
-        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+        # Use the provided test engine to ensure schema consistency
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_db_file_engine)
         session = SessionLocal()
         try:
             yield session
@@ -64,29 +90,38 @@ def mock_db_manager(test_db_file_url, test_db_file_engine, monkeypatch):
 
     # Patch get_db_session in all the places where it's used
     from app.data_access import db_session
-    from app.web_ui import dependencies
     from app.web_ui.routers import admin, games, pages, players
 
     # Store original functions for cleanup
     original_get_db_session = db_session.get_db_session
-    original_deps_get_db_session = dependencies.get_db_session
 
     # Patch using direct assignment (more reliable than monkeypatch for this case)
     db_session.get_db_session = get_db_session_mock
-    dependencies.get_db_session = get_db_session_mock
 
-    # Patch in all router modules that have already imported it
+    # Patch in router modules that import get_db_session directly
     monkeypatch.setattr(players, "get_db_session", get_db_session_mock)
     monkeypatch.setattr(games, "get_db_session", get_db_session_mock)
     monkeypatch.setattr(admin, "get_db_session", get_db_session_mock)
     monkeypatch.setattr(pages, "get_db_session", get_db_session_mock)
+
+    # Override get_db dependency for FastAPI
+    from app.dependencies import get_db
+    from app.web_ui.api import app
+
+    def mock_get_db():
+        with get_db_session_mock() as session:
+            yield session
+
+    app.dependency_overrides[get_db] = mock_get_db
 
     yield mock_manager
 
     # Restore the original database manager and functions
     db_manager.db_manager = original_manager
     db_session.get_db_session = original_get_db_session
-    dependencies.get_db_session = original_deps_get_db_session
+    # Clear dependency overrides for this app
+    if get_db in app.dependency_overrides:
+        del app.dependency_overrides[get_db]
 
 
 class TestGameEntryWorkflow:

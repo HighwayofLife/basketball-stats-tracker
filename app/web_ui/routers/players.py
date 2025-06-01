@@ -11,6 +11,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
@@ -34,9 +35,9 @@ async def list_players(team_id: int | None = None, active_only: bool = True, pla
 
             if player_type:
                 if player_type == "substitute":
-                    query = query.filter(models.Player.is_substitute == True)
+                    query = query.filter(models.Player.is_substitute)
                 elif player_type == "regular":
-                    query = query.filter(models.Player.is_substitute == False)
+                    query = query.filter(~models.Player.is_substitute)
 
             players_teams = query.order_by(models.Team.name, func.cast(models.Player.jersey_number, Integer)).all()
 
@@ -347,7 +348,7 @@ async def get_player_stats(player_id: int):
             }
 
             # Calculate career totals from all games
-            for stats, game in game_stats:
+            for stats, _game in game_stats:
                 points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
                 career_stats["total_points"] += points
                 career_stats["total_ftm"] += stats.total_ftm
@@ -389,11 +390,32 @@ async def get_player_stats(player_id: int):
                 career_stats["ppg"] = 0.0
                 career_stats["fpg"] = 0.0
 
-            # Get season stats
-            current_season = "2024-2025"  # You might want to calculate this dynamically
-            season_stats_record = (
-                session.query(models.PlayerSeasonStats).filter_by(player_id=player_id, season=current_season).first()
-            )
+            # Get current season stats using the same pattern as team stats
+            season_stats_record = None
+            current_season = None
+            try:
+                from app.data_access.models import PlayerSeasonStats, Season
+
+                stats_service = SeasonStatsService(session)
+
+                # First, check if there's an active season
+                active_season = session.query(Season).filter(Season.is_active).first()
+
+                if active_season:
+                    current_season = active_season.code
+                    # Update player season stats to ensure they're current
+                    season_stats_record = stats_service.update_player_season_stats(player_id, current_season)
+                else:
+                    # If no active season, get the most recent season stats for the player
+                    season_stats_record = (
+                        session.query(PlayerSeasonStats)
+                        .filter(PlayerSeasonStats.player_id == player_id)
+                        .order_by(PlayerSeasonStats.season.desc())
+                        .first()
+                    )
+            except Exception as e:
+                logger.warning(f"Error getting current season stats for player {player_id}: {e}")
+                season_stats_record = None
 
             if season_stats_record:
                 season_stats = {

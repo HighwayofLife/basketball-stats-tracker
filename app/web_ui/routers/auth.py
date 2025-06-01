@@ -72,7 +72,7 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
         )
         return user
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post("/token", response_model=Token)
@@ -230,7 +230,9 @@ async def update_profile(
         raise
     except Exception:
         db.rollback()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update profile")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update profile"
+        ) from None
 
 
 @router.get("/users", response_model=list[UserResponse])
@@ -255,7 +257,7 @@ async def update_user_role(
         return {"message": "User role updated successfully"}
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
 
 
 @router.post("/users/{user_id}/deactivate")

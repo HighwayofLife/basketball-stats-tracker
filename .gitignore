@@ -47,6 +47,7 @@ coverage.xml
 *.cover
 .hypothesis/
 .pytest_cache/
+junit/
 
 # Jupyter Notebook
 .ipynb_checkpoints
@@ -73,6 +74,8 @@ coverage.xml
 **/*.swp
 .DS_Store
 test_hot_reload.py
+debug/
+logs/
 
 # Terraform
 *.tfstate

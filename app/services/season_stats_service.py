@@ -101,17 +101,22 @@ class SeasonStatsService:
             season: Season to update (if None, updates current season)
 
         Returns:
-            Updated PlayerSeasonStats object or None if no games found
+            Updated PlayerSeasonStats object or None if:
+            - No games found for the player in the specified season
+            - Specified season record is not found in the database
+            - Unable to determine season from game data
         """
         # Get all games for the player in the season
         query = self.db_session.query(PlayerGameStats).join(Game).filter(PlayerGameStats.player_id == player_id)
 
         if season:
-            # Filter games by season dates
-            year_start = int(season.split("-")[0])
-            season_start = datetime(year_start, 10, 1).date()
-            season_end = datetime(year_start + 1, 4, 30).date()
-            query = query.filter(and_(Game.date >= season_start, Game.date <= season_end))
+            # Look up the actual season record to get the correct date range
+            season_record = self.db_session.query(Season).filter(Season.code == season).first()
+            if season_record:
+                query = query.filter(and_(Game.date >= season_record.start_date, Game.date <= season_record.end_date))
+            else:
+                logger.warning(f"Season {season} not found in database")
+                return None
 
         game_stats = query.all()
 
@@ -167,7 +172,9 @@ class SeasonStatsService:
             season: Season to update (if None, updates current season)
 
         Returns:
-            Updated TeamSeasonStats object or None if no games found
+            Updated TeamSeasonStats object or None if:
+            - No games found for the team in the specified season
+            - Specified season record is not found in the database
         """
         # Get all games for the team in the season
         query = self.db_session.query(Game).filter(

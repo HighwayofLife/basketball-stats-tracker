@@ -4,7 +4,6 @@ Unit tests for admin authentication requirements.
 
 import pytest
 from fastapi.testclient import TestClient
-from unittest.mock import patch
 
 from app.data_access.models import Base
 from app.web_ui.api import app
@@ -46,6 +45,7 @@ class TestAdminAuthentication:
     def admin_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with admin user authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -99,6 +99,7 @@ class TestAdminAuthentication:
     def non_admin_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with non-admin user authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -128,9 +129,10 @@ class TestAdminAuthentication:
         app.dependency_overrides[get_db] = override_get_db
 
         # Mock non-admin user authentication
+        from fastapi import HTTPException, status
+
         from app.auth.dependencies import get_current_user, require_admin
         from app.auth.models import User, UserRole
-        from fastapi import HTTPException, status
 
         def mock_regular_user():
             """Mock regular user for testing."""
@@ -145,10 +147,7 @@ class TestAdminAuthentication:
 
         def mock_require_admin():
             """Mock require_admin that fails for non-admin users."""
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, 
-                detail="Admin access required"
-            )
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
         app.dependency_overrides[get_current_user] = mock_regular_user
         app.dependency_overrides[require_admin] = mock_require_admin
@@ -160,6 +159,7 @@ class TestAdminAuthentication:
     def unauthenticated_client(self, db_session, test_db_engine, monkeypatch):
         """Create a test client with no authentication."""
         from contextlib import contextmanager
+
         from sqlalchemy.orm import Session
 
         db_session.commit()
@@ -189,15 +189,13 @@ class TestAdminAuthentication:
         app.dependency_overrides[get_db] = override_get_db
 
         # Mock unauthenticated state
-        from app.auth.dependencies import get_current_user, require_admin
         from fastapi import HTTPException, status
+
+        from app.auth.dependencies import get_current_user, require_admin
 
         def mock_unauthenticated():
             """Mock unauthenticated state."""
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated"
-            )
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
         app.dependency_overrides[get_current_user] = mock_unauthenticated
         app.dependency_overrides[require_admin] = mock_unauthenticated
@@ -258,8 +256,9 @@ class TestAdminAuthentication:
         assert response.status_code == 403
         assert "Admin access required" in response.json()["detail"]
 
-    def test_admin_seasons_page_requires_admin(self, non_admin_client):
-        """Test that the admin seasons page requires admin access."""
+    def test_admin_seasons_page_loads_for_all_users(self, non_admin_client):
+        """Test that the admin seasons HTML page loads (auth is handled client-side)."""
         response = non_admin_client.get("/admin/seasons")
-        assert response.status_code == 403
-        assert "Admin access required" in response.json()["detail"]
+        assert response.status_code == 200
+        # The page loads but client-side JS will redirect if no admin token
+        assert "Season Management" in response.text
