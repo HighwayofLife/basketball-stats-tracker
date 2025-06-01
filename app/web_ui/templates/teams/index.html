@@ -228,7 +228,7 @@ async function loadTeams() {
                             ${isAuthenticated ? `
                             <button class="btn btn-sm btn-secondary" onclick="editTeam(${team.id}, '${team.name}', '${team.display_name || ''}')">Edit</button>
                             <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${team.display_name || team.name}')">Delete</button>
-                            ` : ''}
+                            `.trim() : ''}
                         </div>
                     </td>
                 `;
