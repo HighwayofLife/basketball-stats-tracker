@@ -121,6 +121,11 @@ lint: ensure-running ## Run Ruff linter inside the container
 	@echo "${CYAN}Running linter (Ruff)...${NC}"
 	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check .
 
+.PHONY: lint-github
+lint-github: ensure-running ## Run Ruff linter with GitHub output format
+	@echo "${CYAN}Running linter (Ruff) with GitHub format...${NC}"
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check . --output-format=github
+
 .PHONY: format
 format: ensure-running ## Run Ruff formatter inside the container
 	@echo "${CYAN}Running formatter (Ruff)...${NC}"
