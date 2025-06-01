@@ -31,9 +31,9 @@ def apply_hotfix():
             # Check if columns exist
             result = conn.execute(
                 text("""
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_name = 'users' 
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_name = 'users'
                 AND column_name IN ('provider', 'provider_id', 'team_id')
             """)
             )
@@ -56,9 +56,9 @@ def apply_hotfix():
             # Check if foreign key constraint exists
             result = conn.execute(
                 text("""
-                SELECT constraint_name 
-                FROM information_schema.table_constraints 
-                WHERE table_name = 'users' 
+                SELECT constraint_name
+                FROM information_schema.table_constraints
+                WHERE table_name = 'users'
                 AND constraint_type = 'FOREIGN KEY'
             """)
             )
@@ -67,7 +67,8 @@ def apply_hotfix():
                 logger.info("Adding foreign key constraint fk_users_team_id...")
                 conn.execute(
                     text(
-                        "ALTER TABLE users ADD CONSTRAINT fk_users_team_id FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE SET NULL"
+                        "ALTER TABLE users ADD CONSTRAINT fk_users_team_id "
+                        "FOREIGN KEY (team_id) REFERENCES team(id) ON DELETE SET NULL"
                     )
                 )
 

@@ -145,8 +145,14 @@ def generate_stats_table(
     """Generate the statistics table markdown."""
 
     test_status = format_test_status(test_results)
-    test_files_str = f"{test_files['total']} files ({test_files['unit']} unit, {test_files['integration']} integration, {test_files['functional']} functional)"
-    coverage_str = f"{coverage_percent}% ({coverage_lines['covered']:,} / {coverage_lines['total']:,} executable lines)"
+    test_files_str = (
+        f"{test_files['total']} files ({test_files['unit']} unit, "
+        f"{test_files['integration']} integration, {test_files['functional']} functional)"
+    )
+    coverage_str = (
+        f"{coverage_percent}% ({coverage_lines['covered']:,} / "
+        f"{coverage_lines['total']:,} executable lines)"
+    )
     source_str = f"{python_files} Python files ({total_loc // 1000}k total LOC)"
 
     table = f"""## 📊 Project Statistics
@@ -163,7 +169,8 @@ def generate_stats_table(
 | **License** | MIT |
 | **Version** | {project_info["version"]} |
 
-> 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and code quality standards are met."""
+> 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and
+> code quality standards are met."""
 
     return table
 

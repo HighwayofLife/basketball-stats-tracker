@@ -26,7 +26,7 @@ def upgrade():
     connection = op.get_bind()
     connection.execute(
         sa.text("""
-        UPDATE players 
+        UPDATE players
         SET jersey_number_str = CAST(jersey_number AS TEXT)
     """)
     )
@@ -65,7 +65,7 @@ def downgrade():
     connection = op.get_bind()
     connection.execute(
         sa.text("""
-        UPDATE players 
+        UPDATE players
         SET jersey_number_int = CAST(jersey_number AS INTEGER)
     """)
     )

@@ -43,7 +43,8 @@ def upgrade():
         connection.execute(
             sa.text("""
             INSERT INTO users (username, email, hashed_password, full_name, role, is_active, created_at, updated_at)
-            VALUES ('admin', 'admin@league-stats.net', :hashed_password, 'System Administrator', 'admin', true, :now, :now)
+            VALUES ('admin', 'admin@league-stats.net', :hashed_password,
+                    'System Administrator', 'admin', true, :now, :now)
         """),
             {"hashed_password": hashed_password, "now": datetime.utcnow()},
         )

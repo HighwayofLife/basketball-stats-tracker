@@ -49,6 +49,11 @@ venv/
 env/
 ENV/
 .env.*
+.ruff_cache/
+.mypy_cache/
+.claude/
+.cursor/
+.github/
 
 # Testing & Coverage
 tests/
@@ -92,6 +97,9 @@ Thumbs.db
 target/
 *.mo
 *.pot
+debug/
+logs/
+docs/
 
 # Infrastructure
 infra/

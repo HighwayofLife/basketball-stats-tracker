@@ -10,7 +10,8 @@ from app.services.season_stats_service import SeasonStatsService
 
 
 @pytest.mark.skip(
-    reason="SQLAlchemy model relationship issues with User model - Team model references User but it's not available during testing"
+    reason="SQLAlchemy model relationship issues with User model - "
+           "Team model references User but it's not available during testing"
 )
 class TestTeamStatsService:
     """Test team statistics service functionality."""

@@ -74,7 +74,7 @@ def is_binary(file_path):
             if chunk.startswith((b"PK", b"GIF", b"PNG", b"\x89PNG", b"\xff\xd8\xff")):
                 return True
         return False
-    except:
+    except OSError:
         return True
 
 

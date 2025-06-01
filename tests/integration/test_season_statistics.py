@@ -1,5 +1,6 @@
 """Integration tests for season statistics functionality."""
 
+import datetime as dt
 from datetime import date
 from unittest.mock import patch
 
@@ -16,6 +17,7 @@ from app.data_access.crud import (
     get_player_season_stats,
     get_team_season_stats,
 )
+from app.data_access.models import Season
 from app.services.season_stats_service import SeasonStatsService
 
 
@@ -42,8 +44,6 @@ class TestSeasonStatisticsIntegration:
         player4 = create_player(db_session, "Klay Thompson", 11, team2.id)
 
         # Create season
-        from app.data_access.models import Season
-        import datetime as dt
         season = Season(
             name="Season 2024-2025",
             code="2024-2025",
