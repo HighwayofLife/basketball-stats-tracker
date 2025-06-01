@@ -208,7 +208,7 @@ async def get_team_stats(
 
             from app.data_access.models import Season
 
-            active_season = db.query(Season).filter(Season.is_active == True).first()
+            active_season = db.query(Season).filter(Season.is_active).first()
 
             if active_season:
                 current_season = active_season.code

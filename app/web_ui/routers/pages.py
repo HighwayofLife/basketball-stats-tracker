@@ -2,13 +2,11 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
-from app.auth.dependencies import require_admin
-from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
@@ -391,15 +389,10 @@ async def logout_page(request: Request):
     # Since we're using JWT tokens stored client-side, we just need to redirect
     # The actual token clearing happens client-side
     return templates.TemplateResponse(
-        "base.html",
+        "auth/logout.html",
         {
             "request": request,
             "title": "Logging out...",
-            "content": (
-                '<script>localStorage.removeItem("access_token"); '
-                'localStorage.removeItem("token_type"); '
-                'window.location.href = "/";</script>'
-            ),
         },
     )
 

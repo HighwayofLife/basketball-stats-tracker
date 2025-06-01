@@ -52,10 +52,10 @@ class AuthCommands:
 
         except ValueError as e:
             typer.echo(f"❌ Error: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         except Exception as e:
             typer.echo(f"❌ Unexpected error: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     @staticmethod
     def list_users() -> None:
@@ -85,7 +85,7 @@ class AuthCommands:
 
         except Exception as e:
             typer.echo(f"❌ Error listing users: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
 
     @staticmethod
     def deactivate_user(username: str) -> None:
@@ -113,7 +113,7 @@ class AuthCommands:
 
         except Exception as e:
             typer.echo(f"❌ Error: {e}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from e
         finally:
             if db:
                 db.close()

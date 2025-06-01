@@ -68,7 +68,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise
     except Exception as e:
         logger.error(f"Unexpected error in get_current_user: {e}")
-        raise credentials_exception
+        raise credentials_exception from e
 
 
 async def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:

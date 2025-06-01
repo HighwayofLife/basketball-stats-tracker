@@ -86,7 +86,7 @@ class SeasonCRUD:
         Returns:
             Active Season object if found, None otherwise
         """
-        return self.db_session.query(Season).filter(Season.is_active == True).first()
+        return self.db_session.query(Season).filter(Season.is_active).first()
 
     def get_season_for_date(self, game_date: date) -> Season | None:
         """Get the season that contains a specific date.
@@ -114,7 +114,7 @@ class SeasonCRUD:
         """
         query = self.db_session.query(Season)
         if not include_inactive:
-            query = query.filter(Season.is_active == True)
+            query = query.filter(Season.is_active)
         return query.order_by(Season.start_date.desc()).all()
 
     def update(

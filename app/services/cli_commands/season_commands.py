@@ -38,7 +38,7 @@ class SeasonCommands:
                 end_date = datetime.strptime(end, "%Y-%m-%d").date()
             except ValueError:
                 typer.secho("Error: Invalid date format. Use YYYY-MM-DD", fg=typer.colors.RED, err=True)
-                raise typer.Exit(code=1)
+                raise typer.Exit(code=1) from None
 
             service = SeasonService(session)
             success, message, season = service.create_season(
@@ -143,13 +143,13 @@ class SeasonCommands:
                     start_date = datetime.strptime(start, "%Y-%m-%d").date()
                 except ValueError:
                     typer.secho("Error: Invalid start date format. Use YYYY-MM-DD", fg=typer.colors.RED, err=True)
-                    raise typer.Exit(code=1)
+                    raise typer.Exit(code=1) from None
             if end:
                 try:
                     end_date = datetime.strptime(end, "%Y-%m-%d").date()
                 except ValueError:
                     typer.secho("Error: Invalid end date format. Use YYYY-MM-DD", fg=typer.colors.RED, err=True)
-                    raise typer.Exit(code=1)
+                    raise typer.Exit(code=1) from None
 
             service = SeasonService(session)
             success, message, season = service.update_season(

@@ -373,7 +373,6 @@ class ImportProcessor:
             return False
 
         # Check if this is a substitute player
-        is_substitute = False
         playing_for_team_id = None
 
         # Check if this is an unknown/unidentified shot
@@ -388,7 +387,6 @@ class ImportProcessor:
                 return False
         # Check if this is a known substitute player
         elif self._is_substitute_player(player_stats.PlayerName, player_stats.PlayerJersey):
-            is_substitute = True
             playing_for_team_id = team.id
 
             # Get or create substitute player
@@ -405,7 +403,8 @@ class ImportProcessor:
             )
             if not player:
                 typer.echo(
-                    f"Error: Could not get or create player '{player_stats.PlayerName}' #{player_stats.PlayerJersey} on team '{player_stats.TeamName}'."
+                    f"Error: Could not get or create player '{player_stats.PlayerName}' "
+                    f"#{player_stats.PlayerJersey} on team '{player_stats.TeamName}'."
                 )
                 return False
 

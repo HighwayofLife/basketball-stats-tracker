@@ -103,6 +103,6 @@ class OAuthHandler:
             }
 
         except OAuthError as e:
-            raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"OAuth error: {str(e)}") from e
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}") from e

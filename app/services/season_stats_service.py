@@ -107,11 +107,13 @@ class SeasonStatsService:
         query = self.db_session.query(PlayerGameStats).join(Game).filter(PlayerGameStats.player_id == player_id)
 
         if season:
-            # Filter games by season dates
-            year_start = int(season.split("-")[0])
-            season_start = datetime(year_start, 10, 1).date()
-            season_end = datetime(year_start + 1, 4, 30).date()
-            query = query.filter(and_(Game.date >= season_start, Game.date <= season_end))
+            # Look up the actual season record to get the correct date range
+            season_record = self.db_session.query(Season).filter(Season.code == season).first()
+            if season_record:
+                query = query.filter(and_(Game.date >= season_record.start_date, Game.date <= season_record.end_date))
+            else:
+                logger.warning(f"Season {season} not found in database")
+                return None
 
         game_stats = query.all()
 

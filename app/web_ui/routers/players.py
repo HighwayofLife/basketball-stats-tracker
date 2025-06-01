@@ -11,6 +11,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
@@ -34,9 +35,9 @@ async def list_players(team_id: int | None = None, active_only: bool = True, pla
 
             if player_type:
                 if player_type == "substitute":
-                    query = query.filter(models.Player.is_substitute == True)
+                    query = query.filter(models.Player.is_substitute)
                 elif player_type == "regular":
-                    query = query.filter(models.Player.is_substitute == False)
+                    query = query.filter(~models.Player.is_substitute)
 
             players_teams = query.order_by(models.Team.name, func.cast(models.Player.jersey_number, Integer)).all()
 
@@ -347,7 +348,7 @@ async def get_player_stats(player_id: int):
             }
 
             # Calculate career totals from all games
-            for stats, game in game_stats:
+            for stats, _game in game_stats:
                 points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
                 career_stats["total_points"] += points
                 career_stats["total_ftm"] += stats.total_ftm
@@ -389,17 +390,15 @@ async def get_player_stats(player_id: int):
                 career_stats["ppg"] = 0.0
                 career_stats["fpg"] = 0.0
 
-            # Get season stats using the same pattern as team stats
+            # Get current season stats using the same pattern as team stats
             season_stats_record = None
             current_season = None
             try:
                 # Get the active season from the Season table
-                from sqlalchemy import desc, func
                 from app.data_access.models import Season
-                from app.services.season_stats_service import SeasonStatsService
 
                 stats_service = SeasonStatsService(session)
-                active_season = session.query(Season).filter(Season.is_active == True).first()
+                active_season = session.query(Season).filter(Season.is_active).first()
 
                 if active_season:
                     current_season = active_season.code
