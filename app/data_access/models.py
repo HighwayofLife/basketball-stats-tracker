@@ -52,6 +52,17 @@ class SoftDeleteMixin:
     deleted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     deleted_by: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Future user reference
 
+    @classmethod
+    def filter_active(cls, query):
+        """Filter out soft-deleted entries."""
+        return query.filter(cls.is_deleted == False)
+
+    def soft_delete(self, user_id: int | None = None):
+        """Mark the entity as deleted."""
+        self.is_deleted = True
+        self.deleted_at = datetime.utcnow()
+        self.deleted_by = user_id
+
 
 class Team(Base, SoftDeleteMixin):
     """Represents a basketball team in the league."""
