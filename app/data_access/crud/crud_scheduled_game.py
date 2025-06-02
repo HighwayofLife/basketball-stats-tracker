@@ -1,6 +1,6 @@
 """CRUD operations for scheduled games."""
 
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
@@ -23,11 +23,18 @@ class CRUDScheduledGame:
         notes: str | None = None,
     ) -> ScheduledGame:
         """Create a new scheduled game."""
+        # Convert string time to time object if needed
+        if scheduled_time and isinstance(scheduled_time, str):
+            hour, minute = map(int, scheduled_time.split(":"))
+            scheduled_time_obj = time(hour, minute)
+        else:
+            scheduled_time_obj = scheduled_time
+
         scheduled_game = ScheduledGame(
             home_team_id=home_team_id,
             away_team_id=away_team_id,
             scheduled_date=scheduled_date,
-            scheduled_time=scheduled_time,
+            scheduled_time=scheduled_time_obj,
             season_id=season_id,
             location=location,
             notes=notes,
@@ -45,7 +52,7 @@ class CRUDScheduledGame:
         return (
             db.query(ScheduledGame)
             .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
-            .filter(ScheduledGame.id == scheduled_game_id, ScheduledGame.is_deleted == False)
+            .filter(ScheduledGame.id == scheduled_game_id, ScheduledGame.is_deleted.is_not(True))
             .first()
         )
 
@@ -54,7 +61,7 @@ class CRUDScheduledGame:
         return (
             db.query(ScheduledGame)
             .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
-            .filter(ScheduledGame.is_deleted == False)
+            .filter(ScheduledGame.is_deleted.is_not(True))
             .order_by(ScheduledGame.scheduled_date.desc())
             .offset(skip)
             .limit(limit)
@@ -67,7 +74,7 @@ class CRUDScheduledGame:
             db.query(ScheduledGame)
             .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
             .filter(
-                ScheduledGame.is_deleted == False,
+                ScheduledGame.is_deleted.is_not(True),
                 ScheduledGame.status == ScheduledGameStatus.SCHEDULED,
                 ScheduledGame.scheduled_date >= date.today(),
             )
@@ -84,7 +91,7 @@ class CRUDScheduledGame:
         return (
             db.query(ScheduledGame)
             .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
-            .filter(ScheduledGame.is_deleted == False, ScheduledGame.status == status)
+            .filter(ScheduledGame.is_deleted.is_not(True), ScheduledGame.status == status)
             .order_by(ScheduledGame.scheduled_date.desc())
             .all()
         )
@@ -99,7 +106,7 @@ class CRUDScheduledGame:
             .filter(
                 ScheduledGame.scheduled_date == game_date,
                 ScheduledGame.status == ScheduledGameStatus.SCHEDULED,
-                ScheduledGame.is_deleted == False,
+                ScheduledGame.is_deleted.is_not(True),
                 or_(
                     and_(
                         ScheduledGame.home_team.has(Team.name == team1_name),
@@ -126,6 +133,11 @@ class CRUDScheduledGame:
             return None
 
         updates["updated_at"] = datetime.utcnow()
+
+        # Convert string time to time object if needed
+        if "scheduled_time" in updates and updates["scheduled_time"] and isinstance(updates["scheduled_time"], str):
+            hour, minute = map(int, updates["scheduled_time"].split(":"))
+            updates["scheduled_time"] = time(hour, minute)
 
         for field, value in updates.items():
             if hasattr(scheduled_game, field):

@@ -17,6 +17,13 @@ v0.4.5
 ### Fixes
 * Fix integration test environment setup for JWT_SECRET_KEY configuration
 
+### Tests
+* Add comprehensive unit tests for ScheduleService
+* Add unit tests for CRUDScheduledGame operations
+* Add integration tests for scheduled games API endpoints (pending implementation)
+* Add UI tests for create game page functionality
+* Fix time conversion issues in CRUD operations (string to time object)
+
 v0.4.4
 ------
 
