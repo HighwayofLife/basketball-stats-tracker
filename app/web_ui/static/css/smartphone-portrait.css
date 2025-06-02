@@ -408,6 +408,21 @@
     text-align: center;
     gap: 10px;
   }
+  
+  /* Players of the Week specific overrides */
+  #players-of-week-card .top-players-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  #players-of-week-card .top-player-box {
+    flex: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex-direction: row !important;
+    text-align: left !important;
+    gap: 15px !important;
+  }
   .player-info .player-name { font-size: 1rem; }
   .player-info .team-name { font-size: 0.8rem; }
   .player-info .game-info { font-size: 0.75rem; }

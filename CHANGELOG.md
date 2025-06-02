@@ -19,6 +19,7 @@ v0.4.3
 * Fix hamburger button alignment - now properly centered vertically with header
 * Fix games tables to display properly on mobile portrait view using card-based layout
 * Replace responsive table design with compact game cards for better mobile UX
+* Fix Players of the Week layout on mobile portrait to stack cards vertically instead of cramming horizontally
 
 v0.4.2
 ------
