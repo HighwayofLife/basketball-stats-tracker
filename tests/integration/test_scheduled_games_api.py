@@ -17,7 +17,9 @@ from app.web_ui.api import app
 def test_client(test_db_file_engine, monkeypatch):
     """Create a test client with proper database dependency override."""
     from contextlib import contextmanager
+
     from sqlalchemy.orm import Session
+
     from app.dependencies import get_db
 
     # Create a context manager that yields a new session connected to the same db
@@ -252,8 +254,7 @@ class TestScheduledGamesAPI:
 
         # Cancel game endpoint doesn't exist - use update with status
         response = test_client.put(
-            f"/v1/games/scheduled/{game.id}",
-            json={"status": "cancelled", "notes": "Weather conditions"}
+            f"/v1/games/scheduled/{game.id}", json={"status": "cancelled", "notes": "Weather conditions"}
         )
 
         # Assert

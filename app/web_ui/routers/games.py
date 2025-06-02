@@ -95,6 +95,251 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
         raise HTTPException(status_code=500, detail="Failed to retrieve games") from e
 
 
+# Scheduled Games Endpoints
+
+
+@router.get("/scheduled", response_model=list[ScheduledGameResponse])
+async def get_scheduled_games(upcoming_only: bool = False, limit: int | None = None):
+    """Get scheduled games."""
+    try:
+        with get_db_session() as session:
+            if upcoming_only:
+                scheduled_games = schedule_service.get_upcoming_games(session, limit=limit)
+            else:
+                scheduled_games = schedule_service.get_all_scheduled_games(session, limit=limit or 100)
+
+            return [
+                ScheduledGameResponse(
+                    id=sg.id,
+                    home_team_id=sg.home_team_id,
+                    home_team_name=sg.home_team.display_name or sg.home_team.name,
+                    away_team_id=sg.away_team_id,
+                    away_team_name=sg.away_team.display_name or sg.away_team.name,
+                    scheduled_date=sg.scheduled_date.isoformat(),
+                    scheduled_time=sg.scheduled_time.strftime("%H:%M") if sg.scheduled_time else None,
+                    status=sg.status.value,
+                    game_id=sg.game_id,
+                    season_id=sg.season_id,
+                    location=sg.location,
+                    notes=sg.notes,
+                    created_at=sg.created_at.isoformat(),
+                    updated_at=sg.updated_at.isoformat(),
+                )
+                for sg in scheduled_games
+            ]
+    except Exception as e:
+        logger.error(f"Error retrieving scheduled games: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve scheduled games") from e
+
+
+@router.get("/scheduled/next", response_model=list[ScheduledGameResponse])
+async def get_next_scheduled_games(count: int = 3):
+    """Get the next upcoming scheduled games."""
+    try:
+        with get_db_session() as session:
+            scheduled_games = schedule_service.get_next_games(session, count=count)
+
+            return [
+                ScheduledGameResponse(
+                    id=sg.id,
+                    home_team_id=sg.home_team_id,
+                    home_team_name=sg.home_team.display_name or sg.home_team.name,
+                    away_team_id=sg.away_team_id,
+                    away_team_name=sg.away_team.display_name or sg.away_team.name,
+                    scheduled_date=sg.scheduled_date.isoformat(),
+                    scheduled_time=sg.scheduled_time.strftime("%H:%M") if sg.scheduled_time else None,
+                    status=sg.status.value,
+                    game_id=sg.game_id,
+                    season_id=sg.season_id,
+                    location=sg.location,
+                    notes=sg.notes,
+                    created_at=sg.created_at.isoformat(),
+                    updated_at=sg.updated_at.isoformat(),
+                )
+                for sg in scheduled_games
+            ]
+    except Exception as e:
+        logger.error(f"Error retrieving next scheduled games: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve next scheduled games") from e
+
+
+@router.post("/scheduled", response_model=ScheduledGameResponse)
+async def create_scheduled_game(
+    scheduled_game_data: ScheduledGameCreateRequest, current_user=Depends(get_current_user)
+):
+    """Create a new scheduled game."""
+    try:
+        with get_db_session() as session:
+            from datetime import datetime
+
+            # Parse scheduled time if provided
+            scheduled_time = None
+            if scheduled_game_data.scheduled_time:
+                try:
+                    scheduled_time = datetime.strptime(scheduled_game_data.scheduled_time, "%H:%M").time()
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM") from exc
+
+            # Parse scheduled date
+            try:
+                scheduled_date = datetime.strptime(scheduled_game_data.scheduled_date, "%Y-%m-%d").date()
+            except ValueError as exc:
+                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD") from exc
+
+            scheduled_game = schedule_service.create_scheduled_game(
+                db=session,
+                home_team_id=scheduled_game_data.home_team_id,
+                away_team_id=scheduled_game_data.away_team_id,
+                scheduled_date=scheduled_date,
+                scheduled_time=scheduled_time,
+                season_id=scheduled_game_data.season_id,
+                location=scheduled_game_data.location,
+                notes=scheduled_game_data.notes,
+            )
+
+            return ScheduledGameResponse(
+                id=scheduled_game.id,
+                home_team_id=scheduled_game.home_team_id,
+                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
+                away_team_id=scheduled_game.away_team_id,
+                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
+                scheduled_date=scheduled_game.scheduled_date.isoformat(),
+                scheduled_time=(
+                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
+                ),
+                status=scheduled_game.status.value,
+                game_id=scheduled_game.game_id,
+                season_id=scheduled_game.season_id,
+                location=scheduled_game.location,
+                notes=scheduled_game.notes,
+                created_at=scheduled_game.created_at.isoformat(),
+                updated_at=scheduled_game.updated_at.isoformat(),
+            )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        logger.error(f"Error creating scheduled game: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create scheduled game") from e
+
+
+@router.get("/scheduled/{scheduled_game_id}", response_model=ScheduledGameResponse)
+async def get_scheduled_game(scheduled_game_id: int):
+    """Get a specific scheduled game."""
+    try:
+        with get_db_session() as session:
+            scheduled_game = schedule_service.get_scheduled_game(session, scheduled_game_id)
+
+            if not scheduled_game:
+                raise HTTPException(status_code=404, detail="Scheduled game not found")
+
+            return ScheduledGameResponse(
+                id=scheduled_game.id,
+                home_team_id=scheduled_game.home_team_id,
+                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
+                away_team_id=scheduled_game.away_team_id,
+                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
+                scheduled_date=scheduled_game.scheduled_date.isoformat(),
+                scheduled_time=(
+                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
+                ),
+                status=scheduled_game.status.value,
+                game_id=scheduled_game.game_id,
+                season_id=scheduled_game.season_id,
+                location=scheduled_game.location,
+                notes=scheduled_game.notes,
+                created_at=scheduled_game.created_at.isoformat(),
+                updated_at=scheduled_game.updated_at.isoformat(),
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error retrieving scheduled game {scheduled_game_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve scheduled game") from e
+
+
+@router.put("/scheduled/{scheduled_game_id}", response_model=ScheduledGameResponse)
+async def update_scheduled_game(
+    scheduled_game_id: int, update_data: ScheduledGameUpdateRequest, current_user=Depends(get_current_user)
+):
+    """Update a scheduled game."""
+    try:
+        with get_db_session() as session:
+            from datetime import datetime
+
+            updates = {}
+
+            # Parse fields if provided
+            if update_data.scheduled_date:
+                try:
+                    updates["scheduled_date"] = datetime.strptime(update_data.scheduled_date, "%Y-%m-%d").date()
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD") from exc
+
+            if update_data.scheduled_time:
+                try:
+                    updates["scheduled_time"] = datetime.strptime(update_data.scheduled_time, "%H:%M").time()
+                except ValueError as exc:
+                    raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM") from exc
+
+            # Add other fields
+            for field in ["home_team_id", "away_team_id", "season_id", "location", "notes", "status"]:
+                value = getattr(update_data, field)
+                if value is not None:
+                    if field == "status":
+                        from app.data_access.models import ScheduledGameStatus
+
+                        updates[field] = ScheduledGameStatus(value)
+                    else:
+                        updates[field] = value
+
+            scheduled_game = schedule_service.update_scheduled_game(session, scheduled_game_id, **updates)
+
+            if not scheduled_game:
+                raise HTTPException(status_code=404, detail="Scheduled game not found")
+
+            return ScheduledGameResponse(
+                id=scheduled_game.id,
+                home_team_id=scheduled_game.home_team_id,
+                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
+                away_team_id=scheduled_game.away_team_id,
+                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
+                scheduled_date=scheduled_game.scheduled_date.isoformat(),
+                scheduled_time=(
+                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
+                ),
+                status=scheduled_game.status.value,
+                game_id=scheduled_game.game_id,
+                season_id=scheduled_game.season_id,
+                location=scheduled_game.location,
+                notes=scheduled_game.notes,
+                created_at=scheduled_game.created_at.isoformat(),
+                updated_at=scheduled_game.updated_at.isoformat(),
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error updating scheduled game {scheduled_game_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update scheduled game") from e
+
+
+@router.delete("/scheduled/{scheduled_game_id}")
+async def delete_scheduled_game(scheduled_game_id: int, current_user=Depends(get_current_user)):
+    """Delete a scheduled game."""
+    try:
+        with get_db_session() as session:
+            success = schedule_service.delete_scheduled_game(session, scheduled_game_id)
+
+            if not success:
+                raise HTTPException(status_code=404, detail="Scheduled game not found")
+
+            return {"success": True, "message": "Scheduled game deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting scheduled game {scheduled_game_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete scheduled game") from e
+
+
 @router.get("/{game_id}", response_model=GameSummary)
 async def get_game(game_id: int):
     """Get basic information about a specific game."""
@@ -800,248 +1045,3 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
             error_message = "Missing required information. Please ensure all required fields are filled."
 
         raise HTTPException(status_code=400, detail=error_message) from e
-
-
-# Scheduled Games Endpoints
-
-
-@router.get("/scheduled", response_model=list[ScheduledGameResponse])
-async def get_scheduled_games(upcoming_only: bool = False, limit: int | None = None):
-    """Get scheduled games."""
-    try:
-        with get_db_session() as session:
-            if upcoming_only:
-                scheduled_games = schedule_service.get_upcoming_games(session, limit=limit)
-            else:
-                scheduled_games = schedule_service.get_all_scheduled_games(session, limit=limit or 100)
-
-            return [
-                ScheduledGameResponse(
-                    id=sg.id,
-                    home_team_id=sg.home_team_id,
-                    home_team_name=sg.home_team.display_name or sg.home_team.name,
-                    away_team_id=sg.away_team_id,
-                    away_team_name=sg.away_team.display_name or sg.away_team.name,
-                    scheduled_date=sg.scheduled_date.isoformat(),
-                    scheduled_time=sg.scheduled_time.strftime("%H:%M") if sg.scheduled_time else None,
-                    status=sg.status.value,
-                    game_id=sg.game_id,
-                    season_id=sg.season_id,
-                    location=sg.location,
-                    notes=sg.notes,
-                    created_at=sg.created_at.isoformat(),
-                    updated_at=sg.updated_at.isoformat(),
-                )
-                for sg in scheduled_games
-            ]
-    except Exception as e:
-        logger.error(f"Error retrieving scheduled games: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve scheduled games") from e
-
-
-@router.get("/scheduled/next", response_model=list[ScheduledGameResponse])
-async def get_next_scheduled_games(count: int = 3):
-    """Get the next upcoming scheduled games."""
-    try:
-        with get_db_session() as session:
-            scheduled_games = schedule_service.get_next_games(session, count=count)
-
-            return [
-                ScheduledGameResponse(
-                    id=sg.id,
-                    home_team_id=sg.home_team_id,
-                    home_team_name=sg.home_team.display_name or sg.home_team.name,
-                    away_team_id=sg.away_team_id,
-                    away_team_name=sg.away_team.display_name or sg.away_team.name,
-                    scheduled_date=sg.scheduled_date.isoformat(),
-                    scheduled_time=sg.scheduled_time.strftime("%H:%M") if sg.scheduled_time else None,
-                    status=sg.status.value,
-                    game_id=sg.game_id,
-                    season_id=sg.season_id,
-                    location=sg.location,
-                    notes=sg.notes,
-                    created_at=sg.created_at.isoformat(),
-                    updated_at=sg.updated_at.isoformat(),
-                )
-                for sg in scheduled_games
-            ]
-    except Exception as e:
-        logger.error(f"Error retrieving next scheduled games: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve next scheduled games") from e
-
-
-@router.post("/scheduled", response_model=ScheduledGameResponse)
-async def create_scheduled_game(
-    scheduled_game_data: ScheduledGameCreateRequest, current_user=Depends(get_current_user)
-):
-    """Create a new scheduled game."""
-    try:
-        with get_db_session() as session:
-            from datetime import datetime
-
-            # Parse scheduled time if provided
-            scheduled_time = None
-            if scheduled_game_data.scheduled_time:
-                try:
-                    scheduled_time = datetime.strptime(scheduled_game_data.scheduled_time, "%H:%M").time()
-                except ValueError as exc:
-                    raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM") from exc
-
-            # Parse scheduled date
-            try:
-                scheduled_date = datetime.strptime(scheduled_game_data.scheduled_date, "%Y-%m-%d").date()
-            except ValueError as exc:
-                raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD") from exc
-
-            scheduled_game = schedule_service.create_scheduled_game(
-                db=session,
-                home_team_id=scheduled_game_data.home_team_id,
-                away_team_id=scheduled_game_data.away_team_id,
-                scheduled_date=scheduled_date,
-                scheduled_time=scheduled_time,
-                season_id=scheduled_game_data.season_id,
-                location=scheduled_game_data.location,
-                notes=scheduled_game_data.notes,
-            )
-
-            return ScheduledGameResponse(
-                id=scheduled_game.id,
-                home_team_id=scheduled_game.home_team_id,
-                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
-                away_team_id=scheduled_game.away_team_id,
-                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
-                scheduled_date=scheduled_game.scheduled_date.isoformat(),
-                scheduled_time=(
-                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
-                ),
-                status=scheduled_game.status.value,
-                game_id=scheduled_game.game_id,
-                season_id=scheduled_game.season_id,
-                location=scheduled_game.location,
-                notes=scheduled_game.notes,
-                created_at=scheduled_game.created_at.isoformat(),
-                updated_at=scheduled_game.updated_at.isoformat(),
-            )
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e)) from e
-    except Exception as e:
-        logger.error(f"Error creating scheduled game: {e}")
-        raise HTTPException(status_code=500, detail="Failed to create scheduled game") from e
-
-
-@router.get("/scheduled/{scheduled_game_id}", response_model=ScheduledGameResponse)
-async def get_scheduled_game(scheduled_game_id: int):
-    """Get a specific scheduled game."""
-    try:
-        with get_db_session() as session:
-            scheduled_game = schedule_service.get_scheduled_game(session, scheduled_game_id)
-
-            if not scheduled_game:
-                raise HTTPException(status_code=404, detail="Scheduled game not found")
-
-            return ScheduledGameResponse(
-                id=scheduled_game.id,
-                home_team_id=scheduled_game.home_team_id,
-                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
-                away_team_id=scheduled_game.away_team_id,
-                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
-                scheduled_date=scheduled_game.scheduled_date.isoformat(),
-                scheduled_time=(
-                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
-                ),
-                status=scheduled_game.status.value,
-                game_id=scheduled_game.game_id,
-                season_id=scheduled_game.season_id,
-                location=scheduled_game.location,
-                notes=scheduled_game.notes,
-                created_at=scheduled_game.created_at.isoformat(),
-                updated_at=scheduled_game.updated_at.isoformat(),
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error retrieving scheduled game {scheduled_game_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to retrieve scheduled game") from e
-
-
-@router.put("/scheduled/{scheduled_game_id}", response_model=ScheduledGameResponse)
-async def update_scheduled_game(
-    scheduled_game_id: int, update_data: ScheduledGameUpdateRequest, current_user=Depends(get_current_user)
-):
-    """Update a scheduled game."""
-    try:
-        with get_db_session() as session:
-            from datetime import datetime
-
-            updates = {}
-
-            # Parse fields if provided
-            if update_data.scheduled_date:
-                try:
-                    updates["scheduled_date"] = datetime.strptime(update_data.scheduled_date, "%Y-%m-%d").date()
-                except ValueError as exc:
-                    raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD") from exc
-
-            if update_data.scheduled_time:
-                try:
-                    updates["scheduled_time"] = datetime.strptime(update_data.scheduled_time, "%H:%M").time()
-                except ValueError as exc:
-                    raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM") from exc
-
-            # Add other fields
-            for field in ["home_team_id", "away_team_id", "season_id", "location", "notes", "status"]:
-                value = getattr(update_data, field)
-                if value is not None:
-                    if field == "status":
-                        from app.data_access.models import ScheduledGameStatus
-
-                        updates[field] = ScheduledGameStatus(value)
-                    else:
-                        updates[field] = value
-
-            scheduled_game = schedule_service.update_scheduled_game(session, scheduled_game_id, **updates)
-
-            if not scheduled_game:
-                raise HTTPException(status_code=404, detail="Scheduled game not found")
-
-            return ScheduledGameResponse(
-                id=scheduled_game.id,
-                home_team_id=scheduled_game.home_team_id,
-                home_team_name=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
-                away_team_id=scheduled_game.away_team_id,
-                away_team_name=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
-                scheduled_date=scheduled_game.scheduled_date.isoformat(),
-                scheduled_time=(
-                    scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
-                ),
-                status=scheduled_game.status.value,
-                game_id=scheduled_game.game_id,
-                season_id=scheduled_game.season_id,
-                location=scheduled_game.location,
-                notes=scheduled_game.notes,
-                created_at=scheduled_game.created_at.isoformat(),
-                updated_at=scheduled_game.updated_at.isoformat(),
-            )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error updating scheduled game {scheduled_game_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update scheduled game") from e
-
-
-@router.delete("/scheduled/{scheduled_game_id}")
-async def delete_scheduled_game(scheduled_game_id: int, current_user=Depends(get_current_user)):
-    """Delete a scheduled game."""
-    try:
-        with get_db_session() as session:
-            success = schedule_service.delete_scheduled_game(session, scheduled_game_id)
-
-            if not success:
-                raise HTTPException(status_code=404, detail="Scheduled game not found")
-
-            return {"success": True, "message": "Scheduled game deleted successfully"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error deleting scheduled game {scheduled_game_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete scheduled game") from e

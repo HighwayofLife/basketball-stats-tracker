@@ -18,11 +18,14 @@ v0.4.5
 * Fix integration test environment setup for JWT_SECRET_KEY configuration
 
 ### Tests
-* Add comprehensive unit tests for ScheduleService
-* Add unit tests for CRUDScheduledGame operations
-* Add integration tests for scheduled games API endpoints (pending implementation)
-* Add UI tests for create game page functionality
-* Fix time conversion issues in CRUD operations (string to time object)
+* Add comprehensive unit tests for ScheduleService (13 tests)
+* Add unit tests for CRUDScheduledGame operations (9 tests)
+* Add integration tests for scheduled games API endpoints (9 tests)
+* Add UI tests for create game page functionality (9 tests) - moved to test_ui_validation.py
+* Fix time conversion issues in CRUD operations (string to time object conversion)
+* Fix integration test database session management for proper test isolation
+* Fix API route ordering issue - moved /scheduled routes before /{game_id} to prevent route conflicts
+* Move create game UI tests to proper UI test suite location in test_ui_validation.py
 
 v0.4.4
 ------
