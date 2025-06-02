@@ -3,7 +3,9 @@
 {% block content %}
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <h2>Player Management</h2>
+    {% if is_authenticated %}
     <button class="btn btn-primary" onclick="showAddPlayerModal()">Add New Player</button>
+    {% endif %}
 </div>
 
 <!-- Filters -->

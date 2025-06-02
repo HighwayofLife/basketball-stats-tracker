@@ -3,7 +3,9 @@
 {% block content %}
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <h2>Team Management</h2>
+    {% if is_authenticated %}
     <button class="btn btn-primary" onclick="showCreateTeamModal()">Add New Team</button>
+    {% endif %}
 </div>
 
 <!-- Teams Table -->
@@ -193,6 +195,7 @@
 </style>
 
 <script>
+const isAuthenticated = {{ 'true' if is_authenticated else 'false' }};
 let currentTeamId = null;
 let deleteTeamId = null;
 
@@ -209,7 +212,8 @@ async function loadTeams() {
         
         if (teams.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="4">No teams found. <a href="#" onclick="showCreateTeamModal()">Create your first team</a>.</td>';
+            const createLink = isAuthenticated ? '<a href="#" onclick="showCreateTeamModal()">Create your first team</a>' : 'Please log in to create teams';
+            row.innerHTML = `<td colspan="4">No teams found. ${createLink}.</td>`;
             tableBody.appendChild(row);
         } else {
             teams.forEach(team => {
@@ -221,8 +225,10 @@ async function loadTeams() {
                     <td>
                         <div class="action-buttons">
                             <a href="/teams/${team.id}" class="btn btn-sm">View Details</a>
+                            ${isAuthenticated ? `
                             <button class="btn btn-sm btn-secondary" onclick="editTeam(${team.id}, '${team.name}', '${team.display_name || ''}')">Edit</button>
                             <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${team.display_name || team.name}')">Delete</button>
+                            `.trim() : ''}
                         </div>
                     </td>
                 `;

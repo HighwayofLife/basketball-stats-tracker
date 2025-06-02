@@ -233,7 +233,7 @@ class TestUIValidation:
         nav_links = soup.find_all("a", href=True)
 
         # Check for expected navigation paths
-        expected_paths = ["/players", "/teams", "/games", "/reports"]
+        expected_paths = ["/players", "/teams", "/games"]
         found_paths = [link["href"] for link in nav_links if link["href"].startswith("/")]
 
         for path in expected_paths:

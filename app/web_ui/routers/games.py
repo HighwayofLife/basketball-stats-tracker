@@ -7,9 +7,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
+from app.data_access.crud import crud_team_season_stats
 from app.data_access.db_session import get_db_session
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
+from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 
 from ..schemas import (
@@ -150,6 +152,23 @@ async def get_box_score(game_id: int):
             playing_team_name = game.playing_team.display_name or game.playing_team.name if game else ""
             opponent_team_name = game.opponent_team.display_name or game.opponent_team.name if game else ""
 
+            # Get team records from season stats
+            home_record = None
+            away_record = None
+
+            if game and game.date:
+                season_service = SeasonStatsService(session)
+                season = season_service.get_season_from_date(game.date)
+
+                if season:
+                    # Get home team record
+                    home_stats = crud_team_season_stats.get_team_season_stats(session, playing_team_id, season)
+                    home_record = f"{home_stats.wins}-{home_stats.losses}" if home_stats else "0-0"
+
+                    # Get away team record
+                    away_stats = crud_team_season_stats.get_team_season_stats(session, opponent_team_id, season)
+                    away_record = f"{away_stats.wins}-{away_stats.losses}" if away_stats else "0-0"
+
             # Filter players by team name (report generator provides team name, not ID)
             playing_team_players = [p for p in player_stats if p.get("team") == playing_team_name]
             opponent_team_players = [p for p in player_stats if p.get("team") == opponent_team_name]
@@ -159,7 +178,9 @@ async def get_box_score(game_id: int):
                 PlayerStats(
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey"]},
+                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
+                    jersey_number=p.get("jersey", ""),
+                    position=p.get("position"),
                 )
                 for p in playing_team_players
             ]
@@ -168,7 +189,9 @@ async def get_box_score(game_id: int):
                 PlayerStats(
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey"]},
+                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
+                    jersey_number=p.get("jersey", ""),
+                    position=p.get("position"),
                 )
                 for p in opponent_team_players
             ]
@@ -262,6 +285,7 @@ async def get_box_score(game_id: int):
                     stats={"quarter_scores": playing_team_quarters},  # Add quarter scores to team stats
                     players=playing_team_player_stats,
                     top_player=home_top_player,
+                    record=home_record,
                 ),
                 away_team=TeamStats(
                     team_id=opponent_team_id or 0,  # Provide default value of 0 when None
@@ -270,6 +294,7 @@ async def get_box_score(game_id: int):
                     stats={"quarter_scores": opponent_team_quarters},  # Add quarter scores to team stats
                     players=opponent_team_player_stats,
                     top_player=away_top_player,
+                    record=away_record,
                 ),
             )
     except HTTPException:

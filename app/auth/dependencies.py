@@ -1,6 +1,6 @@
 """FastAPI dependencies for authentication."""
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -105,24 +105,46 @@ async def require_admin(current_user: User = Depends(get_current_active_user)) -
     return current_user
 
 
-async def get_optional_current_user(
-    token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
-) -> User | None:
+async def get_optional_current_user(request: Request, db: Session = Depends(get_db)) -> User | None:
     """Get current user if authenticated, None otherwise.
 
     Args:
-        token: Optional JWT token
+        request: FastAPI request object
         db: Database session
 
     Returns:
         Current user or None
     """
+    # Check for authorization header
+    authorization = request.headers.get("authorization")
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+
+    token = authorization.split(" ")[1]
     if not token:
         return None
 
     try:
-        return await get_current_user(token, db)
-    except HTTPException:
+        # Manually verify token and get user (bypass OAuth2 scheme)
+        try:
+            payload = verify_token(token)
+            user_id = payload.get("sub")
+            if user_id is None:
+                return None
+        except Exception:
+            return None
+
+        # Get user from database
+        user = db.query(User).filter(User.id == int(user_id)).first()
+        if user is None:
+            return None
+
+        if not user.is_active:
+            return None
+
+        return user
+
+    except Exception:
         return None
 
 

@@ -1,3 +1,28 @@
+v0.4.3
+------
+
+### Features
+* Add mobile-friendly hamburger menu for navigation on small screens
+* Enhanced smartphone portrait mode (≤480px) with comprehensive mobile menu implementation
+* Added aria-expanded attributes for better accessibility
+* Implemented body scroll lock when mobile menu is open
+* Improved touch targets and mobile-specific styling
+* Add responsive table design for mobile devices with data-label attributes
+* Implement compact game card layout for mobile devices showing scores and teams
+* Display team win-loss records on game detail page instead of home/away labels
+* Add responsive mobile layout for game detail scoreboard with centered scores and team info
+
+### Fixes
+* Fix issue with user authentication not being properly checked in templates
+* Fix hamburger button styling to look like standard mobile menu icon with proper positioning
+* Fix menu toggle functionality by removing conflicting 767px media query rules
+* Add hamburger menu support to smartphone landscape mode (481-767px)
+* Ensure mobile menu button only shows on mobile devices (≤767px)
+* Fix hamburger button alignment - now properly centered vertically with header
+* Fix games tables to display properly on mobile portrait view using card-based layout
+* Replace responsive table design with compact game cards for better mobile UX
+* Fix Players of the Week layout on mobile portrait to stack cards vertically instead of cramming horizontally
+
 v0.4.2
 ------
 
@@ -8,7 +33,7 @@ v0.4.2
 * Fix E712 errors - replace `== True` comparisons with direct boolean checks
 * Fix line length violations and simplify code patterns
 
-### Bug Fixes  
+### Bug Fixes
 * Fix player stats API endpoint to return season_stats when no active season exists
 * Update player stats endpoint to fall back to most recent season stats if no active season
 * Fix missing `get_db_session` import in web UI dependencies module causing test failures

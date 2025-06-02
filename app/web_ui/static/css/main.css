@@ -43,6 +43,7 @@ body {
   color: var(--light-text);
   padding: 15px 0;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  position: relative;
 }
 
 .site-header .container {
@@ -689,6 +690,22 @@ body {
   font-family: monospace;
 }
 
+/* Mobile Menu Button - Hidden by default on larger screens */
+.mobile-menu-btn {
+  display: none; /* Will be overridden in mobile stylesheets */
+  background: transparent;
+  border: none;
+  color: var(--light-text);
+  font-size: 1.6rem;
+  padding: 8px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.mobile-menu-btn:hover {
+  opacity: 0.8;
+}
+
 /* Responsive */
 @media (max-width: 1024px) {
   .dashboard {
@@ -726,44 +743,11 @@ body {
 }
 
 @media (max-width: 767px) {
+  /* Remove the navigation display rules from here */
+  /* Mobile navigation is handled by smartphone-portrait.css and smartphone-landscape.css */
+  
   .site-header .container {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
     flex-wrap: wrap;
-  }
-
-  .site-title {
-    width: 100%;
-    margin-bottom: 10px;
-  }
-
-  .main-nav {
-    margin: 10px 0;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .main-nav ul {
-    flex-wrap: wrap;
-    justify-content: center;
-    padding: 0;
-    margin: 0;
-  }
-
-  .main-nav li {
-    margin: 5px;
-  }
-
-  .nav-divider {
-    display: none;
-  }
-
-  #user-nav-item,
-  #login-nav-item {
-    width: 100%;
-    justify-content: center;
-    margin-top: 10px;
   }
 
   .action-buttons {

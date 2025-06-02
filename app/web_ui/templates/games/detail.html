@@ -20,6 +20,25 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    gap: 2rem;
+}
+
+.team-section {
+    flex: 1;
+}
+
+.team-section.away-team {
+    text-align: left;
+}
+
+.team-section.home-team {
+    text-align: right;
+}
+
+.score-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .team-name {
@@ -28,10 +47,73 @@
     margin: 0;
 }
 
+.team-record {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.2rem;
+}
+
 .team-score {
-    font-size: 2rem;
+    font-size: 2.5rem;
     font-weight: bold;
     color: #007bff;
+}
+
+.game-date-mobile {
+    display: none;
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+    .team-info {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .score-section {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .team-score {
+        font-size: 3rem;
+    }
+    
+    .game-date-mobile {
+        display: block;
+        font-size: 0.9rem;
+        color: #6c757d;
+        white-space: nowrap;
+    }
+    
+    .team-section.away-team {
+        grid-column: 1;
+        grid-row: 2;
+        text-align: left;
+    }
+    
+    .team-section.home-team {
+        grid-column: 3;
+        grid-row: 2;
+        text-align: right;
+    }
+    
+    .team-name {
+        font-size: 1.1rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .team-record {
+        font-size: 0.8rem;
+    }
 }
 
 .quarter-scores-table {
@@ -67,6 +149,123 @@
     margin-top: 1rem;
     font-size: 1.1rem;
 }
+
+/* Box Score Specific Styling */
+.games-table .jersey-col {
+    width: 40px;
+}
+
+.games-table .stat-col {
+    text-align: center;
+}
+
+.games-table .jersey-number {
+    font-weight: 600;
+    color: #666;
+    text-align: center;
+}
+
+.games-table .player-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* Stats columns center aligned */
+.games-table td:nth-child(3),
+.games-table td:nth-child(4),
+.games-table td:nth-child(5),
+.games-table td:nth-child(6) {
+    text-align: center;
+}
+
+/* Shooting percentage styling for desktop */
+.shooting-percentage {
+    font-size: 0.85em;
+    color: #666;
+    margin-left: 0.3rem;
+}
+
+@media (max-width: 768px) {
+    .desktop-date {
+        display: none;
+    }
+    
+    .box-score-table {
+        font-size: 0.85rem;
+    }
+    
+    .box-score-table .player-name {
+        max-width: 150px;
+    }
+    
+    /* Hide percentages on mobile */
+    .shooting-percentage {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .games-table .player-name {
+        max-width: 120px;
+    }
+}
+
+/* Override card transformation for box score tables on mobile */
+@media screen and (max-width: 480px) and (orientation: portrait) {
+    .mobile-table-view.data-table {
+        display: table;
+    }
+    
+    .mobile-table-view.data-table thead,
+    .mobile-table-view.data-table tbody,
+    .mobile-table-view.data-table tfoot {
+        display: table-row-group;
+    }
+    
+    .mobile-table-view.data-table thead {
+        display: table-header-group;
+    }
+    
+    .mobile-table-view.data-table thead tr {
+        position: static;
+        top: auto;
+        left: auto;
+        display: table-row;
+    }
+    
+    .mobile-table-view.data-table tr {
+        display: table-row;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .mobile-table-view.data-table th,
+    .mobile-table-view.data-table td {
+        display: table-cell;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+        position: static;
+        text-align: left;
+    }
+    
+    .mobile-table-view.data-table td:before {
+        display: none;
+    }
+    
+    .mobile-table-view.data-table .stat-col,
+    .mobile-table-view.data-table td:nth-child(3),
+    .mobile-table-view.data-table td:nth-child(4),
+    .mobile-table-view.data-table td:nth-child(5),
+    .mobile-table-view.data-table td:nth-child(6) {
+        text-align: center;
+    }
+}
+
 </style>
 {% endblock %}
 
@@ -84,32 +283,26 @@
         <h2>Box Score</h2>
         <div class="tab-container">
             <div class="tabs">
-                <button class="tab-btn active" data-tab="away-team">Away Team</button>
-                <button class="tab-btn" data-tab="home-team">Home Team</button>
+                <button class="tab-btn active" data-tab="away-team" id="away-team-tab">Away Team</button>
+                <button class="tab-btn" data-tab="home-team" id="home-team-tab">Home Team</button>
             </div>
 
             <div class="tab-content active" id="away-team">
                 <h3 id="away-team-name">Away Team</h3>
-                <table class="data-table box-score-table" id="away-team-table">
+                <table class="data-table games-table mobile-table-view" id="away-team-table">
                     <thead>
                         <tr>
+                            <th class="jersey-col"></th>
                             <th>Player</th>
-                            <th>MIN</th>
-                            <th>PTS</th>
-                            <th>REB</th>
-                            <th>AST</th>
-                            <th>STL</th>
-                            <th>BLK</th>
-                            <th>FG</th>
-                            <th>3PT</th>
-                            <th>FT</th>
-                            <th>TO</th>
-                            <th>PF</th>
+                            <th class="stat-col">Pts</th>
+                            <th class="stat-col">FG</th>
+                            <th class="stat-col">3Pt</th>
+                            <th class="stat-col">FT</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="12" class="loading-message">Loading player stats...</td>
+                            <td colspan="6" class="loading-message">Loading player stats...</td>
                         </tr>
                     </tbody>
                     <tfoot id="away-team-totals">
@@ -120,26 +313,20 @@
 
             <div class="tab-content" id="home-team">
                 <h3 id="home-team-name">Home Team</h3>
-                <table class="data-table box-score-table" id="home-team-table">
+                <table class="data-table games-table mobile-table-view" id="home-team-table">
                     <thead>
                         <tr>
+                            <th class="jersey-col"></th>
                             <th>Player</th>
-                            <th>MIN</th>
-                            <th>PTS</th>
-                            <th>REB</th>
-                            <th>AST</th>
-                            <th>STL</th>
-                            <th>BLK</th>
-                            <th>FG</th>
-                            <th>3PT</th>
-                            <th>FT</th>
-                            <th>TO</th>
-                            <th>PF</th>
+                            <th class="stat-col">Pts</th>
+                            <th class="stat-col">FG</th>
+                            <th class="stat-col">3Pt</th>
+                            <th class="stat-col">FT</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td colspan="12" class="loading-message">Loading player stats...</td>
+                            <td colspan="6" class="loading-message">Loading player stats...</td>
                         </tr>
                     </tbody>
                     <tfoot id="home-team-totals">
@@ -246,18 +433,24 @@
         const homeTeam = boxScore.home_team;
         const awayQuarters = awayTeam.stats.quarter_scores || {};
         const homeQuarters = homeTeam.stats.quarter_scores || {};
+        const awayRecord = awayTeam.record || '0-0';
+        const homeRecord = homeTeam.record || '0-0';
 
         document.getElementById('game-info').innerHTML = `
             <div class="scoreboard">
                 <div class="team-info">
-                    <div>
-                        <h2 class="team-name">${awayTeam.name} (Away)</h2>
+                    <div class="team-section away-team">
+                        <h2 class="team-name">${awayTeam.name}</h2>
+                        <div class="team-record">(${awayRecord})</div>
                     </div>
-                    <div class="team-score">${awayTeam.score}</div>
-                    <div style="text-align: center; font-size: 1.5rem; color: #6c757d;">vs</div>
-                    <div class="team-score">${homeTeam.score}</div>
-                    <div>
-                        <h2 class="team-name">${homeTeam.name} (Home)</h2>
+                    <div class="score-section">
+                        <div class="team-score away-score">${awayTeam.score}</div>
+                        <div class="game-date-mobile">${formatDate(game.date)}</div>
+                        <div class="team-score home-score">${homeTeam.score}</div>
+                    </div>
+                    <div class="team-section home-team">
+                        <h2 class="team-name">${homeTeam.name}</h2>
+                        <div class="team-record">(${homeRecord})</div>
                     </div>
                 </div>
 
@@ -274,34 +467,36 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="team-name-cell">${awayTeam.name}</td>
-                            <td>${awayQuarters[1] || 0}</td>
-                            <td>${awayQuarters[2] || 0}</td>
-                            <td>${awayQuarters[3] || 0}</td>
-                            <td>${awayQuarters[4] || 0}</td>
-                            <td class="total-score">${awayTeam.score}</td>
+                            <td data-label="Team" class="team-name-cell">${awayTeam.name}</td>
+                            <td data-label="Q1">${awayQuarters[1] || 0}</td>
+                            <td data-label="Q2">${awayQuarters[2] || 0}</td>
+                            <td data-label="Q3">${awayQuarters[3] || 0}</td>
+                            <td data-label="Q4">${awayQuarters[4] || 0}</td>
+                            <td data-label="Total" class="total-score">${awayTeam.score}</td>
                         </tr>
                         <tr>
-                            <td class="team-name-cell">${homeTeam.name}</td>
-                            <td>${homeQuarters[1] || 0}</td>
-                            <td>${homeQuarters[2] || 0}</td>
-                            <td>${homeQuarters[3] || 0}</td>
-                            <td>${homeQuarters[4] || 0}</td>
-                            <td class="total-score">${homeTeam.score}</td>
+                            <td data-label="Team" class="team-name-cell">${homeTeam.name}</td>
+                            <td data-label="Q1">${homeQuarters[1] || 0}</td>
+                            <td data-label="Q2">${homeQuarters[2] || 0}</td>
+                            <td data-label="Q3">${homeQuarters[3] || 0}</td>
+                            <td data-label="Q4">${homeQuarters[4] || 0}</td>
+                            <td data-label="Total" class="total-score">${homeTeam.score}</td>
                         </tr>
                     </tbody>
                 </table>
 
-                <div class="game-date">${formatDate(game.date)}</div>
+                <div class="game-date desktop-date">${formatDate(game.date)}</div>
             </div>
         `;
     }
 
 
     function loadBoxScoreData(data) {
-        // Update team names
+        // Update team names in headers and tabs
         document.getElementById('away-team-name').textContent = data.away_team.name;
         document.getElementById('home-team-name').textContent = data.home_team.name;
+        document.getElementById('away-team-tab').textContent = data.away_team.name;
+        document.getElementById('home-team-tab').textContent = data.home_team.name;
 
         // Update top players section
         if (data.away_team.top_player) {
@@ -352,31 +547,31 @@
             // Calculate total field goals from 2pt and 3pt
             const fgMade = (stats.fg2m || 0) + (stats.fg3m || 0);
             const fgAttempted = (stats.fg2a || 0) + (stats.fg3a || 0);
+            
+            // Get player position if available
+            const position = player.position ? ` · ${player.position}` : '';
+
+            // Calculate percentages
+            const fgPercentage = fgAttempted > 0 ? ((fgMade / fgAttempted) * 100).toFixed(1) : '0.0';
+            const fg3Percentage = (stats.fg3a || 0) > 0 ? (((stats.fg3m || 0) / stats.fg3a) * 100).toFixed(1) : '0.0';
+            const ftPercentage = (stats.fta || 0) > 0 ? (((stats.ftm || 0) / stats.fta) * 100).toFixed(1) : '0.0';
 
             row.innerHTML = `
-                <td>${player.name}</td>
-                <td>-</td>
-                <td>${stats.points || 0}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>${fgMade}/${fgAttempted}</td>
-                <td>${stats.fg3m || 0}/${stats.fg3a || 0}</td>
-                <td>${stats.ftm || 0}/${stats.fta || 0}</td>
-                <td>-</td>
-                <td>${stats.fouls || 0}</td>
+                <td class="jersey-number">${player.jersey_number || '-'}</td>
+                <td class="player-name" data-label="Player">${player.name}${position}</td>
+                <td data-label="Pts">${stats.points || 0}</td>
+                <td data-label="FG">${fgMade}-${fgAttempted}<span class="shooting-percentage">(${fgPercentage}%)</span></td>
+                <td data-label="3Pt">${stats.fg3m || 0}-${stats.fg3a || 0}<span class="shooting-percentage">(${fg3Percentage}%)</span></td>
+                <td data-label="FT">${stats.ftm || 0}-${stats.fta || 0}<span class="shooting-percentage">(${ftPercentage}%)</span></td>
             `;
             tbody.appendChild(row);
         });
 
         // Add team totals
-        const totals = teamData.stats;
         const tfoot = document.getElementById(tableId === 'away-team-table' ? 'away-team-totals' : 'home-team-totals');
 
         // Calculate totals from player stats
         let totalPoints = 0;
-        let totalFouls = 0;
         let totalFGM = 0;
         let totalFGA = 0;
         let total3PM = 0;
@@ -387,7 +582,6 @@
         teamData.players.forEach(player => {
             const stats = player.stats;
             totalPoints += stats.points || 0;
-            totalFouls += stats.fouls || 0;
             totalFGM += (stats.fg2m || 0) + (stats.fg3m || 0);
             totalFGA += (stats.fg2a || 0) + (stats.fg3a || 0);
             total3PM += stats.fg3m || 0;
@@ -396,20 +590,19 @@
             totalFTA += stats.fta || 0;
         });
 
+        // Calculate team percentages
+        const teamFGPercentage = totalFGA > 0 ? ((totalFGM / totalFGA) * 100).toFixed(1) : '0.0';
+        const team3PPercentage = total3PA > 0 ? ((total3PM / total3PA) * 100).toFixed(1) : '0.0';
+        const teamFTPercentage = totalFTA > 0 ? ((totalFTM / totalFTA) * 100).toFixed(1) : '0.0';
+
         tfoot.innerHTML = `
             <tr>
+                <td></td>
                 <td><strong>Team Totals</strong></td>
-                <td>-</td>
                 <td><strong>${totalPoints}</strong></td>
-                <td><strong>-</strong></td>
-                <td><strong>-</strong></td>
-                <td><strong>-</strong></td>
-                <td><strong>-</strong></td>
-                <td><strong>${totalFGM}/${totalFGA}</strong></td>
-                <td><strong>${total3PM}/${total3PA}</strong></td>
-                <td><strong>${totalFTM}/${totalFTA}</strong></td>
-                <td><strong>-</strong></td>
-                <td><strong>${totalFouls}</strong></td>
+                <td><strong>${totalFGM}-${totalFGA}<span class="shooting-percentage">(${teamFGPercentage}%)</span></strong></td>
+                <td><strong>${total3PM}-${total3PA}<span class="shooting-percentage">(${team3PPercentage}%)</span></strong></td>
+                <td><strong>${totalFTM}-${totalFTA}<span class="shooting-percentage">(${teamFTPercentage}%)</span></strong></td>
             </tr>
         `;
     }

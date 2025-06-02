@@ -1,0 +1,603 @@
+/* Basketball Stats Tracker - Smartphone Portrait Styles */
+/* Target: Devices with max-width 480px in portrait orientation */
+
+@media screen and (max-width: 480px) and (orientation: portrait) {
+
+  /* Container and layout adjustments */
+  .container {
+    padding: 0 15px;
+  }
+
+  /* Header improvements */
+  .site-header {
+    padding: 10px 0;
+    position: relative; /* For positioning the absolute mobile menu */
+  }
+
+  .site-header .container {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-height: auto;
+    position: relative; /* For absolute positioning of button */
+  }
+
+  .site-title {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 0; /* Button and nav will create space */
+  }
+
+  .site-title a {
+    font-size: 1.3rem;
+  }
+
+  /* Mobile Menu Button */
+  .mobile-menu-btn {
+    display: flex; /* Show the hamburger button */
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%); /* Center vertically */
+    right: 15px;
+    color: var(--light-text);
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    z-index: 1001; /* Ensure it's above other elements */
+  }
+  
+  .mobile-menu-btn:hover,
+  .mobile-menu-btn:focus {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+
+  /* Navigation improvements */
+  .main-nav {
+    display: none; /* Crucial: Hide nav by default */
+    flex-direction: column;
+    width: 100%;
+    /* Styling for when it's active (visible) */
+    position: absolute;
+    top: 100%; /* Place it right below the header */
+    left: 0;
+    right: 0;
+    background-color: var(--secondary-color); /* Or a slightly different shade */
+    z-index: 1000; /* Ensure it's on top of other content */
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-bottom: 15px; /* Space at the bottom of the menu */
+    max-height: calc(100vh - 70px); /* Max height, 70px approx header height */
+    overflow-y: auto; /* Scroll if menu is too long */
+  }
+
+  .main-nav.active { /* This class is toggled by JS */
+    display: flex !important;
+  }
+
+  .main-nav ul {
+    flex-direction: column;
+    width: 100%;
+    align-items: stretch; /* Make items take full width */
+    gap: 0; /* Remove gap, use borders or padding for separation */
+  }
+
+  .main-nav li {
+    margin: 0;
+    width: 100%;
+    text-align: left; /* Align text to the left */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Separator */
+  }
+  .main-nav li:last-child {
+    border-bottom: none;
+  }
+
+  .main-nav a,
+  .main-nav .dropdown-toggle { /* Apply to both direct links and dropdown toggles */
+    display: block;
+    padding: 14px 20px; /* Increased padding for touch */
+    width: 100%;
+    border-radius: 0; /* No radius for list items */
+    font-size: 1rem; /* Slightly larger font for nav items */
+    color: var(--light-text);
+    font-weight: 500;
+  }
+  .main-nav a:hover,
+  .main-nav .dropdown-toggle:hover {
+    background-color: rgba(255, 255, 255, 0.15);
+  }
+
+  .nav-divider {
+    display: none;
+  }
+
+  /* Dropdown adjustments for mobile menu */
+  .nav-dropdown {
+    width: 100%;
+  }
+
+  .dropdown-toggle {
+    width: 100%;
+    text-align: left; /* Align text to left */
+    /* The caret icon is already in HTML, so no ::after needed unless you prefer CSS solution */
+  }
+  .main-nav .dropdown-toggle i.fa-chevron-down { /* Style the caret */
+    float: right;
+    transition: transform 0.3s ease;
+    margin-top: 4px; /* Adjust vertical alignment */
+  }
+  .nav-dropdown.active .dropdown-toggle i.fa-chevron-down {
+    transform: rotate(180deg); /* Rotate arrow when open */
+  }
+
+
+  .dropdown-menu {
+    position: static !important; /* Becomes part of the flow */
+    display: none !important;    /* Hide by default, JS toggles via .nav-dropdown.active */
+    width: 100%;
+    box-shadow: none;
+    border: none;
+    background-color: rgba(0, 0, 0, 0.2); /* Darker indent for submenu */
+    margin-top: 0;
+    border-radius: 0;
+    padding-left: 0; /* Remove desktop padding, control via item padding */
+  }
+
+  .nav-dropdown.active .dropdown-menu { /* Show when parent .nav-dropdown has .active */
+    display: block !important;
+  }
+
+  .dropdown-menu li {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05); /* Thinner border for sub-items */
+  }
+  .dropdown-menu li:last-child {
+    border-bottom: none;
+  }
+
+  .dropdown-menu a {
+    color: var(--light-text); /* Ensure text is light */
+    padding: 12px 20px 12px 35px; /* Indent submenu items further */
+    font-size: 0.9rem;
+  }
+
+  .dropdown-menu a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .dropdown-menu a i { /* Icons in dropdown menu */
+    margin-right: 10px;
+    width: 18px;
+  }
+
+  /* Beta banner adjustments - Existing styles are good */
+  .beta-banner {
+    padding: 8px 0;
+    font-size: 0.85rem;
+  }
+  .beta-banner .container {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  /* Main content spacing */
+  .site-content {
+    padding: 20px 0;
+  }
+  .page-title {
+    font-size: 1.5rem;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  /* Card improvements - Existing styles are good */
+  .card {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: 6px;
+  }
+  .card h2 {
+    font-size: 1.3rem;
+    margin-bottom: 12px;
+  }
+
+  /* Dashboard layout - Existing styles are good */
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .game-content-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .sidebar {
+    order: -1; /* This is fine if you want sidebar first on mobile */
+  }
+
+  /* Quick actions improvements - Existing styles are good */
+  .quick-actions-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 15px 0;
+  }
+  .quick-action-btn {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 1rem;
+    justify-content: center;
+    min-height: 50px;
+  }
+  .quick-action-btn .icon {
+    font-size: 1.4rem;
+  }
+
+  /* Action buttons - Existing styles are good */
+  .action-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 15px;
+    justify-content: stretch;
+  }
+  .action-btn {
+    width: 100%;
+    min-width: auto;
+    padding: 20px 15px;
+    font-size: 0.95rem;
+  }
+  .action-btn .icon {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+  }
+
+  /* Hide desktop tables on mobile */
+  .data-table.desktop-only-table {
+    display: none !important;
+  }
+
+  /* Mobile Games List - Compact card design */
+  .mobile-games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 15px;
+  }
+
+  .mobile-game-card {
+    background-color: var(--card-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 12px 15px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+
+  .mobile-game-card .game-card-main-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+  }
+
+  .mobile-game-card .game-card-teams {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .mobile-game-card .team-entry {
+    display: flex;
+    align-items: center;
+    position: relative;
+  }
+
+  .mobile-game-card .team-name {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #333;
+    flex-grow: 1;
+  }
+
+  .mobile-game-card .team-score {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 25px;
+    text-align: right;
+    margin-left: 8px;
+  }
+
+  .mobile-game-card .winner-arrow {
+    position: absolute;
+    right: -20px;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .mobile-game-card .team-entry.winner .team-score {
+    font-weight: 700;
+  }
+
+  .mobile-game-card .game-card-info-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    flex-shrink: 0;
+    min-width: 70px;
+  }
+
+  .mobile-game-card .game-time-status .status {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #444;
+    display: block;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+  }
+
+  .mobile-game-card .game-time-status .date {
+    font-size: 0.7rem;
+    color: #666;
+  }
+
+  .mobile-game-card .btn-view-details {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    min-height: 30px;
+    line-height: 1.2;
+  }
+
+  /* Responsive table styles for other tables that don't use desktop-only-table class */
+  .data-table:not(.desktop-only-table) {
+    font-size: 0.85rem;
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .data-table:not(.desktop-only-table) thead,
+  .data-table:not(.desktop-only-table) tbody,
+  .data-table:not(.desktop-only-table) th,
+  .data-table:not(.desktop-only-table) td,
+  .data-table:not(.desktop-only-table) tr {
+    display: block;
+  }
+  .data-table:not(.desktop-only-table) thead tr {
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  .data-table:not(.desktop-only-table) tr {
+    border: 1px solid var(--border-color);
+    margin-bottom: 15px;
+    border-radius: 6px;
+    background-color: var(--card-background);
+    padding: 15px;
+  }
+  .data-table:not(.desktop-only-table) td {
+    border: none;
+    padding: 8px 0;
+    position: relative;
+    padding-left: 40%;
+    text-align: right;
+    white-space: normal;
+  }
+  .data-table:not(.desktop-only-table) td:before {
+    content: attr(data-label) ": ";
+    position: absolute;
+    left: 6px;
+    width: 35%;
+    padding-right: 10px;
+    white-space: nowrap;
+    font-weight: bold;
+    text-align: left;
+    color: var(--secondary-color);
+  }
+
+  /* Top players adjustments - Existing styles are good */
+  .top-players-container {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .top-player-box {
+    padding: 12px;
+    flex-direction: column;
+    text-align: center;
+    gap: 10px;
+  }
+  
+  /* Players of the Week specific overrides */
+  #players-of-week-card .top-players-container {
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  
+  #players-of-week-card .top-player-box {
+    flex: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    flex-direction: row !important;
+    text-align: left !important;
+    gap: 15px !important;
+  }
+  .player-info .player-name { font-size: 1rem; }
+  .player-info .team-name { font-size: 0.8rem; }
+  .player-info .game-info { font-size: 0.75rem; }
+  .player-info .player-stats { font-size: 0.8rem; }
+
+  /* Button improvements - Existing styles are good */
+  .btn, .action-btn {
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    min-height: 44px;
+    border-radius: 6px;
+  }
+  .btn-sm {
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    min-height: 36px;
+  }
+  .btn + .btn {
+    margin-left: 0;
+    margin-top: 0.5rem; /* Good for stacked buttons */
+  }
+
+  /* Tabs improvements - Existing styles are good */
+  .tabs {
+    flex-direction: column;
+    border-bottom: none;
+    gap: 5px;
+  }
+  .tab-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background-color: var(--card-background);
+    margin-bottom: 5px; /* This was good, maybe was tab-btn + tab-btn */
+  }
+  .tab-btn.active {
+    background-color: var(--primary-color);
+    color: var(--light-text);
+    border-color: var(--primary-color);
+  }
+
+  /* Filter improvements - Existing styles are good */
+  .filters { margin-bottom: 15px; }
+  .filter-group { margin-bottom: 12px; }
+  .filter-select {
+    width: 100%;
+    max-width: none;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+  }
+
+  /* Game header improvements - Existing styles are good */
+  .game-header h2 { font-size: 1.5rem; }
+  .game-score { font-size: 1.3rem; }
+
+  /* Chart container - Existing styles are good */
+  .chart-container {
+    height: 300px;
+    margin: 15px 0;
+  }
+
+  /* Footer adjustments - Existing styles are good */
+  .site-footer {
+    padding: 15px 0;
+    margin-top: 30px;
+  }
+  .site-footer .version-info {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.75rem;
+  }
+
+  /* Form improvements - Existing styles are good */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="date"],
+  select,
+  textarea {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-bottom: 15px; /* Ensure this doesn't conflict with form group styling */
+    min-height: 44px; /* Redundant due to general rule but fine */
+  }
+
+  /* Pagination improvements - Existing styles are good */
+  .pagination {
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+  }
+  .pagination button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+    margin: 0;
+  }
+
+  /* Loading and error messages - Existing styles are good */
+  .loading-message,
+  .error-message {
+    padding: 15px;
+    font-size: 0.95rem;
+  }
+
+  /* Responsive text adjustments - Existing styles are good */
+  h1 { font-size: 1.6rem; }
+  h2 { font-size: 1.4rem; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1.1rem; }
+  h5 { font-size: 1rem; }
+  h6 { font-size: 0.95rem; }
+
+  /* Improve touch targets - Existing rule is excellent */
+  a, button, input, select, textarea {
+    min-height: 44px;
+    touch-action: manipulation; /* Good for preventing accidental zoom on tap */
+  }
+  /* Ensure specific interactive elements inside nav also get this if not covered */
+  .main-nav a, .main-nav .dropdown-toggle, .dropdown-menu a {
+      min-height: 44px; /* Explicitly ensure for nav items */
+  }
+
+
+  /* Hide elements that don't work well on small screens - Existing is good */
+  .desktop-only {
+    display: none !important;
+  }
+
+  /* Utility classes for mobile - Existing are good */
+  .mobile-hidden { display: none !important; }
+  .mobile-visible { display: block !important; }
+  .mobile-center { text-align: center !important; }
+  .mobile-full-width { width: 100% !important; }
+
+}
+
+/* Optional: Body scroll lock when mobile menu is open */
+body.mobile-menu-active { 
+  overflow: hidden; 
+}
+
+/* Hide mobile games list on larger screens and show desktop table */
+@media screen and (min-width: 481px) {
+  .mobile-games-list {
+    display: none !important;
+  }
+  
+  .data-table.desktop-only-table {
+    display: table !important;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  /* Restore default table cell display */
+  .data-table.desktop-only-table th,
+  .data-table.desktop-only-table td {
+    display: table-cell;
+  }
+  
+  .data-table.desktop-only-table tr {
+    display: table-row;
+  }
+  
+  .data-table.desktop-only-table thead {
+    display: table-header-group;
+  }
+  
+  .data-table.desktop-only-table tbody {
+    display: table-row-group;
+  }
+}
