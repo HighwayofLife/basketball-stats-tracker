@@ -7,7 +7,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
-from app.data_access.crud import crud_team_season_stats
 from app.data_access.db_session import get_db_session
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
@@ -401,22 +400,33 @@ async def get_box_score(game_id: int):
             playing_team_name = game.playing_team.display_name or game.playing_team.name if game else ""
             opponent_team_name = game.opponent_team.display_name or game.opponent_team.name if game else ""
 
-            # Get team records from season stats
+            # Get team records from season stats - use same approach as team detail page
             home_record = None
             away_record = None
 
             if game and game.date:
-                season_service = SeasonStatsService(session)
-                season = season_service.get_season_from_date(game.date)
+                try:
+                    # Get the active season from the Season table
 
-                if season:
-                    # Get home team record
-                    home_stats = crud_team_season_stats.get_team_season_stats(session, playing_team_id, season)
-                    home_record = f"{home_stats.wins}-{home_stats.losses}" if home_stats else "0-0"
+                    from app.data_access.models import Season
 
-                    # Get away team record
-                    away_stats = crud_team_season_stats.get_team_season_stats(session, opponent_team_id, season)
-                    away_record = f"{away_stats.wins}-{away_stats.losses}" if away_stats else "0-0"
+                    active_season = session.query(Season).filter(Season.is_active).first()
+
+                    if active_season:
+                        current_season = active_season.code
+                        stats_service = SeasonStatsService(session)
+
+                        # Update and get home team record
+                        home_stats = stats_service.update_team_season_stats(playing_team_id, current_season)
+                        home_record = f"{home_stats.wins}-{home_stats.losses}" if home_stats else "0-0"
+
+                        # Update and get away team record
+                        away_stats = stats_service.update_team_season_stats(opponent_team_id, current_season)
+                        away_record = f"{away_stats.wins}-{away_stats.losses}" if away_stats else "0-0"
+                except Exception as e:
+                    logger.warning(f"Error getting team records: {e}")
+                    home_record = "0-0"
+                    away_record = "0-0"
 
             # Filter players by team name (report generator provides team name, not ID)
             playing_team_players = [p for p in player_stats if p.get("team") == playing_team_name]
