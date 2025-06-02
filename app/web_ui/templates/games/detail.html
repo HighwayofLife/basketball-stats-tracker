@@ -274,20 +274,20 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td class="team-name-cell">${awayTeam.name}</td>
-                            <td>${awayQuarters[1] || 0}</td>
-                            <td>${awayQuarters[2] || 0}</td>
-                            <td>${awayQuarters[3] || 0}</td>
-                            <td>${awayQuarters[4] || 0}</td>
-                            <td class="total-score">${awayTeam.score}</td>
+                            <td data-label="Team" class="team-name-cell">${awayTeam.name}</td>
+                            <td data-label="Q1">${awayQuarters[1] || 0}</td>
+                            <td data-label="Q2">${awayQuarters[2] || 0}</td>
+                            <td data-label="Q3">${awayQuarters[3] || 0}</td>
+                            <td data-label="Q4">${awayQuarters[4] || 0}</td>
+                            <td data-label="Total" class="total-score">${awayTeam.score}</td>
                         </tr>
                         <tr>
-                            <td class="team-name-cell">${homeTeam.name}</td>
-                            <td>${homeQuarters[1] || 0}</td>
-                            <td>${homeQuarters[2] || 0}</td>
-                            <td>${homeQuarters[3] || 0}</td>
-                            <td>${homeQuarters[4] || 0}</td>
-                            <td class="total-score">${homeTeam.score}</td>
+                            <td data-label="Team" class="team-name-cell">${homeTeam.name}</td>
+                            <td data-label="Q1">${homeQuarters[1] || 0}</td>
+                            <td data-label="Q2">${homeQuarters[2] || 0}</td>
+                            <td data-label="Q3">${homeQuarters[3] || 0}</td>
+                            <td data-label="Q4">${homeQuarters[4] || 0}</td>
+                            <td data-label="Total" class="total-score">${homeTeam.score}</td>
                         </tr>
                     </tbody>
                 </table>
@@ -354,18 +354,18 @@
             const fgAttempted = (stats.fg2a || 0) + (stats.fg3a || 0);
 
             row.innerHTML = `
-                <td>${player.name}</td>
-                <td>-</td>
-                <td>${stats.points || 0}</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>-</td>
-                <td>${fgMade}/${fgAttempted}</td>
-                <td>${stats.fg3m || 0}/${stats.fg3a || 0}</td>
-                <td>${stats.ftm || 0}/${stats.fta || 0}</td>
-                <td>-</td>
-                <td>${stats.fouls || 0}</td>
+                <td data-label="Player">${player.name}</td>
+                <td data-label="MIN">-</td>
+                <td data-label="PTS">${stats.points || 0}</td>
+                <td data-label="REB">-</td>
+                <td data-label="AST">-</td>
+                <td data-label="STL">-</td>
+                <td data-label="BLK">-</td>
+                <td data-label="FG">${fgMade}/${fgAttempted}</td>
+                <td data-label="3PT">${stats.fg3m || 0}/${stats.fg3a || 0}</td>
+                <td data-label="FT">${stats.ftm || 0}/${stats.fta || 0}</td>
+                <td data-label="TO">-</td>
+                <td data-label="PF">${stats.fouls || 0}</td>
             `;
             tbody.appendChild(row);
         });

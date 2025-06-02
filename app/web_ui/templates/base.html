@@ -20,7 +20,10 @@
     <header class="site-header">
         <div class="container">
             <h1 class="site-title"><a href="/">Basketball Stats Tracker</a></h1>
-            <nav class="main-nav">
+            <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Toggle Menu" aria-expanded="false">
+                <i class="fas fa-bars"></i>
+            </button>
+            <nav class="main-nav" id="main-nav">
                 <ul>
                     <li><a href="/">Dashboard</a></li>
                     <li><a href="/games">Games</a></li>
@@ -28,7 +31,7 @@
                     <li><a href="/players">Players</a></li>
                     <li><a href="/about">About</a></li>
                     {% if is_authenticated %}
-                    <li class="nav-dropdown">
+                    <li class="nav-dropdown" id="manage-nav-item">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-tasks"></i> Manage <i class="fas fa-chevron-down"></i>
                         </a>
@@ -39,7 +42,7 @@
                     </li>
                     {% endif %}
                     {% if is_admin %}
-                    <li class="nav-dropdown">
+                    <li class="nav-dropdown" id="admin-nav-item">
                         <a href="#" class="dropdown-toggle">
                             <i class="fas fa-cog"></i> Admin <i class="fas fa-chevron-down"></i>
                         </a>
@@ -51,7 +54,7 @@
                     {% endif %}
                     <li class="nav-divider"></li>
                     {% if is_authenticated %}
-                    <li>
+                    <li id="user-nav-item">
                         <a href="/account" title="Account Settings">
                             <i class="fas fa-user"></i> {{ current_user.username }}
                         </a>
@@ -60,7 +63,7 @@
                         </a>
                     </li>
                     {% else %}
-                    <li><a href="/login">Login</a></li>
+                    <li id="login-nav-item"><a href="/login">Login</a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -243,6 +246,93 @@
     
     // Handle dropdown menu visibility
     setupDropdownBehavior();
+    
+    // Mobile menu toggle functionality
+    function setupMobileMenu() {
+        const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+        const mainNav = document.getElementById('main-nav');
+        const dropdownToggles = document.querySelectorAll('.main-nav .nav-dropdown .dropdown-toggle'); // Scope to .main-nav
+        
+        if (mobileMenuBtn && mainNav) {
+            // Toggle mobile menu
+            mobileMenuBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Mobile menu button clicked'); // Debug
+                mainNav.classList.toggle('active');
+                document.body.classList.toggle('mobile-menu-active'); // Optional: for body scroll lock
+                
+                // Change icon
+                const icon = this.querySelector('i');
+                if (mainNav.classList.contains('active')) {
+                    icon.classList.remove('fa-bars');
+                    icon.classList.add('fa-times');
+                    this.setAttribute('aria-expanded', 'true');
+                } else {
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                    this.setAttribute('aria-expanded', 'false');
+                    // Close all active dropdowns when menu closes
+                    document.querySelectorAll('.main-nav .nav-dropdown.active').forEach(function(activeDropdown) {
+                        activeDropdown.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Close menu when clicking outside (ensure it only runs when menu is active)
+            document.addEventListener('click', function(e) {
+                if (mainNav.classList.contains('active') &&
+                    !mainNav.contains(e.target) &&
+                    !mobileMenuBtn.contains(e.target)) {
+                    mainNav.classList.remove('active');
+                    document.body.classList.remove('mobile-menu-active');
+                    const icon = mobileMenuBtn.querySelector('i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                    // Close all active dropdowns when menu closes
+                    document.querySelectorAll('.main-nav .nav-dropdown.active').forEach(function(activeDropdown) {
+                        activeDropdown.classList.remove('active');
+                    });
+                }
+            });
+            
+            // Handle dropdown toggles in mobile menu
+            dropdownToggles.forEach(function(toggle) {
+                toggle.addEventListener('click', function(e) {
+                    // Check for both 767px (main.css) and 480px (smartphone-portrait.css) breakpoints
+                    if (window.innerWidth <= 767 || mainNav.classList.contains('active')) {
+                        e.preventDefault(); // Prevent navigation for # links
+                        const dropdown = this.closest('.nav-dropdown');
+                        dropdown.classList.toggle('active');
+                        
+                        // Optional: Close other dropdowns
+                        document.querySelectorAll('.main-nav .nav-dropdown').forEach(function(otherDropdown) {
+                            if (otherDropdown !== dropdown) {
+                                otherDropdown.classList.remove('active');
+                            }
+                        });
+                    }
+                });
+            });
+            
+            // Close mobile menu on window resize if getting larger
+            window.addEventListener('resize', function() {
+                // Check both breakpoints: 767px (main.css) and 480px (smartphone-portrait.css)
+                if (window.innerWidth > 767 && mainNav.classList.contains('active')) {
+                    mainNav.classList.remove('active');
+                    document.body.classList.remove('mobile-menu-active');
+                    const icon = mobileMenuBtn.querySelector('i');
+                    icon.classList.remove('fa-times');
+                    icon.classList.add('fa-bars');
+                    mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                }
+            });
+        }
+    }
+    
+    // Initialize mobile menu
+    setupMobileMenu();
     
     // Add authorization header to all fetch requests if token exists
     const originalFetch = window.fetch;
