@@ -180,7 +180,7 @@ async def get_box_score(game_id: int):
                     name=p.get("name", ""),
                     stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
                     jersey_number=p.get("jersey", ""),
-                    position=p.get("position")
+                    position=p.get("position"),
                 )
                 for p in playing_team_players
             ]
@@ -191,7 +191,7 @@ async def get_box_score(game_id: int):
                     name=p.get("name", ""),
                     stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
                     jersey_number=p.get("jersey", ""),
-                    position=p.get("position")
+                    position=p.get("position"),
                 )
                 for p in opponent_team_players
             ]
