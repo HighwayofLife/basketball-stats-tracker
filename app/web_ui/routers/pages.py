@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
@@ -384,18 +384,14 @@ async def admin_seasons_page(request: Request):
     return templates.TemplateResponse("admin/seasons.html", {"request": request, "title": "Season Management"})
 
 
-@router.get("/logout", response_class=HTMLResponse)
+@router.get("/logout")
 async def logout_page(request: Request):
-    """Handle logout by clearing client-side storage and redirecting."""
-    # Since we're using JWT tokens stored client-side, we just need to redirect
-    # The actual token clearing happens client-side
-    return templates.TemplateResponse(
-        "auth/logout.html",
-        {
-            "request": request,
-            "title": "Logging out...",
-        },
-    )
+    """Handle logout by clearing cookies and redirecting."""
+    response = RedirectResponse(url="/", status_code=302)
+    # Clear authentication cookies
+    response.delete_cookie(key="access_token")
+    response.delete_cookie(key="refresh_token")
+    return response
 
 
 @router.get("/about", response_class=HTMLResponse)

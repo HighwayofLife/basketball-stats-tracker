@@ -139,6 +139,10 @@ class TestAuthRouter:
             assert data["refresh_token"] == "refresh_token"
             assert data["token_type"] == "bearer"
 
+            # Check that cookies were set
+            assert "access_token" in response.cookies
+            assert "refresh_token" in response.cookies
+
     def test_login_invalid_credentials(self, client):
         """Test login with invalid credentials."""
         with (

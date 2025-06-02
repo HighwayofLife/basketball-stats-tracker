@@ -1,3 +1,12 @@
+v0.4.4
+------
+
+### Authentication Improvements
+* Fix login authentication not persisting - added HTTP-only secure cookies to /auth/token endpoint
+* Update authentication dependencies to support both Bearer tokens and cookies
+* Fix logout to properly clear authentication cookies
+* Add comprehensive integration tests for cookie-based authentication
+
 v0.4.3
 ------
 
