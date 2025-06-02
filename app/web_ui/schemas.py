@@ -447,5 +447,52 @@ class TeamStatsResponse(BaseModel):
     recent_games: list[RecentGameData]
 
 
+# Scheduled Games Schemas
+
+
+class ScheduledGameCreateRequest(BaseModel):
+    """Request schema for creating a scheduled game."""
+
+    home_team_id: int
+    away_team_id: int
+    scheduled_date: str = Field(..., description="Game date in YYYY-MM-DD format")
+    scheduled_time: str | None = Field(None, description="Scheduled time in HH:MM format")
+    season_id: int | None = None
+    location: str | None = None
+    notes: str | None = None
+
+
+class ScheduledGameUpdateRequest(BaseModel):
+    """Request schema for updating a scheduled game."""
+
+    home_team_id: int | None = None
+    away_team_id: int | None = None
+    scheduled_date: str | None = Field(None, description="Game date in YYYY-MM-DD format")
+    scheduled_time: str | None = Field(None, description="Scheduled time in HH:MM format")
+    season_id: int | None = None
+    location: str | None = None
+    notes: str | None = None
+    status: str | None = Field(None, pattern="^(scheduled|completed|cancelled|postponed)$")
+
+
+class ScheduledGameResponse(BaseModel):
+    """Response schema for scheduled game information."""
+
+    id: int
+    home_team_id: int
+    home_team_name: str
+    away_team_id: int
+    away_team_name: str
+    scheduled_date: str
+    scheduled_time: str | None = None
+    status: str
+    game_id: int | None = None
+    season_id: int | None = None
+    location: str | None = None
+    notes: str | None = None
+    created_at: str
+    updated_at: str
+
+
 # Forward reference for circular dependency
 TeamDetailResponse.model_rebuild()

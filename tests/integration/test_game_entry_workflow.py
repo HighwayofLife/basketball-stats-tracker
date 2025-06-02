@@ -2,6 +2,11 @@
 Integration tests for the complete game entry workflow.
 """
 
+import os
+
+# Set JWT_SECRET_KEY for all tests in this module
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
+
 from contextlib import contextmanager
 from datetime import date
 from unittest.mock import MagicMock

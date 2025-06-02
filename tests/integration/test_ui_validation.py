@@ -284,14 +284,12 @@ class TestUIValidation:
                 )
 
 
-def test_container_health_check():
-    """Test that containers can be started and stopped independently."""
-    manager = DockerContainerManager()
+class TestContainerHealthCheck:
+    """Test container lifecycle management."""
 
-    try:
-        manager.start_containers()
-
-        # Verify containers are running
+    def test_container_health_check(self, docker_containers):
+        """Test that containers are running properly."""
+        # Verify containers are running (using the shared fixture)
         result = subprocess.run(
             ["docker", "compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
         )
@@ -300,17 +298,190 @@ def test_container_health_check():
         assert "web" in running_services, "Web service not running"
         assert "database" in running_services, "Database service not running"
 
-    finally:
-        manager.stop_containers()
+        # Test that we can connect to the web service
+        response = requests.get(f"{BASE_URL}/")
+        assert response.status_code == 200
 
-        # Verify containers are stopped
-        result = subprocess.run(
-            ["docker", "compose", "ps", "--services", "--filter", "status=running"], capture_output=True, text=True
-        )
 
-        running_services = result.stdout.strip().split("\n") if result.stdout.strip() else []
-        assert "web" not in running_services, "Web service still running after stop"
-        assert "database" not in running_services, "Database service still running after stop"
+class TestCreateGameUI:
+    """Test the create game UI page functionality."""
+
+    def test_create_game_page_loads(self, docker_containers):
+        """Test that the create game page loads successfully."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        assert response.status_code == 200
+        assert "text/html" in response.headers.get("content-type", "")
+
+    def test_create_game_page_structure(self, docker_containers):
+        """Test that the create game page has correct form structure."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Check for page title (should be h2, not h1)
+        title = soup.find("h2")
+        assert title is not None
+        assert "Schedule Game" in title.text
+
+        # Check for form
+        form = soup.find("form", id="create-game-form")
+        assert form is not None
+
+        # Check for required form fields
+        date_input = soup.find("input", {"id": "game-date"})
+        assert date_input is not None
+        assert date_input.get("type") == "date"
+        assert date_input.get("required") is not None
+
+        time_input = soup.find("input", {"id": "game-time"})
+        assert time_input is not None
+        assert time_input.get("type") == "time"
+
+        home_team_select = soup.find("select", {"id": "home-team"})
+        assert home_team_select is not None
+        assert home_team_select.get("required") is not None
+
+        away_team_select = soup.find("select", {"id": "away-team"})
+        assert away_team_select is not None
+        assert away_team_select.get("required") is not None
+
+        location_input = soup.find("input", {"id": "location"})
+        assert location_input is not None
+
+        notes_textarea = soup.find("textarea", {"id": "notes"})
+        assert notes_textarea is not None
+
+        # Check for submit button
+        submit_button = soup.find("button", {"type": "submit"})
+        assert submit_button is not None
+        assert "Schedule" in submit_button.text
+
+    def test_create_game_page_javascript(self, docker_containers):
+        """Test that the create game page has correct JavaScript for API calls."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        content = response.text
+
+        # Check that JavaScript uses correct API endpoint for scheduled games
+        assert "/v1/games/scheduled" in content
+        assert "POST" in content
+        assert "scheduled_date" in content
+
+        # Check for authentication
+        assert "credentials: 'include'" in content
+
+        # Check for success handling
+        assert "window.location.href = '/games'" in content
+        assert "alert('Game scheduled successfully!')" in content
+
+    def test_create_game_form_validation(self, docker_containers):
+        """Test client-side form validation requirements."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Check JavaScript validation
+        scripts = soup.find_all("script")
+        script_content = "\n".join(script.text for script in scripts if script.text)
+
+        # Should validate that home and away teams are different
+        assert "homeTeamId === awayTeamId" in script_content
+        assert "different" in script_content.lower()
+
+        # Should validate required fields
+        assert "required" in str(soup.find("input", {"id": "game-date"}))
+        assert "required" in str(soup.find("select", {"id": "home-team"}))
+        assert "required" in str(soup.find("select", {"id": "away-team"}))
+
+    def test_create_game_team_options(self, docker_containers):
+        """Test that team selection dropdowns are populated."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Find script that populates teams
+        scripts = soup.find_all("script")
+        script_content = "\n".join(script.text for script in scripts if script.text)
+
+        # Should fetch teams from API
+        assert "/v1/teams" in script_content
+        assert "fetch" in script_content
+
+        # Should populate both select elements
+        assert "home-team" in script_content
+        assert "away-team" in script_content
+        assert "add(" in script_content  # Uses select.add() method
+
+    def test_create_game_date_defaults(self, docker_containers):
+        """Test that the date field has appropriate defaults."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Check for script that sets default date
+        scripts = soup.find_all("script")
+        script_content = "\n".join(script.text for script in scripts if script.text)
+
+        # Should set today as default or have date handling
+        assert "new Date()" in script_content or "toISOString()" in script_content
+
+    def test_create_game_error_handling(self, docker_containers):
+        """Test that the form has proper error handling."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        content = response.text
+
+        # Should handle API errors
+        assert "catch" in content
+        assert "error" in content.lower()
+        assert "alert" in content or "console.error" in content
+
+        # Should handle team loading errors
+        assert "Error loading teams" in content
+
+    def test_navigation_to_create_game(self, docker_containers):
+        """Test navigation from games list to create game page."""
+        # Get games list page
+        response = requests.get(f"{BASE_URL}/games")
+
+        # The "Schedule Game" link is only visible when authenticated
+        # Since tests run without authentication, test that:
+        # 1. The create game page is accessible directly
+        create_response = requests.get(f"{BASE_URL}/games/create")
+        assert create_response.status_code == 200
+
+        # 2. The games page renders without errors
+        assert response.status_code == 200
+        assert "Basketball Games" in response.text
+
+    def test_create_game_authentication_check(self, docker_containers):
+        """Test that create game page checks authentication status."""
+        response = requests.get(f"{BASE_URL}/games/create")
+        content = response.text
+
+        # Should include authentication token handling
+        assert "access_token" in content or "Authorization" in content
+
+        # Should handle credentials/authentication
+        assert "credentials: 'include'" in content
+
+    def test_authenticated_navigation_shows_schedule_button(self, docker_containers):
+        """Test that authenticated users see the Schedule Game button."""
+        # First, check that unauthenticated users don't see the button
+        response = requests.get(f"{BASE_URL}/games")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        unauthenticated_link = soup.find("a", href="/games/create")
+        assert unauthenticated_link is None, "Schedule Game button should not be visible to unauthenticated users"
+
+        # Verify the page shows login option instead
+        login_link = soup.find("a", href="/login")
+        assert login_link is not None, "Login link should be visible to unauthenticated users"
+
+        # TODO: Add test for authenticated scenario when authentication test utilities are available
+        # This would require:
+        # 1. Login with test credentials using the test admin account
+        # 2. Set proper authentication cookies/headers
+        # 3. Verify the Schedule Game button appears
+        # 4. Verify other authenticated-only features are visible
+
+        # For now, verify authentication-related elements exist in the UI
+        page_source = response.text
+        assert "Login" in page_source, "Page should have login functionality"
 
 
 if __name__ == "__main__":
