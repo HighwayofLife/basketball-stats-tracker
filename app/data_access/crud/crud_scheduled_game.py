@@ -99,27 +99,51 @@ class CRUDScheduledGame:
     def find_matching_game(
         self, db: Session, game_date: date, team1_name: str, team2_name: str
     ) -> ScheduledGame | None:
-        """Find a scheduled game that matches the given date and teams (regardless of home/away order)."""
-        return (
+        """Find a scheduled game that matches the given date and teams (regardless of home/away order).
+
+        First tries to match using Team.name, then falls back to Team.display_name for more flexible matching.
+        """
+        # First, try matching with Team.name (primary matching for CSV imports)
+        query_base = (
             db.query(ScheduledGame)
             .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
             .filter(
                 ScheduledGame.scheduled_date == game_date,
                 ScheduledGame.status == ScheduledGameStatus.SCHEDULED,
                 ScheduledGame.is_deleted.is_not(True),
-                or_(
-                    and_(
-                        ScheduledGame.home_team.has(Team.name == team1_name),
-                        ScheduledGame.away_team.has(Team.name == team2_name),
-                    ),
-                    and_(
-                        ScheduledGame.home_team.has(Team.name == team2_name),
-                        ScheduledGame.away_team.has(Team.name == team1_name),
-                    ),
+            )
+        )
+
+        # Try exact match with Team.name first
+        result = query_base.filter(
+            or_(
+                and_(
+                    ScheduledGame.home_team.has(Team.name == team1_name),
+                    ScheduledGame.away_team.has(Team.name == team2_name),
+                ),
+                and_(
+                    ScheduledGame.home_team.has(Team.name == team2_name),
+                    ScheduledGame.away_team.has(Team.name == team1_name),
                 ),
             )
-            .first()
-        )
+        ).first()
+
+        if result:
+            return result
+
+        # If no match found with Team.name, try matching with Team.display_name as fallback
+        return query_base.filter(
+            or_(
+                and_(
+                    ScheduledGame.home_team.has(Team.display_name == team1_name),
+                    ScheduledGame.away_team.has(Team.display_name == team2_name),
+                ),
+                and_(
+                    ScheduledGame.home_team.has(Team.display_name == team2_name),
+                    ScheduledGame.away_team.has(Team.display_name == team1_name),
+                ),
+            )
+        ).first()
 
     def update(
         self,

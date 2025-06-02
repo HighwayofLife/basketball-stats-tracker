@@ -55,7 +55,7 @@ class SoftDeleteMixin:
     @classmethod
     def filter_active(cls, query):
         """Filter out soft-deleted entries."""
-        return query.filter(cls.is_deleted == False)
+        return query.filter(~cls.is_deleted)
 
     def soft_delete(self, user_id: int | None = None):
         """Mark the entity as deleted."""

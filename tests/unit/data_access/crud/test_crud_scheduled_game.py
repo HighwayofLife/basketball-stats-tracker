@@ -85,6 +85,72 @@ class TestCRUDScheduledGame:
         result = crud_scheduled_game.find_matching_game(test_db_file_session, date(2025, 7, 1), "Team 1", "Team 2")
         assert result is None
 
+    def test_find_matching_game_with_display_name_fallback(self, test_db_file_session):
+        """Test finding a scheduled game using display_name as fallback when name doesn't match."""
+        # Create teams with display names
+        team1 = Team(name="Red", display_name="Red Dragons")
+        team2 = Team(name="Blue", display_name="Blue Warriors")
+        team3 = Team(name="Green", display_name="Green Eagles")
+        test_db_file_session.add_all([team1, team2, team3])
+        test_db_file_session.commit()
+
+        game_date = date(2025, 6, 15)
+
+        # Create scheduled game
+        scheduled_game = ScheduledGame(
+            scheduled_date=game_date, home_team_id=team1.id, away_team_id=team2.id, status=ScheduledGameStatus.SCHEDULED
+        )
+        test_db_file_session.add(scheduled_game)
+        test_db_file_session.commit()
+
+        # Test 1: Exact match with Team.name (should work first)
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Red", "Blue")
+        assert result is not None
+        assert result.id == scheduled_game.id
+
+        # Test 2: Match with display_name when name doesn't match
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Red Dragons", "Blue Warriors")
+        assert result is not None
+        assert result.id == scheduled_game.id
+
+        # Test 3: Reversed teams with display_name
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Blue Warriors", "Red Dragons")
+        assert result is not None
+        assert result.id == scheduled_game.id
+
+        # Test 4: Mix of name and display_name (should not match since we try name first, then display_name)
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Red", "Blue Warriors")
+        assert result is None
+
+        # Test 5: Non-existent display names
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Red Dragons", "Green Eagles")
+        assert result is None
+
+        # Test 6: Team with no display name (None) should not match display name search
+        team_no_display = Team(name="Yellow", display_name=None)
+        test_db_file_session.add(team_no_display)
+        test_db_file_session.commit()
+
+        scheduled_game_no_display = ScheduledGame(
+            scheduled_date=game_date,
+            home_team_id=team_no_display.id,
+            away_team_id=team3.id,
+            status=ScheduledGameStatus.SCHEDULED,
+        )
+        test_db_file_session.add(scheduled_game_no_display)
+        test_db_file_session.commit()
+
+        # Should match by name but not by display name
+        result = crud_scheduled_game.find_matching_game(test_db_file_session, game_date, "Yellow", "Green")
+        assert result is not None
+        assert result.id == scheduled_game_no_display.id
+
+        # Should not match by display name since Yellow has None display_name
+        result = crud_scheduled_game.find_matching_game(
+            test_db_file_session, game_date, "Yellow Dragons", "Green Eagles"
+        )
+        assert result is None
+
     def test_mark_completed(self, test_db_file_session):
         """Test marking a scheduled game as completed."""
         # Create teams and scheduled game
@@ -132,25 +198,29 @@ class TestCRUDScheduledGame:
             scheduled_date=today, home_team_id=team1.id, away_team_id=team2.id, status=ScheduledGameStatus.SCHEDULED
         )
         upcoming_game2 = ScheduledGame(
-            scheduled_date=date(today.year, today.month, today.day + 5)
-            if today.day <= 25
-            else date(today.year, today.month + 1, 5),
+            scheduled_date=(
+                date(today.year, today.month, today.day + 5)
+                if today.day <= 25
+                else date(today.year, today.month + 1, 5)
+            ),
             home_team_id=team2.id,
             away_team_id=team1.id,
             status=ScheduledGameStatus.SCHEDULED,
         )
         past_game = ScheduledGame(
-            scheduled_date=date(today.year, today.month, today.day - 5)
-            if today.day > 5
-            else date(today.year, today.month - 1, 25),
+            scheduled_date=(
+                date(today.year, today.month, today.day - 5) if today.day > 5 else date(today.year, today.month - 1, 25)
+            ),
             home_team_id=team1.id,
             away_team_id=team2.id,
             status=ScheduledGameStatus.SCHEDULED,
         )
         completed_game = ScheduledGame(
-            scheduled_date=date(today.year, today.month, today.day + 3)
-            if today.day <= 27
-            else date(today.year, today.month + 1, 3),
+            scheduled_date=(
+                date(today.year, today.month, today.day + 3)
+                if today.day <= 27
+                else date(today.year, today.month + 1, 3)
+            ),
             home_team_id=team1.id,
             away_team_id=team2.id,
             status=ScheduledGameStatus.COMPLETED,
