@@ -307,6 +307,42 @@ class TestScheduledGamesAPI:
         # Should require authentication
         assert response.status_code == 401
 
+    def test_scheduled_games_appear_in_games_list(self, test_client, test_db_file_session):
+        """Test that scheduled games appear in the main games list with negative IDs."""
+        # Create teams
+        team1 = Team(name="Test Team 1")
+        team2 = Team(name="Test Team 2")
+        test_db_file_session.add(team1)
+        test_db_file_session.add(team2)
+        test_db_file_session.commit()
+
+        # Create a scheduled game directly in database
+        scheduled_game = ScheduledGame(
+            scheduled_date=date(2025, 12, 25),
+            scheduled_time=time(15, 0),
+            home_team_id=team1.id,
+            away_team_id=team2.id,
+            location="Test Arena",
+            status=ScheduledGameStatus.SCHEDULED,
+        )
+        test_db_file_session.add(scheduled_game)
+        test_db_file_session.commit()
+
+        # Get the games list
+        response = test_client.get("/v1/games")
+        assert response.status_code == 200
+        games = response.json()
+
+        # Find the scheduled game in the list (should have negative ID)
+        scheduled_game_in_list = next((g for g in games if g["id"] == -scheduled_game.id), None)
+
+        assert scheduled_game_in_list is not None
+        assert scheduled_game_in_list["date"] == "2025-12-25"
+        assert scheduled_game_in_list["home_score"] == 0
+        assert scheduled_game_in_list["away_score"] == 0
+        assert scheduled_game_in_list["home_team"] == "Test Team 1"
+        assert scheduled_game_in_list["away_team"] == "Test Team 2"
+
     def test_csv_import_matches_scheduled_game(self, test_client, test_db_file_session):
         """Test that CSV import matches and updates scheduled games."""
         # This test would verify the CSV import integration

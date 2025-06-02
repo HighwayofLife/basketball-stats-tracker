@@ -3,6 +3,20 @@ v0.4.5
 
 ### Bug Fixes
 * Fixed team standings showing 0-0 in production game detail pages by reusing the team detail page approach for getting season stats
+* Fix JavaScript errors on game creation page - added null checks for DOM elements
+* Fix scheduled games table missing locally - migrations not applied
+* Fix scheduled game creation API error - wrong method signature for find_matching_game
+* Add proper Bearer token authorization to scheduled game creation request
+* Fix scheduled games not appearing in games list - modified /v1/games endpoint to include scheduled games
+* Fix 404 error when clicking View on scheduled games - removed View button since there's no detail page for scheduled games
+
+### UI Improvements  
+* Replace browser alert dialogs with HTML banners for game scheduling success/error messages
+* Add auto-dismissing success banners that redirect to games page after scheduling
+* Improve user experience with inline error messages using styled HTML banners
+* Show scheduled games in main games list with "Scheduled" status instead of scores
+* Use negative IDs for scheduled games to distinguish them from completed games
+* Update game list UI to properly handle and display scheduled games
 
 ### Features
 * Add comprehensive game schedule feature with CRUD operations
@@ -19,6 +33,7 @@ v0.4.5
 
 ### Fixes
 * Fix integration test environment setup for JWT_SECRET_KEY configuration
+* Add find_matching_game_by_ids method to handle team ID based matching
 
 ### Tests
 * Add comprehensive unit tests for ScheduleService (13 tests)
@@ -28,6 +43,7 @@ v0.4.5
 * Fix time conversion issues in CRUD operations (string to time object conversion)
 * Fix integration test database session management for proper test isolation
 * Fix API route ordering issue - moved /scheduled routes before /{game_id} to prevent route conflicts
+* Add integration tests for authentication flow and authenticated endpoints (10 tests)
 * Move create game UI tests to proper UI test suite location in test_ui_validation.py
 
 v0.4.4

@@ -154,19 +154,19 @@
                 if (response.ok) {
                     const userData = await response.json();
                     // Show user nav item with username and logout
-                    loginNavItem.style.display = 'none';
-                    userNavItem.style.display = 'flex';
-                    usernameDisplay.textContent = userData.username;
+                    if (loginNavItem) loginNavItem.style.display = 'none';
+                    if (userNavItem) userNavItem.style.display = 'flex';
+                    if (usernameDisplay) usernameDisplay.textContent = userData.username;
                     
                     // Show manage menu if user has write permissions (admin or user role)
                     if (userData.role === 'ADMIN' || userData.role === 'admin' || 
                         userData.role === 'USER' || userData.role === 'user') {
-                        manageNavItem.style.display = 'flex';
+                        if (manageNavItem) manageNavItem.style.display = 'flex';
                     }
                     
                     // Show admin menu if user is admin
                     if (userData.role === 'ADMIN' || userData.role === 'admin') {
-                        adminNavItem.style.display = 'flex';
+                        if (adminNavItem) adminNavItem.style.display = 'flex';
                     }
                 } else {
                     // Token is invalid, clear it
@@ -191,10 +191,10 @@
         const adminNavItem = document.getElementById('admin-nav-item');
         const manageNavItem = document.getElementById('manage-nav-item');
         
-        loginNavItem.style.display = 'flex';
-        userNavItem.style.display = 'none';
-        adminNavItem.style.display = 'none';
-        manageNavItem.style.display = 'none';
+        if (loginNavItem) loginNavItem.style.display = 'flex';
+        if (userNavItem) userNavItem.style.display = 'none';
+        if (adminNavItem) adminNavItem.style.display = 'none';
+        if (manageNavItem) manageNavItem.style.display = 'none';
     }
     
     function setupDropdownBehavior() {

@@ -27,7 +27,7 @@ class ScheduleService:
             raise ValueError("Home team and away team cannot be the same")
 
         # Check if a game already exists for these teams on this date
-        existing_game = crud_scheduled_game.find_matching_game(db, scheduled_date, home_team_id, away_team_id)
+        existing_game = crud_scheduled_game.find_matching_game_by_ids(db, scheduled_date, home_team_id, away_team_id)
         if existing_game:
             raise ValueError(f"A scheduled game already exists between these teams on {scheduled_date}")
 
