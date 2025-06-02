@@ -68,6 +68,9 @@ junit/
 # SQLite database
 /data/league_stats.db
 
+# Generated version file (created during Docker build)
+app/VERSION.json
+
 # VSCode
 .vscode/
 
