@@ -11,11 +11,25 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from app.data_access.models import Base
-
-# Set up JWT secret for tests
+# Set up JWT secret for tests BEFORE importing models
 if "JWT_SECRET_KEY" not in os.environ:
     os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
+
+# Import all models to ensure they're registered with Base.metadata
+from app.auth.models import User  # noqa: F401
+from app.data_access.models import (  # noqa: F401
+    AuditLog,
+    Base,
+    Game,
+    GameState,
+    Player,
+    PlayerGameStats,
+    PlayerQuarterStats,
+    PlayerSeasonStats,
+    Season,
+    Team,
+    TeamSeasonStats,
+)
 
 
 @pytest.fixture

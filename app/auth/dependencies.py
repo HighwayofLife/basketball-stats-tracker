@@ -10,15 +10,18 @@ from .jwt_handler import verify_token
 from .models import User, UserRole
 from .service import AuthService
 
-# OAuth2 scheme
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token")
+# OAuth2 scheme - optional to allow cookie auth as well
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/token", auto_error=False)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> User:
+async def get_current_user(
+    request: Request, token: str | None = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User:
     """Get current authenticated user from JWT token.
 
     Args:
-        token: JWT access token
+        request: FastAPI request object
+        token: JWT access token from OAuth2 scheme
         db: Database session
 
     Returns:
@@ -36,6 +39,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         detail="Not authenticated",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    # If no token from OAuth2 scheme, check cookies
+    if not token:
+        token = request.cookies.get("access_token")
+
+    if not token:
+        raise credentials_exception
 
     try:
         # Verify token
@@ -115,12 +125,17 @@ async def get_optional_current_user(request: Request, db: Session = Depends(get_
     Returns:
         Current user or None
     """
-    # Check for authorization header
-    authorization = request.headers.get("authorization")
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
+    token = None
 
-    token = authorization.split(" ")[1]
+    # Check for authorization header first
+    authorization = request.headers.get("authorization")
+    if authorization and authorization.startswith("Bearer "):
+        token = authorization.split(" ")[1]
+
+    # If no header token, check for cookie
+    if not token:
+        token = request.cookies.get("access_token")
+
     if not token:
         return None
 
