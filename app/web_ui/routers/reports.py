@@ -23,28 +23,31 @@ from app.data_access.crud import (
 from app.reports.report_generator import ReportGenerator
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
-from app.web_ui.dependencies import get_db
+from app.web_ui.dependencies import get_db, get_template_auth_context
 from app.web_ui.templates_config import templates
 
 router = APIRouter()
 
 
 @router.get("/reports", response_class=HTMLResponse)
-async def reports_index(request: Request):
+async def reports_index(auth_context: dict = Depends(get_template_auth_context)):
     """Display reports index page."""
-    return templates.TemplateResponse("reports/index.html", {"request": request})
+    context = {**auth_context, "title": "Reports"}
+    return templates.TemplateResponse("reports/index.html", context)
 
 
 @router.get("/reports/player-season-select", response_class=HTMLResponse)
-async def player_season_select(request: Request):
+async def player_season_select(auth_context: dict = Depends(get_template_auth_context)):
     """Display player selection page for season reports."""
-    return templates.TemplateResponse("reports/player_season_select.html", {"request": request})
+    context = {**auth_context, "title": "Select Player for Season Report"}
+    return templates.TemplateResponse("reports/player_season_select.html", context)
 
 
 @router.get("/reports/team-season-select", response_class=HTMLResponse)
-async def team_season_select(request: Request):
+async def team_season_select(auth_context: dict = Depends(get_template_auth_context)):
     """Display team selection page for season reports."""
-    return templates.TemplateResponse("reports/team_season_select.html", {"request": request})
+    context = {**auth_context, "title": "Select Team for Season Report"}
+    return templates.TemplateResponse("reports/team_season_select.html", context)
 
 
 @router.get("/v1/reports/games", response_model=dict[str, Any])

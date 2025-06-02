@@ -4,7 +4,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_optional_current_user
-from app.auth.models import User
+from app.auth.models import User, UserRole
 from app.dependencies import get_db
 from app.repositories import GameRepository, PlayerRepository, TeamRepository
 from app.services.game_state_service import GameStateService
@@ -72,7 +72,7 @@ def get_template_auth_context(request: Request, current_user: User | None = Depe
         "request": request,
         "current_user": current_user,
         "is_authenticated": current_user is not None,
-        "is_admin": current_user is not None and current_user.role.upper() == "ADMIN",
+        "is_admin": current_user is not None and current_user.role == UserRole.ADMIN,
         "user_role": current_user.role if current_user else None,
     }
     return context

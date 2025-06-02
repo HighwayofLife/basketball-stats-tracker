@@ -6,6 +6,7 @@ v0.4.4
 * Update authentication dependencies to support both Bearer tokens and cookies
 * Fix logout to properly clear authentication cookies
 * Add comprehensive integration tests for cookie-based authentication
+* Fix admin role check in template context to use proper enum comparison
 
 v0.4.3
 ------
