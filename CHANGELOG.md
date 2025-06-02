@@ -1,3 +1,22 @@
+v0.4.5
+------
+
+### Features
+* Add comprehensive game schedule feature with CRUD operations
+* Implement ScheduledGame model with status tracking (scheduled, completed, cancelled, postponed)
+* Add schedule management API endpoints at /v1/games/scheduled/*
+* Automatic matching of CSV imports with scheduled games
+* CSV import integration that links completed games to their scheduled entries
+* Database migration for scheduled_games table with proper indexing
+* ScheduleService for business logic and intelligent game matching
+* Update "Schedule Game" functionality to use existing create game page instead of modal
+* Simplify UI by removing redundant "Create New Game" button and modal interface  
+* Create game page now creates scheduled games instead of regular games with 0-0 scores
+* Authentication-protected UI elements that only show for logged-in users
+
+### Fixes
+* Fix integration test environment setup for JWT_SECRET_KEY configuration
+
 v0.4.4
 ------
 

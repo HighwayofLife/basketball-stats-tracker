@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import datetime as dt
+import enum
 from datetime import datetime, time
 from typing import TYPE_CHECKING
 
@@ -16,6 +17,7 @@ from sqlalchemy import (
     CheckConstraint,
     Date,
     DateTime,
+    Enum,
     ForeignKey,
     Index,
     Integer,
@@ -32,6 +34,15 @@ class Base(DeclarativeBase):
     """Base class for SQLAlchemy model definitions."""
 
     pass
+
+
+class ScheduledGameStatus(enum.Enum):
+    """Enum for scheduled game status."""
+
+    SCHEDULED = "scheduled"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    POSTPONED = "postponed"
 
 
 class SoftDeleteMixin:
@@ -156,6 +167,50 @@ class Game(Base, SoftDeleteMixin):
 
     def __str__(self):
         return f"Game on {self.date}"
+
+
+class ScheduledGame(Base, SoftDeleteMixin):
+    """Represents a scheduled game between two teams."""
+
+    __tablename__ = "scheduled_games"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    home_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
+    away_team_id: Mapped[int] = mapped_column(Integer, ForeignKey("teams.id"), nullable=False)
+    scheduled_date: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
+    status: Mapped[ScheduledGameStatus] = mapped_column(
+        Enum(ScheduledGameStatus), nullable=False, default=ScheduledGameStatus.SCHEDULED
+    )
+    game_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("games.id"), nullable=True)
+    season_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("seasons.id"), nullable=True)
+    location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    home_team: Mapped[Team] = relationship("Team", foreign_keys=[home_team_id])
+    away_team: Mapped[Team] = relationship("Team", foreign_keys=[away_team_id])
+    game: Mapped[Game | None] = relationship("Game")
+    season: Mapped[Season | None] = relationship("Season")
+
+    __table_args__ = (
+        UniqueConstraint("scheduled_date", "home_team_id", "away_team_id", name="uq_scheduled_game_date_teams"),
+        CheckConstraint("home_team_id != away_team_id", name="check_different_teams"),
+        Index("idx_scheduled_games_date_status", "scheduled_date", "status"),
+    )
+
+    def __repr__(self):
+        return (
+            f"<ScheduledGame(id={self.id}, date='{self.scheduled_date}', "
+            f"home_team_id={self.home_team_id}, away_team_id={self.away_team_id}, "
+            f"status='{self.status.value}')>"
+        )
+
+    def __str__(self):
+        return f"Scheduled Game: {self.away_team} @ {self.home_team} on {self.scheduled_date}"
 
 
 class PlayerGameStats(Base):

@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container">
-    <h2>Create New Game</h2>
+    <h2>Schedule Game</h2>
     
     <form id="create-game-form">
         <div class="form-group">
@@ -47,7 +47,7 @@
             <textarea class="form-control" id="notes" rows="3"></textarea>
         </div>
         
-        <button type="submit" class="btn btn-primary">Create Game</button>
+        <button type="submit" class="btn btn-primary">Schedule Game</button>
         <a href="/games" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
@@ -209,8 +209,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
         
-        const gameData = {
-            date: document.getElementById('game-date').value,
+        const scheduleData = {
+            scheduled_date: document.getElementById('game-date').value,
             home_team_id: homeTeamId,
             away_team_id: awayTeamId,
             season_id: seasonId,
@@ -220,25 +220,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         
         try {
-            const response = await fetch('/v1/games', {
+            const response = await fetch('/v1/games/scheduled', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(gameData)
+                credentials: 'include', // Include cookies for authentication
+                body: JSON.stringify(scheduleData)
             });
             
             if (response.ok) {
-                const game = await response.json();
-                // Redirect to live entry page
-                window.location.href = `/games/${game.id}/live`;
+                const scheduledGame = await response.json();
+                alert('Game scheduled successfully!');
+                // Redirect to games page
+                window.location.href = '/games';
             } else {
                 const error = await response.json();
-                alert(`Error creating game: ${error.detail}`);
+                alert(`Error scheduling game: ${error.detail}`);
             }
         } catch (error) {
-            console.error('Error creating game:', error);
-            alert('Failed to create game');
+            console.error('Error scheduling game:', error);
+            alert('Failed to schedule game');
         }
     });
 });

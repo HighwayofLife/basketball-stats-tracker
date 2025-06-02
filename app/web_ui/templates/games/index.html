@@ -9,8 +9,8 @@
     <h2>Basketball Games</h2>
     {% if is_authenticated %}
     <div class="header-actions" style="display: flex; gap: 10px;">
+        <a href="/games/create" class="btn btn-secondary">Schedule Game</a>
         <a href="/scorebook" class="btn btn-primary">Scorebook Entry</a>
-        <a href="/games/create" class="btn btn-primary">Create New Game</a>
     </div>
     {% endif %}
 </div>
@@ -54,6 +54,7 @@
     </div>
 </div>
 
+
 {% endblock %}
 
 {% block extra_scripts %}
@@ -65,10 +66,12 @@
             .then(response => response.json())
             .then(teams => {
                 const teamSelect = document.getElementById('team-filter');
+                
                 teams.forEach(team => {
+                    // Filter dropdown
                     const option = document.createElement('option');
                     option.value = team.id;
-                    option.textContent = team.name;
+                    option.textContent = team.display_name || team.name;
                     teamSelect.appendChild(option);
                 });
             });
@@ -80,6 +83,7 @@
         document.getElementById('team-filter').addEventListener('change', function() {
             loadGames(1); // Reset to page 1 when filter changes
         });
+
     });
 
     function loadGames(page = 1) {
@@ -181,5 +185,6 @@
         const date = new Date(year, month - 1, day); // month is 0-indexed
         return date.toLocaleDateString();
     }
+
 </script>
 {% endblock %}

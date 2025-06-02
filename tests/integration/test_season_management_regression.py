@@ -7,6 +7,10 @@ operations don't block FastAPI startup.
 """
 
 import os
+
+# Set JWT_SECRET_KEY for all tests in this module
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
+
 from unittest.mock import patch
 
 import pytest
