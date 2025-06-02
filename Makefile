@@ -18,7 +18,7 @@ IMAGE_NAME = basketball-stats-tracker
 DOCKER_REGISTRY =
 
 # Version information
-APP_VERSION = 0.4.5
+APP_VERSION = $(shell python scripts/get_version.py get)
 GIT_HASH = $(shell git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
 # Colors for terminal output
@@ -351,6 +351,32 @@ production-status: ## Check production service status
 production-logs: ## View production application logs
 	@echo "${CYAN}Streaming production logs... (Press Ctrl+C to stop)${NC}"
 	@gcloud logging tail "resource.type=cloud_run_revision AND resource.labels.service_name=basketball-stats"
+
+# --- Version Management ---
+
+.PHONY: version
+version: ## Show current version from pyproject.toml
+	@echo "${CYAN}Current version:${NC} $(APP_VERSION)"
+
+.PHONY: version-increment-patch
+version-increment-patch: ## Increment patch version (e.g., 1.2.3 -> 1.2.4)
+	@echo "${CYAN}Incrementing patch version...${NC}"
+	@python scripts/get_version.py increment patch
+
+.PHONY: version-increment-minor
+version-increment-minor: ## Increment minor version (e.g., 1.2.3 -> 1.3.0)
+	@echo "${CYAN}Incrementing minor version...${NC}"
+	@python scripts/get_version.py increment minor
+
+.PHONY: version-increment-major
+version-increment-major: ## Increment major version (e.g., 1.2.3 -> 2.0.0)
+	@echo "${CYAN}Incrementing major version...${NC}"
+	@python scripts/get_version.py increment major
+
+.PHONY: version-generate-json
+version-generate-json: ## Generate VERSION.json file for local development
+	@echo "${CYAN}Generating VERSION.json for local development...${NC}"
+	@python scripts/get_version.py generate-json
 
 # --- Statistics ---
 

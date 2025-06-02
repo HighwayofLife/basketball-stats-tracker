@@ -165,9 +165,7 @@ def generate_stats_table(
 | **Code Quality** | Ruff linting + pytest |
 | **License** | MIT |
 | **Version** | {project_info["version"]} |
-
-> 💡 **Quick Health Check:** Run `make test && make lint` to verify all tests pass and
-> code quality standards are met."""
+"""
 
     return table
 

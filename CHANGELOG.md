@@ -1,6 +1,9 @@
 v0.4.5
 ------
 
+### Bug Fixes
+* Fixed team standings showing 0-0 in production game detail pages by reusing the team detail page approach for getting season stats
+
 ### Features
 * Add comprehensive game schedule feature with CRUD operations
 * Implement ScheduledGame model with status tracking (scheduled, completed, cancelled, postponed)
