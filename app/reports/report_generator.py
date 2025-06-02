@@ -127,6 +127,7 @@ class ReportGenerator:
         player_box_score = {
             "name": player.name,
             "jersey": player.jersey_number,
+            "position": player.position,
             "team": team_name,
             "fouls": pgs.fouls,
             "ftm": 0,

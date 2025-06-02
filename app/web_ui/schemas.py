@@ -28,6 +28,8 @@ class PlayerStats(BaseModel):
     player_id: int
     name: str
     stats: dict[str, Any]
+    jersey_number: str = ""
+    position: str | None = None
 
 
 class TeamStats(BaseModel):
@@ -39,6 +41,7 @@ class TeamStats(BaseModel):
     stats: dict[str, Any]
     players: list[PlayerStats]
     top_player: dict[str, Any] | None = None
+    record: str | None = None  # Team record in "W-L" format
 
 
 class BoxScoreResponse(BaseModel):

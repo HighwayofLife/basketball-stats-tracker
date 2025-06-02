@@ -9,6 +9,8 @@ v0.4.3
 * Improved touch targets and mobile-specific styling
 * Add responsive table design for mobile devices with data-label attributes
 * Implement compact game card layout for mobile devices showing scores and teams
+* Display team win-loss records on game detail page instead of home/away labels
+* Add responsive mobile layout for game detail scoreboard with centered scores and team info
 
 ### Fixes
 * Fix issue with user authentication not being properly checked in templates
