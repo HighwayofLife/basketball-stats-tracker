@@ -86,12 +86,18 @@ class CrudManager {
                         <i class="fas fa-exclamation-triangle me-2"></i>
                         Error loading ${this.entityName}s: ${message}
                         <br>
-                        <button class="btn btn-sm btn-outline-primary mt-2" onclick="this.loadEntities()">
+                        <button class="btn btn-sm btn-outline-primary mt-2" id="${this.options.tableId}-retry-button">
                             <i class="fas fa-refresh"></i> Try Again
                         </button>
                     </td>
                 </tr>
             `;
+            
+            // Properly bind the retry button event listener
+            const retryButton = document.querySelector(`#${this.options.tableId}-retry-button`);
+            if (retryButton) {
+                retryButton.addEventListener('click', () => this.loadEntities());
+            }
         }
     }
 

@@ -17,6 +17,7 @@ v0.4.9
 
 ### Bug Fixes
 - Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
+- Fix JavaScript scoping issue in CRUD module retry button onclick handler (use proper event listener binding)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
