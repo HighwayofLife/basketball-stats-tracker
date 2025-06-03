@@ -212,15 +212,14 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
 
-        // If we have recent games, load the component
+        // If we have recent games, create the games HTML directly
         if (recentGames.length > 0) {
-            // Create the games HTML directly
-            const gamesHtml = createGamesHtml(recentGames, player.team_name);
+            const gamesHtml = createPlayerGamesHtml(recentGames, player.team_name);
             document.getElementById('recent-games-container').innerHTML = gamesHtml;
         }
     }
 
-    function createGamesHtml(games, teamName) {
+    function createPlayerGamesHtml(games, teamName) {
         // Create both desktop table and mobile cards
         let html = `
             <!-- Desktop Table -->
