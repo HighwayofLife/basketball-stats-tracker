@@ -19,6 +19,10 @@ v0.4.9
 - Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
 - Fix JavaScript scoping issue in CRUD module retry button onclick handler (use proper event listener binding)
 - Fix dashboard "Players of the Week" styling inconsistency with game detail "Game Leaders" (moved shared CSS to main.css, removed all conflicting desktop/mobile overrides, and created reusable component)
+- Fix team roster table hiding columns on desktop that should only be hidden on mobile (wrapped column hiding CSS in mobile media query)
+- Fix player detail page recent games table not matching dashboard/games list styling (created reusable recent_games component and updated player detail to use consistent game cards/table format)
+- Fix teams table styling to match players table responsive behavior (updated teams table to use mobile-table-view class and added CSS rules to hide Display Name and Players columns on mobile)
+- Fix player detail page recent games showing incorrect/missing data (updated player stats API to include team scores and game results, simplified JavaScript to remove unused data transformation)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories

@@ -10,18 +10,18 @@
 
 <!-- Teams Table -->
 <div class="card">
-    <table class="data-table">
+    <table class="data-table mobile-table-view">
         <thead>
             <tr>
                 <th>Short Name</th>
-                <th>Display Name</th>
-                <th>Players</th>
+                <th class="col-display-name">Display Name</th>
+                <th class="col-players">Players</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="teams-table-body">
             <tr>
-                <td colspan="3" class="loading-message">Loading teams...</td>
+                <td colspan="4" class="loading-message">Loading teams...</td>
             </tr>
         </tbody>
     </table>
@@ -219,10 +219,10 @@ async function loadTeams() {
             teams.forEach(team => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${team.name}</strong></td>
-                    <td>${team.display_name || '<em style="color: #999;">Not set</em>'}</td>
-                    <td>${team.player_count} players</td>
-                    <td>
+                    <td data-label="Short Name"><strong>${team.name}</strong></td>
+                    <td data-label="Display Name" class="col-display-name">${team.display_name || '<em style="color: #999;">Not set</em>'}</td>
+                    <td data-label="Players" class="col-players">${team.player_count} players</td>
+                    <td data-label="Actions">
                         <div class="action-buttons">
                             <a href="/teams/${team.id}" class="btn btn-sm">View Details</a>
                             ${isAuthenticated ? `

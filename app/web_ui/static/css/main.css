@@ -564,16 +564,22 @@ h6 { font-size: 0.95rem; }
   text-align: center;
 }
 
-/* Hide specific columns on mobile */
-.mobile-table-view.data-table th.col-position,
-.mobile-table-view.data-table th.col-height,
-.mobile-table-view.data-table th.col-weight,
-.mobile-table-view.data-table th.col-year,
-.mobile-table-view.data-table td.col-position,
-.mobile-table-view.data-table td.col-height,
-.mobile-table-view.data-table td.col-weight,
-.mobile-table-view.data-table td.col-year {
-  display: none;
+/* Hide specific columns on mobile - only apply on mobile devices */
+@media screen and (max-width: 480px) {
+  .mobile-table-view.data-table th.col-position,
+  .mobile-table-view.data-table th.col-height,
+  .mobile-table-view.data-table th.col-weight,
+  .mobile-table-view.data-table th.col-year,
+  .mobile-table-view.data-table th.col-display-name,
+  .mobile-table-view.data-table th.col-players,
+  .mobile-table-view.data-table td.col-position,
+  .mobile-table-view.data-table td.col-height,
+  .mobile-table-view.data-table td.col-weight,
+  .mobile-table-view.data-table td.col-year,
+  .mobile-table-view.data-table td.col-display-name,
+  .mobile-table-view.data-table td.col-players {
+    display: none;
+  }
 }
 
 /* Buttons - Mobile first */

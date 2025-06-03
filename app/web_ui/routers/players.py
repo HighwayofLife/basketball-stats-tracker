@@ -359,16 +359,46 @@ async def get_player_stats(player_id: int):
                 career_stats["total_3pa"] += stats.total_3pa
                 career_stats["total_fouls"] += stats.fouls
 
-            # Get recent games (last 10)
+            # Get recent games (last 10) with team-level scores
             recent_games = []
             for stats, game in game_stats[:10]:
                 points = stats_calculator.calculate_points(stats.total_ftm, stats.total_2pm, stats.total_3pm)
+                
+                # Get team scores for this game
+                team_id = player.team_id
+                opponent_team_id = game.opponent_team_id if game.playing_team_id == team_id else game.playing_team_id
+                
+                # Get team stats for this game
+                team_stats_query = session.query(func.sum(
+                    models.PlayerGameStats.total_ftm + 
+                    (models.PlayerGameStats.total_2pm * 2) + 
+                    (models.PlayerGameStats.total_3pm * 3)
+                ).label("total_points")).join(models.Player).filter(
+                    models.PlayerGameStats.game_id == game.id,
+                    models.Player.team_id == team_id
+                ).first()
+                
+                opponent_stats_query = session.query(func.sum(
+                    models.PlayerGameStats.total_ftm + 
+                    (models.PlayerGameStats.total_2pm * 2) + 
+                    (models.PlayerGameStats.total_3pm * 3)
+                ).label("total_points")).join(models.Player).filter(
+                    models.PlayerGameStats.game_id == game.id,
+                    models.Player.team_id == opponent_team_id
+                ).first()
+                
+                team_score = team_stats_query.total_points if team_stats_query and team_stats_query.total_points else 0
+                opponent_score = opponent_stats_query.total_points if opponent_stats_query and opponent_stats_query.total_points else 0
+                
                 recent_games.append(
                     {
                         "game_id": game.id,
                         "date": game.date.isoformat(),
                         "opponent": game.opponent_team.name,
-                        "points": points,
+                        "points": points,  # Player's points
+                        "team_score": team_score,  # Team's total points
+                        "opponent_score": opponent_score,  # Opponent's total points
+                        "win": team_score > opponent_score,  # Team win/loss
                         "ft": f"{stats.total_ftm}/{stats.total_fta}",
                         "ftm": stats.total_ftm,
                         "fta": stats.total_fta,

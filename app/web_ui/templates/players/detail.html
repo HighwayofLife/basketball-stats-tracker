@@ -204,59 +204,121 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="card-body">
                     <h5 class="card-title">Recent Games</h5>
                     ${recentGames.length > 0 ? `
-                        <div class="table-responsive">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Opponent</th>
-                                        <th class="text-center">Points</th>
-                                        <th class="text-center">FT</th>
-                                        <th class="text-center">FT%</th>
-                                        <th class="text-center">2PT</th>
-                                        <th class="text-center">2PT%</th>
-                                        <th class="text-center">3PT</th>
-                                        <th class="text-center">3PT%</th>
-                                        <th class="text-center">eFG%</th>
-                                        <th class="text-center">Fouls</th>
-                                        <th class="text-center">Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${recentGames.map(game => {
-                                        // Calculate percentages for this game
-                                        const ftPct = game.fta > 0 ? Math.round(game.ftm / game.fta * 100) : 0;
-                                        const fg2Pct = game.fg2a > 0 ? Math.round(game.fg2m / game.fg2a * 100) : 0;
-                                        const fg3Pct = game.fg3a > 0 ? Math.round(game.fg3m / game.fg3a * 100) : 0;
-                                        const efgPct = calculateGameEFG(game);
-
-                                        return `
-                                        <tr>
-                                            <td>${new Date(game.date).toLocaleDateString()}</td>
-                                            <td>${game.opponent}</td>
-                                            <td class="text-center score">${game.points}</td>
-                                            <td class="text-center">${game.ft}</td>
-                                            <td class="text-center">${ftPct}%</td>
-                                            <td class="text-center">${game.fg2}</td>
-                                            <td class="text-center">${fg2Pct}%</td>
-                                            <td class="text-center">${game.fg3}</td>
-                                            <td class="text-center">${fg3Pct}%</td>
-                                            <td class="text-center">${efgPct}%</td>
-                                            <td class="text-center">${game.fouls}</td>
-                                            <td class="text-center">
-                                                <a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a>
-                                            </td>
-                                        </tr>
-                                    `}).join('')}
-                                </tbody>
-                            </table>
-                        </div>
+                        <div id="recent-games-container"></div>
                     ` : `
                         <p class="text-muted">No games played yet.</p>
                     `}
                 </div>
             </div>
         `;
+
+        // If we have recent games, load the component
+        if (recentGames.length > 0) {
+            // Create the games HTML directly
+            const gamesHtml = createGamesHtml(recentGames, player.team_name);
+            document.getElementById('recent-games-container').innerHTML = gamesHtml;
+        }
+    }
+
+    function createGamesHtml(games, teamName) {
+        // Create both desktop table and mobile cards
+        let html = `
+            <!-- Desktop Table -->
+            <table class="data-table games-table desktop-only-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Opponent</th>
+                        <th>Score</th>
+                        <th class="text-center">Result</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        games.forEach(game => {
+            const gameDate = new Date(game.date);
+            const dateStr = gameDate.toLocaleDateString();
+            const isWin = game.win || false;
+            
+            html += `
+                    <tr>
+                        <td data-label="Date">${dateStr}</td>
+                        <td data-label="Opponent">${game.opponent}</td>
+                        <td data-label="Score" class="score">${game.team_score || '-'}-${game.opponent_score || '-'}</td>
+                        <td data-label="Result" class="text-center">
+                            ${game.team_score ? `<span class="badge bg-${isWin ? 'success' : 'danger'}">${isWin ? 'W' : 'L'}</span>` : '-'}
+                        </td>
+                        <td data-label="Actions">
+                            <a href="/games/${game.game_id}" class="btn btn-sm">View</a>
+                        </td>
+                    </tr>`;
+        });
+
+        html += `
+                </tbody>
+            </table>
+
+            <!-- Mobile Cards -->
+            <div class="mobile-games-list">`;
+
+        games.forEach(game => {
+            const gameDate = new Date(game.date);
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            const shortDate = `${monthNames[gameDate.getMonth()]} ${gameDate.getDate()}`;
+            const teamWon = game.win || false;
+            const teamScore = game.team_score || 0;
+            const oppScore = game.opponent_score || 0;
+
+            html += `
+                <div class="mobile-game-card">
+                    <div class="game-card-main-content">
+                        <div class="game-card-teams">
+                            <div class="team-entry ${teamWon ? 'winner' : ''}">
+                                <span class="team-name">${teamName}</span>
+                                <span class="team-score">${teamScore}</span>
+                                ${teamWon ? '<span class="winner-arrow">◄</span>' : ''}
+                            </div>
+                            <div class="team-entry ${!teamWon && teamScore !== oppScore ? 'winner' : ''}">
+                                <span class="team-name">${game.opponent}</span>
+                                <span class="team-score">${oppScore}</span>
+                                ${!teamWon && teamScore !== oppScore ? '<span class="winner-arrow">◄</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="game-card-info-action">
+                            <div class="game-time-status">
+                                <div class="status">Final</div>
+                                <div class="date">${shortDate}</div>
+                            </div>
+                            <a href="/games/${game.game_id}" class="btn btn-sm btn-view-details">View</a>
+                        </div>
+                    </div>
+                </div>`;
+        });
+
+        html += `
+            </div>`;
+
+        return html;
+    }
+
+    function createSimpleGamesTable(games) {
+        // Fallback simple table
+        let html = '<div class="table-responsive"><table class="data-table"><thead><tr>';
+        html += '<th>Date</th><th>Opponent</th><th>Result</th><th>Action</th>';
+        html += '</tr></thead><tbody>';
+        
+        games.forEach(game => {
+            html += `<tr>
+                <td>${new Date(game.date).toLocaleDateString()}</td>
+                <td>${game.opponent}</td>
+                <td>${game.win ? 'W' : 'L'}</td>
+                <td><a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a></td>
+            </tr>`;
+        });
+        
+        html += '</tbody></table></div>';
+        return html;
     }
 
     // Calculate effective field goal percentage
