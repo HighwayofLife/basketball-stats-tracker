@@ -231,6 +231,66 @@ class TestTeamStats:
             TeamStats(**data)
         assert "score" in str(exc_info.value)
 
+    def test_team_stats_with_top_players(self):
+        """Test TeamStats with top_players field for Game Leaders section."""
+        top_players_data = [
+            {
+                "player_id": 1,
+                "name": "LeBron James",
+                "jersey": "6",
+                "points": 25,
+                "fg_percentage": 48.5,
+                "fg2m": 8,
+                "fg2a": 15,
+                "fg3m": 3,
+                "fg3a": 7,
+            },
+            {
+                "player_id": 2,
+                "name": "Anthony Davis",
+                "jersey": "3",
+                "points": 22,
+                "fg_percentage": 52.0,
+                "fg2m": 9,
+                "fg2a": 16,
+                "fg3m": 1,
+                "fg3a": 3,
+            },
+        ]
+
+        data = {
+            "team_id": 1,
+            "name": "Lakers",
+            "score": 110,
+            "stats": {"rebounds": 45},
+            "players": [],
+            "top_players": top_players_data,
+        }
+
+        team_stats = TeamStats(**data)
+        assert team_stats.team_id == 1
+        assert team_stats.name == "Lakers"
+        assert len(team_stats.top_players) == 2
+        assert team_stats.top_players[0]["name"] == "LeBron James"
+        assert team_stats.top_players[0]["points"] == 25
+        assert team_stats.top_players[1]["name"] == "Anthony Davis"
+        assert team_stats.top_players[1]["points"] == 22
+
+    def test_team_stats_empty_top_players(self):
+        """Test TeamStats with empty top_players list."""
+        data = {
+            "team_id": 1,
+            "name": "Lakers",
+            "score": 110,
+            "stats": {"rebounds": 45},
+            "players": [],
+            "top_players": [],
+        }
+
+        team_stats = TeamStats(**data)
+        assert team_stats.team_id == 1
+        assert team_stats.top_players == []
+
 
 class TestBoxScoreResponse:
     """Tests for BoxScoreResponse schema."""

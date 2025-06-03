@@ -41,6 +41,7 @@ class TeamStats(BaseModel):
     stats: dict[str, Any]
     players: list[PlayerStats]
     top_player: dict[str, Any] | None = None
+    top_players: list[dict[str, Any]] = []  # Top 2-4 players for Game Leaders section
     record: str | None = None  # Team record in "W-L" format
 
 

@@ -1,3 +1,8 @@
+v0.4.8
+------
+### UI Improvements
+* Added 2 additional players to the "top players" section on the game detail page
+
 v0.4.7
 ------
 
