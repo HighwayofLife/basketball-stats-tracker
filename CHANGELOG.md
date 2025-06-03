@@ -9,6 +9,8 @@ v0.4.5
 * Add proper Bearer token authorization to scheduled game creation request
 * Fix scheduled games not appearing in games list - modified /v1/games endpoint to include scheduled games
 * Fix 404 error when clicking View on scheduled games - removed View button since there's no detail page for scheduled games
+* Fix failing unit test for ScheduleService.test_create_scheduled_game - corrected mocked method name from find_matching_game to find_matching_game_by_ids
+* Confirmed all integration tests pass (64/78 passed, 14 skipped) - no outstanding test failures
 
 ### UI Improvements  
 * Replace browser alert dialogs with HTML banners for game scheduling success/error messages
