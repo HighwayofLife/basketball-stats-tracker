@@ -577,6 +577,82 @@ body {
   }
 }
 
+/* Mobile table view CSS for maintaining table format on specific tables */
+@media screen and (max-width: 480px) {
+    /* Hide desktop-only tables on mobile */
+    .desktop-only-table {
+        display: none;
+    }
+    
+    /* Override card transformation for mobile-table-view tables - keep as table format */
+    .mobile-table-view.data-table {
+        display: table;
+        font-size: 0.85rem;
+        width: 100%;
+    }
+    
+    .mobile-table-view.data-table thead,
+    .mobile-table-view.data-table tbody,
+    .mobile-table-view.data-table tfoot {
+        display: table-row-group;
+    }
+    
+    .mobile-table-view.data-table thead {
+        display: table-header-group;
+    }
+    
+    .mobile-table-view.data-table thead tr {
+        position: static;
+        top: auto;
+        left: auto;
+        display: table-row;
+    }
+    
+    .mobile-table-view.data-table tr {
+        display: table-row;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .mobile-table-view.data-table th,
+    .mobile-table-view.data-table td {
+        display: table-cell;
+        border-bottom: 1px solid var(--border-color);
+        padding: 6px 4px;
+        position: static;
+        text-align: left;
+        vertical-align: middle;
+    }
+    
+    .mobile-table-view.data-table thead th {
+        font-size: 0.8rem;
+        padding: 8px 4px;
+    }
+    
+    .mobile-table-view.data-table td:before {
+        display: none;
+    }
+    
+    .mobile-table-view.data-table .text-center {
+        text-align: center;
+    }
+    
+    /* Hide specific columns on mobile using semantic classes - must come after table-cell rules */
+    .mobile-table-view.data-table th.col-position,
+    .mobile-table-view.data-table th.col-height,
+    .mobile-table-view.data-table th.col-weight,
+    .mobile-table-view.data-table th.col-year,
+    .mobile-table-view.data-table td.col-position,
+    .mobile-table-view.data-table td.col-height,
+    .mobile-table-view.data-table td.col-weight,
+    .mobile-table-view.data-table td.col-year {
+        display: none;
+    }
+}
+
 /* Tabs */
 .tab-container {
   margin-top: 20px;

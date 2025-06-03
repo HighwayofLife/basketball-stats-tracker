@@ -351,33 +351,33 @@
     line-height: 1.2;
   }
 
-  /* Responsive table styles for other tables that don't use desktop-only-table class */
-  .data-table:not(.desktop-only-table) {
+  /* Responsive table styles for other tables that don't use desktop-only-table or mobile-table-view class */
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) {
     font-size: 0.85rem;
     display: block;
     overflow-x: auto;
     white-space: nowrap;
   }
-  .data-table:not(.desktop-only-table) thead,
-  .data-table:not(.desktop-only-table) tbody,
-  .data-table:not(.desktop-only-table) th,
-  .data-table:not(.desktop-only-table) td,
-  .data-table:not(.desktop-only-table) tr {
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tbody,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
     display: block;
   }
-  .data-table:not(.desktop-only-table) thead tr {
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead tr {
     position: absolute;
     top: -9999px;
     left: -9999px;
   }
-  .data-table:not(.desktop-only-table) tr {
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
     border: 1px solid var(--border-color);
     margin-bottom: 15px;
     border-radius: 6px;
     background-color: var(--card-background);
     padding: 15px;
   }
-  .data-table:not(.desktop-only-table) td {
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td {
     border: none;
     padding: 8px 0;
     position: relative;
@@ -385,7 +385,7 @@
     text-align: right;
     white-space: normal;
   }
-  .data-table:not(.desktop-only-table) td:before {
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td:before {
     content: attr(data-label) ": ";
     position: absolute;
     left: 6px;
@@ -556,6 +556,18 @@
   /* Hide elements that don't work well on small screens - Existing is good */
   .desktop-only {
     display: none !important;
+  }
+  
+  /* Hide specific columns on mobile using semantic classes */
+  .mobile-table-view.data-table th.col-position,
+  .mobile-table-view.data-table th.col-height,
+  .mobile-table-view.data-table th.col-weight,
+  .mobile-table-view.data-table th.col-year,
+  .mobile-table-view.data-table td.col-position,
+  .mobile-table-view.data-table td.col-height,
+  .mobile-table-view.data-table td.col-weight,
+  .mobile-table-view.data-table td.col-year {
+    display: none;
   }
 
   /* Utility classes for mobile - Existing are good */

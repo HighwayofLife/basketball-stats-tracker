@@ -502,4 +502,16 @@
     display: grid !important;
   }
   
+  /* Hide specific columns on mobile using semantic classes */
+  .mobile-table-view.data-table th.col-position,
+  .mobile-table-view.data-table th.col-height,
+  .mobile-table-view.data-table th.col-weight,
+  .mobile-table-view.data-table th.col-year,
+  .mobile-table-view.data-table td.col-position,
+  .mobile-table-view.data-table td.col-height,
+  .mobile-table-view.data-table td.col-weight,
+  .mobile-table-view.data-table td.col-year {
+    display: none;
+  }
+  
 }
