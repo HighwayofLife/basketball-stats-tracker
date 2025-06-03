@@ -41,7 +41,7 @@ class TestScheduleService:
         location = "Test Arena"
         notes = "Test game"
 
-        mock_crud_scheduled_game.find_matching_game.return_value = None
+        mock_crud_scheduled_game.find_matching_game_by_ids.return_value = None
 
         expected_game = ScheduledGame(
             id=1,
@@ -69,7 +69,7 @@ class TestScheduleService:
 
         # Assert
         assert result == expected_game
-        mock_crud_scheduled_game.find_matching_game.assert_called_once_with(
+        mock_crud_scheduled_game.find_matching_game_by_ids.assert_called_once_with(
             mock_db_session, scheduled_date, home_team_id, away_team_id
         )
         mock_crud_scheduled_game.create.assert_called_once()
@@ -86,7 +86,7 @@ class TestScheduleService:
         """Test creating a scheduled game that already exists."""
         # Arrange
         existing_game = ScheduledGame(id=1, scheduled_date=date(2025, 6, 15))
-        mock_crud_scheduled_game.find_matching_game.return_value = existing_game
+        mock_crud_scheduled_game.find_matching_game_by_ids.return_value = existing_game
 
         # Act & Assert
         with pytest.raises(ValueError, match="A scheduled game already exists between these teams"):
