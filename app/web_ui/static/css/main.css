@@ -1,4 +1,5 @@
 /* Basketball Stats Tracker - Main Stylesheet */
+/* Mobile-first responsive design with consolidated styles */
 
 :root {
   --primary-color: #ff6b00;
@@ -15,8 +16,20 @@
   --beta-banner-color: #fff3cd;
   --beta-banner-border: #ffeaa7;
   --beta-banner-text: #856404;
+  
+  /* Responsive breakpoints */
+  --mobile-max: 480px;
+  --tablet-min: 481px;
+  --tablet-max: 1024px;
+  --desktop-min: 1025px;
+  
+  /* Touch target sizes */
+  --touch-target-min: 44px;
+  --touch-target-tablet: 42px;
+  --touch-target-landscape: 40px;
 }
 
+/* Base styles - Mobile first */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -30,18 +43,27 @@ body {
   background-color: var(--background-color);
 }
 
+/* Container */
 .container {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 20px;
+  padding: 0 15px;
 }
+
+/* Typography - Mobile first, progressively enhanced */
+h1 { font-size: 1.6rem; }
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.2rem; }
+h4 { font-size: 1.1rem; }
+h5 { font-size: 1rem; }
+h6 { font-size: 0.95rem; }
 
 /* Header */
 .site-header {
   background-color: var(--secondary-color);
   color: var(--light-text);
-  padding: 15px 0;
+  padding: 10px 0;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: relative;
 }
@@ -49,66 +71,119 @@ body {
 .site-header .container {
   display: flex;
   align-items: center;
-  flex-wrap: nowrap;
-  gap: 20px;
-  min-height: 60px;
+  justify-content: center;
+  gap: 10px;
+  min-height: auto;
+  position: relative;
 }
 
 .site-title {
-  flex-shrink: 0;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0;
 }
 
 .site-title a {
   color: var(--light-text);
   text-decoration: none;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: bold;
 }
 
-.main-nav {
-  flex: 1;
+/* Mobile Menu Button - Hidden by default, shown on mobile */
+.mobile-menu-btn {
   display: flex;
-  justify-content: center;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  right: 15px;
+  color: var(--light-text);
+  font-size: 1.5rem;
+  width: 40px;
+  height: 40px;
   align-items: center;
-  margin: 0 20px;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  z-index: 1001;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.mobile-menu-btn:hover,
+.mobile-menu-btn:focus {
+  background-color: rgba(255, 255, 255, 0.1);
+  opacity: 0.8;
+}
+
+/* Navigation - Mobile first */
+.main-nav {
+  display: none;
+  flex-direction: column;
+  width: 100%;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--secondary-color);
+  z-index: 1000;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 15px;
+  max-height: calc(100vh - 70px);
+  overflow-y: auto;
+}
+
+.main-nav.active {
+  display: flex !important;
 }
 
 .main-nav ul {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  width: 100%;
+  align-items: stretch;
   list-style: none;
   margin: 0;
   padding: 0;
+  gap: 0;
 }
 
 .main-nav li {
-  margin-left: 20px;
+  margin: 0;
+  width: 100%;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
 }
 
-.main-nav li:first-child {
-  margin-left: 0;
+.main-nav li:last-child {
+  border-bottom: none;
 }
 
-.main-nav a {
+.main-nav a,
+.main-nav .dropdown-toggle {
+  display: block;
+  padding: 14px 20px;
+  width: 100%;
+  border-radius: 0;
+  font-size: 1rem;
   color: var(--light-text);
+  font-weight: 500;
   text-decoration: none;
-  padding: 5px 10px;
-  border-radius: 4px;
   transition: background-color 0.2s;
+  min-height: var(--touch-target-min);
 }
 
-.main-nav a:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+.main-nav a:hover,
+.main-nav .dropdown-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* Navigation divider */
 .nav-divider {
-  width: 1px;
-  height: 20px;
-  background-color: rgba(255, 255, 255, 0.3);
-  margin: 0 10px;
+  display: none;
 }
 
 /* User navigation items */
@@ -124,38 +199,49 @@ body {
 
 /* Dropdown navigation */
 .nav-dropdown {
+  width: 100%;
   position: relative;
 }
 
 .dropdown-toggle {
   cursor: pointer;
-  padding: 5px 10px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
+  width: 100%;
+  text-align: left;
   display: block;
-  width: auto;
   min-width: 120px;
 }
 
+.main-nav .dropdown-toggle i.fa-chevron-down {
+  float: right;
+  transition: transform 0.3s ease;
+  margin-top: 4px;
+}
+
+.nav-dropdown.active .dropdown-toggle i.fa-chevron-down {
+  transform: rotate(180deg);
+}
+
 .dropdown-menu {
+  position: static !important;
   display: none !important;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background-color: var(--card-background);
-  min-width: 200px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  border-radius: 4px;
-  z-index: 1000;
-  border: 1px solid var(--border-color);
+  width: 100%;
+  box-shadow: none;
+  border: none;
+  background-color: rgba(0, 0, 0, 0.2);
+  margin-top: 0;
+  border-radius: 0;
+  padding-left: 0;
   list-style: none;
   padding: 0;
   margin: 0;
-  margin-top: 5px;
+}
+
+.nav-dropdown.active .dropdown-menu {
+  display: block !important;
 }
 
 .dropdown-menu li {
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .dropdown-menu li:last-child {
@@ -163,30 +249,20 @@ body {
 }
 
 .dropdown-menu a {
-  display: block;
-  padding: 12px 16px;
-  color: var(--text-color);
-  text-decoration: none;
+  color: var(--light-text);
+  padding: 12px 20px 12px 35px;
+  font-size: 0.9rem;
   transition: background-color 0.2s ease;
 }
 
 .dropdown-menu a:hover {
-  background-color: rgba(255, 107, 0, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .dropdown-menu a i {
-  margin-right: 8px;
-  width: 16px;
+  margin-right: 10px;
+  width: 18px;
   text-align: center;
-}
-
-.nav-dropdown:hover .dropdown-menu {
-  display: block;
-}
-
-/* Ensure dropdown stays visible when hovering over menu items */
-.nav-dropdown .dropdown-menu:hover {
-  display: block;
 }
 
 /* Beta Banner */
@@ -194,17 +270,19 @@ body {
   background-color: var(--beta-banner-color);
   border-bottom: 2px solid var(--beta-banner-border);
   color: var(--beta-banner-text);
-  padding: 12px 0;
+  padding: 8px 0;
   text-align: center;
   font-weight: 500;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-size: 0.85rem;
 }
 
 .beta-banner .container {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .beta-banner i {
@@ -212,52 +290,42 @@ body {
   color: var(--warning-color);
 }
 
+.beta-text {
+  line-height: 1.4;
+}
+
 .beta-text strong {
   font-weight: 700;
 }
 
-@media (max-width: 767px) {
-  .beta-banner {
-    padding: 10px 0;
-    font-size: 0.9rem;
-  }
-  
-  .beta-banner .container {
-    flex-direction: column;
-    gap: 5px;
-    text-align: center;
-  }
-  
-  .beta-text {
-    line-height: 1.4;
-  }
-}
-
 /* Main Content */
 .site-content {
-  padding: 40px 0;
+  padding: 20px 0;
 }
 
 .page-title {
-  margin-bottom: 30px;
+  margin-bottom: 20px;
   color: var(--secondary-color);
+  font-size: 1.5rem;
+  text-align: center;
 }
 
 /* Cards */
 .card {
   background-color: var(--card-background);
-  border-radius: 8px;
+  border-radius: 6px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  margin-bottom: 30px;
-  padding: 20px;
+  margin-bottom: 20px;
+  padding: 15px;
   overflow: hidden;
 }
 
 .card h2 {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
   color: var(--secondary-color);
   border-bottom: 1px solid var(--border-color);
   padding-bottom: 10px;
+  font-size: 1.3rem;
 }
 
 .card-footer {
@@ -267,23 +335,27 @@ body {
   text-align: right;
 }
 
-/* Tables */
+/* Tables - Mobile first approach */
 .data-table {
   width: 100%;
   border-collapse: collapse;
+  font-size: 0.85rem;
 }
 
 .data-table th,
 .data-table td {
-  padding: 12px 15px;
+  padding: 6px 4px;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
 }
 
 .data-table thead th {
   background-color: var(--secondary-color);
   color: var(--light-text);
   font-weight: bold;
+  font-size: 0.8rem;
+  padding: 8px 4px;
 }
 
 .data-table tbody tr:hover {
@@ -295,18 +367,229 @@ body {
   text-align: center;
 }
 
-/* Buttons */
+/* Mobile table responsive behavior */
+.data-table.desktop-only-table {
+  display: none !important;
+}
+
+/* Mobile card-based table layout */
+.mobile-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.mobile-game-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.mobile-game-card .game-card-main-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.mobile-game-card .game-card-teams {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-game-card .team-entry {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.mobile-game-card .team-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  flex-grow: 1;
+}
+
+.mobile-game-card .team-score {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  min-width: 25px;
+  text-align: right;
+  margin-left: 8px;
+}
+
+.mobile-game-card .winner-arrow {
+  position: absolute;
+  right: -20px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.mobile-game-card .team-entry.winner .team-score {
+  font-weight: 700;
+}
+
+.mobile-game-card .game-card-info-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.mobile-game-card .game-time-status .status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #444;
+  display: block;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.mobile-game-card .game-time-status .date {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.mobile-game-card .btn-view-details {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  min-height: 30px;
+  line-height: 1.2;
+}
+
+/* Card-style table transformation for general tables */
+.data-table:not(.desktop-only-table):not(.mobile-table-view) {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) thead,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tbody,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+  display: block;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) thead tr {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+  border: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  border-radius: 6px;
+  background-color: var(--card-background);
+  padding: 15px;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td {
+  border: none;
+  padding: 8px 0;
+  position: relative;
+  padding-left: 40%;
+  text-align: right;
+  white-space: normal;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td:before {
+  content: attr(data-label) ": ";
+  position: absolute;
+  left: 6px;
+  width: 35%;
+  padding-right: 10px;
+  white-space: nowrap;
+  font-weight: bold;
+  text-align: left;
+  color: var(--secondary-color);
+}
+
+/* Mobile table view - maintain table structure */
+.mobile-table-view.data-table {
+  display: table;
+  width: 100%;
+}
+
+.mobile-table-view.data-table thead,
+.mobile-table-view.data-table tbody,
+.mobile-table-view.data-table tfoot {
+  display: table-row-group;
+}
+
+.mobile-table-view.data-table thead {
+  display: table-header-group;
+}
+
+.mobile-table-view.data-table thead tr {
+  position: static;
+  top: auto;
+  left: auto;
+  display: table-row;
+}
+
+.mobile-table-view.data-table tr {
+  display: table-row;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.mobile-table-view.data-table th,
+.mobile-table-view.data-table td {
+  display: table-cell;
+  border-bottom: 1px solid var(--border-color);
+  position: static;
+  text-align: left;
+}
+
+.mobile-table-view.data-table td:before {
+  display: none;
+}
+
+.mobile-table-view.data-table .text-center {
+  text-align: center;
+}
+
+/* Hide specific columns on mobile */
+.mobile-table-view.data-table th.col-position,
+.mobile-table-view.data-table th.col-height,
+.mobile-table-view.data-table th.col-weight,
+.mobile-table-view.data-table th.col-year,
+.mobile-table-view.data-table td.col-position,
+.mobile-table-view.data-table td.col-height,
+.mobile-table-view.data-table td.col-weight,
+.mobile-table-view.data-table td.col-year {
+  display: none;
+}
+
+/* Buttons - Mobile first */
 .btn, .action-btn {
   display: inline-block;
   background-color: var(--primary-color);
   color: var(--light-text);
-  padding: 8px 16px;
-  border-radius: 4px;
+  padding: 12px 20px;
+  border-radius: 6px;
   text-decoration: none;
   border: none;
   cursor: pointer;
   font-weight: bold;
   transition: background-color 0.2s;
+  font-size: 0.95rem;
+  min-height: var(--touch-target-min);
 }
 
 .btn:hover {
@@ -314,8 +597,9 @@ body {
 }
 
 .btn-sm {
-  padding: 5px 10px;
+  padding: 8px 15px;
   font-size: 0.85rem;
+  min-height: 36px;
 }
 
 .btn-primary {
@@ -335,14 +619,16 @@ body {
 }
 
 .btn + .btn {
-  margin-left: 0.5rem;
+  margin-left: 0;
+  margin-top: 0.5rem;
 }
 
 /* Action Buttons */
 .action-buttons {
-  display: flex;
-  gap: 20px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+  justify-content: stretch;
 }
 
 .action-btn {
@@ -350,23 +636,26 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-width: 120px;
-  padding: 20px;
+  width: 100%;
+  min-width: auto;
+  padding: 20px 15px;
   text-align: center;
+  font-size: 0.95rem;
 }
 
 .action-btn .icon {
-  font-size: 2rem;
-  margin-bottom: 10px;
+  font-size: 1.8rem;
+  margin-bottom: 8px;
 }
 
-/* Quick Actions Top */
+/* Quick Actions */
 .quick-actions-top {
   display: flex;
-  gap: 20px;
-  justify-content: center;
-  margin-bottom: 30px;
-  padding: 20px 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 15px 0;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -376,12 +665,15 @@ body {
   gap: 8px;
   background-color: var(--primary-color);
   color: var(--light-text);
-  padding: 12px 20px;
+  padding: 15px 20px;
   border-radius: 8px;
   text-decoration: none;
   font-weight: 500;
   transition: all 0.2s ease;
-  min-width: auto;
+  width: 100%;
+  min-height: 50px;
+  justify-content: center;
+  font-size: 1rem;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   border: 1px solid transparent;
 }
@@ -393,18 +685,18 @@ body {
 }
 
 .quick-action-btn .icon {
-  font-size: 1.2rem;
+  font-size: 1.4rem;
 }
 
 .quick-action-btn .label {
   font-size: 0.9rem;
 }
 
-/* Dashboard */
+/* Dashboard - Mobile first */
 .dashboard {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 30px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   align-items: start;
 }
 
@@ -413,14 +705,18 @@ body {
   color: var(--secondary-color);
 }
 
-/* Game Detail */
+.sidebar {
+  order: -1;
+}
+
+/* Game layouts */
 .game-header {
   text-align: center;
   margin-bottom: 30px;
 }
 
 .game-header h2 {
-  font-size: 2rem;
+  font-size: 1.5rem;
   color: var(--secondary-color);
 }
 
@@ -430,16 +726,15 @@ body {
 }
 
 .game-score {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: bold;
   color: var(--secondary-color);
 }
 
-/* Game Content Grid */
 .game-content-grid {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 30px;
+  grid-template-columns: 1fr;
+  gap: 20px;
   align-items: start;
 }
 
@@ -449,13 +744,7 @@ body {
   gap: 30px;
 }
 
-.sidebar {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 30px;
-}
-
-/* Top Players Box */
+/* Top Players */
 #top-players-card, #players-of-week-card {
   padding: 20px;
 }
@@ -468,18 +757,21 @@ body {
 .top-players-container {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: 12px;
 }
 
 .top-player-box {
   display: flex;
   align-items: center;
   gap: 15px;
-  padding: 15px;
+  padding: 12px;
   background-color: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   transition: background-color 0.2s;
+  flex-direction: column;
+  text-align: center;
+  gap: 10px;
 }
 
 .top-player-box:hover {
@@ -495,7 +787,7 @@ body {
 }
 
 .player-info .team-name {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #6B7280;
   margin: 0 0 3px 0;
   text-transform: uppercase;
@@ -503,154 +795,38 @@ body {
 }
 
 .player-info .player-name {
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--secondary-color);
   margin: 0 0 3px 0;
 }
 
 .player-info .game-info {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #6B7280;
   margin: 0 0 5px 0;
   font-style: italic;
 }
 
 .player-info .player-stats {
-  font-size: 0.875rem;
+  font-size: 0.8rem;
   color: #374151;
   margin: 0;
 }
 
-@media (max-width: 1024px) {
-  .game-content-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .sidebar {
-    order: -1;
-  }
-  
-  #top-players-card {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  
-  .top-players-container {
-    flex-direction: row;
-    gap: 20px;
-  }
-  
-  .top-player-box {
-    flex: 1;
-  }
+/* Players of the Week specific overrides */
+#players-of-week-card .top-players-container {
+  flex-direction: column !important;
+  gap: 12px !important;
 }
 
-@media (max-width: 640px) {
-  .top-players-container {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  .top-player-box {
-    flex: auto;
-  }
-  
-  #players-of-week-card .top-players-container {
-    flex-direction: column;
-    gap: 15px;
-  }
-  
-  #players-of-week-card .top-player-box {
-    flex: auto;
-  }
-  
-  .quick-actions-top {
-    flex-direction: column;
-    align-items: center;
-    gap: 10px;
-  }
-  
-  .quick-action-btn {
-    width: 200px;
-    justify-content: center;
-  }
-}
-
-/* Mobile table view CSS for maintaining table format on specific tables */
-@media screen and (max-width: 480px) {
-    /* Hide desktop-only tables on mobile */
-    .desktop-only-table {
-        display: none;
-    }
-    
-    /* Override card transformation for mobile-table-view tables - keep as table format */
-    .mobile-table-view.data-table {
-        display: table;
-        font-size: 0.85rem;
-        width: 100%;
-    }
-    
-    .mobile-table-view.data-table thead,
-    .mobile-table-view.data-table tbody,
-    .mobile-table-view.data-table tfoot {
-        display: table-row-group;
-    }
-    
-    .mobile-table-view.data-table thead {
-        display: table-header-group;
-    }
-    
-    .mobile-table-view.data-table thead tr {
-        position: static;
-        top: auto;
-        left: auto;
-        display: table-row;
-    }
-    
-    .mobile-table-view.data-table tr {
-        display: table-row;
-        border: none;
-        margin: 0;
-        padding: 0;
-        background: transparent;
-        border-radius: 0;
-    }
-    
-    .mobile-table-view.data-table th,
-    .mobile-table-view.data-table td {
-        display: table-cell;
-        border-bottom: 1px solid var(--border-color);
-        padding: 6px 4px;
-        position: static;
-        text-align: left;
-        vertical-align: middle;
-    }
-    
-    .mobile-table-view.data-table thead th {
-        font-size: 0.8rem;
-        padding: 8px 4px;
-    }
-    
-    .mobile-table-view.data-table td:before {
-        display: none;
-    }
-    
-    .mobile-table-view.data-table .text-center {
-        text-align: center;
-    }
-    
-    /* Hide specific columns on mobile using semantic classes - must come after table-cell rules */
-    .mobile-table-view.data-table th.col-position,
-    .mobile-table-view.data-table th.col-height,
-    .mobile-table-view.data-table th.col-weight,
-    .mobile-table-view.data-table th.col-year,
-    .mobile-table-view.data-table td.col-position,
-    .mobile-table-view.data-table td.col-height,
-    .mobile-table-view.data-table td.col-weight,
-    .mobile-table-view.data-table td.col-year {
-        display: none;
-    }
+#players-of-week-card .top-player-box {
+  flex: auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  flex-direction: row !important;
+  text-align: left !important;
+  gap: 15px !important;
 }
 
 /* Tabs */
@@ -660,23 +836,28 @@ body {
 
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--border-color);
+  flex-direction: column;
+  border-bottom: none;
+  gap: 5px;
   margin-bottom: 20px;
 }
 
 .tab-btn {
-  padding: 10px 20px;
-  background-color: transparent;
-  border: none;
+  padding: 15px;
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
   cursor: pointer;
   font-weight: bold;
   color: var(--text-color);
-  border-bottom: 3px solid transparent;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  width: 100%;
 }
 
 .tab-btn.active {
-  color: var(--primary-color);
-  border-bottom: 3px solid var(--primary-color);
+  background-color: var(--primary-color);
+  color: var(--light-text);
+  border-color: var(--primary-color);
 }
 
 .tab-content {
@@ -689,17 +870,17 @@ body {
 
 /* Charts */
 .chart-container {
-  height: 400px;
-  margin: 20px 0;
+  height: 300px;
+  margin: 15px 0;
 }
 
 /* Filters */
 .filters {
-  margin-bottom: 20px;
+  margin-bottom: 15px;
 }
 
 .filter-group {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .filter-group label {
@@ -709,11 +890,44 @@ body {
 }
 
 .filter-select {
-  padding: 8px 12px;
-  border-radius: 4px;
+  padding: 12px;
+  border-radius: 6px;
   border: 1px solid var(--border-color);
   width: 100%;
-  max-width: 300px;
+  max-width: none;
+  font-size: 1rem;
+}
+
+/* Forms */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+select,
+textarea {
+  width: 100%;
+  padding: 12px;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  min-height: var(--touch-target-min);
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 80px;
 }
 
 /* Pagination */
@@ -721,11 +935,15 @@ body {
   display: flex;
   justify-content: center;
   margin-top: 20px;
+  flex-wrap: wrap;
+  gap: 5px;
 }
 
 .pagination button {
-  padding: 5px 12px;
-  margin: 0 5px;
+  min-width: var(--touch-target-min);
+  min-height: var(--touch-target-min);
+  padding: 10px;
+  margin: 0;
   border: 1px solid var(--border-color);
   background-color: var(--card-background);
   border-radius: 4px;
@@ -739,97 +957,37 @@ body {
 }
 
 /* Messages */
-.loading-message {
+.loading-message,
+.error-message {
   text-align: center;
-  padding: 20px;
+  padding: 15px;
+  font-size: 0.95rem;
   color: #777;
 }
 
 .error-message {
-  text-align: center;
-  padding: 20px;
   color: var(--error-color);
 }
 
-/* Footer */
-.site-footer {
-  background-color: var(--secondary-color);
-  color: var(--light-text);
-  padding: 20px 0;
-  text-align: center;
-  margin-top: 40px;
+/* Touch targets */
+a, button, input, select, textarea {
+  min-height: var(--touch-target-min);
+  touch-action: manipulation;
 }
 
-.site-footer .version-info {
-  font-size: 0.85em;
-  opacity: 0.7;
-  font-family: monospace;
+.main-nav a, .main-nav .dropdown-toggle, .dropdown-menu a {
+  min-height: var(--touch-target-min);
 }
 
-/* Mobile Menu Button - Hidden by default on larger screens */
-.mobile-menu-btn {
-  display: none; /* Will be overridden in mobile stylesheets */
-  background: transparent;
-  border: none;
-  color: var(--light-text);
-  font-size: 1.6rem;
-  padding: 8px;
-  cursor: pointer;
-  line-height: 1;
+/* Utility classes */
+.desktop-only {
+  display: none !important;
 }
 
-.mobile-menu-btn:hover {
-  opacity: 0.8;
-}
-
-/* Responsive */
-@media (max-width: 1024px) {
-  .dashboard {
-    grid-template-columns: 1fr;
-  }
-  
-  .dashboard .sidebar {
-    order: -1;
-  }
-  
-  #players-of-week-card {
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  
-  #players-of-week-card .top-players-container {
-    flex-direction: row;
-    gap: 20px;
-  }
-  
-  #players-of-week-card .top-player-box {
-    flex: 1;
-  }
-  
-  .quick-actions-top {
-    flex-wrap: wrap;
-    gap: 15px;
-  }
-}
-
-@media (min-width: 768px) {
-  .box-score-container {
-    grid-template-columns: 2fr 1fr;
-  }
-}
-
-@media (max-width: 767px) {
-  /* Remove the navigation display rules from here */
-  /* Mobile navigation is handled by smartphone-portrait.css and smartphone-landscape.css */
-  
-  .site-header .container {
-    flex-wrap: wrap;
-  }
-
-  .action-buttons {
-    justify-content: center;
-  }
-}
+.mobile-hidden { display: none !important; }
+.mobile-visible { display: block !important; }
+.mobile-center { text-align: center !important; }
+.mobile-full-width { width: 100% !important; }
 
 /* Modal Styles */
 .modal {
@@ -849,17 +1007,18 @@ body {
   background: var(--card-background);
   border-radius: 8px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  width: 90%;
+  width: 95%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  margin: 20px auto;
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 24px 16px;
+  padding: 20px 16px 16px;
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -891,7 +1050,7 @@ body {
 }
 
 .modal form {
-  padding: 20px 24px 24px;
+  padding: 20px 16px 24px;
 }
 
 .form-group {
@@ -915,19 +1074,7 @@ body {
   font-size: 14px;
   font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus,
-.form-group textarea:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(255, 107, 0, 0.1);
-}
-
-.form-group textarea {
-  resize: vertical;
-  min-height: 80px;
+  margin-bottom: 0;
 }
 
 .form-actions {
@@ -937,29 +1084,813 @@ body {
   margin-top: 24px;
   padding-top: 16px;
   border-top: 1px solid var(--border-color);
+  flex-direction: column;
 }
 
 .form-actions .btn {
+  width: 100%;
   min-width: 80px;
 }
 
-@media (max-width: 640px) {
-  .modal-content {
-    width: 95%;
-    margin: 20px auto;
+/* Stats Cards Component */
+.stats-card {
+  margin-bottom: 30px;
+}
+
+.stats-card .card-header {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  padding: 15px 20px;
+  margin: -15px -15px 15px -15px;
+  border-radius: 6px 6px 0 0;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
+.stat-item.stat-highlight {
+  background-color: rgba(255, 107, 0, 0.1);
+  border-color: var(--primary-color);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--secondary-color);
+  margin-bottom: 3px;
+}
+
+.stat-unit {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: normal;
+}
+
+.stat-subtext {
+  font-size: 0.75rem;
+  color: #888;
+  margin-top: 3px;
+}
+
+/* Footer */
+.site-footer {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  padding: 15px 0;
+  text-align: center;
+  margin-top: 30px;
+}
+
+.site-footer .version-info {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  font-family: monospace;
+}
+
+/* Body scroll lock when mobile menu is open */
+body.mobile-menu-active {
+  overflow: hidden;
+}
+
+/* RESPONSIVE BREAKPOINTS */
+
+/* Smartphone Landscape (481px - 767px) */
+@media screen and (min-width: 481px) and (max-width: 767px) {
+  /* Show desktop tables, hide mobile games list */
+  .mobile-games-list {
+    display: none !important;
   }
   
+  .data-table.desktop-only-table {
+    display: table !important;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .data-table.desktop-only-table th,
+  .data-table.desktop-only-table td {
+    display: table-cell;
+  }
+  
+  .data-table.desktop-only-table tr {
+    display: table-row;
+  }
+  
+  .data-table.desktop-only-table thead {
+    display: table-header-group;
+  }
+  
+  .data-table.desktop-only-table tbody {
+    display: table-row-group;
+  }
+
+  /* Adjust mobile menu button for landscape */
+  .mobile-menu-btn {
+    width: 35px;
+    height: 35px;
+    font-size: 1.4rem;
+    right: 20px;
+  }
+
+  /* Reduce touch targets slightly */
+  :root {
+    --touch-target-min: var(--touch-target-landscape);
+  }
+
+  /* Quick actions layout */
+  .quick-actions-top {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+
+  .quick-action-btn {
+    width: auto;
+    min-width: 150px;
+  }
+
+  /* Action buttons grid */
+  .action-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+  }
+
+  /* Tables restore normal behavior */
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) {
+    display: table;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tbody,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+    display: table-row-group;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead {
+    display: table-header-group;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+    display: table-row;
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td {
+    display: table-cell;
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 12px;
+    position: static;
+    text-align: left;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td:before {
+    display: none;
+  }
+}
+
+/* Tablet Portrait (768px - 1024px, portrait) */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: portrait) {
+  .container {
+    padding: 0 20px;
+  }
+
+  /* Hide mobile menu button */
+  .mobile-menu-btn {
+    display: none;
+  }
+
+  /* Restore desktop navigation */
+  .main-nav {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    margin: 0 20px;
+    position: static;
+    background: transparent;
+    border: none;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+    width: auto;
+  }
+
+  .main-nav ul {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+  }
+
+  .main-nav li {
+    margin-left: 20px;
+    width: auto;
+    text-align: left;
+    border: none;
+  }
+
+  .main-nav li:first-child {
+    margin-left: 0;
+  }
+
+  .main-nav a,
+  .main-nav .dropdown-toggle {
+    padding: 5px 10px;
+    width: auto;
+    font-size: 0.9rem;
+    border-radius: 4px;
+  }
+
+  .nav-divider {
+    display: block;
+    width: 1px;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0 10px;
+  }
+
+  /* Desktop dropdown behavior */
+  .nav-dropdown {
+    width: auto;
+  }
+
+  .dropdown-toggle {
+    width: auto;
+    text-align: left;
+    min-width: 120px;
+  }
+
+  .dropdown-menu {
+    position: absolute !important;
+    display: none !important;
+    top: 100%;
+    left: 0;
+    background-color: var(--card-background);
+    min-width: 200px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    z-index: 1000;
+    border: 1px solid var(--border-color);
+    margin-top: 5px;
+    padding: 0;
+  }
+
+  .nav-dropdown:hover .dropdown-menu {
+    display: block !important;
+  }
+
+  .dropdown-menu:hover {
+    display: block !important;
+  }
+
+  .dropdown-menu a {
+    color: var(--text-color);
+    padding: 12px 16px;
+    font-size: 0.9rem;
+  }
+
+  .dropdown-menu a:hover {
+    background-color: rgba(255, 107, 0, 0.1);
+  }
+
+  /* Typography scaling */
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.4rem; }
+
+  .site-title a { font-size: 1.4rem; }
+  .page-title { font-size: 1.8rem; }
+
+  /* Content adjustments */
+  .site-content {
+    padding: 30px 0;
+  }
+
+  .card {
+    padding: 20px;
+    margin-bottom: 25px;
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  /* Tablet touch targets */
+  :root {
+    --touch-target-min: var(--touch-target-tablet);
+  }
+
+  /* Tabs horizontal */
+  .tabs {
+    flex-direction: row;
+    border-bottom: 1px solid var(--border-color);
+    gap: 0;
+  }
+
+  .tab-btn {
+    width: auto;
+    padding: 10px 20px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    margin: 0;
+  }
+
+  .tab-btn.active {
+    background: transparent;
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+  }
+
+  /* Forms can start using columns */
+  .form-row {
+    display: flex;
+    gap: 15px;
+  }
+
+  .form-row > * {
+    flex: 1;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .form-actions .btn {
+    width: auto;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+}
+
+/* Tablet Landscape (768px - 1024px, landscape) */
+@media screen and (min-width: 768px) and (max-width: 1024px) and (orientation: landscape) {
+  /* Inherit tablet portrait styles and override specific items */
+  .container {
+    padding: 0 20px;
+  }
+
+  /* Navigation with more spacing */
+  .main-nav ul {
+    gap: 15px;
+  }
+
+  .main-nav a,
+  .main-nav .dropdown-toggle {
+    font-size: 1rem;
+  }
+
+  /* Dashboard can use desktop-like layout */
+  .dashboard {
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+  }
+
+  .sidebar {
+    order: 0;
+  }
+
+  .game-content-grid {
+    grid-template-columns: 2fr 1fr;
+    gap: 25px;
+  }
+
+  /* Action buttons three-column override */
+  .action-buttons {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  /* Top players horizontal layout */
+  .top-players-container {
+    flex-direction: row;
+    gap: 20px;
+  }
+
+  .top-player-box {
+    flex: 1;
+    flex-direction: column;
+    text-align: center;
+  }
+
+  /* Chart can be larger */
+  .chart-container {
+    height: 350px;
+  }
+}
+
+/* Desktop (1025px+) */
+@media screen and (min-width: 1025px) {
+  .container {
+    padding: 0 20px;
+  }
+
+  /* Hide mobile menu button */
+  .mobile-menu-btn {
+    display: none;
+  }
+
+  /* Full desktop navigation */
+  .site-header {
+    padding: 15px 0;
+  }
+
+  .site-header .container {
+    flex-wrap: nowrap;
+    gap: 20px;
+    min-height: 60px;
+  }
+
+  .site-title {
+    flex-shrink: 0;
+    width: auto;
+    text-align: left;
+  }
+
+  .site-title a {
+    font-size: 1.5rem;
+  }
+
+  .main-nav {
+    display: flex;
+    flex: 1;
+    justify-content: center;
+    align-items: center;
+    margin: 0 20px;
+    position: static;
+    background: transparent;
+    border: none;
+    padding: 0;
+    max-height: none;
+    overflow: visible;
+    width: auto;
+  }
+
+  .main-nav ul {
+    flex-direction: row;
+    align-items: center;
+    gap: 0;
+    width: auto;
+  }
+
+  .main-nav li {
+    margin-left: 20px;
+    width: auto;
+    text-align: left;
+    border: none;
+  }
+
+  .main-nav li:first-child {
+    margin-left: 0;
+  }
+
+  .main-nav a,
+  .main-nav .dropdown-toggle {
+    padding: 5px 10px;
+    width: auto;
+    font-size: 1rem;
+    border-radius: 4px;
+  }
+
+  .nav-divider {
+    display: block;
+    width: 1px;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.3);
+    margin: 0 10px;
+  }
+
+  /* Desktop dropdown behavior */
+  .nav-dropdown {
+    width: auto;
+  }
+
+  .dropdown-toggle {
+    width: auto;
+    text-align: left;
+    min-width: 120px;
+  }
+
+  .dropdown-menu {
+    position: absolute !important;
+    display: none !important;
+    top: 100%;
+    left: 0;
+    background-color: var(--card-background);
+    min-width: 200px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    z-index: 1000;
+    border: 1px solid var(--border-color);
+    margin-top: 5px;
+    padding: 0;
+  }
+
+  .nav-dropdown:hover .dropdown-menu {
+    display: block !important;
+  }
+
+  .dropdown-menu:hover {
+    display: block !important;
+  }
+
+  .dropdown-menu a {
+    color: var(--text-color);
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+
+  .dropdown-menu a:hover {
+    background-color: rgba(255, 107, 0, 0.1);
+  }
+
+  /* Beta banner */
+  .beta-banner {
+    padding: 12px 0;
+    font-size: 1rem;
+  }
+
+  .beta-banner .container {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  /* Typography scaling */
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 1.8rem; }
+  h3 { font-size: 1.5rem; }
+  h4 { font-size: 1.3rem; }
+  h5 { font-size: 1.1rem; }
+  h6 { font-size: 1rem; }
+
+  .page-title {
+    font-size: 2rem;
+    text-align: left;
+    margin-bottom: 30px;
+  }
+
+  /* Content */
+  .site-content {
+    padding: 40px 0;
+  }
+
+  .card {
+    padding: 20px;
+    margin-bottom: 30px;
+    border-radius: 8px;
+  }
+
+  .card h2 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+  }
+
+  /* Tables */
+  .data-table {
+    font-size: 1rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px 15px;
+  }
+
+  /* Always show desktop table */
+  .mobile-games-list {
+    display: none !important;
+  }
+  
+  .data-table.desktop-only-table {
+    display: table !important;
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* Buttons */
+  .btn, .action-btn {
+    padding: 8px 16px;
+    font-size: 1rem;
+    border-radius: 4px;
+  }
+
+  .btn + .btn {
+    margin-left: 0.5rem;
+    margin-top: 0;
+  }
+
+  /* Action buttons */
+  .action-buttons {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    grid-template-columns: none;
+  }
+
+  .action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    padding: 20px;
+    text-align: center;
+    width: auto;
+    font-size: 1rem;
+  }
+
+  .action-btn .icon {
+    font-size: 2rem;
+    margin-bottom: 10px;
+  }
+
+  /* Quick actions */
+  .quick-actions-top {
+    flex-direction: row;
+    gap: 20px;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .quick-action-btn {
+    width: auto;
+    min-width: auto;
+    padding: 12px 20px;
+    min-height: auto;
+  }
+
+  /* Layouts */
+  .dashboard {
+    grid-template-columns: 1fr 320px;
+    gap: 30px;
+  }
+
+  .sidebar {
+    order: 0;
+  }
+
+  .game-content-grid {
+    grid-template-columns: 1fr 320px;
+    gap: 30px;
+  }
+
+  /* Game header */
+  .game-header h2 {
+    font-size: 2rem;
+  }
+
+  .game-score {
+    font-size: 1.5rem;
+  }
+
+  /* Top players */
+  .top-players-container {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .top-player-box {
+    flex-direction: row;
+    text-align: left;
+    gap: 15px;
+  }
+
+  #players-of-week-card .top-players-container {
+    flex-direction: row !important;
+    gap: 20px !important;
+  }
+
+  #players-of-week-card .top-player-box {
+    flex: 1 !important;
+    flex-direction: column !important;
+    text-align: center !important;
+  }
+
+  /* Tabs */
+  .tabs {
+    flex-direction: row;
+    border-bottom: 1px solid var(--border-color);
+    gap: 0;
+  }
+
+  .tab-btn {
+    width: auto;
+    padding: 10px 20px;
+    border-radius: 0;
+    border: none;
+    border-bottom: 3px solid transparent;
+    background: transparent;
+    margin: 0;
+  }
+
+  .tab-btn.active {
+    background: transparent;
+    color: var(--primary-color);
+    border-bottom: 3px solid var(--primary-color);
+  }
+
+  /* Charts */
+  .chart-container {
+    height: 400px;
+    margin: 20px 0;
+  }
+
+  /* Filters */
+  .filter-select {
+    max-width: 300px;
+    width: auto;
+    font-size: 1rem;
+    padding: 8px 12px;
+  }
+
+  /* Forms */
+  .form-row {
+    display: flex;
+    gap: 20px;
+  }
+
+  .form-row > * {
+    flex: 1;
+  }
+
+  .form-actions {
+    flex-direction: row;
+    justify-content: flex-end;
+  }
+
+  .form-actions .btn {
+    width: auto;
+  }
+
+  /* Modal */
+  .modal-content {
+    width: 90%;
+    margin: auto;
+  }
+
   .modal-header,
   .modal form {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
-  
-  .form-actions {
-    flex-direction: column;
+
+  /* Stats grid */
+  .stats-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
-  
-  .form-actions .btn {
-    width: 100%;
+
+  /* Footer */
+  .site-footer {
+    padding: 20px 0;
+    margin-top: 40px;
   }
+
+  .site-footer .version-info {
+    display: inline;
+    margin-top: 0;
+    font-size: 0.85rem;
+  }
+
+  /* Utility classes */
+  .desktop-only {
+    display: block !important;
+  }
+
+  /* Override mobile utility classes for desktop */
+  .mobile-hidden { display: block !important; }
+  .mobile-visible { display: none !important; }
 }

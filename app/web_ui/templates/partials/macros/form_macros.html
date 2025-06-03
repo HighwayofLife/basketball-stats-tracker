@@ -1,0 +1,101 @@
+{# Form Field Macros #}
+{# Reusable form field components for consistent styling and behavior #}
+
+{# Text Input Field #}
+{% macro text_field(name, label, value='', required=false, placeholder='', help_text='', type='text') -%}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input type="{{ type }}" 
+           class="form-control" 
+           id="{{ name }}" 
+           name="{{ name }}" 
+           value="{{ value }}"
+           {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+           {% if required %}required{% endif %}>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{# Number Input Field #}
+{% macro number_field(name, label, value='', min=None, max=None, step=None, required=false, help_text='') -%}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <input type="number" 
+           class="form-control" 
+           id="{{ name }}" 
+           name="{{ name }}" 
+           value="{{ value }}"
+           {% if min is not none %}min="{{ min }}"{% endif %}
+           {% if max is not none %}max="{{ max }}"{% endif %}
+           {% if step is not none %}step="{{ step }}"{% endif %}
+           {% if required %}required{% endif %}>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{# Select Field #}
+{% macro select_field(name, label, options=[], selected='', required=false, help_text='', placeholder='Select...') -%}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <select class="form-select" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+        <option value="">{{ placeholder }}</option>
+        {% for option in options %}
+        <option value="{{ option.value }}" {% if option.value == selected %}selected{% endif %}>
+            {{ option.text }}
+        </option>
+        {% endfor %}
+    </select>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{# Textarea Field #}
+{% macro textarea_field(name, label, value='', rows=3, required=false, placeholder='', help_text='') -%}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %} <span class="text-danger">*</span>{% endif %}</label>
+    <textarea class="form-control" 
+              id="{{ name }}" 
+              name="{{ name }}" 
+              rows="{{ rows }}"
+              {% if placeholder %}placeholder="{{ placeholder }}"{% endif %}
+              {% if required %}required{% endif %}>{{ value }}</textarea>
+    {% if help_text %}
+    <small class="form-text text-muted">{{ help_text }}</small>
+    {% endif %}
+</div>
+{%- endmacro %}
+
+{# Form Row (for side-by-side fields) #}
+{% macro form_row() -%}
+<div class="row g-3">
+    {{ caller() }}
+</div>
+{%- endmacro %}
+
+{# Form Column #}
+{% macro form_col(size='col-md-6') -%}
+<div class="{{ size }}">
+    {{ caller() }}
+</div>
+{%- endmacro %}
+
+{# Submit Button #}
+{% macro submit_button(text='Save', class='btn-primary', icon='') -%}
+<button type="submit" class="btn {{ class }}">
+    {% if icon %}<i class="{{ icon }} me-2"></i>{% endif %}
+    {{ text }}
+</button>
+{%- endmacro %}
+
+{# Cancel Button #}
+{% macro cancel_button(text='Cancel', dismiss='modal') -%}
+<button type="button" class="btn btn-secondary" data-bs-dismiss="{{ dismiss }}">
+    {{ text }}
+</button>
+{%- endmacro %}

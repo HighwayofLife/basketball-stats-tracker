@@ -1,0 +1,32 @@
+{# Empty State Include #}
+{# Parameters:
+   - empty_title: Main message title
+   - empty_text: Descriptive text
+   - empty_icon: (optional) Font Awesome icon class
+   - action_url: (optional) URL for action button
+   - action_text: (optional) Text for action button
+   - action_icon: (optional) Icon for action button
+#}
+
+<div class="empty-state text-center p-5">
+    {% if empty_icon %}
+    <div class="empty-icon mb-3">
+        <i class="{{ empty_icon }} fa-3x text-muted"></i>
+    </div>
+    {% endif %}
+    
+    {% if empty_title %}
+    <h4 class="empty-title">{{ empty_title }}</h4>
+    {% endif %}
+    
+    <p class="empty-text text-muted">{{ empty_text|default('No data available') }}</p>
+    
+    {% if action_url and action_text %}
+    <div class="empty-action mt-3">
+        <a href="{{ action_url }}" class="btn btn-primary">
+            {% if action_icon %}<i class="{{ action_icon }} me-2"></i>{% endif %}
+            {{ action_text }}
+        </a>
+    </div>
+    {% endif %}
+</div>

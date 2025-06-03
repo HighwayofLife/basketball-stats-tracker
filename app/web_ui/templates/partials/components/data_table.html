@@ -1,0 +1,48 @@
+{# Data Table Component #}
+{# Parameters:
+   - table_id: Unique ID for the table
+   - table_classes: Additional CSS classes for the table
+   - columns: List of column definitions [{key, label, class, mobile_hide}]
+   - loading_text: Text to show while loading (default: "Loading...")
+   - empty_text: Text to show when no data (default: "No data available")
+   - mobile_card_template: (optional) Name of template to use for mobile cards
+#}
+
+<div class="table-responsive">
+    <table id="{{ table_id }}" class="data-table mobile-table-view {{ table_classes|default('') }}">
+        <thead>
+            <tr>
+                {% for column in columns %}
+                <th class="{{ column.class|default('') }} {% if column.mobile_hide %}col-mobile-hide{% endif %}">
+                    {{ column.label }}
+                </th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody id="{{ table_id }}-body">
+            <tr class="loading-row">
+                <td colspan="{{ columns|length }}" class="text-center">
+                    <span class="loading-message">{{ loading_text|default('Loading...') }}</span>
+                </td>
+            </tr>
+        </tbody>
+        {% if show_footer %}
+        <tfoot id="{{ table_id }}-footer">
+            {% block table_footer %}{% endblock %}
+        </tfoot>
+        {% endif %}
+    </table>
+</div>
+
+{# Mobile card view container #}
+{% if mobile_card_template %}
+<div class="mobile-card-list" id="{{ table_id }}-mobile" style="display: none;">
+    <div class="loading-message text-center p-3">{{ loading_text|default('Loading...') }}</div>
+</div>
+{% endif %}
+
+{# Empty state #}
+<div class="empty-state text-center p-4" id="{{ table_id }}-empty" style="display: none;">
+    <p class="text-muted">{{ empty_text|default('No data available') }}</p>
+    {% block empty_action %}{% endblock %}
+</div>

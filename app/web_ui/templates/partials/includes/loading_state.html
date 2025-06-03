@@ -1,0 +1,14 @@
+{# Loading State Include #}
+{# Parameters:
+   - loading_text: Text to display (default: "Loading...")
+   - show_spinner: Whether to show spinner (default: true)
+#}
+
+<div class="loading-state text-center p-4">
+    {% if show_spinner != false %}
+    <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    {% endif %}
+    <p class="loading-message">{{ loading_text|default('Loading...') }}</p>
+</div>
