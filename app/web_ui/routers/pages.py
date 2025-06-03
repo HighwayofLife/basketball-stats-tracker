@@ -381,7 +381,7 @@ async def admin_seasons_page(auth_context: dict = Depends(get_template_auth_cont
 
 
 @router.get("/logout")
-async def logout_page(request: Request, auth_context: dict = Depends(get_template_auth_context)):
+async def logout_page(request: Request):
     """Handle logout by clearing cookies and localStorage, then redirecting."""
     # Return a logout page that clears localStorage before redirecting
 

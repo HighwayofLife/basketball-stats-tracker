@@ -19,7 +19,7 @@ class ShotNotationService:
             fg3a: 3-point field goals attempted
 
         Returns:
-            Shot notation string (e.g., "22-1x3/")
+            Shot notation string (e.g., "22-3/1x")
         """
         notation = ""
 

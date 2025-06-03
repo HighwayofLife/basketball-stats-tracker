@@ -961,6 +961,10 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
             season_service = SeasonStatsService(session)
             season = season_service.get_or_create_season_from_date(game_date)
 
+            # Initialize scheduled game info
+            scheduled_game_info = None
+            scheduled_game_id = None
+
             if is_update:
                 # Update existing game
                 game = (
@@ -1002,10 +1006,6 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                 game.opponent_team_id = scorebook_data["away_team_id"]
                 game.location = scorebook_data.get("location")
                 game.notes = scorebook_data.get("notes")
-
-                scheduled_game = None
-                scheduled_game_id = None
-                scheduled_game_info = None
             else:
                 # Check for matching scheduled game
                 scheduled_game = schedule_service.find_matching_scheduled_game(
