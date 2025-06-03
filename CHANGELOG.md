@@ -18,6 +18,7 @@ v0.4.9
 ### Bug Fixes
 - Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
 - Fix JavaScript scoping issue in CRUD module retry button onclick handler (use proper event listener binding)
+- Fix dashboard "Players of the Week" styling inconsistency with game detail "Game Leaders" (moved shared CSS to main.css, removed all conflicting desktop/mobile overrides, and created reusable component)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
