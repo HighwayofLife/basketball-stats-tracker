@@ -11,10 +11,41 @@ env:
   REPOSITORY: basketball-stats
   IMAGE: basketball-stats-app
   SERVICE_NAME: basketball-stats
+  PYTHON_VERSION: "3.11"
 
 jobs:
+  # Detect what files have changed to determine if we need deployment
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      needs_deployment: ${{ steps.filter.outputs.needs_deployment }}
+      needs_migration: ${{ steps.filter.outputs.needs_migration }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            needs_deployment:
+              - 'app/**'
+              - 'scripts/**'
+              - 'migrations/**'
+              - 'pyproject.toml'
+              - 'Dockerfile'
+              - 'alembic.ini'
+            needs_migration:
+              - 'migrations/**'
+              - 'alembic.ini'
+
   validate-config:
     name: Validate Configuration
+    needs: changes
+    # Only run if deployment is needed
+    if: needs.changes.outputs.needs_deployment == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Validate Required GCP Configuration
@@ -24,19 +55,54 @@ jobs:
             echo "❌ WIF_PROVIDER is not set"
             exit 1
           fi
-          
+
           if [ -z "${{ secrets.WIF_SERVICE_ACCOUNT }}" ]; then
             echo "❌ WIF_SERVICE_ACCOUNT is not set"
             exit 1
           fi
-          
+
           echo "✅ All required GCP configuration is present"
           echo "Note: Secrets are now managed through Google Secret Manager"
 
-  build-and-deploy:
-    needs: [validate-config]
+  # Run tests before deploying (only if app code changed)
+  test:
+    name: Quick Tests
+    needs: changes
+    if: needs.changes.outputs.needs_deployment == 'true'
     runs-on: ubuntu-latest
-    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      - name: Run unit tests
+        env:
+          JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
+        run: |
+          pytest tests/unit/ -v --tb=short
+
+  # Build and deploy app
+  build-and-deploy:
+    needs: [validate-config, test, changes]
+    # Run after tests pass and validation succeeds
+    if: |
+      always() &&
+      needs.validate-config.result == 'success' &&
+      needs.test.result == 'success' &&
+      needs.changes.outputs.needs_deployment == 'true'
+    runs-on: ubuntu-latest
+
     permissions:
       contents: read
       id-token: write
@@ -70,22 +136,28 @@ jobs:
         echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
         echo "Short SHA: $SHORT_SHA"
 
-    - name: Build Docker image
-      run: |
-        docker build \
-          --target production \
-          --build-arg APP_VERSION=${{ steps.version.outputs.VERSION }} \
-          --build-arg GIT_HASH=${{ steps.version.outputs.SHORT_SHA }} \
-          -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }} \
-          -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
-          .
+    # Use Docker buildx for better caching
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
 
-    - name: Push Docker image
-      run: |
-        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
-        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        push: true
+        target: production
+        build-args: |
+          APP_VERSION=${{ steps.version.outputs.VERSION }}
+          GIT_HASH=${{ steps.version.outputs.SHORT_SHA }}
+        tags: |
+          ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
+          ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
 
+    # Only run migrations if migration files changed
     - name: Update Migration Job
+      if: needs.changes.outputs.needs_migration == 'true'
       run: |
         # Update the migration job image only, preserving Terraform-managed configuration
         # This prevents overwriting VPC settings and other critical configuration
@@ -98,12 +170,13 @@ jobs:
         }
 
     - name: Run Database Migration
+      if: needs.changes.outputs.needs_migration == 'true'
       run: |
         echo "Running database migrations BEFORE deployment..."
         # Execute the migration
         EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
         echo "Migration execution: $EXECUTION_NAME"
-        
+
         # Wait for completion and check status
         for i in {1..30}; do
           STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
@@ -122,11 +195,11 @@ jobs:
     - name: Update Cloud Run Image
       run: |
         echo "Updating Cloud Run service with new image (preserving Terraform-managed configuration)..."
-        
+
         # Update only the container image, preserving all other Terraform-managed configuration
         # This prevents conflicts between GitHub Actions and Terraform
         gcloud run services update ${{ env.SERVICE_NAME }} \
           --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
           --region ${{ env.REGION }}
-        
+
         echo "✅ Image updated successfully. Service configuration remains managed by Terraform."

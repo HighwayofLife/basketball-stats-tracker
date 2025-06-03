@@ -1,3 +1,12 @@
+v0.4.9
+------
+
+### Added
+- Comprehensive template duplication analysis documenting reusable patterns across HTML templates
+
+### Refactoring / Optimization
+- Remove redundant CI workflow steps to reduce github action consumption
+
 v0.4.8
 ------
 ### Features
