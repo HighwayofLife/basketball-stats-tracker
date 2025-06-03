@@ -370,7 +370,8 @@ class TestCreateGameUI:
 
         # Check for success handling
         assert "window.location.href = '/games'" in content
-        assert "alert('Game scheduled successfully!')" in content
+        assert "Game scheduled successfully!" in content
+        assert "sessionStorage.setItem" in content
 
     def test_create_game_form_validation(self, docker_containers):
         """Test client-side form validation requirements."""
