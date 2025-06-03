@@ -24,6 +24,7 @@ v0.4.9
 - Fix teams table styling to match players table responsive behavior (updated teams table to use mobile-table-view class and added CSS rules to hide Display Name and Players columns on mobile)
 - Fix player detail page recent games showing incorrect/missing data (updated player stats API to include team scores and game results, simplified JavaScript to remove unused data transformation)
 - Create unified games list component to consolidate duplicated games display code across dashboard, team detail, and player detail pages (replaced 3 different implementations with single reusable component)
+- Add safety checks for query results in player stats API to prevent potential AttributeError exceptions (added hasattr() validation for total_points field)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
