@@ -53,6 +53,7 @@ def test_user(test_db):
     )
     test_db.add(user)
     test_db.commit()
+    test_db.flush()  # Ensure user is fully persisted before use
     return user
 
 
@@ -69,24 +70,31 @@ def admin_user(test_db):
     )
     test_db.add(user)
     test_db.commit()
+    test_db.flush()  # Ensure admin user is fully persisted before use
     return user
 
 
 @pytest.fixture
 def auth_headers(test_client, test_user):
     """Get auth headers for regular user."""
+    import time
+
     response = test_client.post("/auth/token", data={"username": "testuser", "password": "testpass123"})
     assert response.status_code == 200
     token = response.json()["access_token"]
+    time.sleep(0.1)  # Small delay to ensure token is fully validated in CI environments
     return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def admin_headers(test_client, admin_user):
     """Get auth headers for admin user."""
+    import time
+
     response = test_client.post("/auth/token", data={"username": "admin", "password": "adminpass123"})
     assert response.status_code == 200
     token = response.json()["access_token"]
+    time.sleep(0.1)  # Small delay to ensure token is fully validated in CI environments
     return {"Authorization": f"Bearer {token}"}
 
 
@@ -109,6 +117,7 @@ def test_game(test_db):
     game = Game(date=date(2025, 1, 15), playing_team_id=team1.id, opponent_team_id=team2.id)
     test_db.add(game)
     test_db.commit()
+    test_db.flush()  # Ensure game and all related data is fully persisted
 
     return game
 
@@ -176,6 +185,7 @@ class TestGameEditWorkflow:
         )
         test_db.add(qs1)
         test_db.commit()
+        test_db.flush()  # Ensure all stats are persisted before API call
 
         # Get game in scorebook format
         response = test_client.get(f"/v1/games/{test_game.id}/scorebook-format", headers=admin_headers)
@@ -228,6 +238,7 @@ class TestGameEditWorkflow:
         )
         test_db.add(pgs1)
         test_db.commit()
+        test_db.flush()  # Ensure all data is written to database before API call
 
         # Update the game with new stats
         update_data = {
@@ -264,6 +275,15 @@ class TestGameEditWorkflow:
         }
 
         response = test_client.post("/v1/games/scorebook", json=update_data, headers=admin_headers)
+
+        # Add debugging info for CI failures
+        if response.status_code != 200:
+            print(f"\nDEBUG: Scorebook update failed with status {response.status_code}")
+            print(f"DEBUG: Response body: {response.text}")
+            print(f"DEBUG: Game ID: {test_game.id}")
+            print(f"DEBUG: Team1 ID: {team1.id}, Team2 ID: {team2.id}")
+            print(f"DEBUG: Player1 ID: {player1.id}, Player2 ID: {player2.id}")
+
         assert response.status_code == 200
 
         result = response.json()
