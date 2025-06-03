@@ -398,9 +398,7 @@ async def get_player_stats(player_id: int):
                 team_score = (
                     team_stats_query.total_points
                     if (
-                        team_stats_query
-                        and hasattr(team_stats_query, "total_points")
-                        and team_stats_query.total_points
+                        team_stats_query and hasattr(team_stats_query, "total_points") and team_stats_query.total_points
                     )
                     else 0
                 )
