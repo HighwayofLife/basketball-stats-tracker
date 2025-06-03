@@ -3,6 +3,12 @@ v0.4.7
 
 ### UI improvements
 * Improve mobile device view of team detail and player list pages
+* Refactor CSS: Move duplicated mobile table view styles to main stylesheet
+* Replace fragile nth-child selectors with semantic utility classes for column hiding
+* Add missing display:none rule for desktop-only tables on mobile devices
+* Fix players list on mobile to display as compact table instead of cards
+* Hide Position column on mobile views for cleaner display
+* Fix CSS specificity issue preventing column hiding on mobile devices
 
 v0.4.5
 ------
