@@ -169,27 +169,67 @@ jobs:
           ruff format --check .
           echo "::endgroup::"
 
-  # Run tests in parallel using matrix strategy
-  tests:
-    name: ${{ matrix.test-type }} Tests
+  # Unit tests - run for app code or test changes
+  unit-tests:
+    name: Unit Tests
     needs: [changes, setup-python]
     if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - test-type: Unit
-            test-path: tests/unit/
-            coverage-flag: unittests
-          - test-type: Integration
-            test-path: tests/integration/
-            test-args: --ignore=tests/integration/test_ui_validation.py
-            coverage-flag: integrationtests
-            needs-db: true
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Download Python environment
+        uses: actions/download-artifact@v4
+        with:
+          name: python-env
+
+      - name: Restore Python environment
+        run: |
+          tar -xzf python-env.tar.gz
+          python -m pip install --upgrade pip
+          pip install -e ".[test]"
+
+      - name: Run unit tests
+        env:
+          JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
+          DATABASE_URL: sqlite:///test.db
+        run: |
+          pytest tests/unit/ \
+            --cov=app \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --junitxml=junit/unit-test-results.xml
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unit-test-results
+          path: junit/unit-test-results.xml
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: unit-coverage
+          fail_ci_if_error: false
+
+  # Integration tests - run for app code or test changes
+  integration-tests:
+    name: Integration Tests
+    needs: [changes, setup-python]
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.tests == 'true'
+    runs-on: ubuntu-latest
     services:
       postgres:
-        image: ${{ matrix.needs-db && 'postgres:16-alpine' || '' }}
+        image: postgres:16-alpine
         env:
           POSTGRES_USER: basketball_user
           POSTGRES_PASSWORD: basketball_pass
@@ -222,43 +262,43 @@ jobs:
           pip install -e ".[test]"
 
       - name: Run database migrations
-        if: matrix.needs-db
         env:
           DATABASE_URL: postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats
           DEFAULT_ADMIN_PASSWORD: ci-test-admin-password-12345
         run: alembic upgrade head
 
-      - name: Run ${{ matrix.test-type }} tests
+      - name: Run integration tests
         env:
-          DATABASE_URL: ${{ matrix.needs-db && 'postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats' || '' }}
+          DATABASE_URL: postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats
           JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
         run: |
-          pytest ${{ matrix.test-path }} ${{ matrix.test-args }} \
+          pytest tests/integration/ \
+            --ignore=tests/integration/test_ui_validation.py \
             --cov=app \
             --cov-report=xml \
             --cov-report=term-missing \
-            --junitxml=junit/${{ matrix.test-type }}-test-results.xml
+            --junitxml=junit/integration-test-results.xml
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: ${{ matrix.test-type }}-test-results
-          path: junit/${{ matrix.test-type }}-test-results.xml
+          name: integration-test-results
+          path: junit/integration-test-results.xml
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
           file: ./coverage.xml
-          flags: ${{ matrix.coverage-flag }}
-          name: ${{ matrix.test-type }}-coverage
+          flags: integrationtests
+          name: integration-coverage
           fail_ci_if_error: false
 
-  # UI tests - only if frontend or app code changed
+  # UI tests - run for frontend changes, app code changes, OR test changes
   ui-tests:
     name: UI Validation Tests
     needs: [changes, docker-build]
-    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -322,7 +362,7 @@ jobs:
   # Test results summary - always runs to report status
   test-results:
     name: Test Results Summary
-    needs: [tests, ui-tests]
+    needs: [unit-tests, integration-tests, ui-tests]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -370,7 +410,7 @@ jobs:
   # All checks passed - smart checking based on what ran
   all-checks:
     name: All Checks Passed
-    needs: [changes, docker-build, code-quality, tests, ui-tests, security-scan]
+    needs: [changes, docker-build, code-quality, unit-tests, integration-tests, ui-tests, security-scan]
     runs-on: ubuntu-latest
     if: always()
     steps:
@@ -388,7 +428,8 @@ jobs:
           fi
           
           if [[ "${{ needs.changes.outputs.app_code }}" == "true" ]] || [[ "${{ needs.changes.outputs.tests }}" == "true" ]]; then
-            if [[ "${{ needs.tests.result }}" == "failure" ]]; then
+            if [[ "${{ needs.unit-tests.result }}" == "failure" ]] || \
+               [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
               failed=true
             fi
           fi
@@ -399,7 +440,7 @@ jobs:
             fi
           fi
           
-          if [[ "${{ needs.changes.outputs.frontend }}" == "true" ]] || [[ "${{ needs.changes.outputs.app_code }}" == "true" ]]; then
+          if [[ "${{ needs.changes.outputs.frontend }}" == "true" ]] || [[ "${{ needs.changes.outputs.app_code }}" == "true" ]] || [[ "${{ needs.changes.outputs.tests }}" == "true" ]]; then
             if [[ "${{ needs.ui-tests.result }}" == "failure" ]]; then
               failed=true
             fi

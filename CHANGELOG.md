@@ -15,6 +15,9 @@ v0.4.9
 - Implemented mobile-first responsive design with consistent breakpoints and touch targets
 - Remove redundant CI workflow steps to reduce github action consumption
 
+### Bug Fixes
+- Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
+
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
 - Created JavaScript module structure for better code organization and reusability
