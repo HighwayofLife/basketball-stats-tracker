@@ -24,9 +24,9 @@
     <div class="row">
         <div class="col-12">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">
+                <h1 class="h3 mb-0" id="pageTitle">
                     <i class="fas fa-clipboard-list me-2"></i>
-                    Scorebook Entry
+                    <span id="pageTitleText">Scorebook Entry</span>
                 </h1>
                 <div>
                     <button type="button" class="btn btn-outline-primary me-2" onclick="document.getElementById('csvFileInput').click()">
@@ -36,8 +36,8 @@
                     <button type="button" class="btn btn-outline-secondary me-2" onclick="clearForm()">
                         <i class="fas fa-trash"></i> Clear All
                     </button>
-                    <button type="button" class="btn btn-success" onclick="saveGame()">
-                        <i class="fas fa-save"></i> Save Game
+                    <button type="button" class="btn btn-success" onclick="saveGame()" id="saveButton">
+                        <i class="fas fa-save"></i> <span id="saveButtonText">Save Game</span>
                     </button>
                 </div>
             </div>
@@ -322,9 +322,19 @@ document.addEventListener('DOMContentLoaded', async function() {
     setDefaultDate();
     await loadTeamsAndPlayers();
     await loadSubstitutePlayerNames();
-    // Only add the first row if we successfully loaded data
-    if (teamsData && teamsData.length > 0) {
-        addPlayerRow(); // Add first row by default
+    
+    // Check if we're in edit mode (game_id provided in URL)
+    const urlParams = new URLSearchParams(window.location.search);
+    const gameId = urlParams.get('game_id');
+    
+    if (gameId) {
+        // Load existing game data
+        await loadGameForEdit(gameId);
+    } else {
+        // Only add the first row if we successfully loaded data
+        if (teamsData && teamsData.length > 0) {
+            addPlayerRow(); // Add first row by default
+        }
     }
 });
 
@@ -393,6 +403,67 @@ async function loadSubstitutePlayerNames() {
         console.error('Error loading substitute player names:', error);
         substitutePlayerNames = [];
         window.substitutePlayerNames = [];
+    }
+}
+
+async function loadGameForEdit(gameId) {
+    try {
+        // Update page title and save button
+        document.getElementById('pageTitleText').textContent = 'Edit Game';
+        document.getElementById('saveButtonText').textContent = 'Update Game';
+        
+        // Fetch game data in scorebook format
+        const response = await fetch(`/v1/games/${gameId}/scorebook-format`);
+        if (!response.ok) {
+            const error = await response.json();
+            showAlert(`Error loading game: ${error.detail}`, 'danger');
+            return;
+        }
+        
+        const gameData = await response.json();
+        
+        // Set game information
+        document.getElementById('gameDate').value = gameData.game_info.date;
+        document.getElementById('homeTeam').value = gameData.game_info.home_team_id;
+        document.getElementById('awayTeam').value = gameData.game_info.away_team_id;
+        document.getElementById('location').value = gameData.game_info.location || '';
+        document.getElementById('notes').value = gameData.game_info.notes || '';
+        
+        // Clear existing player rows
+        document.getElementById('playerStatsBody').innerHTML = '';
+        
+        // Add player rows with existing data
+        gameData.player_stats.forEach(playerStat => {
+            addPlayerRow();
+            const lastRow = document.querySelector('#playerStatsBody tr:last-child');
+            
+            if (lastRow) {
+                // Set player selection
+                const playerSelect = lastRow.querySelector('.player-select');
+                playerSelect.value = playerStat.player_id;
+                updatePlayerInfo(playerSelect);
+                
+                // Set fouls
+                const foulsInput = lastRow.querySelector('.fouls-input');
+                foulsInput.value = playerStat.fouls;
+                
+                // Set quarter shots
+                const scoringInputs = lastRow.querySelectorAll('.scoring-input');
+                scoringInputs[0].value = playerStat.shots_q1 || '';
+                scoringInputs[1].value = playerStat.shots_q2 || '';
+                scoringInputs[2].value = playerStat.shots_q3 || '';
+                scoringInputs[3].value = playerStat.shots_q4 || '';
+            }
+        });
+        
+        // Update game summary
+        updateGameSummary();
+        
+        showAlert('Game loaded for editing', 'info');
+        
+    } catch (error) {
+        console.error('Error loading game for edit:', error);
+        showAlert('Error loading game data. Please try again.', 'danger');
     }
 }
 
@@ -812,6 +883,10 @@ async function saveGame() {
             return;
         }
         
+        // Check if we're updating an existing game
+        const urlParams = new URLSearchParams(window.location.search);
+        const gameId = urlParams.get('game_id');
+        
         // Prepare game data
         const gameData = {
             date: gameDate,
@@ -822,8 +897,14 @@ async function saveGame() {
             player_stats: playerStats
         };
         
+        // Add game_id if updating
+        if (gameId) {
+            gameData.game_id = parseInt(gameId);
+        }
+        
         // Save the game
-        showAlert('Saving game...', 'info');
+        const action = gameId ? 'Updating' : 'Saving';
+        showAlert(`${action} game...`, 'info');
         
         const response = await fetch('/v1/games/scorebook', {
             method: 'POST',
@@ -835,7 +916,8 @@ async function saveGame() {
         
         if (response.ok) {
             const result = await response.json();
-            showAlert('Game saved successfully!', 'success');
+            const savedAction = gameId ? 'updated' : 'saved';
+            showAlert(`Game ${savedAction} successfully!`, 'success');
             
             // Optionally redirect to game detail page
             setTimeout(() => {
@@ -843,7 +925,7 @@ async function saveGame() {
             }, 2000);
         } else {
             const error = await response.json();
-            showAlert(`Error saving game: ${error.detail}`, 'danger');
+            showAlert(`Error ${action.toLowerCase()} game: ${error.detail}`, 'danger');
         }
         
     } catch (error) {

@@ -3,11 +3,13 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.dependencies import get_db
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
 from app.services.schedule_service import schedule_service
@@ -524,10 +526,10 @@ async def get_box_score(game_id: int):
             logger.info(f"Playing team quarters: {playing_team_quarters}")
             logger.info(f"Opponent team quarters: {opponent_team_quarters}")
 
-            # Find top player from each team
-            def get_top_player(players):
+            # Find top 2 players from each team
+            def get_top_players(players, count=2):
                 if not players:
-                    return None
+                    return []
                 # Sort by points (descending), then by FG% (descending)
                 sorted_players = sorted(
                     players,
@@ -538,29 +540,33 @@ async def get_box_score(game_id: int):
                     ),
                     reverse=True,
                 )
-                if sorted_players:
-                    top = sorted_players[0]
-                    # Calculate FG percentage for the top player
-                    fgm = top.get("fg2m", 0) + top.get("fg3m", 0)
-                    fga = top.get("fg2a", 0) + top.get("fg3a", 0)
-                    fg_percentage = (fgm / fga * 100) if fga > 0 else 0
-                    return {
-                        "player_id": top.get("player_id", 0),
-                        "name": top.get("name", ""),
-                        "jersey": top.get("jersey", ""),
-                        "points": top.get("points", 0),
-                        "fg_percentage": fg_percentage,
-                        "rebounds": top.get("rebounds", 0),
-                        "assists": top.get("assists", 0),
-                        "fg2m": top.get("fg2m", 0),
-                        "fg2a": top.get("fg2a", 0),
-                        "fg3m": top.get("fg3m", 0),
-                        "fg3a": top.get("fg3a", 0),
-                    }
-                return None
 
-            home_top_player = get_top_player(playing_team_players)
-            away_top_player = get_top_player(opponent_team_players)
+                top_players = []
+                for i in range(min(count, len(sorted_players))):
+                    player = sorted_players[i]
+                    # Calculate FG percentage for each top player
+                    fgm = player.get("fg2m", 0) + player.get("fg3m", 0)
+                    fga = player.get("fg2a", 0) + player.get("fg3a", 0)
+                    fg_percentage = (fgm / fga * 100) if fga > 0 else 0
+                    top_players.append(
+                        {
+                            "player_id": player.get("player_id", 0),
+                            "name": player.get("name", ""),
+                            "jersey": player.get("jersey", ""),
+                            "points": player.get("points", 0),
+                            "fg_percentage": fg_percentage,
+                            "rebounds": player.get("rebounds", 0),
+                            "assists": player.get("assists", 0),
+                            "fg2m": player.get("fg2m", 0),
+                            "fg2a": player.get("fg2a", 0),
+                            "fg3m": player.get("fg3m", 0),
+                            "fg3a": player.get("fg3a", 0),
+                        }
+                    )
+                return top_players
+
+            home_top_players = get_top_players(playing_team_players, 2)
+            away_top_players = get_top_players(opponent_team_players, 2)
 
             # Create the response
             return BoxScoreResponse(
@@ -572,7 +578,8 @@ async def get_box_score(game_id: int):
                     score=playing_team_score,
                     stats={"quarter_scores": playing_team_quarters},  # Add quarter scores to team stats
                     players=playing_team_player_stats,
-                    top_player=home_top_player,
+                    top_player=home_top_players[0] if home_top_players else None,
+                    top_players=home_top_players,
                     record=home_record,
                 ),
                 away_team=TeamStats(
@@ -581,7 +588,8 @@ async def get_box_score(game_id: int):
                     score=opponent_team_score,
                     stats={"quarter_scores": opponent_team_quarters},  # Add quarter scores to team stats
                     players=opponent_team_player_stats,
-                    top_player=away_top_player,
+                    top_player=away_top_players[0] if away_top_players else None,
+                    top_players=away_top_players,
                     record=away_record,
                 ),
             )
@@ -915,9 +923,12 @@ async def restore_game(game_id: int, current_user: User = Depends(require_admin)
 
 @router.post("/scorebook")
 async def create_game_from_scorebook(scorebook_data: dict, current_user: User = Depends(get_current_user)):
-    """Create a game from scorebook data entry."""
+    """Create or update a game from scorebook data entry."""
     try:
         with get_db_session() as session:
+            # Check if this is an update (game_id provided)
+            game_id = scorebook_data.get("game_id")
+            is_update = game_id is not None
             # Import here to avoid circular imports
             from app.utils.scorebook_parser import parse_scorebook_entry
 
@@ -950,36 +961,82 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
             season_service = SeasonStatsService(session)
             season = season_service.get_or_create_season_from_date(game_date)
 
-            # Check for matching scheduled game
-            scheduled_game = schedule_service.find_matching_scheduled_game(
-                session, game_date, home_team.name, away_team.name
-            )
-
-            scheduled_game_id = None
+            # Initialize scheduled game info
             scheduled_game_info = None
-            if scheduled_game:
-                scheduled_game_id = scheduled_game.id
-                scheduled_game_info = {
-                    "id": scheduled_game.id,
-                    "scheduled_time": (
-                        scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
-                    ),
-                    "location": scheduled_game.location,
-                    "notes": scheduled_game.notes,
-                }
+            scheduled_game_id = None
 
-            game = game_service.create_game(
-                date=scorebook_data["date"],
-                home_team_id=scorebook_data["home_team_id"],
-                away_team_id=scorebook_data["away_team_id"],
-                location=scorebook_data.get("location") or (scheduled_game.location if scheduled_game else None),
-                notes=scorebook_data.get("notes") or (scheduled_game.notes if scheduled_game else None),
-                season_id=season.id if season else None,
-            )
+            if is_update:
+                # Update existing game
+                game = (
+                    session.query(models.Game)
+                    .filter(models.Game.id == game_id, models.Game.deleted_at.is_(None))
+                    .first()
+                )
 
-            # Link the game to the scheduled game if found
-            if scheduled_game:
-                schedule_service.link_game_to_schedule(session, scheduled_game.id, game.id)
+                if not game:
+                    raise HTTPException(status_code=404, detail="Game not found")
+
+                # Check user has access to edit this game
+                from app.auth.models import UserRole
+
+                if current_user.role != UserRole.ADMIN:
+                    user_team_id = current_user.team_id if current_user.team_id else None
+                    if user_team_id is None or (
+                        game.playing_team_id != user_team_id and game.opponent_team_id != user_team_id
+                    ):
+                        raise HTTPException(status_code=403, detail="Access denied")
+
+                # Delete existing stats (they will be recreated)
+                existing_stats = (
+                    session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game_id).all()
+                )
+
+                for stat in existing_stats:
+                    # Delete quarter stats first
+                    session.query(models.PlayerQuarterStats).filter(
+                        models.PlayerQuarterStats.player_game_stat_id == stat.id
+                    ).delete()
+                    session.delete(stat)
+
+                session.flush()
+
+                # Update game info
+                game.date = game_date
+                game.playing_team_id = scorebook_data["home_team_id"]
+                game.opponent_team_id = scorebook_data["away_team_id"]
+                game.location = scorebook_data.get("location")
+                game.notes = scorebook_data.get("notes")
+            else:
+                # Check for matching scheduled game
+                scheduled_game = schedule_service.find_matching_scheduled_game(
+                    session, game_date, home_team.name, away_team.name
+                )
+
+                scheduled_game_id = None
+                scheduled_game_info = None
+                if scheduled_game:
+                    scheduled_game_id = scheduled_game.id
+                    scheduled_game_info = {
+                        "id": scheduled_game.id,
+                        "scheduled_time": (
+                            scheduled_game.scheduled_time.strftime("%H:%M") if scheduled_game.scheduled_time else None
+                        ),
+                        "location": scheduled_game.location,
+                        "notes": scheduled_game.notes,
+                    }
+
+                game = game_service.create_game(
+                    date=scorebook_data["date"],
+                    home_team_id=scorebook_data["home_team_id"],
+                    away_team_id=scorebook_data["away_team_id"],
+                    location=scorebook_data.get("location") or (scheduled_game.location if scheduled_game else None),
+                    notes=scorebook_data.get("notes") or (scheduled_game.notes if scheduled_game else None),
+                    season_id=season.id if season else None,
+                )
+
+                # Link the game to the scheduled game if found
+                if scheduled_game:
+                    schedule_service.link_game_to_schedule(session, scheduled_game.id, game.id)
 
             # Process player statistics
             home_score = 0
@@ -1044,7 +1101,7 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
 
             response = {
                 "game_id": game.id,
-                "message": "Game created successfully from scorebook",
+                "message": f"Game {'updated' if is_update else 'created'} successfully from scorebook",
                 "home_team": home_team.name,
                 "away_team": away_team.name,
                 "home_score": home_score,
@@ -1084,3 +1141,57 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
             error_message = "Missing required information. Please ensure all required fields are filled."
 
         raise HTTPException(status_code=400, detail=error_message) from e
+
+
+@router.get("/{game_id}/scorebook-format")
+async def get_game_scorebook_format(
+    game_id: int, current_user: User = Depends(get_current_user), session: Session = Depends(get_db)
+):
+    """Get game data in scorebook format for editing."""
+    try:
+        from app.services.shot_notation_service import ShotNotationService
+
+        # Get the game
+        game = session.query(models.Game).filter(models.Game.id == game_id, models.Game.deleted_at.is_(None)).first()
+
+        if not game:
+            raise HTTPException(status_code=404, detail="Game not found")
+
+        # Check user has access to edit this game
+        from app.auth.models import UserRole
+
+        if current_user.role != UserRole.ADMIN:
+            user_team_id = current_user.team_id if current_user.team_id else None
+            if user_team_id is None or (game.playing_team_id != user_team_id and game.opponent_team_id != user_team_id):
+                raise HTTPException(status_code=403, detail="Access denied")
+
+        # Get all player game stats
+        player_game_stats = (
+            session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game_id).all()
+        )
+
+        # Get all player quarter stats organized by player_id
+        player_quarter_stats_dict = {}
+        for pgs in player_game_stats:
+            quarter_stats = (
+                session.query(models.PlayerQuarterStats)
+                .filter(models.PlayerQuarterStats.player_game_stat_id == pgs.id)
+                .order_by(models.PlayerQuarterStats.quarter_number)
+                .all()
+            )
+
+            if quarter_stats:
+                player_quarter_stats_dict[pgs.player_id] = quarter_stats
+
+        # Convert to scorebook format
+        scorebook_data = ShotNotationService.game_to_scorebook_format(
+            game, player_game_stats, player_quarter_stats_dict
+        )
+
+        return scorebook_data
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting game in scorebook format: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve game data") from e

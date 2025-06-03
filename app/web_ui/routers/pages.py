@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
@@ -382,8 +382,34 @@ async def admin_seasons_page(auth_context: dict = Depends(get_template_auth_cont
 
 @router.get("/logout")
 async def logout_page(request: Request):
-    """Handle logout by clearing cookies and redirecting."""
-    response = RedirectResponse(url="/", status_code=302)
+    """Handle logout by clearing cookies and localStorage, then redirecting."""
+    # Return a logout page that clears localStorage before redirecting
+
+    # Create HTML response that clears localStorage and redirects
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Logging out...</title>
+        <meta http-equiv="refresh" content="2;url=/">
+    </head>
+    <body>
+        <p>Logging out...</p>
+        <script>
+            // Clear localStorage tokens
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('refresh_token');
+            localStorage.removeItem('token_type');
+            // Redirect to home page after clearing tokens
+            setTimeout(function() {
+                window.location.href = '/';
+            }, 100);
+        </script>
+    </body>
+    </html>
+    """
+
+    response = HTMLResponse(content=html_content)
     # Clear authentication cookies
     response.delete_cookie(key="access_token")
     response.delete_cookie(key="refresh_token")

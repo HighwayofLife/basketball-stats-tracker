@@ -44,5 +44,11 @@ class User(Base):
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
     team = relationship("Team", back_populates="users")
 
+    def set_password(self, password: str) -> None:
+        """Set the user's password by hashing it."""
+        from app.auth.jwt_handler import get_password_hash
+
+        self.hashed_password = get_password_hash(password)
+
     def __repr__(self):
         return f"<User(username='{self.username}', email='{self.email}', role='{self.role}')>"

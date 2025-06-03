@@ -107,7 +107,7 @@ class TestCookieAuthentication:
 
             # Logout
             response = client.get("/logout", follow_redirects=False)
-            assert response.status_code == 302
+            assert response.status_code == 200  # Now returns HTML page instead of redirect
 
             # Check that cookies are cleared
             # The delete_cookie sets the cookie with empty value and max_age=0

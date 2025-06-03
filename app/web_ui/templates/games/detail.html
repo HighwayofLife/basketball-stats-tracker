@@ -261,8 +261,9 @@
     line-height: 1.3;
 }
 
-/* Mobile styles for Game Leaders - 2x2 grid on smartphone portrait */
+/* Mobile styles for smartphone portrait */
 @media screen and (max-width: 480px) and (orientation: portrait) {
+    /* Game Leaders - 2x2 grid */
     .top-players-container {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -288,10 +289,8 @@
     .player-info .player-stats {
         font-size: 0.75rem;
     }
-}
 
-/* Override card transformation for box score tables on mobile */
-@media screen and (max-width: 480px) and (orientation: portrait) {
+    /* Override card transformation for box score tables */
     .mobile-table-view.data-table {
         display: table;
     }
