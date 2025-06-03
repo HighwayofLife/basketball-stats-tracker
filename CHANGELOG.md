@@ -1,3 +1,37 @@
+v0.4.9
+------
+
+### Added
+- Comprehensive template duplication analysis documenting reusable patterns across HTML templates
+- Template component system with reusable partials for modals, forms, tables, and stats cards
+- Form field macros for consistent input styling and validation
+- JavaScript modules for API interactions, CRUD operations, and form validation
+
+### Refactoring / Optimization
+- Consolidated 4 responsive CSS files into single mobile-first main.css file (50-70% code reduction)
+- Created component-based CSS architecture with separate files for buttons, tables, forms, and modals
+- Standardized mobile table behavior across all pages for consistent user experience
+- Extracted template partials to eliminate duplication of modal, form, and table structures
+- Implemented mobile-first responsive design with consistent breakpoints and touch targets
+- Remove redundant CI workflow steps to reduce github action consumption
+
+### Bug Fixes
+- Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
+- Fix JavaScript scoping issue in CRUD module retry button onclick handler (use proper event listener binding)
+- Fix dashboard "Players of the Week" styling inconsistency with game detail "Game Leaders" (moved shared CSS to main.css, removed all conflicting desktop/mobile overrides, and created reusable component)
+- Fix team roster table hiding columns on desktop that should only be hidden on mobile (wrapped column hiding CSS in mobile media query)
+- Fix player detail page recent games table not matching dashboard/games list styling (created reusable recent_games component and updated player detail to use consistent game cards/table format)
+- Fix teams table styling to match players table responsive behavior (updated teams table to use mobile-table-view class and added CSS rules to hide Display Name and Players columns on mobile)
+- Fix player detail page recent games showing incorrect/missing data (updated player stats API to include team scores and game results, simplified JavaScript to remove unused data transformation)
+- Create unified games list component to consolidate duplicated games display code across dashboard, team detail, and player detail pages (replaced 3 different implementations with single reusable component)
+- Add safety checks for query results in player stats API to prevent potential AttributeError exceptions (added hasattr() validation for total_points field)
+
+### Architecture Improvements
+- Established template partial system with components/, includes/, and macros/ directories
+- Created JavaScript module structure for better code organization and reusability
+- Unified responsive table strategies to provide consistent mobile experience
+- Standardized CSS naming conventions and utility classes
+
 v0.4.8
 ------
 ### Features

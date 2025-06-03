@@ -15,10 +15,51 @@ env:
   PYTHON_VERSION: "3.11"
 
 jobs:
-  # Build validation - ensures Docker image can be built
+  # Detect what files have changed to optimize job runs
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      app_code: ${{ steps.filter.outputs.app_code }}
+      docker: ${{ steps.filter.outputs.docker }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      tests: ${{ steps.filter.outputs.tests }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Check file changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            app_code:
+              - 'app/**/*.py'
+              - 'pyproject.toml'
+              - 'alembic.ini'
+              - 'migrations/**'
+              - 'scripts/**'
+            docker:
+              - 'Dockerfile'
+              - 'docker-compose.yml'
+              - '.dockerignore'
+            frontend:
+              - 'app/web_ui/static/**'
+              - 'app/web_ui/templates/**'
+              - '**/*.html'
+              - '**/*.css'
+              - '**/*.js'
+            tests:
+              - 'tests/**'
+
+  # Build validation - only if Docker or app code changed
   docker-build:
     name: Docker Build Validation
+    needs: changes
+    if: needs.changes.outputs.docker == 'true' || needs.changes.outputs.app_code == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -26,30 +67,75 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract version info
-        id: version
+      - name: Extract metadata
+        id: meta
         run: |
           VERSION=$(grep -E '^version = ' pyproject.toml | sed 's/version = "\(.*\)"/\1/')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
           echo "SHORT_SHA=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "tags=basketball-stats:pr-${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT
 
-      - name: Build Docker image
+      - name: Build and export Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: false
           target: production
           build-args: |
-            APP_VERSION=${{ steps.version.outputs.VERSION }}
-            GIT_HASH=${{ steps.version.outputs.SHORT_SHA }}
-          tags: basketball-stats:pr-${{ github.event.pull_request.number }}
+            APP_VERSION=${{ steps.meta.outputs.VERSION }}
+            GIT_HASH=${{ steps.meta.outputs.SHORT_SHA }}
+          tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=docker,dest=/tmp/image.tar
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # Code quality checks
+      - name: Upload Docker image
+        uses: actions/upload-artifact@v4
+        with:
+          name: docker-image
+          path: /tmp/image.tar
+          retention-days: 1
+
+  # Python setup composite action
+  setup-python:
+    name: Setup Python Environment
+    needs: changes
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.tests == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python with cache
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+
+      - name: Install and cache dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,test]"
+
+      - name: Save Python environment
+        run: |
+          pip freeze > requirements-lock.txt
+          tar -czf python-env.tar.gz ~/.cache/pip requirements-lock.txt
+
+      - name: Upload Python environment
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-env
+          path: python-env.tar.gz
+          retention-days: 1
+
+  # Code quality checks - only if app code changed
   code-quality:
     name: Code Quality
+    needs: [changes, setup-python]
+    if: needs.changes.outputs.app_code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -60,16 +146,14 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Cache pip packages
-        uses: actions/cache@v4
+      - name: Download Python environment
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          name: python-env
 
-      - name: Install dependencies
+      - name: Restore Python environment
         run: |
+          tar -xzf python-env.tar.gz
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
@@ -85,9 +169,11 @@ jobs:
           ruff format --check .
           echo "::endgroup::"
 
-  # Unit tests
+  # Unit tests - run for app code or test changes
   unit-tests:
     name: Unit Tests
+    needs: [changes, setup-python]
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -98,22 +184,21 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Cache pip packages
-        uses: actions/cache@v4
+      - name: Download Python environment
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          name: python-env
 
-      - name: Install dependencies
+      - name: Restore Python environment
         run: |
+          tar -xzf python-env.tar.gz
           python -m pip install --upgrade pip
           pip install -e ".[test]"
 
-      - name: Run unit tests with coverage
+      - name: Run unit tests
         env:
           JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
+          DATABASE_URL: sqlite:///test.db
         run: |
           pytest tests/unit/ \
             --cov=app \
@@ -136,9 +221,11 @@ jobs:
           name: unit-coverage
           fail_ci_if_error: false
 
-  # Integration tests (using Docker Compose)
+  # Integration tests - run for app code or test changes
   integration-tests:
     name: Integration Tests
+    needs: [changes, setup-python]
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -154,7 +241,6 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -164,16 +250,14 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Cache pip packages
-        uses: actions/cache@v4
+      - name: Download Python environment
+        uses: actions/download-artifact@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('pyproject.toml') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          name: python-env
 
-      - name: Install dependencies
+      - name: Restore Python environment
         run: |
+          tar -xzf python-env.tar.gz
           python -m pip install --upgrade pip
           pip install -e ".[test]"
 
@@ -181,8 +265,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://basketball_user:basketball_pass@localhost:5432/basketball_stats
           DEFAULT_ADMIN_PASSWORD: ci-test-admin-password-12345
-        run: |
-          alembic upgrade head
+        run: alembic upgrade head
 
       - name: Run integration tests
         env:
@@ -211,9 +294,11 @@ jobs:
           name: integration-coverage
           fail_ci_if_error: false
 
-  # UI validation tests (full stack with Docker Compose)
+  # UI tests - run for frontend changes, app code changes, OR test changes
   ui-tests:
     name: UI Validation Tests
+    needs: [changes, docker-build]
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.frontend == 'true' || needs.changes.outputs.tests == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -228,6 +313,18 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[test]"
+
+      - name: Download Docker image
+        if: needs.docker-build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: docker-image
+
+      - name: Load Docker image
+        if: needs.docker-build.result == 'success'
+        run: |
+          docker load --input image.tar
+          docker tag basketball-stats:pr-${{ github.event.pull_request.number }} basketball-stats:latest
 
       - name: Start services with Docker Compose
         run: |
@@ -249,8 +346,7 @@ jobs:
 
       - name: Collect Docker logs on failure
         if: failure()
-        run: |
-          docker compose logs > docker-compose-logs.txt
+        run: docker compose logs > docker-compose-logs.txt
 
       - name: Upload Docker logs
         uses: actions/upload-artifact@v4
@@ -263,7 +359,7 @@ jobs:
         if: always()
         run: docker compose down -v
 
-  # Test results summary
+  # Test results summary - always runs to report status
   test-results:
     name: Test Results Summary
     needs: [unit-tests, integration-tests, ui-tests]
@@ -275,11 +371,7 @@ jobs:
         with:
           pattern: '*-test-results'
           merge-multiple: true
-      - name: List downloaded files
-        run: |
-          echo "Downloaded files:"
-          find . -name "*.xml" -type f || echo "No XML files found"
-          ls -la
+          
       - name: Publish test results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
@@ -291,9 +383,11 @@ jobs:
           comment_title: Test Results Summary
           fail_on: test failures
 
-  # Security scanning
+  # Security scan - only if app code or docker changed
   security-scan:
     name: Security Scan
+    needs: changes
+    if: needs.changes.outputs.app_code == 'true' || needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -313,18 +407,48 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
 
-  # All checks passed
+  # All checks passed - smart checking based on what ran
   all-checks:
     name: All Checks Passed
-    needs: [docker-build, code-quality, unit-tests, integration-tests, ui-tests, security-scan]
+    needs: [changes, docker-build, code-quality, unit-tests, integration-tests, ui-tests, security-scan]
     runs-on: ubuntu-latest
     if: always()
     steps:
-      - name: Check if all jobs passed
+      - name: Check if all required jobs passed
         run: |
-          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" ]]; then
+          # Check if any jobs that ran have failed
+          failed=false
+          
+          # Only check jobs that actually ran based on changes
+          if [[ "${{ needs.changes.outputs.app_code }}" == "true" ]]; then
+            if [[ "${{ needs.code-quality.result }}" == "failure" ]] || \
+               [[ "${{ needs.security-scan.result }}" == "failure" ]]; then
+              failed=true
+            fi
+          fi
+          
+          if [[ "${{ needs.changes.outputs.app_code }}" == "true" ]] || [[ "${{ needs.changes.outputs.tests }}" == "true" ]]; then
+            if [[ "${{ needs.unit-tests.result }}" == "failure" ]] || \
+               [[ "${{ needs.integration-tests.result }}" == "failure" ]]; then
+              failed=true
+            fi
+          fi
+          
+          if [[ "${{ needs.changes.outputs.docker }}" == "true" ]] || [[ "${{ needs.changes.outputs.app_code }}" == "true" ]] || [[ "${{ needs.changes.outputs.frontend }}" == "true" ]]; then
+            if [[ "${{ needs.docker-build.result }}" == "failure" ]]; then
+              failed=true
+            fi
+          fi
+          
+          if [[ "${{ needs.changes.outputs.frontend }}" == "true" ]] || [[ "${{ needs.changes.outputs.app_code }}" == "true" ]] || [[ "${{ needs.changes.outputs.tests }}" == "true" ]]; then
+            if [[ "${{ needs.ui-tests.result }}" == "failure" ]]; then
+              failed=true
+            fi
+          fi
+          
+          if [[ "$failed" == "true" ]]; then
             echo "One or more checks failed"
             exit 1
           else
-            echo "All checks passed successfully!"
+            echo "All required checks passed successfully!"
           fi

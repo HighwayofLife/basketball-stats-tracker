@@ -22,67 +22,10 @@
         <div class="dashboard-section">
             <h2>Recent Games</h2>
             <div class="card">
-                <table class="data-table games-table desktop-only-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Away Team</th>
-                            <th>Score</th>
-                            <th>Home Team</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for game in recent_games %}
-                        <tr>
-                            <td data-label="Date">{{ game.date }}</td>
-                            <td data-label="Away Team">{{ game.away_team }}</td>
-                            <td data-label="Score" class="score">{{ game.away_score }} - {{ game.home_score }}</td>
-                            <td data-label="Home Team">{{ game.home_team }}</td>
-                            <td data-label="Actions">
-                                <a href="/games/{{ game.id }}" class="btn btn-sm">View</a>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="5">No games found.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-
-                <!-- MOBILE GAME CARDS - New structure, shown on mobile -->
-                <div class="mobile-games-list">
-                    {% for game in recent_games %}
-                    <div class="mobile-game-card">
-                        <div class="game-card-main-content">
-                            <div class="game-card-teams">
-                                <div class="team-entry {% if game.away_score > game.home_score %}winner{% endif %}">
-                                    <span class="team-name">{{ game.away_team }}</span>
-                                    <span class="team-score">{{ game.away_score }}</span>
-                                    {% if game.away_score > game.home_score %}<span class="winner-arrow">◄</span>{% endif %}
-                                </div>
-                                <div class="team-entry {% if game.home_score > game.away_score %}winner{% endif %}">
-                                    <span class="team-name">{{ game.home_team }}</span>
-                                    <span class="team-score">{{ game.home_score }}</span>
-                                    {% if game.home_score > game.away_score %}<span class="winner-arrow">◄</span>{% endif %}
-                                </div>
-                            </div>
-                            <div class="game-card-info-action">
-                                <div class="game-time-status">
-                                    <div class="status">{% if game.home_score == 0 and game.away_score == 0 %}Scheduled{% else %}Final{% endif %}</div>
-                                    <div class="date">{{ game.date.strftime('%b %d') }}</div>
-                                </div>
-                                <a href="/games/{{ game.id }}" class="btn btn-sm btn-view-details">View</a>
-                            </div>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="mobile-game-card">
-                        <p style="text-align: center; margin: 0;">No games found.</p>
-                    </div>
-                    {% endfor %}
-                </div>
+                {% set games = recent_games %}
+                {% set view_type = 'full' %}
+                {% set columns = ['date', 'away_team', 'score', 'home_team', 'actions'] %}
+                {% include 'partials/components/games_list.html' %}
                 <div class="card-footer">
                     <a href="/games" class="btn">View All Games</a>
                 </div>
@@ -91,32 +34,11 @@
     </div>
 
     <div class="sidebar">
-        <div class="card" id="players-of-week-card">
-            <h2>Players of the Week</h2>
-            {% if top_players %}
-            <div class="top-players-container">
-                {% for player in top_players %}
-                <div class="top-player-box">
-                    <div class="player-photo-placeholder">
-                        <svg width="50" height="50" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <circle cx="30" cy="30" r="30" fill="#E5E7EB"/>
-                            <path d="M30 32C34.4183 32 38 28.4183 38 24C38 19.5817 34.4183 16 30 16C25.5817 16 22 19.5817 22 24C22 28.4183 25.5817 32 30 32Z" fill="#9CA3AF"/>
-                            <path d="M30 36C21.1634 36 14 43.1634 14 52V60H46V52C46 43.1634 38.8366 36 30 36Z" fill="#9CA3AF"/>
-                        </svg>
-                    </div>
-                    <div class="player-info">
-                        <h3 class="team-name">{{ player.team_name }}</h3>
-                        <p class="player-name">{{ player.name }}</p>
-                        <p class="game-info">{{ player.game_date }} vs {{ player.opponent }}</p>
-                        <p class="player-stats">{{ player.points }} PTS, {{ player.fg_made }}/{{ player.fg_attempted }} FG ({{ "%.1f"|format(player.fg_percentage) }}%)<br>{{ player.fg3_made }}/{{ player.fg3_attempted }} 3PT ({{ "%.1f"|format(player.fg3_percentage) }}%)</p>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <p class="loading-message">No player data available.</p>
-            {% endif %}
-        </div>
+        {% set title = "Players of the Week" %}
+        {% set players = top_players %}
+        {% set show_game_info = true %}
+        {% set card_id = "players-of-week-card" %}
+        {% include 'partials/components/player_stats_card.html' %}
     </div>
 </div>
 {% endblock %}

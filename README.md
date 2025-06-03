@@ -17,7 +17,7 @@ A comprehensive basketball statistics management system designed for small leagu
 | **Python Version** | 3.11+ |
 | **Code Quality** | Ruff linting + pytest |
 | **License** | MIT |
-| **Version** | 0.4.8 |
+| **Version** | 0.4.9 |
 
 <!-- PROJECT_STATS_END -->
 

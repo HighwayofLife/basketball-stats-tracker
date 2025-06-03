@@ -1,0 +1,32 @@
+{# Stats Card Component #}
+{# Parameters:
+   - card_title: Title for the stats card
+   - card_icon: (optional) Font Awesome icon class
+   - stats: List of stat items [{label, value, unit, highlight}]
+   - card_class: (optional) Additional CSS classes
+#}
+
+<div class="card stats-card {{ card_class|default('') }}">
+    <div class="card-header">
+        <h5 class="mb-0">
+            {% if card_icon %}<i class="{{ card_icon }} me-2"></i>{% endif %}
+            {{ card_title }}
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="stats-grid">
+            {% for stat in stats %}
+            <div class="stat-item {% if stat.highlight %}stat-highlight{% endif %}">
+                <div class="stat-label">{{ stat.label }}</div>
+                <div class="stat-value">
+                    {{ stat.value }}
+                    {% if stat.unit %}<span class="stat-unit">{{ stat.unit }}</span>{% endif %}
+                </div>
+                {% if stat.subtext %}
+                <div class="stat-subtext">{{ stat.subtext }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>

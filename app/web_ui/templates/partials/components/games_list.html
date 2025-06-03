@@ -1,0 +1,236 @@
+{# 
+Unified Games List Component
+Displays a list of games in both desktop table and mobile card formats
+
+Parameters:
+- games: List of game objects
+- show_desktop_table: Boolean to show desktop table (default: true)
+- show_mobile_cards: Boolean to show mobile cards (default: true)
+- columns: List of columns to show ['date', 'away_team', 'home_team', 'opponent', 'score', 'result', 'actions']
+- view_type: 'full' (dashboard/games page), 'team' (team-focused), 'player' (player-focused)
+- container_class: Additional CSS class for the container (optional)
+- show_edit_actions: Boolean to show edit/live entry buttons (default: false)
+- is_authenticated: Boolean for showing authenticated actions
+
+Game object structure (flexible):
+- id/game_id: Game ID
+- date: Game date (string or date object)
+- away_team: Away team name
+- home_team: Home team name  
+- away_score: Away team score
+- home_score: Home team score
+- opponent: Opponent name (for team/player views)
+- team_name: Current team name (for player views)
+- team_score/team_points: Team score (for team/player views)
+- opponent_score/opponent_points: Opponent score (for team/player views)
+- win: Boolean for win/loss (team/player views)
+#}
+
+{% set show_desktop_table = show_desktop_table if show_desktop_table is defined else true %}
+{% set show_mobile_cards = show_mobile_cards if show_mobile_cards is defined else true %}
+{% set view_type = view_type if view_type is defined else 'full' %}
+{% set columns = columns if columns is defined else ['date', 'away_team', 'score', 'home_team', 'actions'] %}
+{% set show_edit_actions = show_edit_actions if show_edit_actions is defined else false %}
+{% set is_authenticated = is_authenticated if is_authenticated is defined else false %}
+
+<div class="games-list-component {{ container_class if container_class is defined else '' }}">
+
+{# Desktop Table View #}
+{% if show_desktop_table %}
+<table class="data-table games-table desktop-only-table">
+    <thead>
+        <tr>
+            {% if 'date' in columns %}
+            <th>Date</th>
+            {% endif %}
+            {% if 'away_team' in columns %}
+            <th>Away Team</th>
+            {% endif %}
+            {% if 'opponent' in columns %}
+            <th>Opponent</th>
+            {% endif %}
+            {% if 'score' in columns %}
+            <th>Score</th>
+            {% endif %}
+            {% if 'result' in columns %}
+            <th class="text-center">Result</th>
+            {% endif %}
+            {% if 'home_team' in columns %}
+            <th>Home Team</th>
+            {% endif %}
+            {% if 'actions' in columns %}
+            <th>Actions</th>
+            {% endif %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for game in games %}
+        <tr>
+            {% if 'date' in columns %}
+            <td data-label="Date">
+                {% if game.date is string %}
+                    {{ game.date }}
+                {% else %}
+                    {{ game.date.strftime('%Y-%m-%d') if game.date else '' }}
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            {% if 'away_team' in columns %}
+            <td data-label="Away Team">{{ game.away_team }}</td>
+            {% endif %}
+            
+            {% if 'opponent' in columns %}
+            <td data-label="Opponent">{{ game.opponent }}</td>
+            {% endif %}
+            
+            {% if 'score' in columns %}
+            <td data-label="Score" class="score">
+                {% if view_type == 'full' %}
+                    {# Dashboard/Games page: away_score - home_score #}
+                    {% if (game.away_score == 0 and game.home_score == 0) or (game.id < 0) %}
+                        Scheduled
+                    {% else %}
+                        {{ game.away_score }} - {{ game.home_score }}
+                    {% endif %}
+                {% elif view_type == 'team' or view_type == 'player' %}
+                    {# Team/Player view: team_score - opponent_score #}
+                    {% set team_score = game.team_score if game.team_score is defined else game.team_points %}
+                    {% set opp_score = game.opponent_score if game.opponent_score is defined else game.opponent_points %}
+                    {% if team_score is defined and opp_score is defined %}
+                        {{ team_score }}-{{ opp_score }}
+                    {% else %}
+                        -
+                    {% endif %}
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            {% if 'result' in columns %}
+            <td data-label="Result" class="text-center">
+                {% if game.win is defined %}
+                <span class="badge bg-{{ 'success' if game.win else 'danger' }}">{{ 'W' if game.win else 'L' }}</span>
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            {% if 'home_team' in columns %}
+            <td data-label="Home Team">{{ game.home_team }}</td>
+            {% endif %}
+            
+            {% if 'actions' in columns %}
+            <td data-label="Actions">
+                {% set game_id = game.id if game.id is defined else game.game_id %}
+                {% set is_scheduled = game_id < 0 %}
+                {% if not is_scheduled %}
+                    <a href="/games/{{ game_id }}" class="btn btn-sm">View</a>
+                    {% if show_edit_actions and is_authenticated %}
+                        {% if game.home_score > 0 or game.away_score > 0 %}
+                            <a href="/scorebook?game_id={{ game_id }}" class="btn btn-sm btn-warning">Edit</a>
+                        {% endif %}
+                        {% if game.home_score == 0 and game.away_score == 0 %}
+                            <a href="/games/{{ game_id }}/live" class="btn btn-sm btn-success">Live Entry</a>
+                        {% endif %}
+                    {% endif %}
+                {% else %}
+                    <span class="text-muted">—</span>
+                {% endif %}
+            </td>
+            {% endif %}
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="{{ columns|length }}">No games found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+{# Mobile Card View #}
+{% if show_mobile_cards %}
+<div class="mobile-games-list">
+    {% for game in games %}
+    <div class="mobile-game-card">
+        <div class="game-card-main-content">
+            <div class="game-card-teams">
+                {% if view_type == 'full' %}
+                    {# Dashboard/Games page layout: away vs home #}
+                    {% set is_scheduled = (game.id < 0) or (game.away_score == 0 and game.home_score == 0) %}
+                    {% set away_won = not is_scheduled and game.away_score > game.home_score %}
+                    {% set home_won = not is_scheduled and game.home_score > game.away_score %}
+                    
+                    <div class="team-entry {{ 'winner' if away_won else '' }}">
+                        <span class="team-name">{{ game.away_team }}</span>
+                        <span class="team-score">{{ '-' if is_scheduled else game.away_score }}</span>
+                        {% if away_won %}<span class="winner-arrow">◄</span>{% endif %}
+                    </div>
+                    <div class="team-entry {{ 'winner' if home_won else '' }}">
+                        <span class="team-name">{{ game.home_team }}</span>
+                        <span class="team-score">{{ '-' if is_scheduled else game.home_score }}</span>
+                        {% if home_won %}<span class="winner-arrow">◄</span>{% endif %}
+                    </div>
+                {% else %}
+                    {# Team/Player view layout: team vs opponent #}
+                    {% set team_score = game.team_score if game.team_score is defined else (game.team_points if game.team_points is defined else 0) %}
+                    {% set opp_score = game.opponent_score if game.opponent_score is defined else (game.opponent_points if game.opponent_points is defined else 0) %}
+                    {% set team_won = game.win if game.win is defined else (team_score > opp_score) %}
+                    {% set opponent_won = not team_won and team_score != opp_score %}
+                    {% set team_name_display = game.team_name if game.team_name is defined else 'Team' %}
+                    
+                    <div class="team-entry {{ 'winner' if team_won else '' }}">
+                        <span class="team-name">{{ team_name_display }}</span>
+                        <span class="team-score">{{ team_score }}</span>
+                        {% if team_won %}<span class="winner-arrow">◄</span>{% endif %}
+                    </div>
+                    <div class="team-entry {{ 'winner' if opponent_won else '' }}">
+                        <span class="team-name">{{ game.opponent }}</span>
+                        <span class="team-score">{{ opp_score }}</span>
+                        {% if opponent_won %}<span class="winner-arrow">◄</span>{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            <div class="game-card-info-action">
+                <div class="game-time-status">
+                    <div class="status">
+                        {% if view_type == 'full' %}
+                            {% if (game.id < 0) or (game.away_score == 0 and game.home_score == 0) %}
+                                Scheduled
+                            {% else %}
+                                Final
+                            {% endif %}
+                        {% else %}
+                            {% set team_score = game.team_score if game.team_score is defined else (game.team_points if game.team_points is defined else 0) %}
+                            {% set opp_score = game.opponent_score if game.opponent_score is defined else (game.opponent_points if game.opponent_points is defined else 0) %}
+                            {% if team_score == 0 and opp_score == 0 %}
+                                Scheduled
+                            {% else %}
+                                Final
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                    <div class="date">
+                        {% if game.date is string %}
+                            {{ game.date }}
+                        {% else %}
+                            {{ game.date.strftime('%b %d') if game.date else '' }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% set game_id = game.id if game.id is defined else game.game_id %}
+                {% set is_scheduled = game_id < 0 %}
+                {% if not is_scheduled %}
+                    <a href="/games/{{ game_id }}" class="btn btn-sm btn-view-details">View</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="mobile-game-card">
+        <p style="text-align: center; margin: 0;">No games found.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+</div>

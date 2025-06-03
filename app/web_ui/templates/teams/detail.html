@@ -418,73 +418,7 @@ function renderTeamData(teamData, statsData) {
         <div class="card mb-4">
             <div class="card-body">
                 <h5 class="card-title">Recent Games</h5>
-                ${recentGames.length > 0 ? `
-                    <table class="data-table desktop-only-table">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Opponent</th>
-                                <th class="text-center">Score</th>
-                                <th class="text-center">Result</th>
-                                <th class="text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${recentGames.map(game => `
-                            <tr>
-                                <td data-label="Date">${new Date(game.date).toLocaleDateString()}</td>
-                                <td data-label="Opponent">${game.opponent}</td>
-                                <td data-label="Score" class="text-center">${game.team_points}-${game.opponent_points}</td>
-                                <td data-label="Result" class="text-center">
-                                    <span class="badge bg-${game.win ? 'success' : 'danger'}">${game.win ? 'W' : 'L'}</span>
-                                </td>
-                                <td data-label="Action" class="text-center">
-                                    <a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a>
-                                </td>
-                            </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                    
-                    <!-- MOBILE RECENT GAMES LIST -->
-                    <div class="mobile-games-list">
-                        ${recentGames.map(game => {
-                            const gameDate = new Date(game.date);
-                            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                            const shortDate = `${monthNames[gameDate.getMonth()]} ${gameDate.getDate()}`;
-                            const teamWon = game.win;
-                            const opponentWon = !game.win;
-                            
-                            return `
-                            <div class="mobile-game-card">
-                                <div class="game-card-main-content">
-                                    <div class="game-card-teams">
-                                        <div class="team-entry ${teamWon ? 'winner' : ''}">
-                                            <span class="team-name">${game.team_name || 'Team'}</span>
-                                            <span class="team-score">${game.team_points}</span>
-                                            ${teamWon ? '<span class="winner-arrow">◄</span>' : ''}
-                                        </div>
-                                        <div class="team-entry ${opponentWon ? 'winner' : ''}">
-                                            <span class="team-name">${game.opponent}</span>
-                                            <span class="team-score">${game.opponent_points}</span>
-                                            ${opponentWon ? '<span class="winner-arrow">◄</span>' : ''}
-                                        </div>
-                                    </div>
-                                    <div class="game-card-info-action">
-                                        <div class="game-time-status">
-                                            <div class="status">Final</div>
-                                            <div class="date">${shortDate}</div>
-                                        </div>
-                                        <a href="/games/${game.game_id}" class="btn btn-sm btn-view-details">View</a>
-                                    </div>
-                                </div>
-                            </div>
-                            `;
-                        }).join('')}
-                    </div>
-                ` : `
-                    <p class="text-muted">No games played yet.</p>
-                `}
+${recentGames.length > 0 ? createTeamGamesHtml(recentGames, team.display_name || team.name) : '<p class="text-muted">No games played yet.</p>'}
             </div>
         </div>
 
@@ -665,6 +599,88 @@ async function confirmDeletePlayer() {
         console.error('Error deleting player:', error);
         alert('Failed to delete player. Please try again.');
     }
+}
+
+function createTeamGamesHtml(games, teamName) {
+    // Create both desktop table and mobile cards using the same logic as the unified component
+    let html = `
+        <!-- Desktop Table -->
+        <table class="data-table games-table desktop-only-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Opponent</th>
+                    <th>Score</th>
+                    <th class="text-center">Result</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    games.forEach(game => {
+        const gameDate = new Date(game.date);
+        const dateStr = gameDate.toLocaleDateString();
+        const isWin = game.win || false;
+        
+        html += `
+                <tr>
+                    <td data-label="Date">${dateStr}</td>
+                    <td data-label="Opponent">${game.opponent}</td>
+                    <td data-label="Score" class="score">${game.team_points}-${game.opponent_points}</td>
+                    <td data-label="Result" class="text-center">
+                        <span class="badge bg-${isWin ? 'success' : 'danger'}">${isWin ? 'W' : 'L'}</span>
+                    </td>
+                    <td data-label="Actions">
+                        <a href="/games/${game.game_id}" class="btn btn-sm">View</a>
+                    </td>
+                </tr>`;
+    });
+
+    html += `
+            </tbody>
+        </table>
+
+        <!-- Mobile Cards -->
+        <div class="mobile-games-list">`;
+
+    games.forEach(game => {
+        const gameDate = new Date(game.date);
+        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const shortDate = `${monthNames[gameDate.getMonth()]} ${gameDate.getDate()}`;
+        const teamWon = game.win || false;
+        const teamScore = game.team_points || 0;
+        const oppScore = game.opponent_points || 0;
+
+        html += `
+            <div class="mobile-game-card">
+                <div class="game-card-main-content">
+                    <div class="game-card-teams">
+                        <div class="team-entry ${teamWon ? 'winner' : ''}">
+                            <span class="team-name">${teamName}</span>
+                            <span class="team-score">${teamScore}</span>
+                            ${teamWon ? '<span class="winner-arrow">◄</span>' : ''}
+                        </div>
+                        <div class="team-entry ${!teamWon && teamScore !== oppScore ? 'winner' : ''}">
+                            <span class="team-name">${game.opponent}</span>
+                            <span class="team-score">${oppScore}</span>
+                            ${!teamWon && teamScore !== oppScore ? '<span class="winner-arrow">◄</span>' : ''}
+                        </div>
+                    </div>
+                    <div class="game-card-info-action">
+                        <div class="game-time-status">
+                            <div class="status">Final</div>
+                            <div class="date">${shortDate}</div>
+                        </div>
+                        <a href="/games/${game.game_id}" class="btn btn-sm btn-view-details">View</a>
+                    </div>
+                </div>
+            </div>`;
+    });
+
+    html += `
+        </div>`;
+
+    return html;
 }
 
 // Close modals when clicking outside

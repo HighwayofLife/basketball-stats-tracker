@@ -1,0 +1,399 @@
+/* Table Components */
+
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.data-table th,
+.data-table td {
+  padding: 6px 4px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.data-table thead th {
+  background-color: var(--secondary-color);
+  color: var(--light-text);
+  font-weight: bold;
+  font-size: 0.8rem;
+  padding: 8px 4px;
+}
+
+.data-table tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.data-table .score {
+  font-weight: bold;
+  text-align: center;
+}
+
+/* Table responsive wrapper */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Mobile table responsive behavior */
+.data-table.desktop-only-table {
+  display: none !important;
+}
+
+/* Mobile card-based table layout */
+.mobile-games-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 15px;
+}
+
+.mobile-game-card {
+  background-color: var(--card-background);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px 15px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.mobile-game-card .game-card-main-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+}
+
+.mobile-game-card .game-card-teams {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mobile-game-card .team-entry {
+  display: flex;
+  align-items: center;
+  position: relative;
+}
+
+.mobile-game-card .team-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #333;
+  flex-grow: 1;
+}
+
+.mobile-game-card .team-score {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  min-width: 25px;
+  text-align: right;
+  margin-left: 8px;
+}
+
+.mobile-game-card .winner-arrow {
+  position: absolute;
+  right: -20px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.mobile-game-card .team-entry.winner .team-score {
+  font-weight: 700;
+}
+
+.mobile-game-card .game-card-info-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: 70px;
+}
+
+.mobile-game-card .game-time-status .status {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #444;
+  display: block;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.mobile-game-card .game-time-status .date {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.mobile-game-card .btn-view-details {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  min-height: 30px;
+  line-height: 1.2;
+}
+
+/* Card-style table transformation for general tables */
+.data-table:not(.desktop-only-table):not(.mobile-table-view) {
+  display: block;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) thead,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tbody,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td,
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+  display: block;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) thead tr {
+  position: absolute;
+  top: -9999px;
+  left: -9999px;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+  border: 1px solid var(--border-color);
+  margin-bottom: 15px;
+  border-radius: 6px;
+  background-color: var(--card-background);
+  padding: 15px;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td {
+  border: none;
+  padding: 8px 0;
+  position: relative;
+  padding-left: 40%;
+  text-align: right;
+  white-space: normal;
+}
+
+.data-table:not(.desktop-only-table):not(.mobile-table-view) td:before {
+  content: attr(data-label) ": ";
+  position: absolute;
+  left: 6px;
+  width: 35%;
+  padding-right: 10px;
+  white-space: nowrap;
+  font-weight: bold;
+  text-align: left;
+  color: var(--secondary-color);
+}
+
+/* Mobile table view - maintain table structure */
+.mobile-table-view.data-table {
+  display: table;
+  width: 100%;
+}
+
+.mobile-table-view.data-table thead,
+.mobile-table-view.data-table tbody,
+.mobile-table-view.data-table tfoot {
+  display: table-row-group;
+}
+
+.mobile-table-view.data-table thead {
+  display: table-header-group;
+}
+
+.mobile-table-view.data-table thead tr {
+  position: static;
+  top: auto;
+  left: auto;
+  display: table-row;
+}
+
+.mobile-table-view.data-table tr {
+  display: table-row;
+  border: none;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+}
+
+.mobile-table-view.data-table th,
+.mobile-table-view.data-table td {
+  display: table-cell;
+  border-bottom: 1px solid var(--border-color);
+  position: static;
+  text-align: left;
+}
+
+.mobile-table-view.data-table td:before {
+  display: none;
+}
+
+.mobile-table-view.data-table .text-center {
+  text-align: center;
+}
+
+/* Hide specific columns on mobile */
+.mobile-table-view.data-table th.col-position,
+.mobile-table-view.data-table th.col-height,
+.mobile-table-view.data-table th.col-weight,
+.mobile-table-view.data-table th.col-year,
+.mobile-table-view.data-table td.col-position,
+.mobile-table-view.data-table td.col-height,
+.mobile-table-view.data-table td.col-weight,
+.mobile-table-view.data-table td.col-year {
+  display: none;
+}
+
+/* Column styling utilities */
+.col-mobile-hide {
+  display: none;
+}
+
+.jersey-col {
+  width: 40px;
+  text-align: center;
+}
+
+.stat-col {
+  text-align: center;
+  min-width: 60px;
+}
+
+.jersey-number {
+  font-weight: 600;
+  color: #666;
+  text-align: center;
+}
+
+.player-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Empty and loading states */
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 15px;
+  font-size: 0.95rem;
+  color: #777;
+}
+
+.error-message {
+  color: var(--error-color);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-state .empty-icon {
+  font-size: 3rem;
+  color: #ccc;
+  margin-bottom: 15px;
+}
+
+.empty-state .empty-title {
+  font-size: 1.2rem;
+  color: var(--secondary-color);
+  margin-bottom: 10px;
+}
+
+.empty-state .empty-text {
+  color: #666;
+  margin-bottom: 20px;
+}
+
+/* Responsive table adjustments */
+@media screen and (min-width: 481px) {
+  .mobile-games-list {
+    display: none !important;
+  }
+  
+  .data-table.desktop-only-table {
+    display: table !important;
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .data-table.desktop-only-table th,
+  .data-table.desktop-only-table td {
+    display: table-cell;
+  }
+  
+  .data-table.desktop-only-table tr {
+    display: table-row;
+  }
+  
+  .data-table.desktop-only-table thead {
+    display: table-header-group;
+  }
+  
+  .data-table.desktop-only-table tbody {
+    display: table-row-group;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) {
+    display: table;
+    overflow-x: auto;
+    font-size: 0.9rem;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tbody,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+    display: table-row-group;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) thead {
+    display: table-header-group;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) tr {
+    display: table-row;
+    border: none;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) th,
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td {
+    display: table-cell;
+    border-bottom: 1px solid var(--border-color);
+    padding: 8px 12px;
+    position: static;
+    text-align: left;
+  }
+
+  .data-table:not(.desktop-only-table):not(.mobile-table-view) td:before {
+    display: none;
+  }
+
+  .col-mobile-hide {
+    display: table-cell;
+  }
+}
+
+@media screen and (min-width: 1025px) {
+  .data-table {
+    font-size: 1rem;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 12px 15px;
+  }
+
+  .player-name {
+    max-width: 250px;
+  }
+}

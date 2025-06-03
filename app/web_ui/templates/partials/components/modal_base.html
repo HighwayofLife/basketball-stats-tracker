@@ -1,0 +1,43 @@
+{# Modal Base Component #}
+{# Usage: {% include 'partials/components/modal_base.html' %} #}
+{# Parameters:
+   - modal_id: Unique ID for the modal
+   - modal_title: Title text for the modal header
+   - modal_size: (optional) 'modal-sm', 'modal-lg', 'modal-xl'
+   - modal_form_id: (optional) ID for the form element
+   - modal_form_action: (optional) Form action URL
+   - save_button_text: (optional) Text for save button (default: "Save")
+   - save_button_onclick: (optional) onClick handler for save button
+#}
+
+<!-- {{ modal_title }} Modal -->
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-labelledby="{{ modal_id }}Label" aria-hidden="true">
+    <div class="modal-dialog {{ modal_size|default('') }}">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="{{ modal_id }}Label">{{ modal_title }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if modal_form_id %}
+                <form id="{{ modal_form_id }}" {% if modal_form_action %}action="{{ modal_form_action }}"{% endif %}>
+                {% endif %}
+                    {% block modal_body %}
+                    {# Modal body content goes here #}
+                    {% endblock %}
+                {% if modal_form_id %}
+                </form>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                {% block modal_footer %}
+                <button type="button" class="btn btn-primary" 
+                        {% if save_button_onclick %}onclick="{{ save_button_onclick }}"{% endif %}>
+                    {{ save_button_text|default('Save') }}
+                </button>
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+</div>

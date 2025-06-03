@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% from 'partials/macros/form_macros.html' import text_field, number_field, select_field, textarea_field, submit_button, cancel_button %}
+
+{% block content %}
+
+<h2>Component Demo Page</h2>
+<p>This page demonstrates the new reusable components.</p>
+
+<!-- Stats Card Component Example -->
+<div class="row">
+    <div class="col-md-6">
+        {% include 'partials/components/stats_card.html' with context %}
+        {% set card_title = "Player Statistics" %}
+        {% set card_icon = "fas fa-user" %}
+        {% set stats = [
+            {"label": "Points", "value": "24.5", "unit": "per game", "highlight": true},
+            {"label": "Rebounds", "value": "8.2", "unit": "per game"},
+            {"label": "Assists", "value": "5.1", "unit": "per game"},
+            {"label": "Field Goal %", "value": "48.3", "unit": "%"}
+        ] %}
+    </div>
+    <div class="col-md-6">
+        {% include 'partials/components/stats_card.html' with context %}
+        {% set card_title = "Team Performance" %}
+        {% set card_icon = "fas fa-users" %}
+        {% set stats = [
+            {"label": "Wins", "value": "12", "highlight": true},
+            {"label": "Losses", "value": "3"},
+            {"label": "Win %", "value": "80.0", "unit": "%"},
+            {"label": "Points", "value": "102.3", "unit": "per game"}
+        ] %}
+    </div>
+</div>
+
+<!-- Data Table Component Example -->
+<div class="card mt-4">
+    <h3>Players Table</h3>
+    {% include 'partials/components/data_table.html' with context %}
+    {% set table_id = "players-table" %}
+    {% set columns = [
+        {"key": "name", "label": "Name", "class": ""},
+        {"key": "team", "label": "Team", "class": ""},
+        {"key": "jersey", "label": "#", "class": "text-center"},
+        {"key": "position", "label": "Position", "class": "col-position", "mobile_hide": true},
+        {"key": "points", "label": "Points", "class": "text-center"},
+        {"key": "actions", "label": "Actions", "class": ""}
+    ] %}
+    {% set loading_text = "Loading players..." %}
+    {% set empty_text = "No players found" %}
+</div>
+
+<!-- Modal Component Example -->
+{% set modal_id = "example-modal" %}
+{% set modal_title = "Add New Player" %}
+{% set modal_form_id = "player-form" %}
+{% set save_button_text = "Save Player" %}
+{% set save_button_onclick = "savePlayer()" %}
+
+{% include 'partials/components/modal_base.html' with context %}
+{% block modal_body %}
+    {{ text_field('player_name', 'Player Name', required=true, placeholder='Enter player name') }}
+    
+    {% call form_row() %}
+        {% call form_col() %}
+            {{ number_field('jersey_number', 'Jersey Number', min=0, max=99, required=true) }}
+        {% endcall %}
+        {% call form_col() %}
+            {{ select_field('position', 'Position', [
+                {'value': 'PG', 'text': 'Point Guard'},
+                {'value': 'SG', 'text': 'Shooting Guard'},
+                {'value': 'SF', 'text': 'Small Forward'},
+                {'value': 'PF', 'text': 'Power Forward'},
+                {'value': 'C', 'text': 'Center'}
+            ]) }}
+        {% endcall %}
+    {% endcall %}
+    
+    {% call form_row() %}
+        {% call form_col() %}
+            {{ text_field('height', 'Height', placeholder='e.g., 6\'2"') }}
+        {% endcall %}
+        {% call form_col() %}
+            {{ number_field('weight', 'Weight (lbs)', min=100, max=400) }}
+        {% endcall %}
+    {% endcall %}
+    
+    {{ textarea_field('notes', 'Notes', placeholder='Optional notes about the player') }}
+{% endblock %}
+
+<!-- Loading State Example -->
+<div class="card mt-4">
+    <h3>Loading State</h3>
+    {% include 'partials/includes/loading_state.html' with context %}
+    {% set loading_text = "Loading game data..." %}
+</div>
+
+<!-- Empty State Example -->
+<div class="card mt-4">
+    <h3>Empty State</h3>
+    {% include 'partials/includes/empty_state.html' with context %}
+    {% set empty_title = "No Games Found" %}
+    {% set empty_text = "You haven't created any games yet. Start by adding your first game!" %}
+    {% set empty_icon = "fas fa-basketball-ball" %}
+    {% set action_url = "/games/create" %}
+    {% set action_text = "Create First Game" %}
+    {% set action_icon = "fas fa-plus" %}
+</div>
+
+<script>
+function showExampleModal() {
+    const modal = new bootstrap.Modal(document.getElementById('example-modal'));
+    modal.show();
+}
+
+function savePlayer() {
+    // Example save logic
+    console.log('Saving player...');
+    const modal = bootstrap.Modal.getInstance(document.getElementById('example-modal'));
+    modal.hide();
+}
+
+// Example of populating the table
+document.addEventListener('DOMContentLoaded', function() {
+    // Simulate loading data
+    setTimeout(() => {
+        populatePlayersTable();
+    }, 1000);
+});
+
+function populatePlayersTable() {
+    const tbody = document.querySelector('#players-table-body');
+    const loadingRow = tbody.querySelector('.loading-row');
+    
+    if (loadingRow) {
+        loadingRow.remove();
+    }
+    
+    const sampleData = [
+        {name: 'John Smith', team: 'Lakers', jersey: '23', position: 'PG', points: '18.5'},
+        {name: 'Mike Johnson', team: 'Warriors', jersey: '11', position: 'SG', points: '22.1'},
+        {name: 'David Wilson', team: 'Bulls', jersey: '7', position: 'SF', points: '15.8'}
+    ];
+    
+    sampleData.forEach(player => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td data-label="Name">${player.name}</td>
+            <td data-label="Team">${player.team}</td>
+            <td data-label="#" class="text-center">${player.jersey}</td>
+            <td data-label="Position" class="col-position">${player.position}</td>
+            <td data-label="Points" class="text-center">${player.points}</td>
+            <td data-label="Actions">
+                <button class="btn btn-sm btn-primary" onclick="editPlayer('${player.name}')">Edit</button>
+                <button class="btn btn-sm btn-danger" onclick="deletePlayer('${player.name}')">Delete</button>
+            </td>
+        `;
+        tbody.appendChild(row);
+    });
+}
+
+function editPlayer(name) {
+    console.log('Editing player:', name);
+    showExampleModal();
+}
+
+function deletePlayer(name) {
+    if (confirm(`Are you sure you want to delete ${name}?`)) {
+        console.log('Deleting player:', name);
+    }
+}
+</script>
+
+{% endblock %}
