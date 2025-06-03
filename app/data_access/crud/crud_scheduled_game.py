@@ -96,6 +96,31 @@ class CRUDScheduledGame:
             .all()
         )
 
+    def find_matching_game_by_ids(
+        self, db: Session, game_date: date, team1_id: int, team2_id: int
+    ) -> ScheduledGame | None:
+        """Find a scheduled game that matches the given date and team IDs (regardless of home/away order)."""
+        return (
+            db.query(ScheduledGame)
+            .options(joinedload(ScheduledGame.home_team), joinedload(ScheduledGame.away_team))
+            .filter(
+                ScheduledGame.scheduled_date == game_date,
+                ScheduledGame.status == ScheduledGameStatus.SCHEDULED,
+                ScheduledGame.is_deleted.is_not(True),
+                or_(
+                    and_(
+                        ScheduledGame.home_team_id == team1_id,
+                        ScheduledGame.away_team_id == team2_id,
+                    ),
+                    and_(
+                        ScheduledGame.home_team_id == team2_id,
+                        ScheduledGame.away_team_id == team1_id,
+                    ),
+                ),
+            )
+            .first()
+        )
+
     def find_matching_game(
         self, db: Session, game_date: date, team1_name: str, team2_name: str
     ) -> ScheduledGame | None:

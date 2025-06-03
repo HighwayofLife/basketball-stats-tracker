@@ -2,6 +2,14 @@
 
 {% block content %}
 <div class="container">
+    <!-- Success/Error Banner -->
+    <div id="banner" class="banner" style="display: none;">
+        <div class="banner-content">
+            <span id="banner-message"></span>
+            <button id="banner-close" class="banner-close" aria-label="Close">×</button>
+        </div>
+    </div>
+    
     <h2>Schedule Game</h2>
     
     <form id="create-game-form">
@@ -128,10 +136,82 @@
     margin-top: 0.25rem;
     display: block;
 }
+
+.banner {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
+    font-size: 0.9rem;
+    border: 1px solid;
+    transition: opacity 0.3s ease;
+}
+
+.banner.success {
+    background-color: #d1edff;
+    border-color: #007bff;
+    color: #004085;
+}
+
+.banner.error {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+    color: #721c24;
+}
+
+.banner-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.banner-close {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 0.5rem;
+    color: inherit;
+}
+
+.banner-close:hover {
+    opacity: 0.7;
+}
 </style>
 
 <script>
+// Banner functions
+function showSuccessBanner(message) {
+    const banner = document.getElementById('banner');
+    const bannerMessage = document.getElementById('banner-message');
+    
+    bannerMessage.textContent = message;
+    banner.className = 'banner success';
+    banner.style.display = 'block';
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        hideBanner();
+    }, 5000);
+}
+
+function showErrorBanner(message) {
+    const banner = document.getElementById('banner');
+    const bannerMessage = document.getElementById('banner-message');
+    
+    bannerMessage.textContent = message;
+    banner.className = 'banner error';
+    banner.style.display = 'block';
+}
+
+function hideBanner() {
+    const banner = document.getElementById('banner');
+    banner.style.display = 'none';
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Setup banner close functionality
+    document.getElementById('banner-close').addEventListener('click', hideBanner);
     // Set today's date as default
     document.getElementById('game-date').valueAsDate = new Date();
     
@@ -200,12 +280,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         const seasonId = parseInt(document.getElementById('season').value);
         
         if (homeTeamId === awayTeamId) {
-            alert('Home and away teams must be different');
+            showErrorBanner('Home and away teams must be different');
             return;
         }
         
         if (!seasonId) {
-            alert('Please select a season for this game');
+            showErrorBanner('Please select a season for this game');
             return;
         }
         
@@ -220,27 +300,35 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
         
         try {
+            const token = localStorage.getItem('access_token');
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            
             const response = await fetch('/v1/games/scheduled', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: headers,
                 credentials: 'include', // Include cookies for authentication
                 body: JSON.stringify(scheduleData)
             });
             
             if (response.ok) {
                 const scheduledGame = await response.json();
-                alert('Game scheduled successfully!');
+                // Store success message in sessionStorage for display on games page
+                sessionStorage.setItem('successMessage', 'Game scheduled successfully!');
                 // Redirect to games page
                 window.location.href = '/games';
             } else {
                 const error = await response.json();
-                alert(`Error scheduling game: ${error.detail}`);
+                showErrorBanner(`Error scheduling game: ${error.detail}`);
             }
         } catch (error) {
             console.error('Error scheduling game:', error);
-            alert('Failed to schedule game');
+            showErrorBanner('Failed to schedule game');
         }
     });
 });

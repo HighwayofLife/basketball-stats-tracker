@@ -41,7 +41,7 @@ router = APIRouter(prefix="/v1/games", tags=["games"])
 @router.get("", response_model=list[GameSummary])
 async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = None):
     """
-    Get a list of games with optional filtering.
+    Get a list of games (both completed and scheduled) with optional filtering.
 
     Args:
         limit: Maximum number of games to return
@@ -50,21 +50,32 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
     """
     try:
         with get_db_session() as session:
-            query = session.query(models.Game)
-
-            # Apply team filter if provided
-            if team_id is not None:
-                query = query.filter(
-                    (models.Game.playing_team_id == team_id) | (models.Game.opponent_team_id == team_id)
-                )
-
-            # Apply pagination and ordering
-            games = query.order_by(models.Game.date.desc()).offset(offset).limit(limit).all()
-
             from app.services.score_calculation_service import ScoreCalculationService
 
+            # Get completed games
+            games_query = session.query(models.Game)
+            if team_id is not None:
+                games_query = games_query.filter(
+                    (models.Game.playing_team_id == team_id) | (models.Game.opponent_team_id == team_id)
+                )
+            completed_games = games_query.all()
+
+            # Get scheduled games
+            scheduled_query = session.query(models.ScheduledGame).filter(
+                models.ScheduledGame.status == models.ScheduledGameStatus.SCHEDULED,
+                models.ScheduledGame.is_deleted.is_not(True),
+            )
+            if team_id is not None:
+                scheduled_query = scheduled_query.filter(
+                    (models.ScheduledGame.home_team_id == team_id) | (models.ScheduledGame.away_team_id == team_id)
+                )
+            scheduled_games = scheduled_query.all()
+
+            # Convert to GameSummary objects
             result = []
-            for game in games:
+
+            # Add completed games
+            for game in completed_games:
                 # Get all player stats for this game
                 player_stats = (
                     session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
@@ -88,7 +99,25 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                     )
                 )
 
-            return result
+            # Add scheduled games with negative IDs to distinguish them
+            for scheduled_game in scheduled_games:
+                result.append(
+                    GameSummary(
+                        id=-scheduled_game.id,  # Negative ID to distinguish from completed games
+                        date=scheduled_game.scheduled_date.isoformat(),
+                        home_team=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
+                        home_team_id=scheduled_game.home_team_id,
+                        away_team=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
+                        away_team_id=scheduled_game.away_team_id,
+                        home_score=0,
+                        away_score=0,
+                    )
+                )
+
+            # Sort by date (newest first) and apply pagination
+            result.sort(key=lambda x: x.date, reverse=True)
+
+            return result[offset : offset + limit]
     except Exception as e:
         logger.error(f"Error retrieving games: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve games") from e
