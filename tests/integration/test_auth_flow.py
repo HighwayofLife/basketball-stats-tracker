@@ -39,9 +39,11 @@ def test_client(test_db_file_engine, monkeypatch):
     # Monkey-patch the get_db_session function in all the modules that import it
     import app.data_access.db_session as db_session_module
     import app.web_ui.routers.games as games_module
+    import app.web_ui.routers.admin as admin_module
 
     monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
     monkeypatch.setattr(games_module, "get_db_session", test_get_db_session)
+    monkeypatch.setattr(admin_module, "get_db_session", test_get_db_session)
 
     # Also override the dependency for endpoints that use proper DI
     def override_get_db():
@@ -121,16 +123,19 @@ def sample_season(test_db_file_engine):
     from sqlalchemy.orm import Session
 
     with Session(bind=test_db_file_engine) as session:
-        season = Season(
-            id=1,
-            name="Spring 2025",
-            code="2025-spring",
-            start_date=date(2025, 5, 1),
-            end_date=date(2025, 7, 31),
-            is_active=True,
-        )
-        session.add(season)
-        session.commit()
+        # Check if season already exists
+        existing_season = session.query(Season).filter(Season.name == "Spring 2025").first()
+        if not existing_season:
+            season = Season(
+                id=1,
+                name="Spring 2025",
+                code="2025-spring",
+                start_date=date(2025, 5, 1),
+                end_date=date(2025, 7, 31),
+                is_active=True,
+            )
+            session.add(season)
+            session.commit()
 
 
 class TestAuthenticationFlow:
