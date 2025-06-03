@@ -1,7 +1,24 @@
 v0.4.8
 ------
+### Features
+* Add game editing functionality - users can now edit games after they've been entered
+* Add Edit button to games list (visible only to authenticated users)
+* Implement shot notation conversion service to convert stored stats back to scorebook format
+* Add GET /v1/games/{game_id}/scorebook-format API endpoint for retrieving game data in editable format
+* Enhanced scorebook save endpoint to support both creating new games and updating existing ones
+* Pre-populate scorebook form with existing game data when editing
+
 ### UI Improvements
-* Added 2 additional players to the "top players" section on the game detail page
+* Added 2 additional players to the "Game Leaders" section on the game detail page (now shows top 2 players from each team)
+* Implemented responsive design: desktop displays vertically stacked, mobile displays in 2x2 grid layout
+
+### API Enhancements
+* Added `top_players` field to TeamStats schema for enhanced Game Leaders functionality
+* Enhanced scorebook endpoint with update mode detection via game_id parameter
+
+### Security
+* Proper authentication and authorization for game editing (admin or team member access only)
+* Access control checks prevent unauthorized game modifications
 
 v0.4.7
 ------

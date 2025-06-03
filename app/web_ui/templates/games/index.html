@@ -215,6 +215,11 @@ function hideBanner() {
                                 ${isScheduled ? 
                                   '<span class="text-muted">—</span>' :
                                   `<a href="/games/${game.id}" class="btn btn-sm">View</a>
+                                   {% if is_authenticated %}
+                                   ${game.home_score > 0 || game.away_score > 0 ? 
+                                     `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` : 
+                                     ''}
+                                   {% endif %}
                                    ${game.home_score === 0 && game.away_score === 0 ? 
                                      `<a href="/games/${game.id}/live" class="btn btn-sm btn-success">Live Entry</a>` : 
                                      ''}`
@@ -253,7 +258,14 @@ function hideBanner() {
                                         <div class="status">${isScheduledGame ? 'Scheduled' : 'Final'}</div>
                                         <div class="date">${shortDate}</div>
                                     </div>
-                                    ${isScheduledGame ? '' : `<a href="/games/${game.id}" class="btn btn-sm btn-view-details">View</a>`}
+                                    ${isScheduledGame ? '' : `
+                                        <a href="/games/${game.id}" class="btn btn-sm btn-view-details">View</a>
+                                        {% if is_authenticated %}
+                                        ${game.home_score > 0 || game.away_score > 0 ? 
+                                          `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` : 
+                                          ''}
+                                        {% endif %}
+                                    `}
                                 </div>
                             </div>
                         `;
