@@ -20,6 +20,9 @@ v0.4.8
 * Proper authentication and authorization for game editing (admin or team member access only)
 * Access control checks prevent unauthorized game modifications
 
+### Bug Fixes
+* Fixed UnboundLocalError in scorebook game creation when `scheduled_game_info` was not initialized in update path
+
 ### Testing
 * Comprehensive unit test coverage for ShotNotationService and game scorebook API endpoints
 * Fixed database session management issues in API endpoint tests
