@@ -202,6 +202,66 @@
     gap: 0.5rem;
 }
 
+/* Override card transformation for tables on mobile - keep as table format */
+@media screen and (max-width: 480px) and (orientation: portrait) {
+    .mobile-table-view.data-table {
+        display: table;
+    }
+    
+    .mobile-table-view.data-table thead,
+    .mobile-table-view.data-table tbody,
+    .mobile-table-view.data-table tfoot {
+        display: table-row-group;
+    }
+    
+    .mobile-table-view.data-table thead {
+        display: table-header-group;
+    }
+    
+    .mobile-table-view.data-table thead tr {
+        position: static;
+        top: auto;
+        left: auto;
+        display: table-row;
+    }
+    
+    .mobile-table-view.data-table tr {
+        display: table-row;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .mobile-table-view.data-table th,
+    .mobile-table-view.data-table td {
+        display: table-cell;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+        position: static;
+        text-align: left;
+    }
+    
+    .mobile-table-view.data-table td:before {
+        display: none;
+    }
+    
+    .mobile-table-view.data-table .text-center {
+        text-align: center;
+    }
+    
+    /* Hide Height, Weight, Year columns on mobile for player roster table only */
+    .mobile-table-view.data-table th:nth-child(4),
+    .mobile-table-view.data-table th:nth-child(5),
+    .mobile-table-view.data-table th:nth-child(6),
+    .mobile-table-view.data-table td:nth-child(4),
+    .mobile-table-view.data-table td:nth-child(5),
+    .mobile-table-view.data-table td:nth-child(6) {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -418,45 +478,68 @@ function renderTeamData(teamData, statsData) {
             <div class="card-body">
                 <h5 class="card-title">Recent Games</h5>
                 ${recentGames.length > 0 ? `
-                    <div class="table-responsive">
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Opponent</th>
-                                    <th class="text-center">Score</th>
-                                    <th class="text-center">Result</th>
-                                    <th class="text-center">FT</th>
-                                    <th class="text-center">FT%</th>
-                                    <th class="text-center">2PT</th>
-                                    <th class="text-center">2PT%</th>
-                                    <th class="text-center">3PT</th>
-                                    <th class="text-center">3PT%</th>
-                                    <th class="text-center">Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${recentGames.map(game => `
-                                <tr>
-                                    <td>${new Date(game.date).toLocaleDateString()}</td>
-                                    <td>${game.opponent}</td>
-                                    <td class="text-center">${game.team_points}-${game.opponent_points}</td>
-                                    <td class="text-center">
-                                        <span class="badge bg-${game.win ? 'success' : 'danger'}">${game.win ? 'W' : 'L'}</span>
-                                    </td>
-                                    <td class="text-center">${game.ft}</td>
-                                    <td class="text-center">${game.ft_percentage}%</td>
-                                    <td class="text-center">${game.fg2}</td>
-                                    <td class="text-center">${game.fg2_percentage}%</td>
-                                    <td class="text-center">${game.fg3}</td>
-                                    <td class="text-center">${game.fg3_percentage}%</td>
-                                    <td class="text-center">
-                                        <a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a>
-                                    </td>
-                                </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
+                    <table class="data-table desktop-only-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Opponent</th>
+                                <th class="text-center">Score</th>
+                                <th class="text-center">Result</th>
+                                <th class="text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${recentGames.map(game => `
+                            <tr>
+                                <td data-label="Date">${new Date(game.date).toLocaleDateString()}</td>
+                                <td data-label="Opponent">${game.opponent}</td>
+                                <td data-label="Score" class="text-center">${game.team_points}-${game.opponent_points}</td>
+                                <td data-label="Result" class="text-center">
+                                    <span class="badge bg-${game.win ? 'success' : 'danger'}">${game.win ? 'W' : 'L'}</span>
+                                </td>
+                                <td data-label="Action" class="text-center">
+                                    <a href="/games/${game.game_id}" class="btn btn-sm btn-primary">View</a>
+                                </td>
+                            </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                    
+                    <!-- MOBILE RECENT GAMES LIST -->
+                    <div class="mobile-games-list">
+                        ${recentGames.map(game => {
+                            const gameDate = new Date(game.date);
+                            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                            const shortDate = `${monthNames[gameDate.getMonth()]} ${gameDate.getDate()}`;
+                            const teamWon = game.win;
+                            const opponentWon = !game.win;
+                            
+                            return `
+                            <div class="mobile-game-card">
+                                <div class="game-card-main-content">
+                                    <div class="game-card-teams">
+                                        <div class="team-entry ${teamWon ? 'winner' : ''}">
+                                            <span class="team-name">${game.team_name || 'Team'}</span>
+                                            <span class="team-score">${game.team_points}</span>
+                                            ${teamWon ? '<span class="winner-arrow">◄</span>' : ''}
+                                        </div>
+                                        <div class="team-entry ${opponentWon ? 'winner' : ''}">
+                                            <span class="team-name">${game.opponent}</span>
+                                            <span class="team-score">${game.opponent_points}</span>
+                                            ${opponentWon ? '<span class="winner-arrow">◄</span>' : ''}
+                                        </div>
+                                    </div>
+                                    <div class="game-card-info-action">
+                                        <div class="game-time-status">
+                                            <div class="status">Final</div>
+                                            <div class="date">${shortDate}</div>
+                                        </div>
+                                        <a href="/games/${game.game_id}" class="btn btn-sm btn-view-details">View</a>
+                                    </div>
+                                </div>
+                            </div>
+                            `;
+                        }).join('')}
                     </div>
                 ` : `
                     <p class="text-muted">No games played yet.</p>
@@ -470,7 +553,7 @@ function renderTeamData(teamData, statsData) {
                 <h5 class="card-title">Team Roster</h5>
                 ${team.players.length > 0 ? `
                     <div class="table-responsive">
-                        <table class="data-table">
+                        <table class="data-table mobile-table-view">
                             <thead>
                                 <tr>
                                     <th>#</th>
@@ -485,13 +568,13 @@ function renderTeamData(teamData, statsData) {
                             <tbody>
                                 ${team.players.map(player => `
                                 <tr>
-                                    <td><strong>#${player.jersey_number}</strong></td>
-                                    <td><a href="/players/${player.id}" class="text-decoration-none">${player.name}</a></td>
-                                    <td>${player.position || '-'}</td>
-                                    <td>${player.height ? formatHeight(player.height) : '-'}</td>
-                                    <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
-                                    <td>${player.year || '-'}</td>
-                                    <td>
+                                    <td data-label="#"><strong>#${player.jersey_number}</strong></td>
+                                    <td data-label="Name"><a href="/players/${player.id}" class="text-decoration-none">${player.name}</a></td>
+                                    <td data-label="Position">${player.position || '-'}</td>
+                                    <td data-label="Height">${player.height ? formatHeight(player.height) : '-'}</td>
+                                    <td data-label="Weight">${player.weight ? player.weight + ' lbs' : '-'}</td>
+                                    <td data-label="Year">${player.year || '-'}</td>
+                                    <td data-label="Actions">
                                         <div class="action-buttons">
                                             <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
                                             <button class="btn btn-sm btn-danger" onclick="showDeletePlayerModal(${player.id}, '${player.name}')">Delete</button>

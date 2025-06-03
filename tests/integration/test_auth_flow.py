@@ -38,8 +38,8 @@ def test_client(test_db_file_engine, monkeypatch):
 
     # Monkey-patch the get_db_session function in all the modules that import it
     import app.data_access.db_session as db_session_module
-    import app.web_ui.routers.games as games_module
     import app.web_ui.routers.admin as admin_module
+    import app.web_ui.routers.games as games_module
 
     monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
     monkeypatch.setattr(games_module, "get_db_session", test_get_db_session)
