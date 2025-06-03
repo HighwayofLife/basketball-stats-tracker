@@ -1,3 +1,9 @@
+v0.4.7
+------
+
+### UI improvements
+* Improve mobile device view of team detail and player list pages
+
 v0.4.5
 ------
 
@@ -12,7 +18,7 @@ v0.4.5
 * Fix failing unit test for ScheduleService.test_create_scheduled_game - corrected mocked method name from find_matching_game to find_matching_game_by_ids
 * Confirmed all integration tests pass (64/78 passed, 14 skipped) - no outstanding test failures
 
-### UI Improvements  
+### UI Improvements
 * Replace browser alert dialogs with HTML banners for game scheduling success/error messages
 * Add auto-dismissing success banners that redirect to games page after scheduling
 * Improve user experience with inline error messages using styled HTML banners
@@ -29,7 +35,7 @@ v0.4.5
 * Database migration for scheduled_games table with proper indexing
 * ScheduleService for business logic and intelligent game matching
 * Update "Schedule Game" functionality to use existing create game page instead of modal
-* Simplify UI by removing redundant "Create New Game" button and modal interface  
+* Simplify UI by removing redundant "Create New Game" button and modal interface
 * Create game page now creates scheduled games instead of regular games with 0-0 scores
 * Authentication-protected UI elements that only show for logged-in users
 
