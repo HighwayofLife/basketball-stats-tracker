@@ -18,8 +18,9 @@ from app.web_ui.api import app
 
 
 @pytest.fixture
-def test_client(test_db_file_session):
+def test_client(test_db_file_session, test_db_file_url, test_db_file_engine):
     """Create test client with database override."""
+    from app.data_access.database_manager import db_manager
     from app.dependencies import get_db
 
     # Override the database dependency
@@ -28,10 +29,17 @@ def test_client(test_db_file_session):
 
     app.dependency_overrides[get_db] = override_get_db
 
+    # Also configure db_manager to use the test database engine
+    # This ensures that get_db_session() uses the same database
+    original_engine = db_manager._engine
+    db_manager._engine = test_db_file_engine
+
     try:
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
+        # Restore original engine
+        db_manager._engine = original_engine
 
 
 @pytest.fixture
