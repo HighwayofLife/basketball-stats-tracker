@@ -33,7 +33,7 @@
 
 <!-- Players Table -->
 <div class="card">
-    <table class="data-table">
+    <table class="data-table mobile-table-view">
         <thead>
             <tr>
                 <th>Name</th>
@@ -312,6 +312,66 @@
     text-transform: uppercase;
 }
 
+/* Override card transformation for tables on mobile - keep as table format */
+@media screen and (max-width: 480px) and (orientation: portrait) {
+    .mobile-table-view.data-table {
+        display: table;
+    }
+    
+    .mobile-table-view.data-table thead,
+    .mobile-table-view.data-table tbody,
+    .mobile-table-view.data-table tfoot {
+        display: table-row-group;
+    }
+    
+    .mobile-table-view.data-table thead {
+        display: table-header-group;
+    }
+    
+    .mobile-table-view.data-table thead tr {
+        position: static;
+        top: auto;
+        left: auto;
+        display: table-row;
+    }
+    
+    .mobile-table-view.data-table tr {
+        display: table-row;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .mobile-table-view.data-table th,
+    .mobile-table-view.data-table td {
+        display: table-cell;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+        position: static;
+        text-align: left;
+    }
+    
+    .mobile-table-view.data-table td:before {
+        display: none;
+    }
+    
+    .mobile-table-view.data-table .text-center {
+        text-align: center;
+    }
+    
+    /* Hide Height, Weight, Year columns on mobile for player tables */
+    .mobile-table-view.data-table th:nth-child(5),
+    .mobile-table-view.data-table th:nth-child(6),
+    .mobile-table-view.data-table th:nth-child(7),
+    .mobile-table-view.data-table td:nth-child(5),
+    .mobile-table-view.data-table td:nth-child(6),
+    .mobile-table-view.data-table td:nth-child(7) {
+        display: none;
+    }
+}
+
 @media (max-width: 768px) {
     .form-row {
         grid-template-columns: 1fr;
@@ -401,20 +461,20 @@ async function loadPlayers() {
             players.forEach(player => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><strong>${player.name}</strong></td>
-                    <td>${player.team_name}</td>
-                    <td><strong>#${player.jersey_number}</strong></td>
-                    <td>${player.position || '-'}</td>
-                    <td>${player.height ? formatHeight(player.height) : '-'}</td>
-                    <td>${player.weight ? player.weight + ' lbs' : '-'}</td>
-                    <td>${player.year || '-'}</td>
-                    <td>
+                    <td data-label="Name"><strong>${player.name}</strong></td>
+                    <td data-label="Team">${player.team_name}</td>
+                    <td data-label="#"><strong>#${player.jersey_number}</strong></td>
+                    <td data-label="Position">${player.position || '-'}</td>
+                    <td data-label="Height">${player.height ? formatHeight(player.height) : '-'}</td>
+                    <td data-label="Weight">${player.weight ? player.weight + ' lbs' : '-'}</td>
+                    <td data-label="Year">${player.year || '-'}</td>
+                    <td data-label="Type">
                         ${player.is_substitute ? '<span class="substitute-badge">Substitute</span>' : 'Regular'}
                     </td>
-                    <td class="${player.is_active ? 'status-active' : 'status-inactive'}">
+                    <td data-label="Status" class="${player.is_active ? 'status-active' : 'status-inactive'}">
                         ${player.is_active ? 'Active' : 'Inactive'}
                     </td>
-                    <td>
+                    <td data-label="Actions">
                         <div class="action-buttons">
                             <a href="/players/${player.id}" class="btn btn-sm btn-primary">View</a>
                             <button class="btn btn-sm btn-secondary" onclick="editPlayer(${player.id})">Edit</button>
