@@ -26,6 +26,7 @@ from app.data_access.models import (  # noqa: F401
     PlayerGameStats,
     PlayerQuarterStats,
     PlayerSeasonStats,
+    ScheduledGame,
     Season,
     Team,
     TeamSeasonStats,

@@ -3,11 +3,13 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.dependencies import get_db
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
 from app.services.schedule_service import schedule_service
@@ -974,8 +976,10 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                 from app.auth.models import UserRole
 
                 if current_user.role != UserRole.ADMIN:
-                    user_team_ids = [team.id for team in current_user.teams]
-                    if game.playing_team_id not in user_team_ids and game.opponent_team_id not in user_team_ids:
+                    user_team_id = current_user.team_id if current_user.team_id else None
+                    if user_team_id is None or (
+                        game.playing_team_id != user_team_id and game.opponent_team_id != user_team_id
+                    ):
                         raise HTTPException(status_code=403, detail="Access denied")
 
                 # Delete existing stats (they will be recreated)
@@ -1140,52 +1144,51 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
 
 
 @router.get("/{game_id}/scorebook-format")
-async def get_game_scorebook_format(game_id: int, current_user: User = Depends(get_current_user)):
+async def get_game_scorebook_format(
+    game_id: int, current_user: User = Depends(get_current_user), session: Session = Depends(get_db)
+):
     """Get game data in scorebook format for editing."""
     try:
-        with get_db_session() as session:
-            from app.services.shot_notation_service import ShotNotationService
+        from app.services.shot_notation_service import ShotNotationService
 
-            # Get the game
-            game = (
-                session.query(models.Game).filter(models.Game.id == game_id, models.Game.deleted_at.is_(None)).first()
+        # Get the game
+        game = session.query(models.Game).filter(models.Game.id == game_id, models.Game.deleted_at.is_(None)).first()
+
+        if not game:
+            raise HTTPException(status_code=404, detail="Game not found")
+
+        # Check user has access to edit this game
+        from app.auth.models import UserRole
+
+        if current_user.role != UserRole.ADMIN:
+            user_team_id = current_user.team_id if current_user.team_id else None
+            if user_team_id is None or (game.playing_team_id != user_team_id and game.opponent_team_id != user_team_id):
+                raise HTTPException(status_code=403, detail="Access denied")
+
+        # Get all player game stats
+        player_game_stats = (
+            session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game_id).all()
+        )
+
+        # Get all player quarter stats organized by player_id
+        player_quarter_stats_dict = {}
+        for pgs in player_game_stats:
+            quarter_stats = (
+                session.query(models.PlayerQuarterStats)
+                .filter(models.PlayerQuarterStats.player_game_stat_id == pgs.id)
+                .order_by(models.PlayerQuarterStats.quarter_number)
+                .all()
             )
 
-            if not game:
-                raise HTTPException(status_code=404, detail="Game not found")
+            if quarter_stats:
+                player_quarter_stats_dict[pgs.player_id] = quarter_stats
 
-            # Check user has access to edit this game
-            from app.auth.models import UserRole
+        # Convert to scorebook format
+        scorebook_data = ShotNotationService.game_to_scorebook_format(
+            game, player_game_stats, player_quarter_stats_dict
+        )
 
-            if current_user.role != UserRole.ADMIN:
-                user_team_ids = [team.id for team in current_user.teams]
-                if game.playing_team_id not in user_team_ids and game.opponent_team_id not in user_team_ids:
-                    raise HTTPException(status_code=403, detail="Access denied")
-
-            # Get all player game stats
-            player_game_stats = (
-                session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game_id).all()
-            )
-
-            # Get all player quarter stats organized by player_id
-            player_quarter_stats_dict = {}
-            for pgs in player_game_stats:
-                quarter_stats = (
-                    session.query(models.PlayerQuarterStats)
-                    .filter(models.PlayerQuarterStats.player_game_stat_id == pgs.id)
-                    .order_by(models.PlayerQuarterStats.quarter_number)
-                    .all()
-                )
-
-                if quarter_stats:
-                    player_quarter_stats_dict[pgs.player_id] = quarter_stats
-
-            # Convert to scorebook format
-            scorebook_data = ShotNotationService.game_to_scorebook_format(
-                game, player_game_stats, player_quarter_stats_dict
-            )
-
-            return scorebook_data
+        return scorebook_data
 
     except HTTPException:
         raise

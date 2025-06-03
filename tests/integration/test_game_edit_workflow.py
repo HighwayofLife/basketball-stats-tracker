@@ -18,9 +18,20 @@ from app.web_ui.api import app
 
 
 @pytest.fixture
-def test_client():
-    """Create test client."""
-    return TestClient(app)
+def test_client(test_db_file_session):
+    """Create test client with database override."""
+    from app.dependencies import get_db
+
+    # Override the database dependency
+    def override_get_db():
+        yield test_db_file_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    try:
+        yield TestClient(app)
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture
@@ -260,10 +271,10 @@ class TestGameEditWorkflow:
         assert "updated" in result["message"].lower()
 
         # Verify the game was updated
-        updated_game = test_db.query(Game).filter_by(id=test_game.id).first()
-        assert updated_game.date == date(2025, 1, 20)
-        assert updated_game.location == "Updated Court"
-        assert updated_game.notes == "Updated notes"
+        test_db.refresh(test_game)  # Refresh the object to get latest data
+        assert test_game.date == date(2025, 1, 20)
+        assert test_game.location == "Updated Court"
+        assert test_game.notes == "Updated notes"
 
         # Verify old stats were replaced
         all_stats = test_db.query(PlayerGameStats).filter_by(game_id=test_game.id).all()
@@ -289,9 +300,10 @@ class TestGameEditWorkflow:
         test_db.flush()
 
         # Create a user associated with team1
-        user = User(username="team1_user", email="team1@test.com", role=UserRole.USER, provider="local")
+        user = User(
+            username="team1_user", email="team1@test.com", role=UserRole.USER, provider="local", team_id=team1.id
+        )
         user.set_password("password123")
-        user.teams.append(team1)
         test_db.add(user)
         test_db.flush()
 
@@ -304,13 +316,15 @@ class TestGameEditWorkflow:
         # Login as team1_user
         login_response = test_client.post("/auth/token", data={"username": "team1_user", "password": "password123"})
         assert login_response.status_code == 200
+        token = login_response.json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
 
         # Should be able to access game1 (team1 is involved)
-        response = test_client.get(f"/v1/games/{game1.id}/scorebook-format")
+        response = test_client.get(f"/v1/games/{game1.id}/scorebook-format", headers=headers)
         assert response.status_code == 200
 
         # Should NOT be able to access game2 (team1 not involved)
-        response = test_client.get(f"/v1/games/{game2.id}/scorebook-format")
+        response = test_client.get(f"/v1/games/{game2.id}/scorebook-format", headers=headers)
         assert response.status_code == 403
         assert "Access denied" in response.json()["detail"]
 

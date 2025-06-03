@@ -20,6 +20,11 @@ v0.4.8
 * Proper authentication and authorization for game editing (admin or team member access only)
 * Access control checks prevent unauthorized game modifications
 
+### Testing
+* Comprehensive unit test coverage for ShotNotationService and game scorebook API endpoints
+* Fixed database session management issues in API endpoint tests
+* All unit tests passing (571 tests)
+
 v0.4.7
 ------
 

@@ -6,39 +6,58 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.auth.models import User, UserRole
-from app.data_access.models import Game, Player, PlayerGameStats, PlayerQuarterStats, Team
+from app.data_access.models import Base, Game, Player, PlayerGameStats, PlayerQuarterStats, Team
 from app.web_ui.api import app
 
 
 class TestScoreboardFormatEndpoint:
     """Test the scorebook format endpoint."""
 
-    @pytest.fixture
-    def client(self, db_session, db_engine, monkeypatch):
-        """Create a test client with proper mocks."""
-        from contextlib import contextmanager
+    @pytest.fixture(scope="class")
+    def test_db_file(self, tmp_path_factory):
+        """Create a temporary database file for testing."""
+        # Create a temporary file for the database
+        db_file = tmp_path_factory.mktemp("data") / "test.db"
+        return str(db_file)
 
-        from sqlalchemy.orm import Session
+    @pytest.fixture
+    def test_db_engine(self, test_db_file):
+        """Create a database engine with a file-based database for sharing between sessions."""
+        from sqlalchemy import create_engine
+
+        engine = create_engine(f"sqlite:///{test_db_file}")
+        Base.metadata.create_all(engine)
+        yield engine
+        Base.metadata.drop_all(engine)
+
+    @pytest.fixture
+    def db_session(self, test_db_engine):
+        """Override the db_session fixture to use our test engine."""
+        from sqlalchemy.orm import sessionmaker
+
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_db_engine)
+        session = SessionLocal()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    @pytest.fixture
+    def client(self, db_session, test_db_engine):
+        """Create a test client with proper database dependency override."""
+        from sqlalchemy.orm import sessionmaker
 
         from app.auth.dependencies import get_current_user
         from app.dependencies import get_db
 
-        # Create database session override
-        @contextmanager
-        def test_get_db_session():
-            session = Session(bind=db_engine)
-            try:
-                yield session
-            finally:
-                session.close()
+        # Commit data so it's visible to other sessions
+        db_session.commit()
 
-        # Mock database session
-        import app.data_access.db_session as db_session_module
-
-        monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
+        # Create sessionmaker for the dependency override
+        SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=test_db_engine)
 
         def override_get_db():
-            session = Session(bind=db_engine)
+            session = SessionLocal()
             try:
                 yield session
             finally:
@@ -62,6 +81,8 @@ class TestScoreboardFormatEndpoint:
         app.dependency_overrides[get_current_user] = mock_current_user
 
         yield TestClient(app)
+
+        # Clean up after each test
         app.dependency_overrides.clear()
 
     def test_get_game_scorebook_format_success(self, client, db_session):
@@ -118,6 +139,7 @@ class TestScoreboardFormatEndpoint:
         assert data["game_info"]["id"] == 1
         # Verify date format is correct (YYYY-MM-DD)
         import re
+
         assert re.match(r"^\d{4}-\d{2}-\d{2}$", data["game_info"]["date"])
         # Verify team IDs are present and different
         assert isinstance(data["game_info"]["home_team_id"], int)
