@@ -1,0 +1,111 @@
+/* Box Score Table Specific Styles */
+
+.games-table .jersey-col {
+    width: 40px;
+}
+
+.games-table .stat-col {
+    text-align: center;
+}
+
+.games-table .jersey-number {
+    font-weight: 600;
+    color: #666;
+    text-align: center;
+}
+
+.games-table .player-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+}
+
+/* Stats columns center aligned */
+.games-table td:nth-child(3),
+.games-table td:nth-child(4),
+.games-table td:nth-child(5),
+.games-table td:nth-child(6) {
+    text-align: center;
+}
+
+/* Shooting percentage styling for desktop */
+.shooting-percentage {
+    font-size: 0.85em;
+    color: #666;
+    margin-left: 0.3rem;
+}
+
+/* Mobile box score styles */
+@media (max-width: 768px) {
+    .box-score-table {
+        font-size: 0.85rem;
+    }
+    
+    .box-score-table .player-name {
+        max-width: 150px;
+    }
+    
+    /* Hide percentages on mobile */
+    .shooting-percentage {
+        display: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .games-table .player-name {
+        max-width: 120px;
+    }
+    
+    /* Override card transformation for box score tables */
+    .mobile-table-view.data-table {
+        display: table;
+    }
+    
+    .mobile-table-view.data-table thead,
+    .mobile-table-view.data-table tbody,
+    .mobile-table-view.data-table tfoot {
+        display: table-row-group;
+    }
+    
+    .mobile-table-view.data-table thead {
+        display: table-header-group;
+    }
+    
+    .mobile-table-view.data-table thead tr {
+        position: static;
+        top: auto;
+        left: auto;
+        display: table-row;
+    }
+    
+    .mobile-table-view.data-table tr {
+        display: table-row;
+        border: none;
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        border-radius: 0;
+    }
+    
+    .mobile-table-view.data-table th,
+    .mobile-table-view.data-table td {
+        display: table-cell;
+        border-bottom: 1px solid var(--border-color);
+        padding: 8px;
+        position: static;
+        text-align: left;
+    }
+    
+    .mobile-table-view.data-table td:before {
+        display: none;
+    }
+    
+    .mobile-table-view.data-table .stat-col,
+    .mobile-table-view.data-table td:nth-child(3),
+    .mobile-table-view.data-table td:nth-child(4),
+    .mobile-table-view.data-table td:nth-child(5),
+    .mobile-table-view.data-table td:nth-child(6) {
+        text-align: center;
+    }
+}

@@ -32,6 +32,8 @@
 /* Component imports */
 @import url('components/banners.css');
 @import url('components/team-logos.css');
+@import url('components/game-detail.css');
+@import url('components/box-score.css');
 
 /* Base styles - Mobile first */
 * {
