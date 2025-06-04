@@ -138,11 +138,13 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
                                 if game.playing_team
                                 else "Unknown"
                             ),
+                            "home_team_id": game.playing_team_id,
                             "away_team": (
                                 game.opponent_team.display_name or game.opponent_team.name
                                 if game.opponent_team
                                 else "Unknown"
                             ),
+                            "away_team_id": game.opponent_team_id,
                             "home_score": home_score,
                             "away_score": away_score,
                         }
@@ -199,8 +201,17 @@ async def teams_page(auth_context: dict = Depends(get_template_auth_context)):
 @router.get("/teams/{team_id}", response_class=HTMLResponse)
 async def team_detail_page(team_id: int, auth_context: dict = Depends(get_template_auth_context)):
     """Render the team detail page."""
-    context = {**auth_context, "title": "Team Details", "team_id": team_id}
-    return templates.TemplateResponse("teams/detail.html", context)
+    try:
+        with get_db_session() as session:
+            team = session.query(models.Team).filter(models.Team.id == team_id).first()
+            if not team:
+                raise HTTPException(status_code=404, detail="Team not found")
+
+            context = {**auth_context, "title": "Team Details", "team_id": team_id, "team": team}
+            return templates.TemplateResponse("teams/detail.html", context)
+    except Exception as e:
+        logger.error(f"Error loading team detail page: {e}")
+        raise HTTPException(status_code=500, detail="Failed to load team") from e
 
 
 @router.get("/players", response_class=HTMLResponse)
