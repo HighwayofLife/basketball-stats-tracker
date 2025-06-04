@@ -127,11 +127,13 @@
                         <i class="fas fa-upload me-2"></i>Upload Logo
                     </button>
                     <button type="button" class="btn btn-secondary" onclick="closeLogoUploadModal()">Cancel</button>
-                    {% set current_logo = team_logo_url(team, '120x120') %}
-                    {% if current_logo %}
-                        <button type="button" class="btn btn-danger" onclick="deleteTeamLogo()">
-                            <i class="fas fa-trash me-2"></i>Delete Current Logo
-                        </button>
+                    {% if team %}
+                        {% set current_logo = team_logo_url(team, '120x120') %}
+                        {% if current_logo %}
+                            <button type="button" class="btn btn-danger" onclick="deleteTeamLogo()">
+                                <i class="fas fa-trash me-2"></i>Delete Current Logo
+                            </button>
+                        {% endif %}
                     {% endif %}
                 </div>
             </form>
@@ -376,9 +378,13 @@ function renderTeamData(teamData, statsData) {
                 <div class="row align-items-center">
                     <div class="col-auto">
                         <div class="border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" id="team-logo-container">
-                            {% set logo_url = team_logo_url(team, '120x120') %}
-                            {% if logo_url %}
-                                <img src="{{ logo_url }}" alt="{{ team.display_name or team.name }} logo" class="w-100 h-100" style="object-fit: cover;">
+                            {% if team %}
+                                {% set logo_url = team_logo_url(team, '120x120') %}
+                                {% if logo_url %}
+                                    <img src="{{ logo_url }}" alt="{{ team.display_name or team.name }} logo" class="w-100 h-100" style="object-fit: cover;">
+                                {% else %}
+                                    <i class="fas fa-users fa-3x text-primary"></i>
+                                {% endif %}
                             {% else %}
                                 <i class="fas fa-users fa-3x text-primary"></i>
                             {% endif %}
@@ -397,7 +403,7 @@ function renderTeamData(teamData, statsData) {
                         <a href="/teams" class="btn btn-outline-light me-2">
                             <i class="fas fa-arrow-left me-2"></i>Back to Teams
                         </a>
-                        {% if is_authenticated %}
+                        {% if is_authenticated|default(false) %}
                             <button onclick="showLogoUploadModal()" class="btn btn-outline-light me-2">
                                 <i class="fas fa-upload me-2"></i>Upload Logo
                             </button>

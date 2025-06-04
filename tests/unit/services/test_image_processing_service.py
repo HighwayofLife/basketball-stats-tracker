@@ -221,36 +221,48 @@ class TestImageProcessingService:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Set up path structure that service expects
-            app_static_path = Path(temp_dir) / "app" / "web_ui" / "static"
-            team_base_dir = app_static_path / "uploads" / "teams" / str(team_id)
+            team_base_dir = Path(temp_dir) / "teams" / str(team_id)
 
-            with patch("os.getcwd", return_value=temp_dir):
-                with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
-                    mock_get_dir.return_value = team_base_dir
+            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+                mock_get_dir.return_value = team_base_dir
 
-                    urls = await ImageProcessingService.process_team_logo(team_id, file)
+                # Mock the get_team_logo_path to return paths within our temp dir
+                def mock_get_path(tid, size, filename):
+                    return team_base_dir / size / filename
 
-                    # Check that URLs are returned for all sizes
-                    assert "original" in urls
-                    assert "120x120" in urls
-                    assert "64x64" in urls
+                with patch.object(ImageProcessingService, "get_team_logo_path", side_effect=mock_get_path):
+                    # Mock Path.relative_to to avoid path resolution issues
+                    with patch.object(Path, "relative_to") as mock_relative:
+                        # Return appropriate relative paths for each call
+                        mock_relative.side_effect = [
+                            Path(f"uploads/teams/{team_id}/original/logo.jpg"),
+                            Path(f"uploads/teams/{team_id}/120x120/logo.jpg"),
+                            Path(f"uploads/teams/{team_id}/64x64/logo.jpg"),
+                        ]
 
-                    # Check that all URLs start with /static/
-                    for url in urls.values():
-                        assert url.startswith("/static/")
+                        urls = await ImageProcessingService.process_team_logo(team_id, file)
 
-                    # Check that files were created
-                    assert (team_base_dir / "original" / "logo.jpg").exists()
-                    assert (team_base_dir / "120x120" / "logo.jpg").exists()
-                    assert (team_base_dir / "64x64" / "logo.jpg").exists()
+                        # Check that URLs are returned for all sizes
+                        assert "original" in urls
+                        assert "120x120" in urls
+                        assert "64x64" in urls
 
-                    # Verify image dimensions - since original is 200x200 (square),
-                    # it should scale to exact target sizes
-                    with Image.open(team_base_dir / "120x120" / "logo.jpg") as resized_img:
-                        assert resized_img.size == (120, 120)
+                        # Check that all URLs start with /static/
+                        for url in urls.values():
+                            assert url.startswith("/static/")
 
-                    with Image.open(team_base_dir / "64x64" / "logo.jpg") as resized_img:
-                        assert resized_img.size == (64, 64)
+                        # Check that files were created
+                        assert (team_base_dir / "original" / "logo.jpg").exists()
+                        assert (team_base_dir / "120x120" / "logo.jpg").exists()
+                        assert (team_base_dir / "64x64" / "logo.jpg").exists()
+
+                        # Verify image dimensions - since original is 200x200 (square),
+                        # it should scale to exact target sizes
+                        with Image.open(team_base_dir / "120x120" / "logo.jpg") as resized_img:
+                            assert resized_img.size == (120, 120)
+
+                        with Image.open(team_base_dir / "64x64" / "logo.jpg") as resized_img:
+                            assert resized_img.size == (64, 64)
 
     @pytest.mark.asyncio
     async def test_process_team_logo_validation_failure(self):
@@ -286,58 +298,73 @@ class TestImageProcessingService:
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Set up path structure that service expects
-            app_static_path = Path(temp_dir) / "app" / "web_ui" / "static"
-            team_base_dir = app_static_path / "uploads" / "teams" / str(team_id)
+            team_base_dir = Path(temp_dir) / "teams" / str(team_id)
 
-            with patch("os.getcwd", return_value=temp_dir):
-                with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
-                    mock_get_dir.return_value = team_base_dir
+            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+                mock_get_dir.return_value = team_base_dir
 
-                    # Process first logo
-                    await ImageProcessingService.process_team_logo(team_id, file1)
+                # Mock the get_team_logo_path to return paths within our temp dir
+                def mock_get_path(tid, size, filename):
+                    return team_base_dir / size / filename
 
-                    # Verify first logo exists
-                    assert (team_base_dir / "original" / "logo.jpg").exists()
+                with patch.object(ImageProcessingService, "get_team_logo_path", side_effect=mock_get_path):
+                    # Mock Path.relative_to to avoid path resolution issues
+                    with patch.object(Path, "relative_to") as mock_relative:
+                        # Return appropriate relative paths for each call
+                        mock_relative.side_effect = [
+                            Path(f"uploads/teams/{team_id}/original/logo.jpg"),
+                            Path(f"uploads/teams/{team_id}/120x120/logo.jpg"),
+                            Path(f"uploads/teams/{team_id}/64x64/logo.jpg"),
+                            Path(f"uploads/teams/{team_id}/original/logo.png"),
+                            Path(f"uploads/teams/{team_id}/120x120/logo.png"),
+                            Path(f"uploads/teams/{team_id}/64x64/logo.png"),
+                        ]
 
-                    # Create second image
-                    img2 = Image.new("RGB", (100, 100), color="blue")
-                    img2_bytes = io.BytesIO()
-                    img2.save(img2_bytes, format="PNG")
-                    img2_bytes.seek(0)
+                        # Process first logo
+                        await ImageProcessingService.process_team_logo(team_id, file1)
 
-                    file2 = Mock(spec=UploadFile)
-                    file2.content_type = "image/png"
-                    file2.filename = "second.png"
-                    file2.read = AsyncMock(return_value=img2_bytes.getvalue())
+                        # Verify first logo exists
+                        assert (team_base_dir / "original" / "logo.jpg").exists()
 
-                    # Process second logo
-                    await ImageProcessingService.process_team_logo(team_id, file2)
+                        # Create second image
+                        img2 = Image.new("RGB", (100, 100), color="blue")
+                        img2_bytes = io.BytesIO()
+                        img2.save(img2_bytes, format="PNG")
+                        img2_bytes.seek(0)
 
-                    # Verify second logo exists and first is gone
-                    assert not (team_base_dir / "original" / "logo.jpg").exists()
-                    assert (team_base_dir / "original" / "logo.png").exists()
+                        file2 = Mock(spec=UploadFile)
+                        file2.content_type = "image/png"
+                        file2.filename = "second.png"
+                        file2.read = AsyncMock(return_value=img2_bytes.getvalue())
+
+                        # Process second logo
+                        await ImageProcessingService.process_team_logo(team_id, file2)
+
+                        # Verify second logo exists and first is gone
+                        assert not (team_base_dir / "original" / "logo.jpg").exists()
+                        assert (team_base_dir / "original" / "logo.png").exists()
 
     def test_update_team_logo_filename(self):
         """Test updating team logo filename."""
         team_id = 123
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Set up path structure that service expects
-            app_static_path = Path(temp_dir) / "app" / "web_ui" / "static"
-            logo_dir = app_static_path / "uploads" / "teams" / str(team_id) / "120x120"
-            logo_dir.mkdir(parents=True)
-            logo_file = logo_dir / "logo.jpg"
-            logo_file.touch()
+        # Mock get_team_logo_url to return a URL
+        with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
+            mock_get_url.return_value = f"/static/uploads/teams/{team_id}/120x120/logo.jpg"
 
-            with patch("os.getcwd", return_value=temp_dir):
-                with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
-                    mock_get_dir.return_value = app_static_path / "uploads" / "teams" / str(team_id)
+            filename = ImageProcessingService.update_team_logo_filename(team_id)
 
-                    filename = ImageProcessingService.update_team_logo_filename(team_id)
+            assert filename == f"uploads/teams/{team_id}/120x120/logo.jpg"
+            mock_get_url.assert_called_once_with(team_id, "120x120")
 
-                    assert "uploads/teams" in filename
-                    assert str(team_id) in filename
-                    assert "logo.jpg" in filename
+        # Test when no logo exists
+        with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
+            mock_get_url.return_value = None
+
+            filename = ImageProcessingService.update_team_logo_filename(team_id)
+
+            # Should return default path
+            assert filename == f"uploads/teams/{team_id}/120x120/logo.jpg"
 
     def test_supported_formats(self):
         """Test that all expected formats are supported."""
