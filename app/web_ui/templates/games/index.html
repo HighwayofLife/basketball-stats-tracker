@@ -51,12 +51,12 @@
             </tr>
         </tbody>
     </table>
-    
+
     <!-- MOBILE GAME CARDS - New structure, shown on mobile -->
     <div class="mobile-games-list" id="mobile-games-list">
         <div class="loading-message">Loading games...</div>
     </div>
-    
+
     <div class="pagination" id="games-pagination">
         <!-- Pagination controls will be added via JavaScript -->
     </div>
@@ -66,17 +66,16 @@
 {% endblock %}
 
 {% block extra_scripts %}
-
 <script>
 // Banner functions
 function showSuccessBanner(message) {
     const banner = document.getElementById('banner');
     const bannerMessage = document.getElementById('banner-message');
-    
+
     bannerMessage.textContent = message;
     banner.className = 'banner success';
     banner.style.display = 'block';
-    
+
     // Auto-hide after 5 seconds
     setTimeout(() => {
         hideBanner();
@@ -86,7 +85,7 @@ function showSuccessBanner(message) {
 function showErrorBanner(message) {
     const banner = document.getElementById('banner');
     const bannerMessage = document.getElementById('banner-message');
-    
+
     bannerMessage.textContent = message;
     banner.className = 'banner error';
     banner.style.display = 'block';
@@ -101,7 +100,7 @@ function hideBanner() {
     document.addEventListener('DOMContentLoaded', function() {
         // Setup banner close functionality
         document.getElementById('banner-close').addEventListener('click', hideBanner);
-        
+
         // Check for success message from sessionStorage
         const successMessage = sessionStorage.getItem('successMessage');
         if (successMessage) {
@@ -113,7 +112,7 @@ function hideBanner() {
             .then(response => response.json())
             .then(teams => {
                 const teamSelect = document.getElementById('team-filter');
-                
+
                 teams.forEach(team => {
                     // Filter dropdown
                     const option = document.createElement('option');
@@ -155,37 +154,47 @@ function hideBanner() {
                     const row = document.createElement('tr');
                     row.innerHTML = '<td colspan="5">No games found.</td>';
                     tableBody.appendChild(row);
-                    
+
                     mobileList.innerHTML = '<div class="mobile-game-card"><p style="text-align: center; margin: 0;">No games found.</p></div>';
                 } else {
                     games.forEach(game => {
                         const isScheduled = game.id < 0;  // Negative IDs are scheduled games
                         const gameId = Math.abs(game.id);  // Get absolute value for URLs
-                        
+
                         // Desktop table row
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td data-label="Date">${formatDate(game.date)}</td>
-                            <td data-label="Away Team">${game.away_team}</td>
+                            <td data-label="Away Team">
+                                <div class="team-with-logo">
+                                    <div class="team-logo-small large" data-team-id="${game.away_team_id}"></div>
+                                    <span>${game.away_team}</span>
+                                </div>
+                            </td>
                             <td data-label="Score" class="score">${isScheduled ? 'Scheduled' : `${game.away_score} - ${game.home_score}`}</td>
-                            <td data-label="Home Team">${game.home_team}</td>
+                            <td data-label="Home Team">
+                                <div class="team-with-logo">
+                                    <div class="team-logo-small large" data-team-id="${game.home_team_id}"></div>
+                                    <span>${game.home_team}</span>
+                                </div>
+                            </td>
                             <td data-label="Actions">
-                                ${isScheduled ? 
+                                ${isScheduled ?
                                   '<span class="text-muted">—</span>' :
                                   `<a href="/games/${game.id}" class="btn btn-sm">View</a>
                                    {% if is_authenticated %}
-                                   ${game.home_score > 0 || game.away_score > 0 ? 
-                                     `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` : 
+                                   ${game.home_score > 0 || game.away_score > 0 ?
+                                     `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` :
                                      ''}
                                    {% endif %}
-                                   ${game.home_score === 0 && game.away_score === 0 ? 
-                                     `<a href="/games/${game.id}/live" class="btn btn-sm btn-success">Live Entry</a>` : 
+                                   ${game.home_score === 0 && game.away_score === 0 ?
+                                     `<a href="/games/${game.id}/live" class="btn btn-sm btn-success">Live Entry</a>` :
                                      ''}`
                                 }
                             </td>
                         `;
                         tableBody.appendChild(row);
-                        
+
                         // Mobile game card
                         const card = document.createElement('div');
                         card.className = 'mobile-game-card';
@@ -196,17 +205,23 @@ function hideBanner() {
                         const isScheduledGame = game.id < 0;
                         const awayWon = !isScheduledGame && game.away_score > game.home_score;
                         const homeWon = !isScheduledGame && game.home_score > game.away_score;
-                        
+
                         card.innerHTML = `
                             <div class="game-card-main-content">
                                 <div class="game-card-teams">
                                     <div class="team-entry ${awayWon ? 'winner' : ''}">
-                                        <span class="team-name">${game.away_team}</span>
+                                        <div class="team-with-logo-mobile">
+                                            <div class="team-logo-mobile" data-team-id="${game.away_team_id}"></div>
+                                            <span class="team-name">${game.away_team}</span>
+                                        </div>
                                         <span class="team-score">${isScheduledGame ? '-' : game.away_score}</span>
                                         ${awayWon ? '<span class="winner-arrow">◄</span>' : ''}
                                     </div>
                                     <div class="team-entry ${homeWon ? 'winner' : ''}">
-                                        <span class="team-name">${game.home_team}</span>
+                                        <div class="team-with-logo-mobile">
+                                            <div class="team-logo-mobile" data-team-id="${game.home_team_id}"></div>
+                                            <span class="team-name">${game.home_team}</span>
+                                        </div>
                                         <span class="team-score">${isScheduledGame ? '-' : game.home_score}</span>
                                         ${homeWon ? '<span class="winner-arrow">◄</span>' : ''}
                                     </div>
@@ -219,8 +234,8 @@ function hideBanner() {
                                     ${isScheduledGame ? '' : `
                                         <a href="/games/${game.id}" class="btn btn-sm btn-view-details">View</a>
                                         {% if is_authenticated %}
-                                        ${game.home_score > 0 || game.away_score > 0 ? 
-                                          `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` : 
+                                        ${game.home_score > 0 || game.away_score > 0 ?
+                                          `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` :
                                           ''}
                                         {% endif %}
                                     `}
@@ -229,6 +244,9 @@ function hideBanner() {
                         `;
                         mobileList.appendChild(card);
                     });
+
+                    // Load team logos after all games are rendered
+                    loadTeamLogos();
                 }
             })
             .catch(error => {
@@ -250,6 +268,60 @@ function hideBanner() {
         const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
         const date = new Date(year, month - 1, day); // month is 0-indexed
         return date.toLocaleDateString();
+    }
+
+    async function loadTeamLogos() {
+        // Get all team logo containers
+        const logoContainers = document.querySelectorAll('.team-logo-small, .team-logo-mobile');
+
+        // Create a set of unique team IDs to avoid duplicate requests
+        const teamIds = new Set();
+        logoContainers.forEach(container => {
+            const teamId = container.getAttribute('data-team-id');
+            if (teamId) {
+                teamIds.add(teamId);
+            }
+        });
+
+        // Check if logos exist for each unique team ID
+        const logoCache = {};
+        await Promise.all([...teamIds].map(async (teamId) => {
+            try {
+                // Try multiple logo file formats
+                const formats = ['png', 'jpg', 'jpeg', 'webp'];
+                let logoUrl = null;
+
+                for (const format of formats) {
+                    const testUrl = `/static/uploads/teams/${teamId}/64x64/logo.${format}`;
+                    try {
+                        const response = await fetch(testUrl, { method: 'HEAD' });
+                        if (response.ok) {
+                            logoUrl = testUrl;
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next format
+                    }
+                }
+
+                logoCache[teamId] = logoUrl;
+            } catch (error) {
+                console.warn(`Failed to check logo for team ${teamId}:`, error);
+                logoCache[teamId] = null;
+            }
+        }));
+
+        // Apply logos to containers
+        logoContainers.forEach(container => {
+            const teamId = container.getAttribute('data-team-id');
+            const logoUrl = logoCache[teamId];
+
+            if (logoUrl) {
+                container.innerHTML = `<img src="${logoUrl}" alt="Team logo" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-users\\'></i>'">`;
+            } else {
+                container.innerHTML = '<i class="fas fa-users"></i>';
+            }
+        });
     }
 
 </script>

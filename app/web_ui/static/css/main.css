@@ -29,6 +29,10 @@
   --touch-target-landscape: 40px;
 }
 
+/* Component imports */
+@import url('components/banners.css');
+@import url('components/team-logos.css');
+
 /* Base styles - Mobile first */
 * {
   box-sizing: border-box;

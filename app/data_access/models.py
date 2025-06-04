@@ -72,6 +72,7 @@ class Team(Base, SoftDeleteMixin):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String, nullable=True)
+    logo_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to team logo image
 
     players: Mapped[list[Player]] = relationship("Player", back_populates="team", cascade="all, delete-orphan")
     home_games: Mapped[list[Game]] = relationship(
