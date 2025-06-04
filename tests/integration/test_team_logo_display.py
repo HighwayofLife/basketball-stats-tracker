@@ -17,50 +17,53 @@ class TestTeamLogoDisplay:
     """Integration tests for team logo display across different pages."""
 
     @pytest.fixture
-    def app(self):
-        """Create test app."""
-        return create_app()
+    def client(self, test_db_file_session):
+        """Create a FastAPI test client with isolated database."""
+        from app.auth.dependencies import get_current_user
+        from app.auth.models import User
+        from app.web_ui.api import app
+        from app.web_ui.dependencies import get_db
+
+        def override_get_db():
+            return test_db_file_session
+
+        def mock_current_user():
+            return User(id=1, username="testuser", email="test@example.com", role="admin", is_active=True)
+
+        app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_current_user] = mock_current_user
+        client = TestClient(app)
+        yield client
+        app.dependency_overrides.clear()
 
     @pytest.fixture
-    def client(self, app):
-        """Create test client."""
-        return TestClient(app)
-
-    @pytest.fixture
-    def db_session(self, app):
-        """Create test database session."""
-        from app.dependencies import get_db
-
-        return next(get_db())
-
-    @pytest.fixture
-    def test_teams_with_logos(self, db_session):
+    def test_teams_with_logos(self, test_db_file_session):
         """Create test teams with logos."""
         # Create teams
         team1 = Team(name="Team Alpha", display_name="Alpha Team", logo_filename="uploads/teams/1/120x120/logo.jpg")
         team2 = Team(name="Team Beta", display_name="Beta Team", logo_filename="uploads/teams/2/120x120/logo.png")
         team3 = Team(name="Team Gamma", display_name="Gamma Team")  # No logo
 
-        db_session.add_all([team1, team2, team3])
-        db_session.commit()
-        db_session.refresh(team1)
-        db_session.refresh(team2)
-        db_session.refresh(team3)
+        test_db_file_session.add_all([team1, team2, team3])
+        test_db_file_session.commit()
+        test_db_file_session.refresh(team1)
+        test_db_file_session.refresh(team2)
+        test_db_file_session.refresh(team3)
 
         return team1, team2, team3
 
     @pytest.fixture
-    def test_game(self, db_session, test_teams_with_logos):
+    def test_game(self, test_db_file_session, test_teams_with_logos):
         """Create a test game between teams."""
         team1, team2, team3 = test_teams_with_logos
 
         game = Game(
-            date="2024-01-15", playing_team_id=team1.id, opponent_team_id=team2.id, home_score=85, away_score=78
+            date="2024-01-15", playing_team_id=team1.id, opponent_team_id=team2.id, playing_team_score=85, opponent_team_score=78
         )
 
-        db_session.add(game)
-        db_session.commit()
-        db_session.refresh(game)
+        test_db_file_session.add(game)
+        test_db_file_session.commit()
+        test_db_file_session.refresh(game)
 
         return game
 

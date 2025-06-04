@@ -1,3 +1,22 @@
+v0.4.10
+-------
+
+### Added
+- Team logo upload functionality with automatic image resizing
+- Unit tests for team logo image processing service
+- Unit tests for team logo API endpoints
+- Unit tests for team logo template helpers
+
+### Refactoring / Optimization
+- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
+- Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
+
+### Bug Fixes
+- Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
+- Fix team logo upload not overwriting existing logos (ensure all sizes are deleted before creating new ones)
+- Fix team logo image format preservation (maintain original format PNG/JPG/WebP instead of converting all to JPEG)
+- Fix team logo resizing to preserve aspect ratios instead of cropping to exact dimensions (prevents distortion of non-square images)
+
 v0.4.9
 ------
 
@@ -6,7 +25,6 @@ v0.4.9
 - Template component system with reusable partials for modals, forms, tables, and stats cards
 - Form field macros for consistent input styling and validation
 - JavaScript modules for API interactions, CRUD operations, and form validation
-- Team logo upload functionality with automatic image resizing
 
 ### Refactoring / Optimization
 - Consolidated 4 responsive CSS files into single mobile-first main.css file (50-70% code reduction)
@@ -15,8 +33,6 @@ v0.4.9
 - Extracted template partials to eliminate duplication of modal, form, and table structures
 - Implemented mobile-first responsive design with consistent breakpoints and touch targets
 - Remove redundant CI workflow steps to reduce github action consumption
-- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
-- Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
 
 ### Bug Fixes
 - Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
@@ -28,10 +44,6 @@ v0.4.9
 - Fix player detail page recent games showing incorrect/missing data (updated player stats API to include team scores and game results, simplified JavaScript to remove unused data transformation)
 - Create unified games list component to consolidate duplicated games display code across dashboard, team detail, and player detail pages (replaced 3 different implementations with single reusable component)
 - Add safety checks for query results in player stats API to prevent potential AttributeError exceptions (added hasattr() validation for total_points field)
-- Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
-- Fix team logo upload not overwriting existing logos (ensure all sizes are deleted before creating new ones)
-- Fix team logo image format preservation (maintain original format PNG/JPG/WebP instead of converting all to JPEG)
-- Fix team logo resizing to preserve aspect ratios instead of cropping to exact dimensions (prevents distortion of non-square images)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
