@@ -49,6 +49,11 @@ coverage.xml
 .pytest_cache/
 junit/
 
+# Static / test data
+app/web_ui/static/uploads/
+import/
+**.db
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
