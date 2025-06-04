@@ -16,6 +16,7 @@ v0.4.9
 - Implemented mobile-first responsive design with consistent breakpoints and touch targets
 - Remove redundant CI workflow steps to reduce github action consumption
 - Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
+- Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
 
 ### Bug Fixes
 - Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
@@ -30,6 +31,7 @@ v0.4.9
 - Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
 - Fix team logo upload not overwriting existing logos (ensure all sizes are deleted before creating new ones)
 - Fix team logo image format preservation (maintain original format PNG/JPG/WebP instead of converting all to JPEG)
+- Fix team logo resizing to preserve aspect ratios instead of cropping to exact dimensions (prevents distortion of non-square images)
 
 ### Architecture Improvements
 - Established template partial system with components/, includes/, and macros/ directories
