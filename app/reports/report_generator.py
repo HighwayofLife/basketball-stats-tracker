@@ -317,16 +317,15 @@ class ReportGenerator:
             Dictionary mapping quarter numbers to either the actual stat object
             or a dummy object with zeroed stats
         """
-        # Create a dictionary to map quarter numbers to stats
+
+        # Normalize input into a dictionary keyed by quarter number
         quarter_map = {}
-
-        # If quarter_stats is already a dictionary with int keys (from tests)
-        if isinstance(quarter_stats, dict) and all(isinstance(k, int) for k in quarter_stats):
-            return quarter_stats
-
-        # Fill in with actual data
-        for qs in quarter_stats:
-            quarter_map[qs.quarter_number] = qs
+        if isinstance(quarter_stats, dict):
+            # Copy to avoid mutating caller's dictionary and ensure int keys
+            quarter_map = {int(k): v for k, v in quarter_stats.items() if isinstance(k, int | str)}
+        else:
+            for qs in quarter_stats:
+                quarter_map[qs.quarter_number] = qs
 
         # Create dummy stats for missing quarters
         for q in range(1, quarters + 1):
