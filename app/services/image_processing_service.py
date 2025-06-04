@@ -8,7 +8,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
-from PIL import Image, ImageOps
+from PIL import Image
 
 logger = logging.getLogger(__name__)
 
@@ -54,11 +54,29 @@ class ImageProcessingService:
 
     @staticmethod
     def resize_and_crop_image(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
-        """Resize and center crop an image to the target size while maintaining aspect ratio."""
-        # Use ImageOps.fit to resize and crop to exact dimensions
-        # This maintains aspect ratio and crops from center
-        # Note: We don't convert the mode here anymore to preserve the original format
-        resized_image = ImageOps.fit(image, target_size, Image.Resampling.LANCZOS)
+        """Resize an image to fit within target dimensions while maintaining aspect ratio."""
+        # Calculate scaling factor to fit within target dimensions
+        original_width, original_height = image.size
+        target_width, target_height = target_size
+
+        # Calculate aspect ratios
+        original_ratio = original_width / original_height
+        target_ratio = target_width / target_height
+
+        # Determine scaling factor - scale to fit within the target dimensions
+        if original_ratio > target_ratio:
+            # Image is wider, scale by width
+            scale_factor = target_width / original_width
+        else:
+            # Image is taller, scale by height
+            scale_factor = target_height / original_height
+
+        # Calculate new dimensions
+        new_width = int(original_width * scale_factor)
+        new_height = int(original_height * scale_factor)
+
+        # Resize the image maintaining aspect ratio
+        resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
         return resized_image
 
     @staticmethod

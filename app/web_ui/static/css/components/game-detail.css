@@ -1,0 +1,208 @@
+/* Game Detail Page Specific Styles */
+
+.game-header {
+    margin-bottom: 2rem;
+}
+
+.scoreboard {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.team-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 2rem;
+}
+
+.team-section {
+    flex: 1;
+}
+
+.team-section.away-team {
+    text-align: left;
+}
+
+.team-section.home-team {
+    text-align: right;
+}
+
+.team-header-with-logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.team-section.away-team .team-header-with-logo {
+    justify-content: flex-start;
+}
+
+.team-section.home-team .team-header-with-logo {
+    justify-content: flex-end;
+}
+
+.team-logo-large {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.team-logo-large img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-logo-large .fa-users {
+    font-size: 24px;
+    color: #6c757d;
+}
+
+.team-info-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.score-section {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.team-name {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin: 0;
+}
+
+.team-record {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-top: 0.2rem;
+}
+
+.team-score {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.game-date-mobile {
+    display: none;
+}
+
+.quarter-scores-table {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+.quarter-scores-table th,
+.quarter-scores-table td {
+    text-align: center;
+    padding: 0.5rem;
+    border: 1px solid #dee2e6;
+}
+
+.quarter-scores-table th {
+    background-color: #e9ecef;
+    font-weight: bold;
+}
+
+.quarter-scores-table .team-name-cell {
+    text-align: left;
+    font-weight: bold;
+}
+
+.quarter-scores-table .total-score {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.game-date {
+    text-align: center;
+    color: #6c757d;
+    margin-top: 1rem;
+    font-size: 1.1rem;
+}
+
+/* Mobile styles for game detail */
+@media (max-width: 768px) {
+    .team-info {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-rows: auto auto;
+        gap: 0.5rem;
+        align-items: center;
+    }
+    
+    .score-section {
+        grid-column: 1 / -1;
+        grid-row: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .team-score {
+        font-size: 3rem;
+    }
+    
+    .game-date-mobile {
+        display: block;
+        font-size: 0.9rem;
+        color: #6c757d;
+        white-space: nowrap;
+    }
+    
+    .team-section.away-team {
+        grid-column: 1;
+        grid-row: 2;
+        text-align: left;
+    }
+    
+    .team-section.home-team {
+        grid-column: 3;
+        grid-row: 2;
+        text-align: right;
+    }
+    
+    .team-name {
+        font-size: 1.1rem;
+        margin-bottom: 0.1rem;
+    }
+    
+    .team-record {
+        font-size: 0.8rem;
+    }
+    
+    .team-header-with-logo {
+        gap: 0.5rem;
+    }
+    
+    .team-logo-large {
+        width: 48px;
+        height: 48px;
+    }
+    
+    .team-logo-large .fa-users {
+        font-size: 18px;
+    }
+    
+    .desktop-date {
+        display: none;
+    }
+}
