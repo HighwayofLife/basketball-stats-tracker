@@ -5,9 +5,11 @@ This module implements a Model Context Protocol (MCP) server that provides acces
 to the basketball stats database via a language model API.
 """
 
+import os
+import re
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
@@ -24,6 +26,17 @@ db_url = settings.DATABASE_URL
 # Create engine and session factory
 engine = create_engine(db_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# API key for simple authentication
+API_KEY = os.getenv("MCP_API_KEY")
+
+
+def verify_api_key(x_api_key: str | None = Header(None)) -> None:
+    """Verify the MCP API key from request headers."""
+    if not API_KEY:
+        raise HTTPException(status_code=500, detail="MCP_API_KEY not configured")
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid API key")
 
 
 # Pydantic models for requests and responses
@@ -43,10 +56,18 @@ class MCPResponse(BaseModel):
 
 
 @app.post("/api/query", response_model=MCPResponse)
-async def execute_query(request: MCPRequest):
-    """Execute an SQL query against the database."""
-    query = request.query
+async def execute_query(
+    request: MCPRequest, _api_key: None = Depends(verify_api_key)
+):
+    """Execute a read-only SQL query against the database."""
+    query = request.query.strip()
     params = request.parameters or {}
+
+    # Only allow SELECT statements and prevent multiple statements
+    if not re.match(r"(?i)^select\b", query):
+        raise HTTPException(status_code=403, detail="Only SELECT queries are allowed")
+    if ";" in query.rstrip(";"):
+        raise HTTPException(status_code=400, detail="Multiple statements are not allowed")
 
     try:
         with SessionLocal() as session:
@@ -73,7 +94,7 @@ async def execute_query(request: MCPRequest):
 
 
 @app.get("/api/tables")
-async def get_tables():
+async def get_tables(_api_key: None = Depends(verify_api_key)):
     """Get a list of all tables in the database."""
     try:
         with SessionLocal() as session:
@@ -86,7 +107,7 @@ async def get_tables():
 
 
 @app.get("/api/schema/{table}")
-async def get_table_schema(table: str):
+async def get_table_schema(table: str, _api_key: None = Depends(verify_api_key)):
     """Get the schema for a specific table."""
     try:
         with SessionLocal() as session:
@@ -108,7 +129,7 @@ async def get_table_schema(table: str):
 
 
 @app.get("/api/health")
-async def health_check():
+async def health_check(_api_key: None = Depends(verify_api_key)):
     """Health check endpoint."""
     try:
         with SessionLocal() as session:
@@ -120,7 +141,9 @@ async def health_check():
 
 # Natural language query handling
 @app.post("/api/nl_query")
-async def natural_language_query(request: MCPRequest):
+async def natural_language_query(
+    request: MCPRequest, _api_key: None = Depends(verify_api_key)
+):
     """
     Process a natural language query.
     This is a simple implementation that maps certain types of questions to SQL queries.
