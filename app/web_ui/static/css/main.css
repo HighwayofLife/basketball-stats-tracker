@@ -2,7 +2,6 @@
 /* Mobile-first responsive design with consolidated styles */
 
 /* Component imports - must come first */
-@import url('components/banners.css');
 @import url('components/team-logos.css');
 @import url('components/game-detail.css');
 @import url('components/box-score.css');

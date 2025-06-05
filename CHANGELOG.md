@@ -36,7 +36,7 @@ v0.4.10
 - Unit tests for team logo template helpers
 
 ### Refactoring / Optimization
-- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
+- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (team-logos.css)
 - Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
 
 ### Bug Fixes
