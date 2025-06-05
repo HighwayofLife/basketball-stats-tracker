@@ -113,8 +113,10 @@ class TestImageProcessingService:
 
     def test_get_team_logo_directory(self):
         """Test team logo directory path generation."""
+        from app.config import settings
+
         team_id = 123
-        expected_path = Path("app/web_ui/static/uploads/teams/123")
+        expected_path = Path(settings.UPLOAD_DIR) / "teams" / "123"
 
         directory = ImageProcessingService.get_team_logo_directory(team_id)
 
@@ -122,10 +124,12 @@ class TestImageProcessingService:
 
     def test_get_team_logo_path(self):
         """Test team logo file path generation."""
+        from app.config import settings
+
         team_id = 123
         size = "120x120"
         filename = "logo.jpg"
-        expected_path = Path("app/web_ui/static/uploads/teams/123/120x120/logo.jpg")
+        expected_path = Path(settings.UPLOAD_DIR) / "teams" / "123" / "120x120" / "logo.jpg"
 
         file_path = ImageProcessingService.get_team_logo_path(team_id, size, filename)
 

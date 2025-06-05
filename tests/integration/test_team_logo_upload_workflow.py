@@ -68,13 +68,9 @@ class TestTeamLogoUploadWorkflow:
         return {"Authorization": "Bearer test-token"}
 
     @pytest.fixture
-    def valid_image_file(self):
+    def valid_image_file(self, test_image_blue):
         """Create a valid image file for testing."""
-        img = Image.new("RGB", (200, 200), color="blue")
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format="JPEG")
-        img_bytes.seek(0)
-        return ("test_logo.jpg", img_bytes, "image/jpeg")
+        return test_image_blue
 
     @pytest.fixture
     def invalid_image_file(self):
@@ -82,24 +78,9 @@ class TestTeamLogoUploadWorkflow:
         return ("test.txt", io.BytesIO(b"not an image"), "text/plain")
 
     @pytest.fixture
-    def oversized_image_file(self):
+    def oversized_image_file(self, oversized_test_image):
         """Create an oversized image file for testing."""
-        import random
-
-        # Create a large image with random noise that exceeds 5MB
-        width, height = 2500, 2500
-        img = Image.new("RGB", (width, height))
-
-        # Fill with random colors to make compression harder and exceed 5MB
-        pixels = []
-        for _ in range(width * height):
-            pixels.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
-        img.putdata(pixels)
-
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format="JPEG", quality=100)
-        img_bytes.seek(0)
-        return ("huge_logo.jpg", img_bytes, "image/jpeg")
+        return oversized_test_image
 
     def test_upload_team_logo_complete_workflow(self, client, test_team, authenticated_headers, valid_image_file):
         """Test the complete team logo upload workflow."""
@@ -221,8 +202,8 @@ class TestTeamLogoUploadWorkflow:
 
                 # Authentication is already mocked in the client fixture
 
-                # Upload first logo (JPEG)
-                img1 = Image.new("RGB", (100, 100), color="red")
+                # Upload first logo (JPEG) - use blue test image
+                img1 = Image.new("RGB", (100, 100), color="blue")
                 img1_bytes = io.BytesIO()
                 img1.save(img1_bytes, format="JPEG")
                 img1_bytes.seek(0)
