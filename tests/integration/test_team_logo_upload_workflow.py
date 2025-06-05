@@ -10,7 +10,6 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from app.data_access.models import Team
-from app.main import create_app
 from app.services.image_processing_service import ImageProcessingService
 
 
@@ -33,6 +32,21 @@ class TestTeamLogoUploadWorkflow:
 
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_current_user
+        client = TestClient(app)
+        yield client
+        app.dependency_overrides.clear()
+
+    @pytest.fixture
+    def unauthenticated_client(self, test_db_file_session):
+        """Create a FastAPI test client without authentication override."""
+        from app.web_ui.api import app
+        from app.web_ui.dependencies import get_db
+
+        def override_get_db():
+            return test_db_file_session
+
+        app.dependency_overrides[get_db] = override_get_db
+        # Note: no auth override here, so authentication will be required
         client = TestClient(app)
         yield client
         app.dependency_overrides.clear()
@@ -70,8 +84,18 @@ class TestTeamLogoUploadWorkflow:
     @pytest.fixture
     def oversized_image_file(self):
         """Create an oversized image file for testing."""
-        # Create a large image that exceeds 5MB
-        img = Image.new("RGB", (3000, 3000), color="red")
+        import random
+        
+        # Create a large image with random noise that exceeds 5MB
+        width, height = 2500, 2500
+        img = Image.new("RGB", (width, height))
+        
+        # Fill with random colors to make compression harder and exceed 5MB
+        pixels = []
+        for i in range(width * height):
+            pixels.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+        img.putdata(pixels)
+        
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="JPEG", quality=100)
         img_bytes.seek(0)
@@ -115,18 +139,16 @@ class TestTeamLogoUploadWorkflow:
                 with Image.open(team_dir / "64x64" / "logo.jpg") as img:
                     assert img.size == (64, 64)
 
-    def test_upload_team_logo_unauthenticated(self, client, test_team, valid_image_file):
+    def test_upload_team_logo_unauthenticated(self, unauthenticated_client, test_team, valid_image_file):
         """Test team logo upload without authentication."""
-        response = client.post(f"/v1/teams/{test_team.id}/logo", files={"file": valid_image_file})
+        response = unauthenticated_client.post(f"/v1/teams/{test_team.id}/logo", files={"file": valid_image_file})
 
         # Should require authentication
         assert response.status_code in [401, 403]
 
     def test_upload_team_logo_invalid_team(self, client, authenticated_headers, valid_image_file):
         """Test team logo upload for non-existent team."""
-        response = client.post(
-            "/v1/teams/99999/logo", files={"file": valid_image_file}, headers=authenticated_headers
-        )
+        response = client.post("/v1/teams/99999/logo", files={"file": valid_image_file}, headers=authenticated_headers)
 
         assert response.status_code == 404
         data = response.json()
