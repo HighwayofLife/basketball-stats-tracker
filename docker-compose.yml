@@ -30,6 +30,7 @@ services:
       - PYTHONDONTWRITEBYTECODE=1
       - PYTHONUNBUFFERED=1
       - JWT_SECRET_KEY=your-super-secret-key-change-in-production
+      - DEFAULT_ADMIN_PASSWORD=TestAdminPassword123!
     volumes:
       # Mount for development to allow code changes without rebuilding
       - .:/app

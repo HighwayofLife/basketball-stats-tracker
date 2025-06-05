@@ -16,6 +16,9 @@ import os
 import subprocess
 import time
 
+# Set consistent admin password for tests
+os.environ["DEFAULT_ADMIN_PASSWORD"] = "TestAdminPassword123!"
+
 import pytest
 import requests
 from bs4 import BeautifulSoup
@@ -109,33 +112,33 @@ def docker_containers():
 def admin_session(docker_containers):
     """Authenticated session for the test admin user."""
     session = requests.Session()
-    password = os.environ.get("ADMIN_PASSWORD", "TestAdminPassword123!")
+    test_username = "testadmin"
+    test_password = "TestAdminPassword123!"
 
-    login_resp = session.post(
-        f"{BASE_URL}/auth/token",
-        data={"username": "admin", "password": password},
+    # Try to register a new test user
+    register_resp = session.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "username": test_username,
+            "email": "testadmin@example.com",
+            "password": test_password,
+            "full_name": "Test Admin User",
+        },
         timeout=10,
     )
 
-    if login_resp.status_code == 401:
-        register_resp = session.post(
-            f"{BASE_URL}/auth/register",
-            json={
-                "username": "admin",
-                "email": "admin@example.com",
-                "password": password,
-                "full_name": "Admin User",
-            },
-            timeout=10,
-        )
-        assert register_resp.status_code in (200, 201), register_resp.text
-        login_resp = session.post(
-            f"{BASE_URL}/auth/token",
-            data={"username": "admin", "password": password},
-            timeout=10,
-        )
+    # If user already exists (400) or registration succeeds (200/201), proceed with login
+    if register_resp.status_code not in (200, 201, 400):
+        raise RuntimeError(f"Unexpected registration response: {register_resp.status_code} - {register_resp.text}")
 
-    assert login_resp.status_code == 200, login_resp.text
+    # Attempt login
+    login_resp = session.post(
+        f"{BASE_URL}/auth/token",
+        data={"username": test_username, "password": test_password},
+        timeout=10,
+    )
+
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
     return session
 
 
