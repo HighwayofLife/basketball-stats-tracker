@@ -150,6 +150,7 @@ jobs:
           APP_VERSION=${{ steps.version.outputs.VERSION }}
           GIT_HASH=${{ steps.version.outputs.SHORT_SHA }}
         tags: |
+          ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ steps.version.outputs.VERSION }}
           ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ github.sha }}
           ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest
         cache-from: type=gha
@@ -162,7 +163,7 @@ jobs:
         # Update the migration job image only, preserving Terraform-managed configuration
         # This prevents overwriting VPC settings and other critical configuration
         gcloud run jobs update basketball-stats-migrate \
-          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ steps.version.outputs.VERSION }} \
           --region ${{ env.REGION }} || {
           echo "Migration job doesn't exist, it should be created by Terraform"
           echo "Please run 'terraform apply' to create the migration job with proper VPC configuration"
@@ -199,7 +200,7 @@ jobs:
         # Update only the container image, preserving all other Terraform-managed configuration
         # This prevents conflicts between GitHub Actions and Terraform
         gcloud run services update ${{ env.SERVICE_NAME }} \
-          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:${{ steps.version.outputs.VERSION }} \
           --region ${{ env.REGION }}
 
         echo "✅ Image updated successfully. Service configuration remains managed by Terraform."
