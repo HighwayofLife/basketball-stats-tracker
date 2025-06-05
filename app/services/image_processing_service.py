@@ -14,6 +14,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+UPLOADS_DIR = Path(settings.UPLOAD_DIR)
+UPLOADS_URL_PREFIX = "/uploads/"
+
 
 class ImageProcessingService:
     """Service for processing and storing team logo images with multiple sizes."""
@@ -105,13 +108,12 @@ class ImageProcessingService:
         for file_path in size_dir.iterdir():
             if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
                 # Always use uploads endpoint since uploads are outside app directory
-                upload_dir = Path(settings.UPLOAD_DIR)
                 try:
-                    relative_path = file_path.relative_to(upload_dir)
-                    return f"/uploads/{relative_path}"
+                    relative_path = file_path.relative_to(UPLOADS_DIR)
+                    return f"{UPLOADS_URL_PREFIX}{relative_path}"
                 except ValueError:
                     # Fallback for tests or edge cases
-                    return f"/uploads/teams/{team_id}/{size}/{file_path.name}"
+                    return f"{UPLOADS_URL_PREFIX}teams/{team_id}/{size}/{file_path.name}"
 
         return None
 
@@ -213,13 +215,12 @@ class ImageProcessingService:
                     processed_image.save(output_path, output_format, **save_kwargs)
 
                     # Generate URL - always use uploads endpoint
-                    upload_dir = Path(settings.UPLOAD_DIR)
                     try:
-                        relative_path = output_path.relative_to(upload_dir)
-                        urls[size_name] = f"/uploads/{relative_path}"
+                        relative_path = output_path.relative_to(UPLOADS_DIR)
+                        urls[size_name] = f"{UPLOADS_URL_PREFIX}{relative_path}"
                     except ValueError:
                         # Fallback for tests or edge cases
-                        urls[size_name] = f"/uploads/teams/{team_id}/{size_name}/{filename}"
+                        urls[size_name] = f"{UPLOADS_URL_PREFIX}teams/{team_id}/{size_name}/{filename}"
 
                 logger.info(f"Successfully processed team logo for team {team_id}")
                 return urls
@@ -242,9 +243,9 @@ class ImageProcessingService:
         Returns:
             The relative path to store in the database (e.g., "uploads/teams/1/120x120/logo.jpg")
         """
-        # Return the path to the medium size image (used as the primary reference)
         logo_url = ImageProcessingService.get_team_logo_url(team_id, "120x120")
         if logo_url and logo_url.startswith("/uploads/"):
             # Remove /uploads/ prefix for database storage
-            return logo_url[9:]
+            return logo_url.removeprefix("/uploads/")
+        return f"teams/{team_id}/120x120/logo.jpg"
         return f"teams/{team_id}/120x120/logo.jpg"

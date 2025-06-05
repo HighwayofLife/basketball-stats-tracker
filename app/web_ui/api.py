@@ -167,10 +167,9 @@ upload_dir = Path(settings.UPLOAD_DIR)
 # Create upload directory if it doesn't exist
 upload_dir.mkdir(parents=True, exist_ok=True)
 
-if upload_dir.exists():
-    # Mount uploads directory for serving uploaded files
-    app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
-    logger.info(f"Mounted uploads directory: {upload_dir}")
+# Mount uploads directory for serving uploaded files
+app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
+logger.info(f"Mounted uploads directory: {upload_dir}")
 
 
 # Health check endpoint
