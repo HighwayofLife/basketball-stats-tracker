@@ -1,3 +1,9 @@
+v0.4.11
+-------
+
+### Refactoring / Optimization
+- Refactored duplicated listing logic in CLI commands by extracting common CSV/table formatting into reusable helper functions
+
 v0.4.10
 -------
 
