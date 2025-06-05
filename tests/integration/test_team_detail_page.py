@@ -14,8 +14,9 @@ from app.web_ui.dependencies import get_db
 
 
 @pytest.fixture
-def client(test_db_file_session):
+def client(test_db_file_session, monkeypatch):
     """Create a FastAPI test client with isolated database."""
+    from contextlib import contextmanager
 
     def override_get_db():
         return test_db_file_session
@@ -23,11 +24,31 @@ def client(test_db_file_session):
     def mock_current_user():
         return User(id=1, username="testuser", email="test@example.com", role="admin", is_active=True)
 
+    # Create a context manager that yields the same session
+    @contextmanager
+    def test_get_db_session():
+        try:
+            yield test_db_file_session
+        finally:
+            pass
+
+    # Patch get_db_session in modules that use it directly
+    import app.data_access.db_session as db_session_module
+    import app.web_ui.routers.games as games_module
+    import app.web_ui.routers.pages as pages_module
+
+    monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
+    monkeypatch.setattr(pages_module, "get_db_session", test_get_db_session)
+    monkeypatch.setattr(games_module, "get_db_session", test_get_db_session)
+
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[get_current_user] = mock_current_user
-    client = TestClient(app)
-    yield client
-    app.dependency_overrides.clear()
+
+    try:
+        client = TestClient(app)
+        yield client
+    finally:
+        app.dependency_overrides.clear()
 
 
 @pytest.fixture

@@ -85,17 +85,17 @@ class TestTeamLogoUploadWorkflow:
     def oversized_image_file(self):
         """Create an oversized image file for testing."""
         import random
-        
+
         # Create a large image with random noise that exceeds 5MB
         width, height = 2500, 2500
         img = Image.new("RGB", (width, height))
-        
+
         # Fill with random colors to make compression harder and exceed 5MB
         pixels = []
-        for i in range(width * height):
+        for _ in range(width * height):
             pixels.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
         img.putdata(pixels)
-        
+
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="JPEG", quality=100)
         img_bytes.seek(0)

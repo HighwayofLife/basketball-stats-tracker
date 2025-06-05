@@ -10,28 +10,42 @@ from app.main import app
 
 
 @pytest.fixture
-def client():
-    """Create test client."""
-    return TestClient(app)
+def client(test_db_file_session):
+    """Create test client with isolated database."""
+    from app.auth.dependencies import get_current_user
+    from app.auth.models import User
+    from app.web_ui.dependencies import get_db
+
+    def override_get_db():
+        return test_db_file_session
+
+    def mock_current_user():
+        return User(id=1, username="testuser", email="test@example.com", role="admin", is_active=True)
+
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_current_user] = mock_current_user
+    client = TestClient(app)
+    yield client
+    app.dependency_overrides.clear()
 
 
 @pytest.fixture
-def test_teams(db_session: Session):
+def test_teams(test_db_file_session: Session):
     """Create test teams."""
     team1 = Team(name="Team A", display_name="Team Alpha")
     team2 = Team(name="Team B", display_name="Team Beta")
-    db_session.add_all([team1, team2])
-    db_session.commit()
+    test_db_file_session.add_all([team1, team2])
+    test_db_file_session.commit()
     return team1, team2
 
 
 @pytest.fixture
-def team1_user(db_session: Session, test_teams):
+def team1_user(test_db_file_session: Session, test_teams):
     """Create a user for testing."""
     from app.auth.service import AuthService
 
     team1, _ = test_teams
-    auth_service = AuthService(db_session)
+    auth_service = AuthService(test_db_file_session)
     user = auth_service.create_user(
         username="team1user", password="password123", email="team1@example.com", role=UserRole.USER
     )
@@ -39,12 +53,12 @@ def team1_user(db_session: Session, test_teams):
 
 
 @pytest.fixture
-def team2_user(db_session: Session, test_teams):
+def team2_user(test_db_file_session: Session, test_teams):
     """Create another user for testing."""
     from app.auth.service import AuthService
 
     _, team2 = test_teams
-    auth_service = AuthService(db_session)
+    auth_service = AuthService(test_db_file_session)
     user = auth_service.create_user(
         username="team2user", password="password123", email="team2@example.com", role=UserRole.USER
     )
@@ -52,12 +66,12 @@ def team2_user(db_session: Session, test_teams):
 
 
 @pytest.fixture
-def admin_user(db_session: Session, test_teams):
+def admin_user(test_db_file_session: Session, test_teams):
     """Create an admin user."""
     from app.auth.service import AuthService
 
     team1, _ = test_teams
-    auth_service = AuthService(db_session)
+    auth_service = AuthService(test_db_file_session)
     user = auth_service.create_user(
         username="admin", password="adminpass123", email="admin@example.com", role=UserRole.ADMIN
     )
@@ -96,7 +110,7 @@ class TestSecurityWorkflow:
     """Test complete security workflows."""
 
     def test_user_can_only_access_own_team_data(
-        self, client: TestClient, db_session: Session, test_teams, team1_headers: dict, team2_headers: dict
+        self, client: TestClient, test_db_file_session: Session, test_teams, team1_headers: dict, team2_headers: dict
     ):
         """Test that users can only access their own team's data."""
         team1, team2 = test_teams
@@ -104,8 +118,8 @@ class TestSecurityWorkflow:
         # Create players for each team
         player1 = Player(name="Player 1", team_id=team1.id, jersey_number="1", is_active=True)
         player2 = Player(name="Player 2", team_id=team2.id, jersey_number="2", is_active=True)
-        db_session.add_all([player1, player2])
-        db_session.commit()
+        test_db_file_session.add_all([player1, player2])
+        test_db_file_session.commit()
 
         # Team 1 user should be able to access team 1 players
         response = client.get(f"/v1/players/list?team_id={team1.id}", headers=team1_headers)
@@ -116,15 +130,17 @@ class TestSecurityWorkflow:
         # This should be forbidden due to team access control
         # Note: This test assumes team-based access control is implemented in the endpoints
 
-    def test_admin_can_access_all_data(self, client: TestClient, db_session: Session, test_teams, admin_headers: dict):
+    def test_admin_can_access_all_data(
+        self, client: TestClient, test_db_file_session: Session, test_teams, admin_headers: dict
+    ):
         """Test that admin users can access all data."""
         team1, team2 = test_teams
 
         # Create players for both teams
         player1 = Player(name="Player 1", team_id=team1.id, jersey_number="1", is_active=True)
         player2 = Player(name="Player 2", team_id=team2.id, jersey_number="2", is_active=True)
-        db_session.add_all([player1, player2])
-        db_session.commit()
+        test_db_file_session.add_all([player1, player2])
+        test_db_file_session.commit()
 
         # Admin should be able to access both teams' data
         response = client.get(f"/v1/players/list?team_id={team1.id}", headers=admin_headers)
@@ -137,14 +153,16 @@ class TestSecurityWorkflow:
         response = client.put(f"/v1/players/{player2.id}", json={"name": "Admin Modified"}, headers=admin_headers)
         assert response.status_code != 403
 
-    def test_authentication_required_for_all_modifications(self, client: TestClient, db_session: Session, test_teams):
+    def test_authentication_required_for_all_modifications(
+        self, client: TestClient, test_db_file_session: Session, test_teams
+    ):
         """Test that all data modification endpoints require authentication."""
         team1, _ = test_teams
 
         # Create a player to test with
         player = Player(name="Test Player", team_id=team1.id, jersey_number="99", is_active=True)
-        db_session.add(player)
-        db_session.commit()
+        test_db_file_session.add(player)
+        test_db_file_session.commit()
 
         # Test all modification endpoints without authentication
         modification_endpoints = [
@@ -193,11 +211,11 @@ class TestSecurityWorkflow:
         response = client.post("/v1/data-corrections/undo", headers=admin_headers)
         assert response.status_code != 403  # Should not be forbidden (may have other errors)
 
-    def test_password_security_requirements(self, db_session: Session):
+    def test_password_security_requirements(self, test_db_file_session: Session):
         """Test that password security requirements are enforced."""
         from app.auth.service import AuthService
 
-        auth_service = AuthService(db_session)
+        auth_service = AuthService(test_db_file_session)
 
         # Test weak passwords are rejected
         weak_passwords = [
