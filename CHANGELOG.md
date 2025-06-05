@@ -1,3 +1,19 @@
+v0.4.13
+-------
+
+### Features
+- Added Cloud Storage support for persistent file uploads in production
+- Configured Cloud Storage FUSE volume mount in Cloud Run for team logos
+
+### Bug Fixes
+- Fixed team logo uploads being deleted on each deployment
+- Fixed Pydantic validation errors in Settings class
+
+### Refactoring / Optimization
+- Moved uploads directory outside application code directory for better separation
+- Updated all upload URLs from `/static/uploads/` to `/uploads/` for consistency
+- Added dedicated `/uploads` mount point in FastAPI for serving uploaded files
+
 v0.4.12
 -------
 
