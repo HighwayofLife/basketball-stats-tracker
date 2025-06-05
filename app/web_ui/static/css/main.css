@@ -1,6 +1,12 @@
 /* Basketball Stats Tracker - Main Stylesheet */
 /* Mobile-first responsive design with consolidated styles */
 
+/* Component imports - must come first */
+@import url('components/banners.css');
+@import url('components/team-logos.css');
+@import url('components/game-detail.css');
+@import url('components/box-score.css');
+
 :root {
   --primary-color: #ff6b00;
   --secondary-color: #294c70;
@@ -28,12 +34,6 @@
   --touch-target-tablet: 42px;
   --touch-target-landscape: 40px;
 }
-
-/* Component imports */
-@import url('components/banners.css');
-@import url('components/team-logos.css');
-@import url('components/game-detail.css');
-@import url('components/box-score.css');
 
 /* Base styles - Mobile first */
 * {

@@ -14,6 +14,7 @@ v0.4.11
 - Preserve jersey number string format in CSV parser (prevents "0" vs "00" issues)
 - Fixed authentication cookie security settings for local development environments
 - Fixed admin session authentication in UI validation tests
+- Fix Box Score table display on game detail page - regression
 
 v0.4.10
 -------
