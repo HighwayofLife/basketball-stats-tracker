@@ -4,6 +4,8 @@ CRUD operations for Player model.
 
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
+
 from app.data_access.models import Player
 
 
@@ -22,8 +24,8 @@ def create_player(db: Session, name: str, jersey_number: str, team_id: int) -> P
     """
     player = Player(team_id=team_id, name=name, jersey_number=jersey_number)
     db.add(player)
-    db.commit()
-    db.refresh(player)
+    with transaction(db, refresh=[player]):
+        pass
     return player
 
 

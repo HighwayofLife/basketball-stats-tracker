@@ -4,6 +4,7 @@ CRUD operations for PlayerQuarterStats model.
 
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
 from app.data_access.models import PlayerQuarterStats
 
 
@@ -32,8 +33,8 @@ def create_player_quarter_stats(
             setattr(quarter_stats, key, value)
 
     db.add(quarter_stats)
-    db.commit()
-    db.refresh(quarter_stats)
+    with transaction(db, refresh=[quarter_stats]):
+        pass
     return quarter_stats
 
 
