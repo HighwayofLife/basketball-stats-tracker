@@ -127,7 +127,8 @@ Tests are organized by type and mirror the source structure:
 - Whenever adding, changing, or removing any implementation, always run tests to be sure we didn't break anything. If new features or functionality are added, create new tests to test that feature/function.
 
 ## Workflow Memories
-- After implementing code, create/update the unit and integration tests, then run the test suites.
+- **For significant changes**: Consider running `make version-increment-patch` to update version and document in CHANGELOG.md
+- After implementing code, create/update the unit and integration tests, then run the test suites
 - If you get "no module named" errors, update the pyproject.toml and be sure we source the python env, then run `pip install ".[dev]"`
 - **Authentication issues should be caught by tests** - Always create proper test coverage for authentication requirements
 - **Don't rebuild containers for code changes** - Only rebuild when dependencies change; code is auto-reloaded via volume mounts
@@ -136,14 +137,15 @@ Tests are organized by type and mirror the source structure:
 - **Stay on current branch** - Don't switch branches unnecessarily unless explicitly requested
 
 ## Memory: Developer Workflow & Documentation Guidelines
-- If unsure what commands to run, consult the developer documentation.
-- Routinely update the developer documentation with useful/common commands that are needed.
-- Run tests after completing changes/task lists to be sure it didn't break anything.
-- Add/update tests as needed after completing changes.
-- But keep things simple.
+- If unsure what commands to run, consult the developer documentation
+- Routinely update the developer documentation with useful/common commands that are needed
+- Run tests after completing changes/task lists to be sure it didn't break anything
+- Add/update tests as needed after completing changes
+- But keep things simple
 
 ## Memory: CHANGELOG.md Updates
-- Fill out a very brief/short bullet points of what was changed, fixed, added, in the CHANGELOG.md file.
+- Fill out very brief/short bullet points of what was changed, fixed, added, in the CHANGELOG.md file
+- Update CHANGELOG.md when making significant changes to the codebase
 
 ## CSV Format
 
