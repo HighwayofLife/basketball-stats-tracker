@@ -84,8 +84,16 @@ class DockerContainerManager:
             try:
                 response = requests.get(f"{BASE_URL}/", timeout=5)
                 if response.status_code == 200:
-                    logger.info("Web service is ready")
-                    return
+                    # Additional check - try to hit the auth status endpoint
+                    try:
+                        auth_check = requests.get(f"{BASE_URL}/auth/oauth/status", timeout=5)
+                        if auth_check.status_code == 200:
+                            logger.info("Web service is ready (auth endpoints responding)")
+                            return
+                        else:
+                            logger.debug(f"Auth endpoint returned {auth_check.status_code}, waiting...")
+                    except Exception as e:
+                        logger.debug(f"Auth endpoint check failed: {e}, waiting...")
                 elif response.status_code == 500:
                     # Server is responding but may have errors, wait a bit more
                     logger.debug("Server responding with 500, waiting...")
@@ -137,6 +145,22 @@ def admin_session(docker_containers):
             error_detail = register_resp.json().get("detail", register_resp.text)
         except Exception:
             error_detail = register_resp.text
+        
+        # Log container logs for debugging in CI
+        if register_resp.status_code == 500:
+            try:
+                # Capture container logs
+                import subprocess
+                logs = subprocess.run(
+                    ["docker", "compose", "logs", "web", "--tail", "50"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                logger.error(f"Web container logs:\n{logs.stdout}")
+            except Exception as e:
+                logger.error(f"Failed to capture logs: {e}")
+        
         raise RuntimeError(f"{error_msg} - {error_detail}")
 
     # Attempt login

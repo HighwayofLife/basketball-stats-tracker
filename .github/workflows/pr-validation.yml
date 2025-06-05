@@ -332,6 +332,12 @@ jobs:
           # Wait for services to be ready
           docker compose exec -T web bash -c "for i in {1..30}; do basketball-stats health-check && break || sleep 2; done"
 
+      - name: Run database migrations
+        env:
+          DEFAULT_ADMIN_PASSWORD: TestAdminPassword123!
+        run: |
+          docker compose exec -T web alembic upgrade head
+
       - name: Run UI validation tests
         env:
           JWT_SECRET_KEY: test-secret-key-for-ci-environment-12345678
