@@ -1139,6 +1139,16 @@ a, button, input, select, textarea {
   font-family: monospace;
 }
 
+/* Feedback Form */
+.feedback-form-container {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.site-footer .feedback-link {
+  margin-left: 10px;
+}
+
 /* Body scroll lock when mobile menu is open */
 body.mobile-menu-active {
   overflow: hidden;

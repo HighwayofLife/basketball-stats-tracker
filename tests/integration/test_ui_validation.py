@@ -145,7 +145,7 @@ def admin_session(docker_containers):
             error_detail = register_resp.json().get("detail", register_resp.text)
         except Exception:
             error_detail = register_resp.text
-        
+
         # Log container logs for debugging in CI
         if register_resp.status_code == 500:
             try:
@@ -160,7 +160,7 @@ def admin_session(docker_containers):
                 logger.error(f"Web container logs:\n{logs.stdout}")
             except Exception as e:
                 logger.error(f"Failed to capture logs: {e}")
-        
+
         raise RuntimeError(f"{error_msg} - {error_detail}")
 
     # Attempt login

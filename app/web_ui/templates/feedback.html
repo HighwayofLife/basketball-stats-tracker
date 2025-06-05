@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% import "partials/macros/form_macros.html" as forms %}
+
+{% block content %}
+<div class="feedback-form-container">
+    <h2>Send Feedback</h2>
+    {% if success %}
+    <div class="alert alert-success" role="alert">Thank you for your feedback!</div>
+    {% elif error %}
+    <div class="alert alert-danger" role="alert">Unable to submit feedback at this time.</div>
+    {% endif %}
+    <form method="post">
+        {{ forms.select_field('issue_type', 'Type', options=[
+            {'value':'bug','text':'Bug'},
+            {'value':'feature','text':'Feature Request'},
+            {'value':'support','text':'Support Request'},
+            {'value':'feedback','text':'Feedback'}], required=true) }}
+        {{ forms.text_field('title', 'Title', required=true) }}
+        {{ forms.textarea_field('body', 'Description', rows=6, required=true) }}
+        {{ forms.submit_button('Submit', class='btn-primary') }}
+    </form>
+</div>
+{% endblock %}
