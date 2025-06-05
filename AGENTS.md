@@ -2,6 +2,23 @@
 
 This file provides guidance to AI coding agents (ChatGPT, Claude Code, GitHub Copilot, etc.) when working with code in this repository.
 
+## ⚠️ IMPORTANT: Change Management Workflow
+
+**For ChatGPT Codex/Coding Agents - ALWAYS follow this workflow when making changes:**
+
+1. **Make your code changes** (implement features, fix bugs, etc.)
+2. **Run version increment**: `make version-increment-patch` 
+   - This automatically increments the version in `pyproject.toml`
+   - Updates version files for the project
+3. **Update CHANGELOG.md**: Add brief bullet points describing:
+   - What was changed
+   - What was fixed  
+   - What was added
+4. **Run tests**: `make test` to ensure nothing is broken
+5. **Commit changes** (if requested by user)
+
+**Why this matters**: This workflow ensures proper version tracking, documentation of changes, and maintains project integrity.
+
 ## Essential Commands
 
 ### Development & Testing
@@ -136,14 +153,19 @@ Tests are organized by type and mirror the source structure:
 - **Stay on current branch** - Don't switch branches unnecessarily unless explicitly requested
 
 ## Developer Workflow & Documentation Guidelines
-- If unsure what commands to run, consult the developer documentation.
-- Routinely update the developer documentation with useful/common commands that are needed.
-- Run tests after completing changes/task lists to be sure it didn't break anything.
-- Add/update tests as needed after completing changes.
-- But keep things simple.
+- **CRITICAL**: Follow the Change Management Workflow above for all code changes
+- After implementing code, create/update the unit and integration tests, then run the test suites
+- If you get "no module named" errors, update the pyproject.toml and be sure we source the python env, then run `pip install ".[dev]"`
+- If unsure what commands to run, consult the developer documentation
+- Routinely update the developer documentation with useful/common commands that are needed
+- Run tests after completing changes/task lists to be sure it didn't break anything
+- Add/update tests as needed after completing changes
+- But keep things simple
 
 ## CHANGELOG.md Updates
-- Fill out a very brief/short bullet points of what was changed, fixed, added, in the CHANGELOG.md file.
+- **REQUIRED**: Always update CHANGELOG.md as part of the Change Management Workflow
+- Fill out very brief/short bullet points of what was changed, fixed, added
+- Use past tense and be specific but concise
 
 ## CSV Format
 
