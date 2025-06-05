@@ -12,6 +12,7 @@ Run with: pytest tests/integration/test_ui_validation.py
 """
 
 import logging
+import os
 import subprocess
 import time
 
@@ -102,6 +103,40 @@ def docker_containers():
         yield manager
     finally:
         manager.stop_containers()
+
+
+@pytest.fixture(scope="module")
+def admin_session(docker_containers):
+    """Authenticated session for the test admin user."""
+    session = requests.Session()
+    password = os.environ.get("ADMIN_PASSWORD", "TestAdminPassword123!")
+
+    login_resp = session.post(
+        f"{BASE_URL}/auth/token",
+        data={"username": "admin", "password": password},
+        timeout=10,
+    )
+
+    if login_resp.status_code == 401:
+        register_resp = session.post(
+            f"{BASE_URL}/auth/register",
+            json={
+                "username": "admin",
+                "email": "admin@example.com",
+                "password": password,
+                "full_name": "Admin User",
+            },
+            timeout=10,
+        )
+        assert register_resp.status_code in (200, 201), register_resp.text
+        login_resp = session.post(
+            f"{BASE_URL}/auth/token",
+            data={"username": "admin", "password": password},
+            timeout=10,
+        )
+
+    assert login_resp.status_code == 200, login_resp.text
+    return session
 
 
 class TestUIValidation:
@@ -460,29 +495,23 @@ class TestCreateGameUI:
         # Should handle credentials/authentication
         assert "credentials: 'include'" in content
 
-    def test_authenticated_navigation_shows_schedule_button(self, docker_containers):
+    def test_authenticated_navigation_shows_schedule_button(self, docker_containers, admin_session):
         """Test that authenticated users see the Schedule Game button."""
-        # First, check that unauthenticated users don't see the button
+        # Unauthenticated check
         response = requests.get(f"{BASE_URL}/games")
         soup = BeautifulSoup(response.content, "html.parser")
 
         unauthenticated_link = soup.find("a", href="/games/create")
         assert unauthenticated_link is None, "Schedule Game button should not be visible to unauthenticated users"
 
-        # Verify the page shows login option instead
         login_link = soup.find("a", href="/login")
         assert login_link is not None, "Login link should be visible to unauthenticated users"
 
-        # TODO: Add test for authenticated scenario when authentication test utilities are available
-        # This would require:
-        # 1. Login with test credentials using the test admin account
-        # 2. Set proper authentication cookies/headers
-        # 3. Verify the Schedule Game button appears
-        # 4. Verify other authenticated-only features are visible
-
-        # For now, verify authentication-related elements exist in the UI
-        page_source = response.text
-        assert "Login" in page_source, "Page should have login functionality"
+        # Authenticated scenario
+        auth_response = admin_session.get(f"{BASE_URL}/games")
+        auth_soup = BeautifulSoup(auth_response.content, "html.parser")
+        authenticated_link = auth_soup.find("a", href="/games/create")
+        assert authenticated_link is not None, "Schedule Game button should be visible to authenticated users"
 
 
 if __name__ == "__main__":

@@ -1,3 +1,9 @@
+v0.4.11
+-------
+
+### Refactoring / Optimization
+- Refactored duplicated listing logic in CLI commands by extracting common CSV/table formatting into reusable helper functions
+
 v0.4.10
 -------
 
@@ -10,7 +16,6 @@ v0.4.10
 ### Refactoring / Optimization
 - Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
 - Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
-- Refactored duplicated listing logic in CLI commands by extracting common CSV/table formatting into reusable helper functions
 
 ### Bug Fixes
 - Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
