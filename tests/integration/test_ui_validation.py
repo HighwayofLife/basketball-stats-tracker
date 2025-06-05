@@ -12,8 +12,14 @@ Run with: pytest tests/integration/test_ui_validation.py
 """
 
 import logging
+import os
 import subprocess
 import time
+
+# Set consistent admin password for tests
+os.environ["DEFAULT_ADMIN_PASSWORD"] = "TestAdminPassword123!"
+# Set JWT secret key for tests (required by auth module)
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-ui-tests-12345678901234567890"
 
 import pytest
 import requests
@@ -78,8 +84,16 @@ class DockerContainerManager:
             try:
                 response = requests.get(f"{BASE_URL}/", timeout=5)
                 if response.status_code == 200:
-                    logger.info("Web service is ready")
-                    return
+                    # Additional check - try to hit the auth status endpoint
+                    try:
+                        auth_check = requests.get(f"{BASE_URL}/auth/oauth/status", timeout=5)
+                        if auth_check.status_code == 200:
+                            logger.info("Web service is ready (auth endpoints responding)")
+                            return
+                        else:
+                            logger.debug(f"Auth endpoint returned {auth_check.status_code}, waiting...")
+                    except Exception as e:
+                        logger.debug(f"Auth endpoint check failed: {e}, waiting...")
                 elif response.status_code == 500:
                     # Server is responding but may have errors, wait a bit more
                     logger.debug("Server responding with 500, waiting...")
@@ -102,6 +116,62 @@ def docker_containers():
         yield manager
     finally:
         manager.stop_containers()
+
+
+@pytest.fixture(scope="module")
+def admin_session(docker_containers):
+    """Authenticated session for the test admin user."""
+    session = requests.Session()
+    test_username = "testadmin"
+    test_password = "TestAdminPassword123!"
+
+    # Try to register a new test user
+    register_resp = session.post(
+        f"{BASE_URL}/auth/register",
+        json={
+            "username": test_username,
+            "email": "testadmin@example.com",
+            "password": test_password,
+            "full_name": "Test Admin User",
+        },
+        timeout=10,
+    )
+
+    # If user already exists (400) or registration succeeds (200/201), proceed with login
+    if register_resp.status_code not in (200, 201, 400):
+        # Provide more context for debugging
+        error_msg = f"Unexpected registration response: {register_resp.status_code}"
+        try:
+            error_detail = register_resp.json().get("detail", register_resp.text)
+        except Exception:
+            error_detail = register_resp.text
+        
+        # Log container logs for debugging in CI
+        if register_resp.status_code == 500:
+            try:
+                # Capture container logs
+                import subprocess
+                logs = subprocess.run(
+                    ["docker", "compose", "logs", "web", "--tail", "50"],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+                logger.error(f"Web container logs:\n{logs.stdout}")
+            except Exception as e:
+                logger.error(f"Failed to capture logs: {e}")
+        
+        raise RuntimeError(f"{error_msg} - {error_detail}")
+
+    # Attempt login
+    login_resp = session.post(
+        f"{BASE_URL}/auth/token",
+        data={"username": test_username, "password": test_password},
+        timeout=10,
+    )
+
+    assert login_resp.status_code == 200, f"Login failed: {login_resp.text}"
+    return session
 
 
 class TestUIValidation:
@@ -169,12 +239,12 @@ class TestUIValidation:
 
                 # Check that the JavaScript uses correct API URLs (without /api prefix)
                 content = detail_response.text
-                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
-                    "Player detail page should use /v1/players/ID/stats endpoint"
-                )
-                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
-                    "Player detail page should use /v1/players/ID/upload-image endpoint"
-                )
+                assert f"/v1/players/${player_id}/stats" in content.replace(
+                    "{playerId}", str(player_id)
+                ), "Player detail page should use /v1/players/ID/stats endpoint"
+                assert f"/v1/players/${player_id}/upload-image" in content.replace(
+                    "{playerId}", str(player_id)
+                ), "Player detail page should use /v1/players/ID/upload-image endpoint"
 
                 # Ensure incorrect API URLs are not present
                 assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
@@ -279,9 +349,9 @@ class TestUIValidation:
 
             if response.status_code == 200:
                 # If it returns data, it should be JSON
-                assert "application/json" in response.headers.get("content-type", ""), (
-                    f"API endpoint {endpoint} not returning JSON"
-                )
+                assert "application/json" in response.headers.get(
+                    "content-type", ""
+                ), f"API endpoint {endpoint} not returning JSON"
 
 
 class TestContainerHealthCheck:
@@ -460,29 +530,23 @@ class TestCreateGameUI:
         # Should handle credentials/authentication
         assert "credentials: 'include'" in content
 
-    def test_authenticated_navigation_shows_schedule_button(self, docker_containers):
+    def test_authenticated_navigation_shows_schedule_button(self, docker_containers, admin_session):
         """Test that authenticated users see the Schedule Game button."""
-        # First, check that unauthenticated users don't see the button
+        # Unauthenticated check
         response = requests.get(f"{BASE_URL}/games")
         soup = BeautifulSoup(response.content, "html.parser")
 
         unauthenticated_link = soup.find("a", href="/games/create")
         assert unauthenticated_link is None, "Schedule Game button should not be visible to unauthenticated users"
 
-        # Verify the page shows login option instead
         login_link = soup.find("a", href="/login")
         assert login_link is not None, "Login link should be visible to unauthenticated users"
 
-        # TODO: Add test for authenticated scenario when authentication test utilities are available
-        # This would require:
-        # 1. Login with test credentials using the test admin account
-        # 2. Set proper authentication cookies/headers
-        # 3. Verify the Schedule Game button appears
-        # 4. Verify other authenticated-only features are visible
-
-        # For now, verify authentication-related elements exist in the UI
-        page_source = response.text
-        assert "Login" in page_source, "Page should have login functionality"
+        # Authenticated scenario
+        auth_response = admin_session.get(f"{BASE_URL}/games")
+        auth_soup = BeautifulSoup(auth_response.content, "html.parser")
+        authenticated_link = auth_soup.find("a", href="/games/create")
+        assert authenticated_link is not None, "Schedule Game button should be visible to authenticated users"
 
 
 if __name__ == "__main__":

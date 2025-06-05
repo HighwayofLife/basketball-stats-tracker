@@ -55,13 +55,13 @@ class CSVParser:
                 team_name = row["team_name"].strip()
                 player_name = row["player_name"].strip()
 
-                try:
-                    jersey_number = str(int(row["jersey_number"]))  # Validate as int, store as string
-                except (ValueError, TypeError):
+                jersey_number_raw = row["jersey_number"].strip()
+                if not jersey_number_raw.isdigit():
                     typer.echo(
                         f"Warning: Invalid jersey number '{row['jersey_number']}' for player '{player_name}'. Skipping."
                     )
                     continue
+                jersey_number = jersey_number_raw
 
                 if team_name not in team_data:
                     team_data[team_name] = {"player_count": 0}

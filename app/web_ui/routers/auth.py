@@ -77,7 +77,10 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/token")
 async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], response: Response, db: Session = Depends(get_db)
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
 ):
     """Login and receive access tokens."""
     auth_service = AuthService(db)
@@ -93,18 +96,20 @@ async def login(
     tokens = auth_service.create_tokens(user)
 
     # Set cookies for web UI authentication
+    # Only require HTTPS in production
+    is_secure = not str(request.url).startswith("http://localhost")
     response.set_cookie(
         key="access_token",
         value=tokens["access_token"],
         httponly=True,
-        secure=True,
+        secure=is_secure,
         samesite="Strict",
     )
     response.set_cookie(
         key="refresh_token",
         value=tokens["refresh_token"],
         httponly=True,
-        secure=True,
+        secure=is_secure,
         samesite="Strict",
     )
 
@@ -185,18 +190,20 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         # Create response with redirect to home page with tokens in URL fragment
         # This allows JavaScript to access the tokens and store them in localStorage
         response = RedirectResponse(url="/", status_code=302)
+        # Only require HTTPS in production
+        is_secure = not str(request.url).startswith("http://localhost")
         response.set_cookie(
             key="access_token",
             value=tokens["access_token"],
             httponly=True,
-            secure=True,
+            secure=is_secure,
             samesite="Strict",
         )
         response.set_cookie(
             key="refresh_token",
             value=tokens["refresh_token"],
             httponly=True,
-            secure=True,
+            secure=is_secure,
             samesite="Strict",
         )
 

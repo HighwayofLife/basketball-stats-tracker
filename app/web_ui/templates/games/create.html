@@ -9,20 +9,20 @@
             <button id="banner-close" class="banner-close" aria-label="Close">×</button>
         </div>
     </div>
-    
+
     <h2>Schedule Game</h2>
-    
+
     <form id="create-game-form">
         <div class="form-group">
             <label for="game-date">Game Date</label>
             <input type="date" class="form-control" id="game-date" required>
         </div>
-        
+
         <div class="form-group">
             <label for="game-time">Game Time</label>
             <input type="time" class="form-control" id="game-time">
         </div>
-        
+
         <div class="form-group">
             <label for="season">Season</label>
             <select class="form-control" id="season" required>
@@ -30,31 +30,31 @@
             </select>
             <small class="text-muted">The season this game belongs to</small>
         </div>
-        
+
         <div class="form-group">
             <label for="home-team">Home Team</label>
             <select class="form-control" id="home-team" required>
                 <option value="">Select Home Team</option>
             </select>
         </div>
-        
+
         <div class="form-group">
             <label for="away-team">Away Team</label>
             <select class="form-control" id="away-team" required>
                 <option value="">Select Away Team</option>
             </select>
         </div>
-        
+
         <div class="form-group">
             <label for="location">Location</label>
             <input type="text" class="form-control" id="location" placeholder="e.g., Main Gymnasium">
         </div>
-        
+
         <div class="form-group">
             <label for="notes">Notes</label>
             <textarea class="form-control" id="notes" rows="3"></textarea>
         </div>
-        
+
         <button type="submit" class="btn btn-primary">Schedule Game</button>
         <a href="/games" class="btn btn-secondary">Cancel</a>
     </form>
@@ -144,11 +144,11 @@
 function showSuccessBanner(message) {
     const banner = document.getElementById('banner');
     const bannerMessage = document.getElementById('banner-message');
-    
+
     bannerMessage.textContent = message;
     banner.className = 'banner success';
     banner.style.display = 'block';
-    
+
     // Auto-hide after 5 seconds
     setTimeout(() => {
         hideBanner();
@@ -158,7 +158,7 @@ function showSuccessBanner(message) {
 function showErrorBanner(message) {
     const banner = document.getElementById('banner');
     const bannerMessage = document.getElementById('banner-message');
-    
+
     bannerMessage.textContent = message;
     banner.className = 'banner error';
     banner.style.display = 'block';
@@ -174,19 +174,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('banner-close').addEventListener('click', hideBanner);
     // Set today's date as default
     document.getElementById('game-date').valueAsDate = new Date();
-    
+
     // Load seasons
     try {
         const token = localStorage.getItem('access_token');
         const response = await fetch('/v1/seasons', {
             headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
-        
+
         if (response.ok) {
             const data = await response.json();
             const seasons = data.seasons;
             const seasonSelect = document.getElementById('season');
-            
+
             seasons.forEach(season => {
                 const option = new Option(season.name, season.id);
                 if (season.is_active) {
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 seasonSelect.add(option);
             });
-            
+
             if (seasons.length === 0) {
                 const option = new Option('No seasons available - Create one first', '');
                 option.disabled = true;
@@ -212,15 +212,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         option.disabled = true;
         document.getElementById('season').add(option);
     }
-    
+
     // Load teams
     try {
         const response = await fetch('/v1/teams');
         const teams = await response.json();
-        
+
         const homeSelect = document.getElementById('home-team');
         const awaySelect = document.getElementById('away-team');
-        
+
         teams.forEach(team => {
             const option1 = new Option(team.name, team.id);
             const option2 = new Option(team.name, team.id);
@@ -230,25 +230,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (error) {
         console.error('Error loading teams:', error);
     }
-    
+
     // Form submission
     document.getElementById('create-game-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const homeTeamId = parseInt(document.getElementById('home-team').value);
         const awayTeamId = parseInt(document.getElementById('away-team').value);
         const seasonId = parseInt(document.getElementById('season').value);
-        
+
         if (homeTeamId === awayTeamId) {
             showErrorBanner('Home and away teams must be different');
             return;
         }
-        
+
         if (!seasonId) {
             showErrorBanner('Please select a season for this game');
             return;
         }
-        
+
         const scheduleData = {
             scheduled_date: document.getElementById('game-date').value,
             home_team_id: homeTeamId,
@@ -258,24 +258,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             location: document.getElementById('location').value || null,
             notes: document.getElementById('notes').value || null
         };
-        
+
         try {
             const token = localStorage.getItem('access_token');
             const headers = {
                 'Content-Type': 'application/json'
             };
-            
+
             if (token) {
                 headers['Authorization'] = `Bearer ${token}`;
             }
-            
+
             const response = await fetch('/v1/games/scheduled', {
                 method: 'POST',
                 headers: headers,
                 credentials: 'include', // Include cookies for authentication
                 body: JSON.stringify(scheduleData)
             });
-            
+
             if (response.ok) {
                 const scheduledGame = await response.json();
                 // Store success message in sessionStorage for display on games page

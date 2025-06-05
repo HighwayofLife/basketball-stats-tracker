@@ -1,3 +1,22 @@
+v0.4.11
+-------
+
+### Added
+- UI validation tests with authentication support
+- Enhanced team logo processing and display functionality
+
+### Refactoring / Optimization
+- Refactored duplicated listing logic in CLI commands by extracting common CSV/table formatting into reusable helper functions
+- Consolidated banner CSS styles into main.css (removed duplicate component files)
+- Improved test client setup for integration tests
+
+### Bug Fixes
+- Preserve jersey number string format in CSV parser (prevents "0" vs "00" issues)
+- Fixed authentication cookie security settings for local development environments
+- Fixed admin session authentication in UI validation tests
+- Fix Box Score table display on game detail page - regression
+- Fixed UI validation tests in CI by adding database migrations step and required environment variables
+
 v0.4.10
 -------
 
