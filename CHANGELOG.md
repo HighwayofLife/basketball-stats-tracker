@@ -1,3 +1,22 @@
+v0.4.10
+-------
+
+### Added
+- Team logo upload functionality with automatic image resizing
+- Unit tests for team logo image processing service
+- Unit tests for team logo API endpoints
+- Unit tests for team logo template helpers
+
+### Refactoring / Optimization
+- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (banners.css, team-logos.css)
+- Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
+
+### Bug Fixes
+- Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
+- Fix team logo upload not overwriting existing logos (ensure all sizes are deleted before creating new ones)
+- Fix team logo image format preservation (maintain original format PNG/JPG/WebP instead of converting all to JPEG)
+- Fix team logo resizing to preserve aspect ratios instead of cropping to exact dimensions (prevents distortion of non-square images)
+
 v0.4.9
 ------
 

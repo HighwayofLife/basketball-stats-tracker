@@ -2,13 +2,14 @@
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access.models import Team
 from app.repositories import PlayerRepository, TeamRepository
 from app.services.audit_log_service import AuditLogService
+from app.services.image_processing_service import ImageProcessingService
 from app.services.season_stats_service import SeasonStatsService
 
 from ..dependencies import get_db, get_player_repository, get_team_repository
@@ -502,3 +503,90 @@ async def restore_team(
     except Exception as e:
         logger.error(f"Error restoring team: {e}")
         raise HTTPException(status_code=500, detail="Failed to restore team") from e
+
+
+@router.post("/{team_id}/logo")
+async def upload_team_logo(
+    team_id: int, file: UploadFile = File(...), current_user: User = Depends(require_admin), db=Depends(get_db)
+):
+    """Upload a logo image for a team."""
+    try:
+        # Verify team exists
+        team = db.query(Team).filter(Team.id == team_id).first()
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+
+        # Store old logo filename for auditing
+        old_logo = team.logo_filename
+
+        # Process and store the logo in multiple sizes
+        logo_urls = await ImageProcessingService.process_team_logo(team_id, file)
+
+        # Update team record with logo filename
+        logo_filename = ImageProcessingService.update_team_logo_filename(team_id)
+        team.logo_filename = logo_filename
+
+        # Log the upload
+        audit_service = AuditLogService(db)
+        audit_service.log_update(
+            entity_type="team",
+            entity_id=team_id,
+            old_values={"logo_filename": old_logo},
+            new_values={"logo_filename": logo_filename},
+            description=f"Uploaded logo for team {team.name}",
+        )
+
+        db.commit()
+
+        return {
+            "success": True,
+            "message": "Logo uploaded successfully",
+            "logo_urls": logo_urls,
+            "logo_filename": logo_filename,
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error uploading team logo for team {team_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to upload logo") from e
+
+
+@router.delete("/{team_id}/logo")
+async def delete_team_logo(team_id: int, current_user: User = Depends(get_current_user), db=Depends(get_db)):
+    """Delete the logo for a team."""
+    try:
+        # Verify team exists
+        team = db.query(Team).filter(Team.id == team_id).first()
+        if not team:
+            raise HTTPException(status_code=404, detail="Team not found")
+
+        if not team.logo_filename:
+            raise HTTPException(status_code=400, detail="Team has no logo to delete")
+
+        # Delete logo files from filesystem
+        ImageProcessingService.delete_team_logo(team_id)
+
+        # Update team record
+        old_logo = team.logo_filename
+        team.logo_filename = None
+
+        # Log the deletion
+        audit_service = AuditLogService(db)
+        audit_service.log_update(
+            entity_type="team",
+            entity_id=team_id,
+            old_values={"logo_filename": old_logo},
+            new_values={"logo_filename": None},
+            description=f"Deleted logo for team {team.name}",
+        )
+
+        db.commit()
+
+        return {"success": True, "message": "Logo deleted successfully", "deleted_logo": old_logo}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error deleting team logo for team {team_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to delete logo") from e

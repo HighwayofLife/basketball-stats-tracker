@@ -2,274 +2,6 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-<style>
-.game-header {
-    margin-bottom: 2rem;
-}
-
-.scoreboard {
-    background: #f8f9fa;
-    border: 1px solid #dee2e6;
-    border-radius: 8px;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-}
-
-.team-info {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 2rem;
-}
-
-.team-section {
-    flex: 1;
-}
-
-.team-section.away-team {
-    text-align: left;
-}
-
-.team-section.home-team {
-    text-align: right;
-}
-
-.score-section {
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}
-
-.team-name {
-    font-size: 1.5rem;
-    font-weight: bold;
-    margin: 0;
-}
-
-.team-record {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-top: 0.2rem;
-}
-
-.team-score {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #007bff;
-}
-
-.game-date-mobile {
-    display: none;
-}
-
-/* Mobile styles */
-@media (max-width: 768px) {
-    .team-info {
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        grid-template-rows: auto auto;
-        gap: 0.5rem;
-        align-items: center;
-    }
-    
-    .score-section {
-        grid-column: 1 / -1;
-        grid-row: 1;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1rem;
-        margin-bottom: 0.5rem;
-    }
-    
-    .team-score {
-        font-size: 3rem;
-    }
-    
-    .game-date-mobile {
-        display: block;
-        font-size: 0.9rem;
-        color: #6c757d;
-        white-space: nowrap;
-    }
-    
-    .team-section.away-team {
-        grid-column: 1;
-        grid-row: 2;
-        text-align: left;
-    }
-    
-    .team-section.home-team {
-        grid-column: 3;
-        grid-row: 2;
-        text-align: right;
-    }
-    
-    .team-name {
-        font-size: 1.1rem;
-        margin-bottom: 0.1rem;
-    }
-    
-    .team-record {
-        font-size: 0.8rem;
-    }
-}
-
-.quarter-scores-table {
-    width: 100%;
-    margin-top: 1rem;
-}
-
-.quarter-scores-table th,
-.quarter-scores-table td {
-    text-align: center;
-    padding: 0.5rem;
-    border: 1px solid #dee2e6;
-}
-
-.quarter-scores-table th {
-    background-color: #e9ecef;
-    font-weight: bold;
-}
-
-.quarter-scores-table .team-name-cell {
-    text-align: left;
-    font-weight: bold;
-}
-
-.quarter-scores-table .total-score {
-    font-weight: bold;
-    font-size: 1.1rem;
-}
-
-.game-date {
-    text-align: center;
-    color: #6c757d;
-    margin-top: 1rem;
-    font-size: 1.1rem;
-}
-
-/* Box Score Specific Styling */
-.games-table .jersey-col {
-    width: 40px;
-}
-
-.games-table .stat-col {
-    text-align: center;
-}
-
-.games-table .jersey-number {
-    font-weight: 600;
-    color: #666;
-    text-align: center;
-}
-
-.games-table .player-name {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
-
-/* Stats columns center aligned */
-.games-table td:nth-child(3),
-.games-table td:nth-child(4),
-.games-table td:nth-child(5),
-.games-table td:nth-child(6) {
-    text-align: center;
-}
-
-/* Shooting percentage styling for desktop */
-.shooting-percentage {
-    font-size: 0.85em;
-    color: #666;
-    margin-left: 0.3rem;
-}
-
-@media (max-width: 768px) {
-    .desktop-date {
-        display: none;
-    }
-    
-    .box-score-table {
-        font-size: 0.85rem;
-    }
-    
-    .box-score-table .player-name {
-        max-width: 150px;
-    }
-    
-    /* Hide percentages on mobile */
-    .shooting-percentage {
-        display: none;
-    }
-}
-
-@media (max-width: 480px) {
-    .games-table .player-name {
-        max-width: 120px;
-    }
-}
-
-/* Player card styles moved to main.css */
-
-/* Mobile styles for smartphone portrait */
-@media screen and (max-width: 480px) and (orientation: portrait) {
-    /* Override card transformation for box score tables */
-    .mobile-table-view.data-table {
-        display: table;
-    }
-    
-    .mobile-table-view.data-table thead,
-    .mobile-table-view.data-table tbody,
-    .mobile-table-view.data-table tfoot {
-        display: table-row-group;
-    }
-    
-    .mobile-table-view.data-table thead {
-        display: table-header-group;
-    }
-    
-    .mobile-table-view.data-table thead tr {
-        position: static;
-        top: auto;
-        left: auto;
-        display: table-row;
-    }
-    
-    .mobile-table-view.data-table tr {
-        display: table-row;
-        border: none;
-        margin: 0;
-        padding: 0;
-        background: transparent;
-        border-radius: 0;
-    }
-    
-    .mobile-table-view.data-table th,
-    .mobile-table-view.data-table td {
-        display: table-cell;
-        border-bottom: 1px solid var(--border-color);
-        padding: 8px;
-        position: static;
-        text-align: left;
-    }
-    
-    .mobile-table-view.data-table td:before {
-        display: none;
-    }
-    
-    .mobile-table-view.data-table .stat-col,
-    .mobile-table-view.data-table td:nth-child(3),
-    .mobile-table-view.data-table td:nth-child(4),
-    .mobile-table-view.data-table td:nth-child(5),
-    .mobile-table-view.data-table td:nth-child(6) {
-        text-align: center;
-    }
-}
-
-</style>
 {% endblock %}
 
 {% block content %}
@@ -471,8 +203,13 @@
             <div class="scoreboard">
                 <div class="team-info">
                     <div class="team-section away-team">
-                        <h2 class="team-name">${awayTeam.name}</h2>
-                        <div class="team-record">(${awayRecord})</div>
+                        <div class="team-header-with-logo">
+                            <div class="team-logo-large" data-team-id="${awayTeam.team_id}"></div>
+                            <div class="team-info-text">
+                                <h2 class="team-name">${awayTeam.name}</h2>
+                                <div class="team-record">(${awayRecord})</div>
+                            </div>
+                        </div>
                     </div>
                     <div class="score-section">
                         <div class="team-score away-score">${awayTeam.score}</div>
@@ -480,8 +217,13 @@
                         <div class="team-score home-score">${homeTeam.score}</div>
                     </div>
                     <div class="team-section home-team">
-                        <h2 class="team-name">${homeTeam.name}</h2>
-                        <div class="team-record">(${homeRecord})</div>
+                        <div class="team-header-with-logo">
+                            <div class="team-info-text">
+                                <h2 class="team-name">${homeTeam.name}</h2>
+                                <div class="team-record">(${homeRecord})</div>
+                            </div>
+                            <div class="team-logo-large" data-team-id="${homeTeam.team_id}"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -569,6 +311,9 @@
 
         // Create shooting chart
         createShootingChart(data);
+        
+        // Load team logos
+        loadTeamLogosForGameDetail();
     }
 
     function populateTeamTable(tableId, teamData) {
@@ -760,6 +505,64 @@
             year: 'numeric',
             month: 'long',
             day: 'numeric'
+        });
+    }
+
+    async function loadTeamLogosForGameDetail() {
+        // Get all team logo containers
+        const logoContainers = document.querySelectorAll('.team-logo-large');
+        
+        // Create a set of unique team IDs to avoid duplicate requests
+        const teamIds = new Set();
+        logoContainers.forEach(container => {
+            const teamId = container.getAttribute('data-team-id');
+            if (teamId && teamId !== '') {
+                teamIds.add(teamId);
+            }
+        });
+
+        // Check if logos exist for each unique team ID
+        const logoCache = {};
+        await Promise.all([...teamIds].map(async (teamId) => {
+            try {
+                // Try multiple logo file formats
+                const formats = ['png', 'jpg', 'jpeg', 'webp'];
+                let logoUrl = null;
+                
+                for (const format of formats) {
+                    const testUrl = `/static/uploads/teams/${teamId}/64x64/logo.${format}`;
+                    try {
+                        const response = await fetch(testUrl, { method: 'HEAD' });
+                        if (response.ok) {
+                            logoUrl = testUrl;
+                            break;
+                        }
+                    } catch (e) {
+                        // Continue to next format
+                    }
+                }
+                
+                logoCache[teamId] = logoUrl;
+            } catch (error) {
+                console.warn(`Failed to check logo for team ${teamId}:`, error);
+                logoCache[teamId] = null;
+            }
+        }));
+
+        // Apply logos to containers
+        logoContainers.forEach(container => {
+            const teamId = container.getAttribute('data-team-id');
+            if (teamId && teamId !== '') {
+                const logoUrl = logoCache[teamId];
+                
+                if (logoUrl) {
+                    container.innerHTML = `<img src="${logoUrl}" alt="Team logo" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-users\\'></i>'">`;
+                } else {
+                    container.innerHTML = '<i class="fas fa-users"></i>';
+                }
+            } else {
+                container.innerHTML = '<i class="fas fa-users"></i>';
+            }
         });
     }
 </script>

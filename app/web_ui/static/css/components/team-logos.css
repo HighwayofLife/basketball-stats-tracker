@@ -1,0 +1,98 @@
+/* Team Logo Components */
+
+/* Team logo with text layouts */
+.team-with-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.team-with-logo-mobile {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Desktop team logos (32px standard, 50px large) */
+.team-logo-small {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.team-logo-small.large {
+    width: 50px;
+    height: 50px;
+}
+
+.team-logo-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-logo-small .fa-users {
+    font-size: 14px;
+    color: #6c757d;
+}
+
+/* Mobile team logos */
+.team-logo-mobile {
+    width: 24px;
+    height: 24px;
+    border-radius: 3px;
+    background-color: #f8f9fa;
+    border: 1px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.team-logo-mobile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.team-logo-mobile .fa-users {
+    font-size: 10px;
+    color: #6c757d;
+}
+
+/* Team logo container for detail pages */
+#team-logo-container {
+    width: 100px;
+    height: 100px;
+    overflow: hidden;
+    border-radius: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .team-with-logo {
+        gap: 0.25rem;
+    }
+    
+    .team-logo-small {
+        width: 24px;
+        height: 24px;
+    }
+    
+    .team-logo-small.large {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .team-logo-small .fa-users {
+        font-size: 10px;
+    }
+}

@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
+<!-- Success/Error Banner -->
+<div id="banner" class="banner" style="display: none;">
+    <div class="banner-content">
+        <span id="banner-message"></span>
+        <button id="banner-close" class="banner-close" aria-label="Close">×</button>
+    </div>
+</div>
+
 <div id="team-data">
     <!-- Loading state -->
     <div class="card text-center">
@@ -85,6 +93,50 @@
                 <button class="btn btn-danger" onclick="confirmDeletePlayer()">Delete Player</button>
                 <button class="btn btn-secondary" onclick="closeDeletePlayerModal()">Cancel</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Logo Upload Modal -->
+<div id="logo-upload-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Upload Team Logo</h3>
+            <span class="close" onclick="closeLogoUploadModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="logo-upload-form">
+                <div class="form-group">
+                    <label for="logo-file">Select Logo Image *</label>
+                    <input type="file" id="logo-file" name="file" accept="image/*" required>
+                    <div class="form-help">
+                        Supported formats: JPG, PNG, WebP. Maximum size: 5MB.<br>
+                        The image will be automatically resized for optimal display.
+                    </div>
+                </div>
+
+                <div id="logo-preview" style="display: none; margin-top: 1rem;">
+                    <label>Preview:</label>
+                    <div class="preview-container" style="text-align: center;">
+                        <img id="logo-preview-img" alt="Logo preview">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="upload-logo-btn">
+                        <i class="fas fa-upload me-2"></i>Upload Logo
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="closeLogoUploadModal()">Cancel</button>
+                    {% if team %}
+                        {% set current_logo = team_logo_url(team, '120x120') %}
+                        {% if current_logo %}
+                            <button type="button" class="btn btn-danger" onclick="deleteTeamLogo()">
+                                <i class="fas fa-trash me-2"></i>Delete Current Logo
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -221,6 +273,27 @@
         flex-direction: column;
     }
 }
+
+/* Logo upload form styles */
+.form-help {
+    font-size: 0.875rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.preview-container {
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    border: 1px dashed #dee2e6;
+}
+
+#logo-preview-img {
+    object-fit: cover;
+    max-width: 200px;
+    max-height: 200px;
+}
+
 </style>
 
 <script>
@@ -228,8 +301,40 @@ let teamId = {{ team_id }};
 let currentPlayerId = null;
 let deletePlayerId = null;
 
+// Banner functions
+function showSuccessBanner(message) {
+    const banner = document.getElementById('banner');
+    const bannerMessage = document.getElementById('banner-message');
+
+    bannerMessage.textContent = message;
+    banner.className = 'banner success';
+    banner.style.display = 'block';
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        hideBanner();
+    }, 5000);
+}
+
+function showErrorBanner(message) {
+    const banner = document.getElementById('banner');
+    const bannerMessage = document.getElementById('banner-message');
+
+    bannerMessage.textContent = message;
+    banner.className = 'banner error';
+    banner.style.display = 'block';
+}
+
+function hideBanner() {
+    const banner = document.getElementById('banner');
+    banner.style.display = 'none';
+}
+
 // Load team data when page loads
 document.addEventListener('DOMContentLoaded', () => {
+    // Setup banner close functionality
+    document.getElementById('banner-close').addEventListener('click', hideBanner);
+
     loadTeamData();
 });
 
@@ -272,8 +377,17 @@ function renderTeamData(teamData, statsData) {
             <div class="card-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
                 <div class="row align-items-center">
                     <div class="col-auto">
-                        <div class="rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
-                            <i class="fas fa-users fa-3x text-primary"></i>
+                        <div class="border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" id="team-logo-container">
+                            {% if team %}
+                                {% set logo_url = team_logo_url(team, '120x120') %}
+                                {% if logo_url %}
+                                    <img src="{{ logo_url }}" alt="{{ team.display_name or team.name }} logo" class="w-100 h-100" style="object-fit: cover;">
+                                {% else %}
+                                    <i class="fas fa-users fa-3x text-primary"></i>
+                                {% endif %}
+                            {% else %}
+                                <i class="fas fa-users fa-3x text-primary"></i>
+                            {% endif %}
                         </div>
                     </div>
                     <div class="col">
@@ -289,6 +403,11 @@ function renderTeamData(teamData, statsData) {
                         <a href="/teams" class="btn btn-outline-light me-2">
                             <i class="fas fa-arrow-left me-2"></i>Back to Teams
                         </a>
+                        {% if is_authenticated|default(false) %}
+                            <button onclick="showLogoUploadModal()" class="btn btn-outline-light me-2">
+                                <i class="fas fa-upload me-2"></i>Upload Logo
+                            </button>
+                        {% endif %}
                         <button onclick="showAddPlayerModal()" class="btn btn-light">
                             <i class="fas fa-plus me-2"></i>Add Player
                         </button>
@@ -621,7 +740,7 @@ function createTeamGamesHtml(games, teamName) {
         const gameDate = new Date(game.date);
         const dateStr = gameDate.toLocaleDateString();
         const isWin = game.win || false;
-        
+
         html += `
                 <tr>
                     <td data-label="Date">${dateStr}</td>
@@ -683,16 +802,132 @@ function createTeamGamesHtml(games, teamName) {
     return html;
 }
 
+// Logo upload functions
+function showLogoUploadModal() {
+    document.getElementById('logo-upload-form').reset();
+    document.getElementById('logo-preview').style.display = 'none';
+    document.getElementById('logo-upload-modal').style.display = 'block';
+}
+
+function closeLogoUploadModal() {
+    document.getElementById('logo-upload-modal').style.display = 'none';
+}
+
+// File preview functionality
+document.getElementById('logo-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('logo-preview-img').src = e.target.result;
+            document.getElementById('logo-preview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    } else {
+        document.getElementById('logo-preview').style.display = 'none';
+    }
+});
+
+// Logo upload form submission
+document.getElementById('logo-upload-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('logo-file');
+    const uploadBtn = document.getElementById('upload-logo-btn');
+
+    if (!fileInput.files[0]) {
+        alert('Please select a file to upload.');
+        return;
+    }
+
+    // Disable upload button and show loading state
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    try {
+        const response = await fetch(`/v1/teams/${teamId}/logo`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            const result = await response.json();
+            closeLogoUploadModal();
+
+            // Update the logo display immediately
+            updateTeamLogoDisplay(result.logo_urls['120x120']);
+
+            showSuccessBanner('Logo uploaded successfully!');
+        } else {
+            const error = await response.json();
+            showErrorBanner(`Error uploading logo: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('Error uploading logo:', error);
+        showErrorBanner('Failed to upload logo. Please try again.');
+    } finally {
+        // Re-enable upload button
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload Logo';
+    }
+});
+
+// Delete team logo
+async function deleteTeamLogo() {
+    if (!confirm('Are you sure you want to delete the team logo?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/v1/teams/${teamId}/logo`, {
+            method: 'DELETE'
+        });
+
+        if (response.ok) {
+            closeLogoUploadModal();
+
+            // Update the logo display to show placeholder
+            updateTeamLogoDisplay(null);
+
+            showSuccessBanner('Logo deleted successfully!');
+        } else {
+            const error = await response.json();
+            showErrorBanner(`Error deleting logo: ${error.detail}`);
+        }
+    } catch (error) {
+        console.error('Error deleting logo:', error);
+        showErrorBanner('Failed to delete logo. Please try again.');
+    }
+}
+
+// Update team logo display
+function updateTeamLogoDisplay(logoUrl) {
+    const container = document.getElementById('team-logo-container');
+    if (logoUrl) {
+        container.innerHTML = `<img src="${logoUrl}" alt="Team logo" class="w-100 h-100" style="object-fit: cover;">`;
+    } else {
+        container.innerHTML = '<i class="fas fa-users fa-3x text-primary"></i>';
+    }
+}
+
+
 // Close modals when clicking outside
 window.onclick = function(event) {
     const playerModal = document.getElementById('player-modal');
     const deleteModal = document.getElementById('delete-player-modal');
+    const logoModal = document.getElementById('logo-upload-modal');
 
     if (event.target === playerModal) {
         closePlayerModal();
     }
     if (event.target === deleteModal) {
         closeDeletePlayerModal();
+    }
+    if (event.target === logoModal) {
+        closeLogoUploadModal();
     }
 }
 </script>

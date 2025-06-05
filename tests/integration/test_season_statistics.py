@@ -31,17 +31,17 @@ class TestSeasonStatisticsIntegration:
     """Integration tests for season statistics functionality."""
 
     @pytest.fixture
-    def setup_test_data(self, db_session: Session):
+    def setup_test_data(self, test_db_file_session: Session):
         """Set up test data for integration tests."""
         # Create teams
-        team1 = create_team(db_session, "Lakers")
-        team2 = create_team(db_session, "Warriors")
+        team1 = create_team(test_db_file_session, "Lakers")
+        team2 = create_team(test_db_file_session, "Warriors")
 
         # Create players
-        player1 = create_player(db_session, "LeBron James", 23, team1.id)
-        player2 = create_player(db_session, "Anthony Davis", 3, team1.id)
-        player3 = create_player(db_session, "Stephen Curry", 30, team2.id)
-        player4 = create_player(db_session, "Klay Thompson", 11, team2.id)
+        player1 = create_player(test_db_file_session, "LeBron James", 23, team1.id)
+        player2 = create_player(test_db_file_session, "Anthony Davis", 3, team1.id)
+        player3 = create_player(test_db_file_session, "Stephen Curry", 30, team2.id)
+        player4 = create_player(test_db_file_session, "Klay Thompson", 11, team2.id)
 
         # Create season
         season = Season(
@@ -52,21 +52,21 @@ class TestSeasonStatisticsIntegration:
             is_active=True,
             description="Test season for 2024-2025",
         )
-        db_session.add(season)
-        db_session.commit()
+        test_db_file_session.add(season)
+        test_db_file_session.commit()
 
         # Create games
-        game1 = create_game(db_session, "2024-11-01", team1.id, team2.id)
-        game2 = create_game(db_session, "2024-11-05", team2.id, team1.id)
+        game1 = create_game(test_db_file_session, "2024-11-01", team1.id, team2.id)
+        game2 = create_game(test_db_file_session, "2024-11-05", team2.id, team1.id)
 
         # Create game stats for game 1 (Lakers home)
         # Lakers players
         from app.data_access.crud import update_player_game_stats_totals
 
         # Create player1 stats
-        p1_stats = create_player_game_stats(db_session, game1.id, player1.id, fouls=3)
+        p1_stats = create_player_game_stats(test_db_file_session, game1.id, player1.id, fouls=3)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p1_stats.id,
             {
                 "total_ftm": 8,
@@ -78,9 +78,9 @@ class TestSeasonStatisticsIntegration:
             },
         )
         # Create player2 stats
-        p2_stats = create_player_game_stats(db_session, game1.id, player2.id, fouls=2)
+        p2_stats = create_player_game_stats(test_db_file_session, game1.id, player2.id, fouls=2)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p2_stats.id,
             {
                 "total_ftm": 6,
@@ -93,9 +93,9 @@ class TestSeasonStatisticsIntegration:
         )
         # Warriors players
         # Create player3 stats
-        p3_stats = create_player_game_stats(db_session, game1.id, player3.id, fouls=2)
+        p3_stats = create_player_game_stats(test_db_file_session, game1.id, player3.id, fouls=2)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p3_stats.id,
             {
                 "total_ftm": 10,
@@ -107,9 +107,9 @@ class TestSeasonStatisticsIntegration:
             },
         )
         # Create player4 stats
-        p4_stats = create_player_game_stats(db_session, game1.id, player4.id, fouls=4)
+        p4_stats = create_player_game_stats(test_db_file_session, game1.id, player4.id, fouls=4)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p4_stats.id,
             {
                 "total_ftm": 4,
@@ -124,9 +124,9 @@ class TestSeasonStatisticsIntegration:
         # Create game stats for game 2 (Warriors home)
         # Lakers players
         # Create player1 stats for game2
-        p1_g2_stats = create_player_game_stats(db_session, game2.id, player1.id, fouls=4)
+        p1_g2_stats = create_player_game_stats(test_db_file_session, game2.id, player1.id, fouls=4)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p1_g2_stats.id,
             {
                 "total_ftm": 6,
@@ -138,9 +138,9 @@ class TestSeasonStatisticsIntegration:
             },
         )
         # Create player2 stats for game2
-        p2_g2_stats = create_player_game_stats(db_session, game2.id, player2.id, fouls=3)
+        p2_g2_stats = create_player_game_stats(test_db_file_session, game2.id, player2.id, fouls=3)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p2_g2_stats.id,
             {
                 "total_ftm": 8,
@@ -153,9 +153,9 @@ class TestSeasonStatisticsIntegration:
         )
         # Warriors players
         # Create player3 stats for game2
-        p3_g2_stats = create_player_game_stats(db_session, game2.id, player3.id, fouls=1)
+        p3_g2_stats = create_player_game_stats(test_db_file_session, game2.id, player3.id, fouls=1)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p3_g2_stats.id,
             {
                 "total_ftm": 8,
@@ -167,9 +167,9 @@ class TestSeasonStatisticsIntegration:
             },
         )
         # Create player4 stats for game2
-        p4_g2_stats = create_player_game_stats(db_session, game2.id, player4.id, fouls=3)
+        p4_g2_stats = create_player_game_stats(test_db_file_session, game2.id, player4.id, fouls=3)
         update_player_game_stats_totals(
-            db_session,
+            test_db_file_session,
             p4_g2_stats.id,
             {
                 "total_ftm": 2,
@@ -187,15 +187,17 @@ class TestSeasonStatisticsIntegration:
             "games": [game1, game2],
         }
 
-    def test_update_season_stats_integration(self, db_session: Session, setup_test_data):
+    def test_update_season_stats_integration(self, test_db_file_session: Session, setup_test_data):
         """Test updating season statistics for all players and teams."""
-        season_service = SeasonStatsService(db_session)
+        season_service = SeasonStatsService(test_db_file_session)
 
         # Update all season stats
         season_service.update_all_season_stats("2024-2025")
 
         # Check player season stats
-        lebron_stats = get_player_season_stats(db_session, setup_test_data["players"]["lebron"].id, "2024-2025")
+        lebron_stats = get_player_season_stats(
+            test_db_file_session, setup_test_data["players"]["lebron"].id, "2024-2025"
+        )
         assert lebron_stats is not None
         assert lebron_stats.games_played == 2
         assert lebron_stats.total_fouls == 7
@@ -205,7 +207,7 @@ class TestSeasonStatisticsIntegration:
         assert lebron_stats.total_3pm == 5
 
         # Check team season stats
-        lakers_stats = get_team_season_stats(db_session, setup_test_data["teams"]["lakers"].id, "2024-2025")
+        lakers_stats = get_team_season_stats(test_db_file_session, setup_test_data["teams"]["lakers"].id, "2024-2025")
         assert lakers_stats is not None
         assert lakers_stats.games_played == 2
         # Lakers scored 64 in game 1 (8+6 FT + 10*2+12*2 2P + 2*3+0*3 3P = 14+44+6=64)
@@ -216,9 +218,9 @@ class TestSeasonStatisticsIntegration:
         assert lakers_stats.wins == 0
         assert lakers_stats.losses == 2
 
-    def test_player_rankings_integration(self, db_session: Session, setup_test_data):
+    def test_player_rankings_integration(self, test_db_file_session: Session, setup_test_data):
         """Test player rankings functionality."""
-        season_service = SeasonStatsService(db_session)
+        season_service = SeasonStatsService(test_db_file_session)
 
         # Update season stats first
         season_service.update_all_season_stats("2024-2025")
@@ -235,9 +237,9 @@ class TestSeasonStatisticsIntegration:
         assert ppg_rankings[0]["value"] == 50.0
 
     @pytest.mark.skip(reason="Test data setup issue - expected 2 teams but found 0")
-    def test_team_standings_integration(self, db_session: Session, setup_test_data):
+    def test_team_standings_integration(self, test_db_file_session: Session, setup_test_data):
         """Test team standings functionality."""
-        season_service = SeasonStatsService(db_session)
+        season_service = SeasonStatsService(test_db_file_session)
 
         # Update season stats first
         season_service.update_all_season_stats("2024-2025")
@@ -260,7 +262,7 @@ class TestSeasonStatisticsIntegration:
         assert standings[1]["win_pct"] == 0.0
         assert standings[1]["games_back"] == 2.0
 
-    def test_cli_season_report_standings(self, db_session: Session, setup_test_data, cli_runner: CliRunner):
+    def test_cli_season_report_standings(self, test_db_file_session: Session, setup_test_data, cli_runner: CliRunner):
         """Test CLI season report for standings."""
         # Mock the get_team_standings method to return expected data
         mock_standings_data = [
@@ -305,7 +307,9 @@ class TestSeasonStatisticsIntegration:
             assert "2" in result.output  # wins
             assert "0" in result.output  # losses
 
-    def test_cli_season_report_player_leaders(self, db_session: Session, setup_test_data, cli_runner: CliRunner):
+    def test_cli_season_report_player_leaders(
+        self, test_db_file_session: Session, setup_test_data, cli_runner: CliRunner
+    ):
         """Test CLI season report for player leaders."""
         # Mock the get_player_rankings method to return expected data
         mock_player_data = [
@@ -349,7 +353,7 @@ class TestSeasonStatisticsIntegration:
             assert "Stephen Curry" in result.output
             assert "50.000" in result.output  # Curry's PPG
 
-    def test_cli_update_season_stats(self, db_session: Session, setup_test_data, cli_runner: CliRunner):
+    def test_cli_update_season_stats(self, test_db_file_session: Session, setup_test_data, cli_runner: CliRunner):
         """Test CLI command to update season statistics."""
         # Mock the update_all_season_stats method
         with patch("app.services.season_stats_service.SeasonStatsService.update_all_season_stats") as mock_update:
@@ -365,9 +369,9 @@ class TestSeasonStatisticsIntegration:
             # Verify the method was called with correct season
             mock_update.assert_called_once_with("2024-2025")
 
-    def test_season_detection(self, db_session: Session):
+    def test_season_detection(self, test_db_file_session: Session):
         """Test automatic season detection based on game dates."""
-        season_service = SeasonStatsService(db_session)
+        season_service = SeasonStatsService(test_db_file_session)
 
         # Test various dates
         assert season_service.get_season_from_date(date(2024, 10, 1)) == "2024-2025"
@@ -376,7 +380,9 @@ class TestSeasonStatisticsIntegration:
         assert season_service.get_season_from_date(date(2024, 9, 30)) == "2023-2024"
         assert season_service.get_season_from_date(date(2024, 5, 1)) == "2023-2024"
 
-    def test_csv_export_season_report(self, db_session: Session, setup_test_data, cli_runner: CliRunner, tmp_path):
+    def test_csv_export_season_report(
+        self, test_db_file_session: Session, setup_test_data, cli_runner: CliRunner, tmp_path
+    ):
         """Test CSV export of season reports."""
         # Mock the get_team_standings method to return expected data
         mock_standings_data = [

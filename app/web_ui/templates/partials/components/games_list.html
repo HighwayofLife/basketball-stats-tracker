@@ -1,4 +1,4 @@
-{# 
+{#
 Unified Games List Component
 Displays a list of games in both desktop table and mobile card formats
 
@@ -16,7 +16,7 @@ Game object structure (flexible):
 - id/game_id: Game ID
 - date: Game date (string or date object)
 - away_team: Away team name
-- home_team: Home team name  
+- home_team: Home team name
 - away_score: Away team score
 - home_score: Home team score
 - opponent: Opponent name (for team/player views)
@@ -75,15 +75,47 @@ Game object structure (flexible):
                 {% endif %}
             </td>
             {% endif %}
-            
+
             {% if 'away_team' in columns %}
-            <td data-label="Away Team">{{ game.away_team }}</td>
+            <td data-label="Away Team">
+                <div class="team-with-logo">
+                    <div class="team-logo-small">
+                        {% if game.away_team_id is defined %}
+                            {% set away_logo_url = team_logo_url({'id': game.away_team_id}, '64x64') %}
+                            {% if away_logo_url %}
+                                <img src="{{ away_logo_url }}" alt="{{ game.away_team }} logo">
+                            {% else %}
+                                <i class="fas fa-users"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-users"></i>
+                        {% endif %}
+                    </div>
+                    <span>{{ game.away_team }}</span>
+                </div>
+            </td>
             {% endif %}
-            
+
             {% if 'opponent' in columns %}
-            <td data-label="Opponent">{{ game.opponent }}</td>
+            <td data-label="Opponent">
+                <div class="team-with-logo">
+                    <div class="team-logo-small">
+                        {% if game.opponent_team_id is defined %}
+                            {% set opponent_logo_url = team_logo_url({'id': game.opponent_team_id}, '64x64') %}
+                            {% if opponent_logo_url %}
+                                <img src="{{ opponent_logo_url }}" alt="{{ game.opponent }} logo">
+                            {% else %}
+                                <i class="fas fa-users"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-users"></i>
+                        {% endif %}
+                    </div>
+                    <span>{{ game.opponent }}</span>
+                </div>
+            </td>
             {% endif %}
-            
+
             {% if 'score' in columns %}
             <td data-label="Score" class="score">
                 {% if view_type == 'full' %}
@@ -105,7 +137,7 @@ Game object structure (flexible):
                 {% endif %}
             </td>
             {% endif %}
-            
+
             {% if 'result' in columns %}
             <td data-label="Result" class="text-center">
                 {% if game.win is defined %}
@@ -113,11 +145,27 @@ Game object structure (flexible):
                 {% endif %}
             </td>
             {% endif %}
-            
+
             {% if 'home_team' in columns %}
-            <td data-label="Home Team">{{ game.home_team }}</td>
+            <td data-label="Home Team">
+                <div class="team-with-logo">
+                    <div class="team-logo-small">
+                        {% if game.home_team_id is defined %}
+                            {% set home_logo_url = team_logo_url({'id': game.home_team_id}, '64x64') %}
+                            {% if home_logo_url %}
+                                <img src="{{ home_logo_url }}" alt="{{ game.home_team }} logo">
+                            {% else %}
+                                <i class="fas fa-users"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-users"></i>
+                        {% endif %}
+                    </div>
+                    <span>{{ game.home_team }}</span>
+                </div>
+            </td>
             {% endif %}
-            
+
             {% if 'actions' in columns %}
             <td data-label="Actions">
                 {% set game_id = game.id if game.id is defined else game.game_id %}
@@ -159,14 +207,42 @@ Game object structure (flexible):
                     {% set is_scheduled = (game.id < 0) or (game.away_score == 0 and game.home_score == 0) %}
                     {% set away_won = not is_scheduled and game.away_score > game.home_score %}
                     {% set home_won = not is_scheduled and game.home_score > game.away_score %}
-                    
+
                     <div class="team-entry {{ 'winner' if away_won else '' }}">
-                        <span class="team-name">{{ game.away_team }}</span>
+                        <div class="team-with-logo-mobile">
+                            <div class="team-logo-mobile">
+                                {% if game.away_team_id is defined %}
+                                    {% set away_logo_url = team_logo_url({'id': game.away_team_id}, '64x64') %}
+                                    {% if away_logo_url %}
+                                        <img src="{{ away_logo_url }}" alt="{{ game.away_team }} logo">
+                                    {% else %}
+                                        <i class="fas fa-users"></i>
+                                    {% endif %}
+                                {% else %}
+                                    <i class="fas fa-users"></i>
+                                {% endif %}
+                            </div>
+                            <span class="team-name">{{ game.away_team }}</span>
+                        </div>
                         <span class="team-score">{{ '-' if is_scheduled else game.away_score }}</span>
                         {% if away_won %}<span class="winner-arrow">◄</span>{% endif %}
                     </div>
                     <div class="team-entry {{ 'winner' if home_won else '' }}">
-                        <span class="team-name">{{ game.home_team }}</span>
+                        <div class="team-with-logo-mobile">
+                            <div class="team-logo-mobile">
+                                {% if game.home_team_id is defined %}
+                                    {% set home_logo_url = team_logo_url({'id': game.home_team_id}, '64x64') %}
+                                    {% if home_logo_url %}
+                                        <img src="{{ home_logo_url }}" alt="{{ game.home_team }} logo">
+                                    {% else %}
+                                        <i class="fas fa-users"></i>
+                                    {% endif %}
+                                {% else %}
+                                    <i class="fas fa-users"></i>
+                                {% endif %}
+                            </div>
+                            <span class="team-name">{{ game.home_team }}</span>
+                        </div>
                         <span class="team-score">{{ '-' if is_scheduled else game.home_score }}</span>
                         {% if home_won %}<span class="winner-arrow">◄</span>{% endif %}
                     </div>
@@ -177,14 +253,20 @@ Game object structure (flexible):
                     {% set team_won = game.win if game.win is defined else (team_score > opp_score) %}
                     {% set opponent_won = not team_won and team_score != opp_score %}
                     {% set team_name_display = game.team_name if game.team_name is defined else 'Team' %}
-                    
+
                     <div class="team-entry {{ 'winner' if team_won else '' }}">
-                        <span class="team-name">{{ team_name_display }}</span>
+                        <div class="team-with-logo-mobile">
+                            <div class="team-logo-mobile" data-team-id="{{ game.team_id if game.team_id is defined else '' }}"></div>
+                            <span class="team-name">{{ team_name_display }}</span>
+                        </div>
                         <span class="team-score">{{ team_score }}</span>
                         {% if team_won %}<span class="winner-arrow">◄</span>{% endif %}
                     </div>
                     <div class="team-entry {{ 'winner' if opponent_won else '' }}">
-                        <span class="team-name">{{ game.opponent }}</span>
+                        <div class="team-with-logo-mobile">
+                            <div class="team-logo-mobile" data-team-id="{{ game.opponent_team_id if game.opponent_team_id is defined else '' }}"></div>
+                            <span class="team-name">{{ game.opponent }}</span>
+                        </div>
                         <span class="team-score">{{ opp_score }}</span>
                         {% if opponent_won %}<span class="winner-arrow">◄</span>{% endif %}
                     </div>
