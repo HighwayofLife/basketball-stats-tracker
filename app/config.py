@@ -49,6 +49,9 @@ class Settings(BaseSettings):
     SECRET_KEY: str | None = None
     DEBUG: bool = False
 
+    # Upload directory configuration
+    UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", str(BASE_DIR / "app" / "web_ui" / "static" / "uploads"))
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
