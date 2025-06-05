@@ -1,3 +1,9 @@
+v0.4.13
+-------
+
+### Documentation
+- Documented optimization and refactoring tasks in `docs/plans/codex_optimization_tasks.md`
+
 v0.4.12
 -------
 
