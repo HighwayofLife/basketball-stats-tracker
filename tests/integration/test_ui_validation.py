@@ -18,6 +18,8 @@ import time
 
 # Set consistent admin password for tests
 os.environ["DEFAULT_ADMIN_PASSWORD"] = "TestAdminPassword123!"
+# Set JWT secret key for tests (required by auth module)
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-for-ui-tests-12345678901234567890"
 
 import pytest
 import requests
@@ -129,7 +131,13 @@ def admin_session(docker_containers):
 
     # If user already exists (400) or registration succeeds (200/201), proceed with login
     if register_resp.status_code not in (200, 201, 400):
-        raise RuntimeError(f"Unexpected registration response: {register_resp.status_code} - {register_resp.text}")
+        # Provide more context for debugging
+        error_msg = f"Unexpected registration response: {register_resp.status_code}"
+        try:
+            error_detail = register_resp.json().get("detail", register_resp.text)
+        except Exception:
+            error_detail = register_resp.text
+        raise RuntimeError(f"{error_msg} - {error_detail}")
 
     # Attempt login
     login_resp = session.post(
@@ -207,12 +215,12 @@ class TestUIValidation:
 
                 # Check that the JavaScript uses correct API URLs (without /api prefix)
                 content = detail_response.text
-                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
-                    "Player detail page should use /v1/players/ID/stats endpoint"
-                )
-                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
-                    "Player detail page should use /v1/players/ID/upload-image endpoint"
-                )
+                assert f"/v1/players/${player_id}/stats" in content.replace(
+                    "{playerId}", str(player_id)
+                ), "Player detail page should use /v1/players/ID/stats endpoint"
+                assert f"/v1/players/${player_id}/upload-image" in content.replace(
+                    "{playerId}", str(player_id)
+                ), "Player detail page should use /v1/players/ID/upload-image endpoint"
 
                 # Ensure incorrect API URLs are not present
                 assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
@@ -317,9 +325,9 @@ class TestUIValidation:
 
             if response.status_code == 200:
                 # If it returns data, it should be JSON
-                assert "application/json" in response.headers.get("content-type", ""), (
-                    f"API endpoint {endpoint} not returning JSON"
-                )
+                assert "application/json" in response.headers.get(
+                    "content-type", ""
+                ), f"API endpoint {endpoint} not returning JSON"
 
 
 class TestContainerHealthCheck:

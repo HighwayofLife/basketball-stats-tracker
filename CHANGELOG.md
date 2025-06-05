@@ -15,6 +15,7 @@ v0.4.11
 - Fixed authentication cookie security settings for local development environments
 - Fixed admin session authentication in UI validation tests
 - Fix Box Score table display on game detail page - regression
+- Fixed UI validation tests in CI by adding required JWT_SECRET_KEY environment variable
 
 v0.4.10
 -------
