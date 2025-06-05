@@ -1,3 +1,11 @@
+v0.4.13
+-------
+
+### Added
+- Utility for aggregating quarter shot strings into totals
+- Stats entry service now uses the aggregator for cleaner logic
+
+
 v0.4.12
 -------
 

@@ -11,6 +11,7 @@ from app.data_access.crud import (
     create_player_quarter_stats,
     update_player_game_stats_totals,
 )
+from app.utils.stats_aggregator import aggregate_quarter_shot_strings
 from app.data_access.models import PlayerGameStats
 
 
@@ -55,20 +56,15 @@ class StatsEntryService:
             fouls=fouls,
         )
 
-        # Initialize aggregated totals
-        totals = {"total_ftm": 0, "total_fta": 0, "total_2pm": 0, "total_2pa": 0, "total_3pm": 0, "total_3pa": 0}
+        # Parse shot strings and aggregate stats
+        quarter_stats_list, totals = aggregate_quarter_shot_strings(
+            quarter_shot_strings,
+            self._shot_mapping,
+            self._parse_shot_string,
+        )
 
-        # Always process 4 quarters, fill missing with empty string
-        for quarter_num in range(1, 5):
-            try:
-                shot_string = quarter_shot_strings[quarter_num - 1]
-            except IndexError:
-                shot_string = ""
-
-            # Parse the shot string (empty string yields all zeros)
-            quarter_stats = self._parse_shot_string(shot_string, self._shot_mapping)
-
-            # Record quarter stats in the database
+        # Record each quarter in the database
+        for quarter_num, quarter_stats in enumerate(quarter_stats_list, start=1):
             create_player_quarter_stats(
                 self._db_session,
                 player_game_stats.id,
@@ -83,13 +79,15 @@ class StatsEntryService:
                 },
             )
 
-            # Aggregate stats
-            totals["total_ftm"] += quarter_stats["ftm"]
-            totals["total_fta"] += quarter_stats["fta"]
-            totals["total_2pm"] += quarter_stats["fg2m"]
-            totals["total_2pa"] += quarter_stats["fg2a"]
-            totals["total_3pm"] += quarter_stats["fg3m"]
-            totals["total_3pa"] += quarter_stats["fg3a"]
+        # Rename totals keys to match PlayerGameStats fields
+        totals = {
+            "total_ftm": totals["ftm"],
+            "total_fta": totals["fta"],
+            "total_2pm": totals["fg2m"],
+            "total_2pa": totals["fg2a"],
+            "total_3pm": totals["fg3m"],
+            "total_3pa": totals["fg3a"],
+        }
 
         # Update player game stats with totals
         updated_stats = update_player_game_stats_totals(
