@@ -1,3 +1,13 @@
+v0.4.13
+-------
+
+### Added
+- **Feedback System**: Added email-based feedback feature with form in footer
+  - Users can submit bug reports, feature requests, support requests, and general feedback
+  - Optional email field for user contact information
+  - Configurable SMTP settings for email delivery
+  - Proper error handling and user feedback for submission status
+
 v0.4.12
 -------
 

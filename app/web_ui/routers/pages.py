@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
-from app.services.github_issue_service import GithubIssueService
+from app.services.email_service import EmailService
 from app.services.score_calculation_service import ScoreCalculationService
 from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
@@ -444,25 +444,23 @@ async def feedback_form(auth_context: dict = Depends(get_template_auth_context))
 
 @router.post("/feedback", response_class=HTMLResponse)
 async def submit_feedback(request: Request, auth_context: dict = Depends(get_template_auth_context)):
-    """Handle feedback form submission and create GitHub issue."""
+    """Handle feedback form submission and send email."""
     form = await request.form()
     issue_type = form.get("issue_type") or "feedback"
     title = form.get("title") or "Feedback"
     body = form.get("body") or ""
-
-    label_map = {
-        "bug": "bug",
-        "feature": "enhancement",
-        "support": "question",
-        "feedback": "feedback",
-    }
+    user_email = form.get("email")  # Optional user email
 
     try:
-        service = GithubIssueService()
-        await service.create_issue(title, body, labels=[label_map.get(issue_type, "feedback")])
-        context = {**auth_context, "title": "Feedback", "success": True}
-    except Exception as exc:  # noqa: BLE001
-        logger.error("Failed to create GitHub issue: %s", exc)
-        context = {**auth_context, "title": "Feedback", "error": True}
+        service = EmailService()
+        success = await service.send_feedback(issue_type, title, body, user_email)
+        if success:
+            context = {**auth_context, "title": "Feedback", "success": True}
+        else:
+            logger.warning("Email service not configured or failed to send")
+            context = {**auth_context, "title": "Feedback", "error": "Email service not configured"}
+    except Exception as exc:
+        logger.error("Failed to send feedback email: %s", exc)
+        context = {**auth_context, "title": "Feedback", "error": "Unable to submit feedback at this time"}
 
     return templates.TemplateResponse("feedback.html", context)

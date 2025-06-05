@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     # Upload directory configuration
     UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", str(BASE_DIR / "app" / "web_ui" / "static" / "uploads"))
 
+    # Email configuration (optional - for feedback feature)
+    SMTP_SERVER: str | None = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str | None = None
+    SMTP_PASSWORD: str | None = None
+    FEEDBACK_EMAIL: str | None = None
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

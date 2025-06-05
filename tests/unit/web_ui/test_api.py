@@ -1046,9 +1046,7 @@ class TestAPIEndpoints:
         """Feedback form renders correctly."""
         from fastapi.responses import HTMLResponse
 
-        mock_templates.TemplateResponse.return_value = HTMLResponse(
-            content="<html>Feedback</html>", status_code=200
-        )
+        mock_templates.TemplateResponse.return_value = HTMLResponse(content="<html>Feedback</html>", status_code=200)
 
         response = client.get("/feedback")
 
@@ -1056,6 +1054,39 @@ class TestAPIEndpoints:
         mock_templates.TemplateResponse.assert_called_once()
         args = mock_templates.TemplateResponse.call_args[0]
         assert args[0] == "feedback.html"
+
+    @patch("app.web_ui.routers.pages.templates")
+    @patch("app.services.email_service.EmailService.send_feedback")
+    def test_feedback_submission_success(self, mock_send_feedback, mock_templates, client):
+        """Test successful feedback submission."""
+        from fastapi.responses import HTMLResponse
+
+        mock_send_feedback.return_value = True
+        mock_templates.TemplateResponse.return_value = HTMLResponse(content="<html>Success</html>", status_code=200)
+
+        response = client.post(
+            "/feedback",
+            data={"issue_type": "bug", "title": "Test Bug", "body": "Test description", "email": "test@example.com"},
+        )
+
+        assert response.status_code == 200
+        mock_send_feedback.assert_called_once_with("bug", "Test Bug", "Test description", "test@example.com")
+
+    @patch("app.web_ui.routers.pages.templates")
+    @patch("app.services.email_service.EmailService.send_feedback")
+    def test_feedback_submission_failure(self, mock_send_feedback, mock_templates, client):
+        """Test feedback submission when email service fails."""
+        from fastapi.responses import HTMLResponse
+
+        mock_send_feedback.return_value = False
+        mock_templates.TemplateResponse.return_value = HTMLResponse(content="<html>Error</html>", status_code=200)
+
+        response = client.post(
+            "/feedback", data={"issue_type": "feature", "title": "Test Feature", "body": "Test description"}
+        )
+
+        assert response.status_code == 200
+        mock_send_feedback.assert_called_once_with("feature", "Test Feature", "Test description", None)
 
     def test_upload_player_image_invalid_type(self, client, sample_players, tmp_path):
         """Test uploading invalid file type."""

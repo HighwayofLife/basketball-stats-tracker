@@ -7,7 +7,7 @@
     {% if success %}
     <div class="alert alert-success" role="alert">Thank you for your feedback!</div>
     {% elif error %}
-    <div class="alert alert-danger" role="alert">Unable to submit feedback at this time.</div>
+    <div class="alert alert-danger" role="alert">{{ error }}</div>
     {% endif %}
     <form method="post">
         {{ forms.select_field('issue_type', 'Type', options=[
@@ -16,6 +16,7 @@
             {'value':'support','text':'Support Request'},
             {'value':'feedback','text':'Feedback'}], required=true) }}
         {{ forms.text_field('title', 'Title', required=true) }}
+        {{ forms.text_field('email', 'Your Email (optional)', type='email') }}
         {{ forms.textarea_field('body', 'Description', rows=6, required=true) }}
         {{ forms.submit_button('Submit', class='btn-primary') }}
     </form>
