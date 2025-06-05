@@ -507,7 +507,7 @@ async def restore_team(
 
 @router.post("/{team_id}/logo")
 async def upload_team_logo(
-    team_id: int, file: UploadFile = File(...), current_user: User = Depends(get_current_user), db=Depends(get_db)
+    team_id: int, file: UploadFile = File(...), current_user: User = Depends(require_admin), db=Depends(get_db)
 ):
     """Upload a logo image for a team."""
     try:

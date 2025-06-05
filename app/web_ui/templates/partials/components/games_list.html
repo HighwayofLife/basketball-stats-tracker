@@ -99,7 +99,18 @@ Game object structure (flexible):
             {% if 'opponent' in columns %}
             <td data-label="Opponent">
                 <div class="team-with-logo">
-                    <div class="team-logo-small" data-team-id="{{ game.opponent_team_id if game.opponent_team_id is defined else '' }}"></div>
+                    <div class="team-logo-small">
+                        {% if game.opponent_team_id is defined %}
+                            {% set opponent_logo_url = team_logo_url({'id': game.opponent_team_id}, '64x64') %}
+                            {% if opponent_logo_url %}
+                                <img src="{{ opponent_logo_url }}" alt="{{ game.opponent }} logo">
+                            {% else %}
+                                <i class="fas fa-users"></i>
+                            {% endif %}
+                        {% else %}
+                            <i class="fas fa-users"></i>
+                        {% endif %}
+                    </div>
                     <span>{{ game.opponent }}</span>
                 </div>
             </td>
