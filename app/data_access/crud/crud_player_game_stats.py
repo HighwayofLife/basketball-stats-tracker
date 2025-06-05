@@ -4,6 +4,7 @@ CRUD operations for PlayerGameStats model.
 
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
 from app.data_access.models import PlayerGameStats
 
 
@@ -25,8 +26,8 @@ def create_player_game_stats(
     """
     stats = PlayerGameStats(game_id=game_id, player_id=player_id, fouls=fouls, playing_for_team_id=playing_for_team_id)
     db.add(stats)
-    db.commit()
-    db.refresh(stats)
+    with transaction(db, refresh=[stats]):
+        pass
     return stats
 
 
@@ -52,8 +53,8 @@ def update_player_game_stats_totals(db: Session, player_game_stat_id: int, total
         if hasattr(stats, key):
             setattr(stats, key, value)
 
-    db.commit()
-    db.refresh(stats)
+    with transaction(db, refresh=[stats]):
+        pass
     return stats
 
 

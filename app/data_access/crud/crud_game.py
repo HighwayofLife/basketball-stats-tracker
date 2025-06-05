@@ -6,6 +6,7 @@ from datetime import datetime
 
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
 from app.data_access.models import Game
 
 
@@ -40,8 +41,8 @@ def create_game(db: Session, date_str: str, playing_team_id: int, opponent_team_
 
     game = Game(date=game_date, playing_team_id=playing_team_id, opponent_team_id=opponent_team_id)
     db.add(game)
-    db.commit()
-    db.refresh(game)
+    with transaction(db, refresh=[game]):
+        pass
     return game
 
 

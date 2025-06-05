@@ -5,6 +5,7 @@ from typing import Generic, Protocol, TypeVar
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Base
+from app.data_access.transaction import transaction
 
 
 class HasId(Protocol):
@@ -63,8 +64,8 @@ class BaseRepository(Generic[T]):
         """
         entity = self.model(**kwargs)  # type: ignore[misc]
         self.session.add(entity)
-        self.session.commit()
-        self.session.refresh(entity)
+        with transaction(self.session, refresh=[entity]):
+            pass
         return entity  # type: ignore[return-value]
 
     def update(self, entity_id: int, **kwargs) -> T | None:
@@ -81,8 +82,8 @@ class BaseRepository(Generic[T]):
         if entity:
             for key, value in kwargs.items():
                 setattr(entity, key, value)
-            self.session.commit()
-            self.session.refresh(entity)
+            with transaction(self.session, refresh=[entity]):
+                pass
         return entity
 
     def delete(self, entity_id: int) -> bool:
@@ -97,7 +98,8 @@ class BaseRepository(Generic[T]):
         entity = self.get_by_id(entity_id)
         if entity:
             self.session.delete(entity)
-            self.session.commit()
+            with transaction(self.session):
+                pass
             return True
         return False
 
@@ -120,7 +122,8 @@ class BaseRepository(Generic[T]):
                 entity.deleted_at = datetime.utcnow()
             if hasattr(entity, "deleted_by"):
                 entity.deleted_by = user_id
-            self.session.commit()
+            with transaction(self.session):
+                pass
             return True
         return False
 

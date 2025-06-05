@@ -3,6 +3,7 @@
 from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
+from app.data_access.transaction import transaction
 from app.data_access.models import Player, PlayerSeasonStats
 
 
@@ -90,8 +91,8 @@ def create_player_season_stats(db: Session, player_id: int, season: str) -> Play
         total_3pa=0,
     )
     db.add(db_stats)
-    db.commit()
-    db.refresh(db_stats)
+    with transaction(db, refresh=[db_stats]):
+        pass
     return db_stats
 
 
@@ -147,8 +148,8 @@ def update_player_season_stats(
     if total_3pa is not None:
         db_stats.total_3pa = total_3pa
 
-    db.commit()
-    db.refresh(db_stats)
+    with transaction(db, refresh=[db_stats]):
+        pass
     return db_stats
 
 
@@ -168,5 +169,6 @@ def delete_player_season_stats(db: Session, player_id: int, season: str) -> bool
         return False
 
     db.delete(db_stats)
-    db.commit()
+    with transaction(db):
+        pass
     return True

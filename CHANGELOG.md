@@ -1,3 +1,9 @@
+v0.4.13
+-------
+
+### Refactoring / Optimization
+- Centralized database transaction handling using new context manager
+
 v0.4.12
 -------
 

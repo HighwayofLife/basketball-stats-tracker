@@ -5,6 +5,7 @@ from datetime import date, datetime, time
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.data_access.transaction import transaction
 from app.data_access.models import ScheduledGame, ScheduledGameStatus, Team
 
 
@@ -43,8 +44,8 @@ class CRUDScheduledGame:
             updated_at=datetime.utcnow(),
         )
         db.add(scheduled_game)
-        db.commit()
-        db.refresh(scheduled_game)
+        with transaction(db, refresh=[scheduled_game]):
+            pass
         return scheduled_game
 
     def get_by_id(self, db: Session, scheduled_game_id: int) -> ScheduledGame | None:
@@ -192,8 +193,8 @@ class CRUDScheduledGame:
             if hasattr(scheduled_game, field):
                 setattr(scheduled_game, field, value)
 
-        db.commit()
-        db.refresh(scheduled_game)
+        with transaction(db, refresh=[scheduled_game]):
+            pass
         return scheduled_game
 
     def mark_completed(self, db: Session, scheduled_game_id: int, game_id: int) -> ScheduledGame | None:
@@ -219,7 +220,8 @@ class CRUDScheduledGame:
         scheduled_game.deleted_at = datetime.utcnow()
         scheduled_game.updated_at = datetime.utcnow()
 
-        db.commit()
+        with transaction(db):
+            pass
         return True
 
 

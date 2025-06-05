@@ -3,6 +3,7 @@
 from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
 from app.data_access.models import Player, PlayerGameStats, Team
 
 from .base import BaseRepository
@@ -119,6 +120,7 @@ class PlayerRepository(BaseRepository[Player]):
         player = self.get_by_id(player_id)
         if player:
             player.is_active = False
-            self.session.commit()
+            with transaction(self.session):
+                pass
             return True
         return False

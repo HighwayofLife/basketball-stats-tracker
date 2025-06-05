@@ -4,6 +4,7 @@ CRUD operations for Team model.
 
 from sqlalchemy.orm import Session
 
+from app.data_access.transaction import transaction
 from app.data_access.models import Team
 
 
@@ -21,8 +22,8 @@ def create_team(db: Session, team_name: str, display_name: str | None = None) ->
     """
     team = Team(name=team_name, display_name=display_name or team_name)
     db.add(team)
-    db.commit()
-    db.refresh(team)
+    with transaction(db, refresh=[team]):
+        pass
     return team
 
 
@@ -86,6 +87,6 @@ def update_team(db: Session, team_id: int, name: str | None = None, display_name
             team.name = name
         if display_name is not None:
             team.display_name = display_name
-        db.commit()
-        db.refresh(team)
+        with transaction(db, refresh=[team]):
+            pass
     return team
