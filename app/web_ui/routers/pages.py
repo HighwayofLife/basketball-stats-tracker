@@ -204,9 +204,9 @@ async def team_detail_page(team_id: int, auth_context: dict = Depends(get_templa
     try:
         with get_db_session() as session:
             team = session.query(models.Team).filter(models.Team.id == team_id).first()
-            if not team:
-                raise HTTPException(status_code=404, detail="Team not found")
-
+            
+            # For page routes, we load the page even if team doesn't exist
+            # The JavaScript will handle showing the error to the user
             context = {**auth_context, "title": "Team Details", "team_id": team_id, "team": team}
             return templates.TemplateResponse("teams/detail.html", context)
     except Exception as e:
