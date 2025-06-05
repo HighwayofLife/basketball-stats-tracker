@@ -17,8 +17,10 @@ class TestTeamLogoDisplay:
     """Integration tests for team logo display across different pages."""
 
     @pytest.fixture
-    def client(self, test_db_file_session):
+    def client(self, test_db_file_session, monkeypatch):
         """Create a FastAPI test client with isolated database."""
+        from contextlib import contextmanager
+
         from app.auth.dependencies import get_current_user
         from app.auth.models import User
         from app.web_ui.api import app
@@ -30,11 +32,31 @@ class TestTeamLogoDisplay:
         def mock_current_user():
             return User(id=1, username="testuser", email="test@example.com", role="admin", is_active=True)
 
+        # Create a context manager that yields the same session
+        @contextmanager
+        def test_get_db_session():
+            try:
+                yield test_db_file_session
+            finally:
+                pass
+
+        # Patch get_db_session in modules that use it directly
+        import app.data_access.db_session as db_session_module
+        import app.web_ui.routers.games as games_module
+        import app.web_ui.routers.pages as pages_module
+
+        monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
+        monkeypatch.setattr(pages_module, "get_db_session", test_get_db_session)
+        monkeypatch.setattr(games_module, "get_db_session", test_get_db_session)
+
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_current_user
-        client = TestClient(app)
-        yield client
-        app.dependency_overrides.clear()
+
+        try:
+            client = TestClient(app)
+            yield client
+        finally:
+            app.dependency_overrides.clear()
 
     @pytest.fixture
     def test_teams_with_logos(self, test_db_file_session):
@@ -125,7 +147,11 @@ class TestTeamLogoDisplay:
                 # Should still render successfully without logo
                 html_content = response.text
                 # The team name appears in the alt attribute or can be checked via the team_id in template
-                assert "Gamma Team" in html_content or f"team_id: {team3.id}" in html_content or str(team3.id) in html_content
+                assert (
+                    "Gamma Team" in html_content
+                    or f"team_id: {team3.id}" in html_content
+                    or str(team3.id) in html_content
+                )
 
     def test_games_index_page_logo_display(self, client, test_game, test_teams_with_logos):
         """Test that team logos display correctly on games index page."""
@@ -146,10 +172,10 @@ class TestTeamLogoDisplay:
                 # Test the API endpoint that provides the game data
                 api_response = client.get("/v1/games")
                 assert api_response.status_code == 200
-                
+
                 games_data = api_response.json()
                 assert len(games_data) > 0
-                
+
                 # Check that team names appear in the API response
                 game = games_data[0]
                 # The test should find a game with the teams we created
@@ -179,7 +205,9 @@ class TestTeamLogoDisplay:
 
                 # Check that game details are present - page loads successfully and has team information
                 # The actual team names may vary due to test database sharing, so check for structure
-                assert "game_id" in html_content or f"/games/{test_game.id}" in html_content or response.status_code == 200
+                assert (
+                    "game_id" in html_content or f"/games/{test_game.id}" in html_content or response.status_code == 200
+                )
 
     def test_template_helper_integration(self, test_teams_with_logos):
         """Test that the template helper function works with real data."""

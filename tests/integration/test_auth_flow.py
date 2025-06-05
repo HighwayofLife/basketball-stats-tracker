@@ -55,14 +55,12 @@ def test_client(test_db_file_engine, monkeypatch):
 
     app.dependency_overrides[get_db] = override_get_db
 
-    # Clean up old overrides if any
-    def cleanup_overrides():
+    try:
+        with TestClient(app) as client:
+            yield client
+    finally:
+        # Clean up dependency overrides
         app.dependency_overrides.clear()
-
-    request = type("Request", (), {"addfinalizer": cleanup_overrides})()
-
-    with TestClient(app) as client:
-        yield client
 
 
 @pytest.fixture
