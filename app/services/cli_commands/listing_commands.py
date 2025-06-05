@@ -2,6 +2,7 @@
 
 import csv
 from datetime import datetime
+from typing import Any
 
 import typer
 from tabulate import tabulate  # type: ignore
@@ -10,6 +11,64 @@ from app.data_access.crud.crud_game import get_all_games
 from app.data_access.crud.crud_player import get_all_players
 from app.data_access.crud.crud_team import get_all_teams
 from app.data_access.database_manager import db_manager
+
+
+def _output_data_as_table_or_csv(
+    data: list[dict[str, Any]],
+    output_format: str,
+    output_file: str | None,
+    default_csv_name: str,
+    entity_name: str,
+    console_message: str | None = None,
+) -> None:
+    """
+    Helper function to output data as either console table or CSV file.
+
+    Args:
+        data: List of dictionaries containing the data to output
+        output_format: Either "console" or "csv"
+        output_file: Optional file path for CSV output
+        default_csv_name: Default filename if output_file is not provided
+        entity_name: Name of entities being listed (e.g., "game", "player", "team")
+        console_message: Optional additional message to show in console output
+    """
+    if not data:
+        typer.echo(f"No {entity_name}s found matching the criteria.")
+        return
+
+    if output_format == "console":
+        typer.echo(f"\nFound {len(data)} {entity_name}(s)")
+        typer.echo("=" * 60)
+        typer.echo(tabulate(data, headers="keys", tablefmt="grid"))
+        if console_message:
+            typer.echo(f"\n{console_message}")
+
+    elif output_format == "csv":
+        csv_file_name = output_file if output_file else default_csv_name
+        with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
+            writer = csv.DictWriter(csvfile, fieldnames=data[0].keys())
+            writer.writeheader()
+            writer.writerows(data)
+        typer.echo(f"{entity_name.capitalize()}s list exported to: {csv_file_name}")
+
+    else:
+        typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+
+
+def _handle_format_validation(output_format: str) -> bool:
+    """
+    Validate output format and show error if invalid.
+
+    Args:
+        output_format: The format to validate
+
+    Returns:
+        True if format is valid, False otherwise
+    """
+    if output_format not in ["console", "csv"]:
+        typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+        return False
+    return True
 
 
 class ListingCommands:
@@ -83,11 +142,6 @@ class ListingCommands:
 
                     filtered_games.append(game)
 
-                # Prepare output data
-                if not filtered_games:
-                    typer.echo("No games found matching the criteria.")
-                    return
-
                 # Sort games by date
                 filtered_games.sort(key=lambda g: g.date, reverse=True)
 
@@ -148,23 +202,15 @@ class ListingCommands:
 
                     output_data.append(row)
 
-                # Output in requested format
-                if output_format == "console":
-                    typer.echo(f"\nFound {len(output_data)} game(s)")
-                    typer.echo("=" * 60)
-                    typer.echo(tabulate(output_data, headers="keys", tablefmt="grid"))
-                    typer.echo("\nUse 'basketball-stats report --id <ID>' to generate reports for a specific game.")
-
-                elif output_format == "csv":
-                    csv_file_name = output_file if output_file else "games_list.csv"
-                    with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                        writer = csv.DictWriter(csvfile, fieldnames=output_data[0].keys())
-                        writer.writeheader()
-                        writer.writerows(output_data)
-                    typer.echo(f"Games list exported to: {csv_file_name}")
-
-                else:
-                    typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+                # Output using helper function
+                _output_data_as_table_or_csv(
+                    data=output_data,
+                    output_format=output_format,
+                    output_file=output_file,
+                    default_csv_name="games_list.csv",
+                    entity_name="game",
+                    console_message="Use 'basketball-stats report --id <ID>' to generate reports for a specific game.",
+                )
 
             except ValueError as e:
                 typer.echo(f"Error parsing date: {e}")
@@ -212,11 +258,6 @@ class ListingCommands:
 
                     filtered_players.append(player)
 
-                # Prepare output data
-                if not filtered_players:
-                    typer.echo("No players found matching the criteria.")
-                    return
-
                 # Sort players by team and then by name
                 filtered_players.sort(key=lambda p: (p.team.name, p.name))
 
@@ -241,23 +282,15 @@ class ListingCommands:
 
                     output_data.append(row)
 
-                # Output in requested format
-                if output_format == "console":
-                    typer.echo(f"\nFound {len(output_data)} player(s)")
-                    typer.echo("=" * 60)
-                    typer.echo(tabulate(output_data, headers="keys", tablefmt="grid"))
-                    typer.echo("\nUse player IDs with report commands to generate player-specific reports.")
-
-                elif output_format == "csv":
-                    csv_file_name = output_file if output_file else "players_list.csv"
-                    with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                        writer = csv.DictWriter(csvfile, fieldnames=output_data[0].keys())
-                        writer.writeheader()
-                        writer.writerows(output_data)
-                    typer.echo(f"Players list exported to: {csv_file_name}")
-
-                else:
-                    typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+                # Output using helper function
+                _output_data_as_table_or_csv(
+                    data=output_data,
+                    output_format=output_format,
+                    output_file=output_file,
+                    default_csv_name="players_list.csv",
+                    entity_name="player",
+                    console_message="Use player IDs with report commands to generate player-specific reports.",
+                )
 
             except Exception as e:  # pylint: disable=broad-except
                 typer.echo(f"Error listing players: {e}")
@@ -344,11 +377,14 @@ class ListingCommands:
                                 )
 
                         csv_file_name = output_file if output_file else "teams_with_rosters.csv"
-                        with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                            writer = csv.DictWriter(csvfile, fieldnames=output_data[0].keys())
-                            writer.writeheader()
-                            writer.writerows(output_data)
-                        typer.echo(f"Teams with rosters exported to: {csv_file_name}")
+                        if output_data:  # Only write if there's data
+                            with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
+                                writer = csv.DictWriter(csvfile, fieldnames=output_data[0].keys())
+                                writer.writeheader()
+                                writer.writerows(output_data)
+                            typer.echo(f"Teams with rosters exported to: {csv_file_name}")
+                        else:
+                            typer.echo("No team data to export.")
 
                 else:
                     # Simple team list
@@ -362,23 +398,18 @@ class ListingCommands:
                             }
                         )
 
-                    if output_format == "console":
-                        typer.echo(f"\nFound {len(output_data)} team(s)")
-                        typer.echo("=" * 60)
-                        typer.echo(tabulate(output_data, headers="keys", tablefmt="grid"))
-                        typer.echo("\nUse team IDs with report commands to generate team-specific reports.")
-                        typer.echo("Add --with-players to see team rosters.")
-
-                    elif output_format == "csv":
-                        csv_file_name = output_file if output_file else "teams_list.csv"
-                        with open(csv_file_name, "w", newline="", encoding="utf-8") as csvfile:
-                            writer = csv.DictWriter(csvfile, fieldnames=output_data[0].keys())
-                            writer.writeheader()
-                            writer.writerows(output_data)
-                        typer.echo(f"Teams list exported to: {csv_file_name}")
-
-                if output_format not in ["console", "csv"]:
-                    typer.echo(f"Unsupported format: {output_format}. Choose 'console' or 'csv'.")
+                    # Output using helper function
+                    _output_data_as_table_or_csv(
+                        data=output_data,
+                        output_format=output_format,
+                        output_file=output_file,
+                        default_csv_name="teams_list.csv",
+                        entity_name="team",
+                        console_message=(
+                            "Use team IDs with report commands to generate team-specific reports.\\n"
+                            "Add --with-players to see team rosters."
+                        ),
+                    )
 
             except Exception as e:  # pylint: disable=broad-except
                 typer.echo(f"Error listing teams: {e}")
