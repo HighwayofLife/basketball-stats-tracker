@@ -9,6 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.github_issue_service import GithubIssueService
 from app.services.score_calculation_service import ScoreCalculationService
 from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
@@ -432,3 +433,36 @@ async def about_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the about page."""
     context = {**auth_context, "title": "About"}
     return templates.TemplateResponse("about.html", context)
+
+
+@router.get("/feedback", response_class=HTMLResponse)
+async def feedback_form(auth_context: dict = Depends(get_template_auth_context)):
+    """Display feedback form."""
+    context = {**auth_context, "title": "Feedback"}
+    return templates.TemplateResponse("feedback.html", context)
+
+
+@router.post("/feedback", response_class=HTMLResponse)
+async def submit_feedback(request: Request, auth_context: dict = Depends(get_template_auth_context)):
+    """Handle feedback form submission and create GitHub issue."""
+    form = await request.form()
+    issue_type = form.get("issue_type") or "feedback"
+    title = form.get("title") or "Feedback"
+    body = form.get("body") or ""
+
+    label_map = {
+        "bug": "bug",
+        "feature": "enhancement",
+        "support": "question",
+        "feedback": "feedback",
+    }
+
+    try:
+        service = GithubIssueService()
+        await service.create_issue(title, body, labels=[label_map.get(issue_type, "feedback")])
+        context = {**auth_context, "title": "Feedback", "success": True}
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Failed to create GitHub issue: %s", exc)
+        context = {**auth_context, "title": "Feedback", "error": True}
+
+    return templates.TemplateResponse("feedback.html", context)

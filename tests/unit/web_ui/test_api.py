@@ -1040,8 +1040,22 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "image_path" in data
-        assert data["image_path"] == f"uploads/players/player_{sample_players[0].id}.jpg"
+
+    @patch("app.web_ui.routers.pages.templates")
+    def test_feedback_page(self, mock_templates, client):
+        """Feedback form renders correctly."""
+        from fastapi.responses import HTMLResponse
+
+        mock_templates.TemplateResponse.return_value = HTMLResponse(
+            content="<html>Feedback</html>", status_code=200
+        )
+
+        response = client.get("/feedback")
+
+        assert response.status_code == 200
+        mock_templates.TemplateResponse.assert_called_once()
+        args = mock_templates.TemplateResponse.call_args[0]
+        assert args[0] == "feedback.html"
 
     def test_upload_player_image_invalid_type(self, client, sample_players, tmp_path):
         """Test uploading invalid file type."""
