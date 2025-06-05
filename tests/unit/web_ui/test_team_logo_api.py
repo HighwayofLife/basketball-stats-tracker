@@ -1,11 +1,9 @@
 """Unit tests for team logo API endpoints."""
 
-import io
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from fastapi import HTTPException, UploadFile
-from PIL import Image
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
@@ -41,13 +39,9 @@ class TestTeamLogoAPI:
         return team
 
     @pytest.fixture
-    def mock_image_file(self):
+    def mock_image_file(self, test_image_blue):
         """Create a mock image upload file."""
-        # Create a valid test image
-        img = Image.new("RGB", (100, 100), color="red")
-        img_bytes = io.BytesIO()
-        img.save(img_bytes, format="JPEG")
-        img_bytes.seek(0)
+        filename, img_bytes, content_type = test_image_blue
 
         file = Mock(spec=UploadFile)
         file.content_type = "image/jpeg"

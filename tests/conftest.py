@@ -2,18 +2,24 @@
 Common test fixtures for the basketball stats tracker application.
 """
 
+import io
 import os
 import tempfile
 from collections.abc import Generator
 from typing import Any
 
 import pytest
+from PIL import Image
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 # Set up JWT secret for tests BEFORE importing models
 if "JWT_SECRET_KEY" not in os.environ:
     os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
+
+# Set up test upload directory to avoid overwriting real uploads
+if "UPLOAD_DIR" not in os.environ:
+    os.environ["UPLOAD_DIR"] = "/tmp/test_uploads"
 
 # Import all models to ensure they're registered with Base.metadata
 from app.auth.models import User  # noqa: F401
@@ -244,3 +250,51 @@ def parsed_quarter_stats() -> dict[str, dict[str, int]]:
         "2//1": {"ftm": 1, "fta": 1, "fg2m": 1, "fg2a": 1, "fg3m": 0, "fg3a": 2},
         "33-": {"ftm": 0, "fta": 0, "fg2m": 0, "fg2a": 1, "fg3m": 2, "fg3a": 2},
     }
+
+
+@pytest.fixture
+def test_image_blue():
+    """Create a blue test image for testing."""
+    img = Image.new("RGB", (100, 100), color="blue")
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="JPEG")
+    img_bytes.seek(0)
+    return ("test_logo.jpg", img_bytes, "image/jpeg")
+
+
+@pytest.fixture
+def test_image_green():
+    """Create a green test image for testing."""
+    img = Image.new("RGB", (100, 100), color="green")
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="PNG")
+    img_bytes.seek(0)
+    return ("test_logo.png", img_bytes, "image/png")
+
+
+@pytest.fixture
+def oversized_test_image():
+    """Create an oversized image file for testing."""
+    import random
+
+    # Create a large image with random noise that exceeds 5MB
+    width, height = 2500, 2500
+    img = Image.new("RGB", (width, height))
+
+    # Fill with random colors to make compression harder and exceed 5MB
+    pixels = []
+    for _ in range(width * height):
+        pixels.append((random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)))
+    img.putdata(pixels)
+
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format="JPEG", quality=100)
+    img_bytes.seek(0)
+    return ("huge_logo.jpg", img_bytes, "image/jpeg")
+
+
+@pytest.fixture
+def mock_upload_directory():
+    """Provide a temporary directory for upload tests."""
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield temp_dir

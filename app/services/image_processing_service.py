@@ -10,6 +10,8 @@ from pathlib import Path
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 
+from app.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -82,7 +84,7 @@ class ImageProcessingService:
     @staticmethod
     def get_team_logo_directory(team_id: int) -> Path:
         """Get the directory path for a team's logo files."""
-        return Path("app/web_ui/static/uploads/teams") / str(team_id)
+        return Path(settings.UPLOAD_DIR) / "teams" / str(team_id)
 
     @staticmethod
     def get_team_logo_path(team_id: int, size: str, filename: str) -> Path:

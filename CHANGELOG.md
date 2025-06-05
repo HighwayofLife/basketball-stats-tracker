@@ -1,3 +1,12 @@
+v0.4.12
+-------
+
+### Bug Fixes
+- **Critical: Fixed tests overwriting real uploaded team logos** - Tests now use configurable UPLOAD_DIR and proper mocking to prevent writing to production upload directories
+- Made upload directory configurable via UPLOAD_DIR environment variable to support different environments
+- Added test fixtures for image creation to reduce inline test image generation
+
+
 v0.4.11
 -------
 

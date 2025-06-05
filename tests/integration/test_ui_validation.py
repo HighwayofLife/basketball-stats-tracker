@@ -151,11 +151,9 @@ def admin_session(docker_containers):
             try:
                 # Capture container logs
                 import subprocess
+
                 logs = subprocess.run(
-                    ["docker", "compose", "logs", "web", "--tail", "50"],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+                    ["docker", "compose", "logs", "web", "--tail", "50"], capture_output=True, text=True, timeout=5
                 )
                 logger.error(f"Web container logs:\n{logs.stdout}")
             except Exception as e:
@@ -239,12 +237,12 @@ class TestUIValidation:
 
                 # Check that the JavaScript uses correct API URLs (without /api prefix)
                 content = detail_response.text
-                assert f"/v1/players/${player_id}/stats" in content.replace(
-                    "{playerId}", str(player_id)
-                ), "Player detail page should use /v1/players/ID/stats endpoint"
-                assert f"/v1/players/${player_id}/upload-image" in content.replace(
-                    "{playerId}", str(player_id)
-                ), "Player detail page should use /v1/players/ID/upload-image endpoint"
+                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
+                    "Player detail page should use /v1/players/ID/stats endpoint"
+                )
+                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
+                    "Player detail page should use /v1/players/ID/upload-image endpoint"
+                )
 
                 # Ensure incorrect API URLs are not present
                 assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
@@ -349,9 +347,9 @@ class TestUIValidation:
 
             if response.status_code == 200:
                 # If it returns data, it should be JSON
-                assert "application/json" in response.headers.get(
-                    "content-type", ""
-                ), f"API endpoint {endpoint} not returning JSON"
+                assert "application/json" in response.headers.get("content-type", ""), (
+                    f"API endpoint {endpoint} not returning JSON"
+                )
 
 
 class TestContainerHealthCheck:
