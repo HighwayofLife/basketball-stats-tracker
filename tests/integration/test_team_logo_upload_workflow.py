@@ -254,7 +254,7 @@ class TestTeamLogoUploadWorkflow:
 
                 # Verify URL structure
                 for size, url in logo_urls.items():
-                    assert url.startswith("/static/")
+                    assert url.startswith("/uploads/")
                     assert f"teams/{test_team.id}" in url
                     assert size in url
                     assert "logo.jpg" in url

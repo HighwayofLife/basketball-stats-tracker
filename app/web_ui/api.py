@@ -162,6 +162,16 @@ if os.getenv("APP_ENV") == "production":
 BASE_DIR = Path(__file__).resolve().parent
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 
+# Setup uploads files
+upload_dir = Path(settings.UPLOAD_DIR)
+# Create upload directory if it doesn't exist
+upload_dir.mkdir(parents=True, exist_ok=True)
+
+if upload_dir.exists():
+    # Mount uploads directory for serving uploaded files
+    app.mount("/uploads", StaticFiles(directory=str(upload_dir)), name="uploads")
+    logger.info(f"Mounted uploads directory: {upload_dir}")
+
 
 # Health check endpoint
 @app.get("/health")

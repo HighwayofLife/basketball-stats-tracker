@@ -57,9 +57,9 @@ class TestTeamLogoAPI:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
         mock_logo_urls = {
-            "original": "/static/uploads/teams/1/original/logo.jpg",
-            "120x120": "/static/uploads/teams/1/120x120/logo.jpg",
-            "64x64": "/static/uploads/teams/1/64x64/logo.jpg",
+            "original": "/uploads/teams/1/original/logo.jpg",
+            "120x120": "/uploads/teams/1/120x120/logo.jpg",
+            "64x64": "/uploads/teams/1/64x64/logo.jpg",
         }
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:
@@ -128,9 +128,9 @@ class TestTeamLogoAPI:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
         mock_logo_urls = {
-            "original": "/static/uploads/teams/1/original/logo.jpg",
-            "120x120": "/static/uploads/teams/1/120x120/logo.jpg",
-            "64x64": "/static/uploads/teams/1/64x64/logo.jpg",
+            "original": "/uploads/teams/1/original/logo.jpg",
+            "120x120": "/uploads/teams/1/120x120/logo.jpg",
+            "64x64": "/uploads/teams/1/64x64/logo.jpg",
         }
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:

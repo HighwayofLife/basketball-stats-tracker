@@ -104,14 +104,14 @@ class ImageProcessingService:
         # Look for any supported image file
         for file_path in size_dir.iterdir():
             if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
-                # Return relative URL from static directory
+                # Always use uploads endpoint since uploads are outside app directory
+                upload_dir = Path(settings.UPLOAD_DIR)
                 try:
-                    relative_path = file_path.relative_to(Path("app/web_ui/static"))
-                    return f"/static/{relative_path}"
+                    relative_path = file_path.relative_to(upload_dir)
+                    return f"/uploads/{relative_path}"
                 except ValueError:
-                    # Path is not relative to static dir (e.g., in tests with temp dirs)
-                    # Create a mock URL path for testing
-                    return f"/static/uploads/teams/{team_id}/{size}/{file_path.name}"
+                    # Fallback for tests or edge cases
+                    return f"/uploads/teams/{team_id}/{size}/{file_path.name}"
 
         return None
 
@@ -212,14 +212,14 @@ class ImageProcessingService:
 
                     processed_image.save(output_path, output_format, **save_kwargs)
 
-                    # Generate URL
+                    # Generate URL - always use uploads endpoint
+                    upload_dir = Path(settings.UPLOAD_DIR)
                     try:
-                        relative_path = output_path.relative_to(Path("app/web_ui/static"))
-                        urls[size_name] = f"/static/{relative_path}"
+                        relative_path = output_path.relative_to(upload_dir)
+                        urls[size_name] = f"/uploads/{relative_path}"
                     except ValueError:
-                        # Path is not relative to static dir (e.g., in tests with temp dirs)
-                        # Create a mock URL path for testing
-                        urls[size_name] = f"/static/uploads/teams/{team_id}/{size_name}/{filename}"
+                        # Fallback for tests or edge cases
+                        urls[size_name] = f"/uploads/teams/{team_id}/{size_name}/{filename}"
 
                 logger.info(f"Successfully processed team logo for team {team_id}")
                 return urls
@@ -244,7 +244,7 @@ class ImageProcessingService:
         """
         # Return the path to the medium size image (used as the primary reference)
         logo_url = ImageProcessingService.get_team_logo_url(team_id, "120x120")
-        if logo_url and logo_url.startswith("/static/"):
-            # Remove /static/ prefix for database storage
-            return logo_url[8:]
-        return f"uploads/teams/{team_id}/120x120/logo.jpg"
+        if logo_url and logo_url.startswith("/uploads/"):
+            # Remove /uploads/ prefix for database storage
+            return logo_url[9:]
+        return f"teams/{team_id}/120x120/logo.jpg"

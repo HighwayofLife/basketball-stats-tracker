@@ -157,7 +157,7 @@ class TestImageProcessingService:
                     url = ImageProcessingService.get_team_logo_url(team_id, size)
 
                     assert url is not None
-                    assert url.startswith("/static/")
+                    assert url.startswith("/uploads/")
                     assert "logo.jpg" in url
 
     def test_get_team_logo_url_not_exists(self):
@@ -251,9 +251,9 @@ class TestImageProcessingService:
                         assert "120x120" in urls
                         assert "64x64" in urls
 
-                        # Check that all URLs start with /static/
+                        # Check that all URLs start with /uploads/
                         for url in urls.values():
-                            assert url.startswith("/static/")
+                            assert url.startswith("/uploads/")
 
                         # Check that files were created
                         assert (team_base_dir / "original" / "logo.jpg").exists()
@@ -354,11 +354,11 @@ class TestImageProcessingService:
 
         # Mock get_team_logo_url to return a URL
         with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = f"/static/uploads/teams/{team_id}/120x120/logo.jpg"
+            mock_get_url.return_value = f"/uploads/teams/{team_id}/120x120/logo.jpg"
 
             filename = ImageProcessingService.update_team_logo_filename(team_id)
 
-            assert filename == f"uploads/teams/{team_id}/120x120/logo.jpg"
+            assert filename == f"teams/{team_id}/120x120/logo.jpg"
             mock_get_url.assert_called_once_with(team_id, "120x120")
 
         # Test when no logo exists
@@ -368,7 +368,7 @@ class TestImageProcessingService:
             filename = ImageProcessingService.update_team_logo_filename(team_id)
 
             # Should return default path
-            assert filename == f"uploads/teams/{team_id}/120x120/logo.jpg"
+            assert filename == f"teams/{team_id}/120x120/logo.jpg"
 
     def test_supported_formats(self):
         """Test that all expected formats are supported."""
