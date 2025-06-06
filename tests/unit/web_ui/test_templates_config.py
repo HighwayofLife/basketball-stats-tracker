@@ -4,6 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
+from app.config import UPLOADS_URL_PREFIX
 from app.web_ui.templates_config import team_logo_url
 
 
@@ -17,11 +18,11 @@ class TestTemplatesConfig:
         mock_team.id = 123
 
         with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/uploads/teams/123/120x120/logo.jpg"
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/120x120/logo.jpg"
 
             result = team_logo_url(mock_team, "120x120")
 
-            assert result == "/uploads/teams/123/120x120/logo.jpg"
+            assert result == f"{UPLOADS_URL_PREFIX}teams/123/120x120/logo.jpg"
             mock_get_url.assert_called_once_with(123, "120x120")
 
     def test_team_logo_url_default_size(self):
@@ -31,11 +32,11 @@ class TestTemplatesConfig:
         mock_team.id = 456
 
         with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/uploads/teams/456/120x120/logo.png"
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/456/120x120/logo.png"
 
             result = team_logo_url(mock_team)  # No size specified, should use default
 
-            assert result == "/uploads/teams/456/120x120/logo.png"
+            assert result == f"{UPLOADS_URL_PREFIX}teams/456/120x120/logo.png"
             mock_get_url.assert_called_once_with(456, "120x120")  # Default size
 
     def test_team_logo_url_no_logo_exists(self):
@@ -73,9 +74,9 @@ class TestTemplatesConfig:
         mock_team.id = 100
 
         test_cases = [
-            ("original", "/uploads/teams/100/original/logo.jpg"),
-            ("120x120", "/uploads/teams/100/120x120/logo.jpg"),
-            ("64x64", "/uploads/teams/100/64x64/logo.jpg"),
+            ("original", f"{UPLOADS_URL_PREFIX}teams/100/original/logo.jpg"),
+            ("120x120", f"{UPLOADS_URL_PREFIX}teams/100/120x120/logo.jpg"),
+            ("64x64", f"{UPLOADS_URL_PREFIX}teams/100/64x64/logo.jpg"),
         ]
 
         for size, expected_url in test_cases:
@@ -93,11 +94,11 @@ class TestTemplatesConfig:
         mock_team.id = "123"  # String ID (should still work)
 
         with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/uploads/teams/123/120x120/logo.jpg"
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/120x120/logo.jpg"
 
             result = team_logo_url(mock_team, "120x120")
 
-            assert result == "/uploads/teams/123/120x120/logo.jpg"
+            assert result == f"{UPLOADS_URL_PREFIX}teams/123/120x120/logo.jpg"
             mock_get_url.assert_called_once_with("123", "120x120")
 
     def test_team_logo_url_error_handling(self):

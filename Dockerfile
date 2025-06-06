@@ -27,9 +27,11 @@ RUN pip install --no-cache-dir -e ".[dev]"
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-root user for security
+# Create a non-root user for security and ensure uploads directory exists
 RUN adduser --disabled-password --gecos "" appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    mkdir -p /data/uploads && \
+    chown -R appuser:appuser /data
 
 # Switch to non-root user
 USER appuser
@@ -60,9 +62,11 @@ RUN echo "{\"version\": \"$APP_VERSION\", \"git_hash\": \"$GIT_HASH\", \"full_ve
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-root user for security
+# Create a non-root user for security and ensure uploads directory exists
 RUN adduser --disabled-password --gecos "" appuser && \
-    chown -R appuser:appuser /app
+    chown -R appuser:appuser /app && \
+    mkdir -p /data/uploads && \
+    chown -R appuser:appuser /data
 
 # Switch to non-root user
 USER appuser

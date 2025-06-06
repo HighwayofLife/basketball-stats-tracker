@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.config import UPLOADS_URL_PREFIX
 from app.data_access.models import Game, Team
 from app.services.image_processing_service import ImageProcessingService
 
@@ -138,7 +139,7 @@ class TestTeamLogoDisplay:
 
                 # Check that logo is referenced in the HTML
                 html_content = response.text
-                assert "/uploads/teams/1/120x120/logo.jpg" in html_content or "team_logo_url" in html_content
+                assert f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in html_content or "team_logo_url" in html_content
 
                 # Test team without logo
                 response = client.get(f"/teams/{team3.id}")
@@ -228,12 +229,12 @@ class TestTeamLogoDisplay:
                 # Test team with logo
                 url1 = team_logo_url(team1, "120x120")
                 assert url1 is not None
-                assert "/uploads/teams/1/120x120/logo.jpg" in url1
+                assert f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in url1
 
                 # Test team with PNG logo
                 url2 = team_logo_url(team2, "64x64")
                 assert url2 is not None
-                assert "/uploads/teams/2/64x64/logo.png" in url2
+                assert f"{UPLOADS_URL_PREFIX}teams/2/64x64/logo.png" in url2
 
                 # Test team without logo
                 url3 = team_logo_url(team3, "120x120")

@@ -7,6 +7,7 @@ from fastapi import HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.auth.models import User
+from app.config import UPLOADS_URL_PREFIX
 from app.data_access.models import Team
 from app.services.audit_log_service import AuditLogService
 from app.services.image_processing_service import ImageProcessingService
@@ -57,9 +58,9 @@ class TestTeamLogoAPI:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
         mock_logo_urls = {
-            "original": "/uploads/teams/1/original/logo.jpg",
-            "120x120": "/uploads/teams/1/120x120/logo.jpg",
-            "64x64": "/uploads/teams/1/64x64/logo.jpg",
+            "original": f"{UPLOADS_URL_PREFIX}teams/1/original/logo.jpg",
+            "120x120": f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg",
+            "64x64": f"{UPLOADS_URL_PREFIX}teams/1/64x64/logo.jpg",
         }
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:
@@ -128,9 +129,9 @@ class TestTeamLogoAPI:
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
         mock_logo_urls = {
-            "original": "/uploads/teams/1/original/logo.jpg",
-            "120x120": "/uploads/teams/1/120x120/logo.jpg",
-            "64x64": "/uploads/teams/1/64x64/logo.jpg",
+            "original": f"{UPLOADS_URL_PREFIX}teams/1/original/logo.jpg",
+            "120x120": f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg",
+            "64x64": f"{UPLOADS_URL_PREFIX}teams/1/64x64/logo.jpg",
         }
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:

@@ -33,6 +33,12 @@ SHOT_MAPPING: dict[str, dict[str, str | bool | int]] = {
     "/": {"type": "3P", "made": False, "points": 0},
 }
 
+# Upload directory constants
+UPLOADS_URL_PREFIX = "/uploads/"
+UPLOADS_MOUNT_PATH_PRODUCTION = "/mnt/uploads"
+TEAM_LOGOS_SUBDIR = "teams"
+PLAYER_IMAGES_SUBDIR = "players"
+
 
 def _get_default_upload_dir() -> str:
     """Get the default upload directory path."""

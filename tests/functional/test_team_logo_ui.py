@@ -8,6 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.config import TEAM_LOGOS_SUBDIR
 from app.data_access.models import Team
 from app.main import create_app
 from app.services.image_processing_service import ImageProcessingService
@@ -74,7 +75,7 @@ class TestTeamLogoUI:
     def test_team_detail_page_logo_display_with_logo(self, authenticated_session, test_team):
         """Test team detail page displays logo when team has one."""
         # Set team to have a logo
-        test_team.logo_filename = "uploads/teams/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create mock logo file
@@ -114,8 +115,8 @@ class TestTeamLogoUI:
     def test_games_list_logo_display(self, authenticated_session, db_session):
         """Test that team logos appear in games list."""
         # Create teams
-        team1 = Team(name="Team A", display_name="Alpha", logo_filename="uploads/teams/1/64x64/logo.jpg")
-        team2 = Team(name="Team B", display_name="Beta", logo_filename="uploads/teams/2/64x64/logo.png")
+        team1 = Team(name="Team A", display_name="Alpha", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg")
+        team2 = Team(name="Team B", display_name="Beta", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/64x64/logo.png")
         db_session.add_all([team1, team2])
         db_session.commit()
 
@@ -179,7 +180,7 @@ class TestTeamLogoUI:
         headers = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15"}
 
         # Set team to have a logo
-        test_team.logo_filename = "uploads/teams/1/64x64/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create mock logo file
@@ -206,7 +207,7 @@ class TestTeamLogoUI:
     def test_logo_delete_functionality_ui(self, authenticated_session, test_team):
         """Test that delete logo functionality is available in UI."""
         # Set team to have a logo
-        test_team.logo_filename = "uploads/teams/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
 
         response = authenticated_session.get(f"/teams/{test_team.id}")
         assert response.status_code == 200
@@ -223,8 +224,8 @@ class TestTeamLogoUI:
         from app.data_access.models import Game
 
         # Create teams and game
-        team1 = Team(name="Home Team", display_name="Home", logo_filename="uploads/teams/1/64x64/logo.jpg")
-        team2 = Team(name="Away Team", display_name="Away", logo_filename="uploads/teams/2/64x64/logo.png")
+        team1 = Team(name="Home Team", display_name="Home", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg")
+        team2 = Team(name="Away Team", display_name="Away", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/64x64/logo.png")
         db_session.add_all([team1, team2])
         db_session.commit()
 
@@ -267,7 +268,7 @@ class TestTeamLogoUI:
     def test_logo_accessibility_features(self, authenticated_session, test_team):
         """Test that logo display includes accessibility features."""
         # Set team to have a logo
-        test_team.logo_filename = "uploads/teams/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
 
         response = authenticated_session.get(f"/teams/{test_team.id}")
         assert response.status_code == 200
@@ -287,7 +288,7 @@ class TestTeamLogoUI:
             team = Team(
                 name=f"Team {i + 1}",
                 display_name=f"Team {i + 1} Display",
-                logo_filename=f"uploads/teams/{i + 1}/64x64/logo.jpg",
+                logo_filename=f"{TEAM_LOGOS_SUBDIR}/{i + 1}/64x64/logo.jpg",
             )
             teams.append(team)
 

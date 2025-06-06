@@ -9,6 +9,7 @@ import pytest
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 
+from app.config import UPLOADS_URL_PREFIX
 from app.services.image_processing_service import ImageProcessingService
 
 
@@ -157,7 +158,7 @@ class TestImageProcessingService:
                     url = ImageProcessingService.get_team_logo_url(team_id, size)
 
                     assert url is not None
-                    assert url.startswith("/uploads/")
+                    assert url.startswith(UPLOADS_URL_PREFIX)
                     assert "logo.jpg" in url
 
     def test_get_team_logo_url_not_exists(self):
@@ -253,7 +254,7 @@ class TestImageProcessingService:
 
                         # Check that all URLs start with /uploads/
                         for url in urls.values():
-                            assert url.startswith("/uploads/")
+                            assert url.startswith(UPLOADS_URL_PREFIX)
 
                         # Check that files were created
                         assert (team_base_dir / "original" / "logo.jpg").exists()
@@ -354,7 +355,7 @@ class TestImageProcessingService:
 
         # Mock get_team_logo_url to return a URL
         with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = f"/uploads/teams/{team_id}/120x120/logo.jpg"
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/{team_id}/120x120/logo.jpg"
 
             filename = ImageProcessingService.update_team_logo_filename(team_id)
 

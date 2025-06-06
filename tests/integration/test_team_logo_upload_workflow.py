@@ -9,6 +9,7 @@ import pytest
 from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.config import UPLOADS_URL_PREFIX
 from app.data_access.models import Team
 from app.services.image_processing_service import ImageProcessingService
 
@@ -254,7 +255,7 @@ class TestTeamLogoUploadWorkflow:
 
                 # Verify URL structure
                 for size, url in logo_urls.items():
-                    assert url.startswith("/uploads/")
+                    assert url.startswith(UPLOADS_URL_PREFIX)
                     assert f"teams/{test_team.id}" in url
                     assert size in url
                     assert "logo.jpg" in url

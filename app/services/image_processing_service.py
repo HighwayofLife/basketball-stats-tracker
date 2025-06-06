@@ -10,12 +10,11 @@ from pathlib import Path
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 
-from app.config import settings
+from app.config import TEAM_LOGOS_SUBDIR, UPLOADS_URL_PREFIX, settings
 
 logger = logging.getLogger(__name__)
 
 UPLOADS_DIR = Path(settings.UPLOAD_DIR)
-UPLOADS_URL_PREFIX = "/uploads/"
 
 
 class ImageProcessingService:
@@ -87,7 +86,7 @@ class ImageProcessingService:
     @staticmethod
     def get_team_logo_directory(team_id: int) -> Path:
         """Get the directory path for a team's logo files."""
-        return Path(settings.UPLOAD_DIR) / "teams" / str(team_id)
+        return Path(settings.UPLOAD_DIR) / TEAM_LOGOS_SUBDIR / str(team_id)
 
     @staticmethod
     def get_team_logo_path(team_id: int, size: str, filename: str) -> Path:
@@ -113,7 +112,7 @@ class ImageProcessingService:
                     return f"{UPLOADS_URL_PREFIX}{relative_path}"
                 except ValueError:
                     # Fallback for tests or edge cases
-                    return f"{UPLOADS_URL_PREFIX}teams/{team_id}/{size}/{file_path.name}"
+                    return f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{size}/{file_path.name}"
 
         return None
 
@@ -220,7 +219,7 @@ class ImageProcessingService:
                         urls[size_name] = f"{UPLOADS_URL_PREFIX}{relative_path}"
                     except ValueError:
                         # Fallback for tests or edge cases
-                        urls[size_name] = f"{UPLOADS_URL_PREFIX}teams/{team_id}/{size_name}/{filename}"
+                        urls[size_name] = f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{size_name}/{filename}"
 
                 logger.info(f"Successfully processed team logo for team {team_id}")
                 return urls
@@ -241,11 +240,20 @@ class ImageProcessingService:
         This should be called after successful logo processing to update the database.
 
         Returns:
-            The relative path to store in the database (e.g., "uploads/teams/1/120x120/logo.jpg")
+            The relative path to store in the database (e.g., "uploads/teams/1/120x120/logo.png")
         """
         logo_url = ImageProcessingService.get_team_logo_url(team_id, "120x120")
-        if logo_url and logo_url.startswith("/uploads/"):
-            # Remove /uploads/ prefix for database storage
-            return logo_url.removeprefix("/uploads/")
-        return f"teams/{team_id}/120x120/logo.jpg"
-        return f"teams/{team_id}/120x120/logo.jpg"
+        if logo_url and logo_url.startswith(UPLOADS_URL_PREFIX):
+            # Remove uploads URL prefix for database storage
+            return logo_url.removeprefix(UPLOADS_URL_PREFIX)
+
+        # Fallback: look for any supported format in the 120x120 directory
+        team_dir = ImageProcessingService.get_team_logo_directory(team_id)
+        size_dir = team_dir / "120x120"
+        if size_dir.exists():
+            for file_path in size_dir.iterdir():
+                if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
+                    return f"{TEAM_LOGOS_SUBDIR}/{team_id}/120x120/{file_path.name}"
+
+        # Ultimate fallback (should rarely be used)
+        return f"{TEAM_LOGOS_SUBDIR}/{team_id}/120x120/logo.jpg"
