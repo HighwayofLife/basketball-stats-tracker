@@ -75,17 +75,16 @@ class TestTeamLogoUI:
     def test_team_detail_page_logo_display_with_logo(self, authenticated_session, test_team):
         """Test team detail page displays logo when team has one."""
         # Set team to have a logo
-        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create mock logo file
             team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-            logo_dir = team_dir / "120x120"
-            logo_dir.mkdir(parents=True)
+            team_dir.mkdir(parents=True)
 
             # Create test image
-            img = Image.new("RGB", (120, 120), color="blue")
-            logo_path = logo_dir / "logo.jpg"
+            img = Image.new("RGB", (200, 200), color="blue")
+            logo_path = team_dir / "logo.jpg"
             img.save(logo_path)
 
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
@@ -115,8 +114,8 @@ class TestTeamLogoUI:
     def test_games_list_logo_display(self, authenticated_session, db_session):
         """Test that team logos appear in games list."""
         # Create teams
-        team1 = Team(name="Team A", display_name="Alpha", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg")
-        team2 = Team(name="Team B", display_name="Beta", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/64x64/logo.png")
+        team1 = Team(name="Team A", display_name="Alpha", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg")
+        team2 = Team(name="Team B", display_name="Beta", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/logo.png")
         db_session.add_all([team1, team2])
         db_session.commit()
 
@@ -124,13 +123,12 @@ class TestTeamLogoUI:
             # Create mock logo files
             for team_id in [1, 2]:
                 team_dir = Path(temp_dir) / "teams" / str(team_id)
-                logo_dir = team_dir / "64x64"
-                logo_dir.mkdir(parents=True)
+                team_dir.mkdir(parents=True)
 
                 # Create test image
-                img = Image.new("RGB", (64, 64), color="red" if team_id == 1 else "blue")
+                img = Image.new("RGB", (200, 200), color="red" if team_id == 1 else "blue")
                 extension = ".jpg" if team_id == 1 else ".png"
-                logo_path = logo_dir / f"logo{extension}"
+                logo_path = team_dir / f"logo{extension}"
                 img.save(logo_path)
 
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
@@ -180,17 +178,16 @@ class TestTeamLogoUI:
         headers = {"User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15"}
 
         # Set team to have a logo
-        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg"
 
         with tempfile.TemporaryDirectory() as temp_dir:
             # Create mock logo file
             team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-            logo_dir = team_dir / "64x64"
-            logo_dir.mkdir(parents=True)
+            team_dir.mkdir(parents=True)
 
             # Create test image
-            img = Image.new("RGB", (64, 64), color="green")
-            logo_path = logo_dir / "logo.jpg"
+            img = Image.new("RGB", (200, 200), color="green")
+            logo_path = team_dir / "logo.jpg"
             img.save(logo_path)
 
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
@@ -207,7 +204,7 @@ class TestTeamLogoUI:
     def test_logo_delete_functionality_ui(self, authenticated_session, test_team):
         """Test that delete logo functionality is available in UI."""
         # Set team to have a logo
-        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg"
 
         response = authenticated_session.get(f"/teams/{test_team.id}")
         assert response.status_code == 200
@@ -224,8 +221,8 @@ class TestTeamLogoUI:
         from app.data_access.models import Game
 
         # Create teams and game
-        team1 = Team(name="Home Team", display_name="Home", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/64x64/logo.jpg")
-        team2 = Team(name="Away Team", display_name="Away", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/64x64/logo.png")
+        team1 = Team(name="Home Team", display_name="Home", logo_filename=f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg")
+        team2 = Team(name="Away Team", display_name="Away", logo_filename=f"{TEAM_LOGOS_SUBDIR}/2/logo.png")
         db_session.add_all([team1, team2])
         db_session.commit()
 
@@ -240,13 +237,12 @@ class TestTeamLogoUI:
             # Create mock logo files
             for team_id in [1, 2]:
                 team_dir = Path(temp_dir) / "teams" / str(team_id)
-                logo_dir = team_dir / "64x64"
-                logo_dir.mkdir(parents=True)
+                team_dir.mkdir(parents=True)
 
                 # Create test image
-                img = Image.new("RGB", (64, 64), color="orange" if team_id == 1 else "purple")
+                img = Image.new("RGB", (200, 200), color="orange" if team_id == 1 else "purple")
                 extension = ".jpg" if team_id == 1 else ".png"
-                logo_path = logo_dir / f"logo{extension}"
+                logo_path = team_dir / f"logo{extension}"
                 img.save(logo_path)
 
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
@@ -268,7 +264,7 @@ class TestTeamLogoUI:
     def test_logo_accessibility_features(self, authenticated_session, test_team):
         """Test that logo display includes accessibility features."""
         # Set team to have a logo
-        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/120x120/logo.jpg"
+        test_team.logo_filename = f"{TEAM_LOGOS_SUBDIR}/1/logo.jpg"
 
         response = authenticated_session.get(f"/teams/{test_team.id}")
         assert response.status_code == 200
@@ -288,7 +284,7 @@ class TestTeamLogoUI:
             team = Team(
                 name=f"Team {i + 1}",
                 display_name=f"Team {i + 1} Display",
-                logo_filename=f"{TEAM_LOGOS_SUBDIR}/{i + 1}/64x64/logo.jpg",
+                logo_filename=f"{TEAM_LOGOS_SUBDIR}/{i + 1}/logo.jpg",
             )
             teams.append(team)
 
@@ -300,12 +296,11 @@ class TestTeamLogoUI:
             for i in range(5):
                 team_id = i + 1
                 team_dir = Path(temp_dir) / "teams" / str(team_id)
-                logo_dir = team_dir / "64x64"
-                logo_dir.mkdir(parents=True)
+                team_dir.mkdir(parents=True)
 
                 # Create test image
-                img = Image.new("RGB", (64, 64), color=(i * 50, i * 30, i * 40))
-                logo_path = logo_dir / "logo.jpg"
+                img = Image.new("RGB", (200, 200), color=(i * 50, i * 30, i * 40))
+                logo_path = team_dir / "logo.jpg"
                 img.save(logo_path)
 
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:

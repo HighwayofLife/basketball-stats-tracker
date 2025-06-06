@@ -57,17 +57,13 @@ class TestTeamLogoAPI:
         # Setup mocks
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
-        mock_logo_urls = {
-            "original": f"{UPLOADS_URL_PREFIX}teams/1/original/logo.jpg",
-            "120x120": f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg",
-            "64x64": f"{UPLOADS_URL_PREFIX}teams/1/64x64/logo.jpg",
-        }
+        mock_logo_url = f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg"
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:
-            mock_process.return_value = mock_logo_urls
+            mock_process.return_value = mock_logo_url
 
             with patch.object(ImageProcessingService, "update_team_logo_filename") as mock_update_filename:
-                mock_update_filename.return_value = "uploads/teams/1/120x120/logo.jpg"
+                mock_update_filename.return_value = "teams/1/logo.jpg"
 
                 with patch.object(AuditLogService, "__init__", return_value=None):
                     with patch.object(AuditLogService, "log_update") as mock_log:
@@ -78,11 +74,11 @@ class TestTeamLogoAPI:
         # Assertions
         assert result["success"] is True
         assert result["message"] == "Logo uploaded successfully"
-        assert result["logo_urls"] == mock_logo_urls
-        assert result["logo_filename"] == "uploads/teams/1/120x120/logo.jpg"
+        assert result["logo_url"] == mock_logo_url
+        assert result["logo_filename"] == "teams/1/logo.jpg"
 
         # Verify team logo filename was updated
-        assert mock_team.logo_filename == "uploads/teams/1/120x120/logo.jpg"
+        assert mock_team.logo_filename == "teams/1/logo.jpg"
 
         # Verify database commit was called
         mock_db.commit.assert_called_once()
@@ -124,21 +120,17 @@ class TestTeamLogoAPI:
         mock_team = Mock(spec=Team)
         mock_team.id = 1
         mock_team.name = "Test Team"
-        mock_team.logo_filename = "uploads/teams/1/120x120/old_logo.jpg"
+        mock_team.logo_filename = "teams/1/old_logo.jpg"
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
-        mock_logo_urls = {
-            "original": f"{UPLOADS_URL_PREFIX}teams/1/original/logo.jpg",
-            "120x120": f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg",
-            "64x64": f"{UPLOADS_URL_PREFIX}teams/1/64x64/logo.jpg",
-        }
+        mock_logo_url = f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg"
 
         with patch.object(ImageProcessingService, "process_team_logo", new_callable=AsyncMock) as mock_process:
-            mock_process.return_value = mock_logo_urls
+            mock_process.return_value = mock_logo_url
 
             with patch.object(ImageProcessingService, "update_team_logo_filename") as mock_update_filename:
-                mock_update_filename.return_value = "uploads/teams/1/120x120/logo.jpg"
+                mock_update_filename.return_value = "teams/1/logo.jpg"
 
                 with patch.object(AuditLogService, "__init__", return_value=None):
                     with patch.object(AuditLogService, "log_update") as mock_log:
@@ -149,8 +141,8 @@ class TestTeamLogoAPI:
         # Verify that audit log captured the old and new values
         mock_log.assert_called_once()
         call_args = mock_log.call_args
-        assert call_args[1]["old_values"]["logo_filename"] == "uploads/teams/1/120x120/old_logo.jpg"
-        assert call_args[1]["new_values"]["logo_filename"] == "uploads/teams/1/120x120/logo.jpg"
+        assert call_args[1]["old_values"]["logo_filename"] == "teams/1/old_logo.jpg"
+        assert call_args[1]["new_values"]["logo_filename"] == "teams/1/logo.jpg"
 
     @pytest.mark.asyncio
     async def test_delete_team_logo_success(self, mock_db, mock_user):
@@ -159,7 +151,7 @@ class TestTeamLogoAPI:
         mock_team = Mock(spec=Team)
         mock_team.id = 1
         mock_team.name = "Test Team"
-        mock_team.logo_filename = "uploads/teams/1/120x120/logo.jpg"
+        mock_team.logo_filename = "teams/1/logo.jpg"
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 
@@ -171,7 +163,7 @@ class TestTeamLogoAPI:
         # Assertions
         assert result["success"] is True
         assert result["message"] == "Logo deleted successfully"
-        assert result["deleted_logo"] == "uploads/teams/1/120x120/logo.jpg"
+        assert result["deleted_logo"] == "teams/1/logo.jpg"
 
         # Verify team logo filename was cleared
         assert mock_team.logo_filename is None
@@ -221,7 +213,7 @@ class TestTeamLogoAPI:
         mock_team = Mock(spec=Team)
         mock_team.id = 1
         mock_team.name = "Test Team"
-        mock_team.logo_filename = "uploads/teams/1/120x120/logo.jpg"
+        mock_team.logo_filename = "teams/1/logo.jpg"
 
         mock_db.query.return_value.filter.return_value.first.return_value = mock_team
 

@@ -79,26 +79,18 @@ class TestTeamLogoContainerEnvironment:
         data = response.json()
         assert data["success"] is True
         assert data["message"] == "Logo uploaded successfully"
-        assert "logo_urls" in data
-        assert "original" in data["logo_urls"]
-        assert "120x120" in data["logo_urls"]
-        assert "64x64" in data["logo_urls"]
+        assert "logo_url" in data
+        assert data["logo_url"].startswith("/uploads/teams/")
 
         # Verify files were actually created in the real directory
         team_dir = Path(settings.UPLOAD_DIR) / "teams" / str(test_team.id)
         assert team_dir.exists()
-        assert (team_dir / "original" / "logo.jpg").exists()
-        assert (team_dir / "120x120" / "logo.jpg").exists()
-        assert (team_dir / "64x64" / "logo.jpg").exists()
+        assert (team_dir / "logo.jpg").exists()
 
-        # Verify image dimensions
-        with Image.open(team_dir / "120x120" / "logo.jpg") as img:
-            # Should be scaled to fit within 120x120 while maintaining aspect ratio
-            assert max(img.size) <= 120
-
-        with Image.open(team_dir / "64x64" / "logo.jpg") as img:
-            # Should be scaled to fit within 64x64 while maintaining aspect ratio
-            assert max(img.size) <= 64
+        # Verify image dimensions (should be resized to fit within max dimensions)
+        with Image.open(team_dir / "logo.jpg") as img:
+            # Should be scaled to fit within max dimensions while maintaining aspect ratio
+            assert max(img.size) <= 250  # Based on TEAM_LOGO_MAX_WIDTH/HEIGHT
 
         # Clean up - delete the uploaded files
         import shutil

@@ -63,8 +63,8 @@ class TestTeamLogoDisplay:
     def test_teams_with_logos(self, test_db_file_session):
         """Create test teams with logos."""
         # Create teams
-        team1 = Team(name="Team Alpha", display_name="Alpha Team", logo_filename="uploads/teams/1/120x120/logo.jpg")
-        team2 = Team(name="Team Beta", display_name="Beta Team", logo_filename="uploads/teams/2/120x120/logo.png")
+        team1 = Team(name="Team Alpha", display_name="Alpha Team", logo_filename="teams/1/logo.jpg")
+        team2 = Team(name="Team Beta", display_name="Beta Team", logo_filename="teams/2/logo.png")
         team3 = Team(name="Team Gamma", display_name="Gamma Team")  # No logo
 
         test_db_file_session.add_all([team1, team2, team3])
@@ -98,26 +98,15 @@ class TestTeamLogoDisplay:
         """Set up mock logo files for testing."""
         for team_id in team_ids:
             team_dir = Path(temp_dir) / "teams" / str(team_id)
+            team_dir.mkdir(parents=True, exist_ok=True)
 
-            # Create directory structure
-            for size in ["original", "120x120", "64x64"]:
-                size_dir = team_dir / size
-                size_dir.mkdir(parents=True, exist_ok=True)
+            # Create mock image file (single logo, no multiple sizes)
+            img = Image.new("RGB", (200, 200), color="red" if team_id == 1 else "blue")
 
-                # Create mock image file
-                img = Image.new(
-                    "RGB",
-                    (
-                        120 if size == "120x120" else 64 if size == "64x64" else 200,
-                        120 if size == "120x120" else 64 if size == "64x64" else 200,
-                    ),
-                    color="red" if team_id == 1 else "blue",
-                )
-
-                # Use appropriate extension based on team
-                extension = ".jpg" if team_id == 1 else ".png"
-                img_path = size_dir / f"logo{extension}"
-                img.save(img_path)
+            # Use appropriate extension based on team
+            extension = ".jpg" if team_id == 1 else ".png"
+            img_path = team_dir / f"logo{extension}"
+            img.save(img_path)
 
     def test_team_detail_page_logo_display(self, client, test_teams_with_logos):
         """Test that team logos display correctly on team detail pages."""
@@ -137,11 +126,17 @@ class TestTeamLogoDisplay:
                 response = client.get(f"/teams/{team1.id}")
                 assert response.status_code == 200
 
-                # Check that logo is referenced in the HTML
+                # Check that the page loads and has the expected structure
                 html_content = response.text
-                assert (
-                    f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in html_content or "team_logo_url" in html_content
-                )
+                assert "team-logo-container" in html_content
+                assert "updateTeamLogoDisplay" in html_content
+
+                # Test that the API returns logo URL correctly
+                api_response = client.get(f"/v1/teams/{team1.id}/detail")
+                assert api_response.status_code == 200
+                api_data = api_response.json()
+                assert "logo_url" in api_data
+                assert api_data["logo_url"] == f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg"
 
                 # Test team without logo
                 response = client.get(f"/teams/{team3.id}")
@@ -149,12 +144,15 @@ class TestTeamLogoDisplay:
 
                 # Should still render successfully without logo
                 html_content = response.text
-                # The team name appears in the alt attribute or can be checked via the team_id in template
-                assert (
-                    "Gamma Team" in html_content
-                    or f"team_id: {team3.id}" in html_content
-                    or str(team3.id) in html_content
-                )
+                assert "team-logo-container" in html_content
+                assert "updateTeamLogoDisplay" in html_content
+
+                # Test that the API returns null logo URL for team without logo
+                api_response = client.get(f"/v1/teams/{team3.id}/detail")
+                assert api_response.status_code == 200
+                api_data = api_response.json()
+                assert "logo_url" in api_data
+                assert api_data["logo_url"] is None
 
     def test_games_index_page_logo_display(self, client, test_game, test_teams_with_logos):
         """Test that team logos display correctly on games index page."""
@@ -229,17 +227,17 @@ class TestTeamLogoDisplay:
                 from app.web_ui.templates_config import team_logo_url
 
                 # Test team with logo
-                url1 = team_logo_url(team1, "120x120")
+                url1 = team_logo_url(team1)
                 assert url1 is not None
-                assert f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in url1
+                assert f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg" in url1
 
                 # Test team with PNG logo
-                url2 = team_logo_url(team2, "64x64")
+                url2 = team_logo_url(team2)
                 assert url2 is not None
-                assert f"{UPLOADS_URL_PREFIX}teams/2/64x64/logo.png" in url2
+                assert f"{UPLOADS_URL_PREFIX}teams/2/logo.png" in url2
 
                 # Test team without logo
-                url3 = team_logo_url(team3, "120x120")
+                url3 = team_logo_url(team3)
                 assert url3 is None
 
     def test_logo_fallback_behavior(self, client, test_teams_with_logos):
@@ -286,13 +284,10 @@ class TestTeamLogoDisplay:
 
                 from app.web_ui.templates_config import team_logo_url
 
-                # Test different sizes
-                sizes = ["original", "120x120", "64x64"]
-
-                for size in sizes:
-                    url = team_logo_url(team1, size)
-                    assert url is not None
-                    assert f"teams/1/{size}/logo.jpg" in url
+                # Test logo URL generation (no longer supports multiple sizes)
+                url = team_logo_url(team1)
+                assert url is not None
+                assert "teams/1/logo.jpg" in url
 
     def test_logo_url_caching_behavior(self, test_teams_with_logos):
         """Test that logo URL generation is consistent."""
@@ -311,9 +306,9 @@ class TestTeamLogoDisplay:
                 from app.web_ui.templates_config import team_logo_url
 
                 # Multiple calls should return the same URL
-                url1 = team_logo_url(team1, "120x120")
-                url2 = team_logo_url(team1, "120x120")
-                url3 = team_logo_url(team1, "120x120")
+                url1 = team_logo_url(team1)
+                url2 = team_logo_url(team1)
+                url3 = team_logo_url(team1)
 
                 assert url1 == url2 == url3
                 assert url1 is not None

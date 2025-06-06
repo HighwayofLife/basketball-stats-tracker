@@ -103,23 +103,17 @@ class TestTeamLogoUploadWorkflow:
                 data = response.json()
                 assert data["success"] is True
                 assert data["message"] == "Logo uploaded successfully"
-                assert "logo_urls" in data
-                assert "original" in data["logo_urls"]
-                assert "120x120" in data["logo_urls"]
-                assert "64x64" in data["logo_urls"]
+                assert "logo_url" in data
+                assert data["logo_url"].startswith(UPLOADS_URL_PREFIX)
 
-                # Verify files were created
+                # Verify file was created
                 team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-                assert (team_dir / "original" / "logo.jpg").exists()
-                assert (team_dir / "120x120" / "logo.jpg").exists()
-                assert (team_dir / "64x64" / "logo.jpg").exists()
+                assert (team_dir / "logo.jpg").exists()
 
-                # Verify image dimensions
-                with Image.open(team_dir / "120x120" / "logo.jpg") as img:
-                    assert img.size == (120, 120)
-
-                with Image.open(team_dir / "64x64" / "logo.jpg") as img:
-                    assert img.size == (64, 64)
+                # Verify image dimensions (should be resized to fit within 250x250)
+                with Image.open(team_dir / "logo.jpg") as img:
+                    assert img.size[0] <= 250
+                    assert img.size[1] <= 250
 
     def test_upload_team_logo_unauthenticated(self, unauthenticated_client, test_team, valid_image_file):
         """Test team logo upload without authentication."""
@@ -217,7 +211,7 @@ class TestTeamLogoUploadWorkflow:
 
                 # Verify first logo exists
                 team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-                assert (team_dir / "original" / "logo.jpg").exists()
+                assert (team_dir / "logo.jpg").exists()
 
                 # Upload second logo (PNG)
                 img2 = Image.new("RGB", (100, 100), color="blue")
@@ -232,8 +226,8 @@ class TestTeamLogoUploadWorkflow:
                 assert response2.status_code == 200
 
                 # Verify second logo exists and first is gone
-                assert not (team_dir / "original" / "logo.jpg").exists()
-                assert (team_dir / "original" / "logo.png").exists()
+                assert not (team_dir / "logo.jpg").exists()
+                assert (team_dir / "logo.png").exists()
 
     def test_logo_url_generation_after_upload(self, client, test_team, authenticated_headers, valid_image_file):
         """Test that logo URLs are properly generated after upload."""
@@ -251,14 +245,12 @@ class TestTeamLogoUploadWorkflow:
                 )
 
                 data = response.json()
-                logo_urls = data["logo_urls"]
+                logo_url = data["logo_url"]
 
                 # Verify URL structure
-                for size, url in logo_urls.items():
-                    assert url.startswith(UPLOADS_URL_PREFIX)
-                    assert f"teams/{test_team.id}" in url
-                    assert size in url
-                    assert "logo.jpg" in url
+                assert logo_url.startswith(UPLOADS_URL_PREFIX)
+                assert f"teams/{test_team.id}" in logo_url
+                assert "logo.jpg" in logo_url
 
                 # Test URL helper function
                 from app.web_ui.templates_config import team_logo_url
@@ -266,11 +258,6 @@ class TestTeamLogoUploadWorkflow:
                 # Create mock team object
                 mock_team = type("Team", (), {"id": test_team.id})()
 
-                # Test different sizes
-                url_120 = team_logo_url(mock_team, "120x120")
-                url_64 = team_logo_url(mock_team, "64x64")
-                url_original = team_logo_url(mock_team, "original")
-
-                assert url_120 == logo_urls["120x120"]
-                assert url_64 == logo_urls["64x64"]
-                assert url_original == logo_urls["original"]
+                # Test URL generation
+                generated_url = team_logo_url(mock_team)
+                assert generated_url == logo_url
