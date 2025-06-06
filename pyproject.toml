@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basketball_stats_tracker"
-version = "0.4.12"
+version = "0.4.13"
 description = "A simple web app for tracking basketball game statistics."
 authors = [
   { name = "David 'Jedi' Lewis", email = "highwayoflife@gmail.com" }

@@ -283,33 +283,30 @@ function hideBanner() {
             }
         });
 
-        // Check if logos exist for each unique team ID
+        // Check if logos exist for each unique team ID by querying database first
         const logoCache = {};
-        await Promise.all([...teamIds].map(async (teamId) => {
-            try {
-                // Try multiple logo file formats
-                const formats = ['png', 'jpg', 'jpeg', 'webp'];
-                let logoUrl = null;
-
-                for (const format of formats) {
-                    const testUrl = `/static/uploads/teams/${teamId}/64x64/logo.${format}`;
-                    try {
-                        const response = await fetch(testUrl, { method: 'HEAD' });
-                        if (response.ok) {
-                            logoUrl = testUrl;
-                            break;
-                        }
-                    } catch (e) {
-                        // Continue to next format
+        
+        try {
+            // Get team data with logo_filename from API
+            const response = await fetch('/v1/teams');
+            if (response.ok) {
+                const teams = await response.json();
+                
+                // Build cache from database data
+                teams.forEach(team => {
+                    if (teamIds.has(team.id.toString())) {
+                        // Only include URL if team has logo_filename in database
+                        logoCache[team.id] = team.logo_filename ? `/uploads/${team.logo_filename}` : null;
                     }
-                }
-
-                logoCache[teamId] = logoUrl;
-            } catch (error) {
-                console.warn(`Failed to check logo for team ${teamId}:`, error);
-                logoCache[teamId] = null;
+                });
             }
-        }));
+        } catch (error) {
+            console.warn('Failed to fetch team data:', error);
+            // Fallback: set all to null (show fallback icons)
+            teamIds.forEach(teamId => {
+                logoCache[teamId] = null;
+            });
+        }
 
         // Apply logos to containers
         logoContainers.forEach(container => {

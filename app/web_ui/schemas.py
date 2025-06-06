@@ -198,6 +198,7 @@ class TeamBasicResponse(BaseModel):
     id: int
     name: str
     display_name: str | None = None
+    logo_filename: str | None = None
 
 
 class RosterPlayer(BaseModel):
@@ -231,6 +232,7 @@ class TeamDetailResponse(BaseModel):
     id: int
     name: str
     display_name: str | None = None
+    logo_url: str | None = None
     players: list["PlayerResponse"]
 
 
@@ -391,6 +393,7 @@ class TeamInfo(BaseModel):
     id: int
     name: str
     display_name: str | None = None
+    logo_url: str | None = None
 
 
 class TeamStatsData(BaseModel):

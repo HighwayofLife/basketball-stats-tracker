@@ -31,13 +31,17 @@ services:
       - PYTHONUNBUFFERED=1
       - JWT_SECRET_KEY=your-super-secret-key-change-in-production
       - DEFAULT_ADMIN_PASSWORD=TestAdminPassword123!
+      - UPLOAD_DIR=/data/uploads
     volumes:
       # Mount for development to allow code changes without rebuilding
       - .:/app
       - /app/.venv  # Exclude .venv directory
       - /app/__pycache__  # Exclude Python cache
+      # Mount for persistent uploads outside app directory
+      - uploads_data:/data/uploads
     restart: unless-stopped
     command: ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--reload"]
 
 volumes:
   postgres_data:
+  uploads_data:

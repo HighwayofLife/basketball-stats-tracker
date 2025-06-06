@@ -530,7 +530,7 @@
                 let logoUrl = null;
                 
                 for (const format of formats) {
-                    const testUrl = `/static/uploads/teams/${teamId}/64x64/logo.${format}`;
+                    const testUrl = `/uploads/teams/${teamId}/logo.${format}`;
                     try {
                         const response = await fetch(testUrl, { method: 'HEAD' });
                         if (response.ok) {

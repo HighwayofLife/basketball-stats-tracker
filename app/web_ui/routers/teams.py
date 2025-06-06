@@ -80,6 +80,7 @@ async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)): 
                 id=team.id,
                 name=team.name,
                 display_name=team.display_name,
+                logo_filename=team.logo_filename,
             )
             for team in teams
         ]
@@ -172,7 +173,12 @@ async def get_team_detail(
             for player in players
         ]
 
-        return TeamDetailResponse(id=team.id, name=team.name, display_name=team.display_name, players=player_responses)
+        # Get logo URL for the team
+        logo_url = ImageProcessingService.get_team_logo_url(team.id)
+
+        return TeamDetailResponse(
+            id=team.id, name=team.name, display_name=team.display_name, logo_url=logo_url, players=player_responses
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -333,11 +339,15 @@ async def get_team_stats(
                 }
             )
 
+        # Get logo URL for the team
+        logo_url = ImageProcessingService.get_team_logo_url(team.id)
+
         return {
             "team": {
                 "id": team.id,
                 "name": team.name,
                 "display_name": team.display_name,
+                "logo_url": logo_url,
             },
             "career_stats": career_stats,
             "season_stats": formatted_season_stats,
@@ -519,8 +529,8 @@ async def upload_team_logo(
         # Store old logo filename for auditing
         old_logo = team.logo_filename
 
-        # Process and store the logo in multiple sizes
-        logo_urls = await ImageProcessingService.process_team_logo(team_id, file)
+        # Process and store the logo
+        logo_url = await ImageProcessingService.process_team_logo(team_id, file)
 
         # Update team record with logo filename
         logo_filename = ImageProcessingService.update_team_logo_filename(team_id)
@@ -541,7 +551,7 @@ async def upload_team_logo(
         return {
             "success": True,
             "message": "Logo uploaded successfully",
-            "logo_urls": logo_urls,
+            "logo_url": logo_url,
             "logo_filename": logo_filename,
         }
 

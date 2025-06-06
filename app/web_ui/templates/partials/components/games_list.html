@@ -81,7 +81,7 @@ Game object structure (flexible):
                 <div class="team-with-logo">
                     <div class="team-logo-small">
                         {% if game.away_team_id is defined %}
-                            {% set away_logo_url = team_logo_url({'id': game.away_team_id}, '64x64') %}
+                            {% set away_logo_url = team_logo_url({'id': game.away_team_id}) %}
                             {% if away_logo_url %}
                                 <img src="{{ away_logo_url }}" alt="{{ game.away_team }} logo">
                             {% else %}
@@ -101,7 +101,7 @@ Game object structure (flexible):
                 <div class="team-with-logo">
                     <div class="team-logo-small">
                         {% if game.opponent_team_id is defined %}
-                            {% set opponent_logo_url = team_logo_url({'id': game.opponent_team_id}, '64x64') %}
+                            {% set opponent_logo_url = team_logo_url({'id': game.opponent_team_id}) %}
                             {% if opponent_logo_url %}
                                 <img src="{{ opponent_logo_url }}" alt="{{ game.opponent }} logo">
                             {% else %}
@@ -151,7 +151,7 @@ Game object structure (flexible):
                 <div class="team-with-logo">
                     <div class="team-logo-small">
                         {% if game.home_team_id is defined %}
-                            {% set home_logo_url = team_logo_url({'id': game.home_team_id}, '64x64') %}
+                            {% set home_logo_url = team_logo_url({'id': game.home_team_id}) %}
                             {% if home_logo_url %}
                                 <img src="{{ home_logo_url }}" alt="{{ game.home_team }} logo">
                             {% else %}
@@ -212,7 +212,7 @@ Game object structure (flexible):
                         <div class="team-with-logo-mobile">
                             <div class="team-logo-mobile">
                                 {% if game.away_team_id is defined %}
-                                    {% set away_logo_url = team_logo_url({'id': game.away_team_id}, '64x64') %}
+                                    {% set away_logo_url = team_logo_url({'id': game.away_team_id}) %}
                                     {% if away_logo_url %}
                                         <img src="{{ away_logo_url }}" alt="{{ game.away_team }} logo">
                                     {% else %}
@@ -231,7 +231,7 @@ Game object structure (flexible):
                         <div class="team-with-logo-mobile">
                             <div class="team-logo-mobile">
                                 {% if game.home_team_id is defined %}
-                                    {% set home_logo_url = team_logo_url({'id': game.home_team_id}, '64x64') %}
+                                    {% set home_logo_url = team_logo_url({'id': game.home_team_id}) %}
                                     {% if home_logo_url %}
                                         <img src="{{ home_logo_url }}" alt="{{ game.home_team }} logo">
                                     {% else %}

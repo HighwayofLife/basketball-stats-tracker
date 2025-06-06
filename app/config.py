@@ -33,6 +33,22 @@ SHOT_MAPPING: dict[str, dict[str, str | bool | int]] = {
     "/": {"type": "3P", "made": False, "points": 0},
 }
 
+# Upload directory constants
+UPLOADS_URL_PREFIX = "/uploads/"
+UPLOADS_MOUNT_PATH_PRODUCTION = "/mnt/uploads"
+TEAM_LOGOS_SUBDIR = "teams"
+PLAYER_IMAGES_SUBDIR = "players"
+
+# Team logo processing configuration
+TEAM_LOGO_MAX_WIDTH = 250
+TEAM_LOGO_MAX_HEIGHT = 250
+
+
+def _get_default_upload_dir() -> str:
+    """Get the default upload directory path."""
+    default_upload_dir = BASE_DIR / "uploads" if not IS_BUNDLED else BASE_DIR.parent / "uploads"
+    return str(default_upload_dir)
+
 
 class Settings(BaseSettings):
     """
@@ -50,7 +66,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     # Upload directory configuration
-    UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", str(BASE_DIR / "app" / "web_ui" / "static" / "uploads"))
+    # In production (Cloud Run), this will be set to /mnt/uploads via environment variable
+    # In development, use directory outside of app code (e.g., /data/uploads or ./uploads)
+    UPLOAD_DIR: str = os.environ.get("UPLOAD_DIR", _get_default_upload_dir())
 
     model_config = {
         "env_file": ".env",

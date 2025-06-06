@@ -42,7 +42,7 @@ class User(Base):
 
     # Team association
     team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)
-    team = relationship("Team", back_populates="users")
+    team = relationship("Team")
 
     def set_password(self, password: str) -> None:
         """Set the user's password by hashing it."""
