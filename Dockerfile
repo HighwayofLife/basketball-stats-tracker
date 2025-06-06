@@ -1,5 +1,5 @@
-# Base stage with common setup
-FROM python:3.11-slim AS base
+# Base stage for dependency installation
+FROM python:3.11-slim AS dependencies
 
 WORKDIR /app
 
@@ -8,20 +8,22 @@ RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files and app structure
+# Copy only files needed for pip install
 COPY pyproject.toml ./
 COPY README.md ./
 COPY LICENSE ./
-COPY app ./app
+
+# Create minimal app structure and install all dependencies at once
+RUN mkdir -p app && touch app/__init__.py
 
 # Development stage
-FROM base AS development
+FROM dependencies AS development
 
 # Install all dependencies including dev
 RUN pip install --no-cache-dir -e ".[dev]"
 
-# Don't copy files in development - we'll use volume mount instead
-# COPY . .
+# Copy all application code
+COPY . .
 
 # Set environment variables
 ENV PYTHONPATH=/app
@@ -43,13 +45,13 @@ EXPOSE 8000
 CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--reload"]
 
 # Production stage
-FROM base AS production
+FROM dependencies AS production
 
 # Accept build arguments for version info
 ARG APP_VERSION
 ARG GIT_HASH=unknown
 
-# Install only runtime dependencies
+# Install runtime dependencies
 RUN pip install --no-cache-dir .
 
 # Copy application code
