@@ -5,14 +5,32 @@ v0.4.13
 - Added Cloud Storage support for persistent file uploads in production
 - Configured Cloud Storage FUSE volume mount in Cloud Run for team logos
 
+### Infrastructure
+- Added Google Cloud Storage bucket resource in Terraform configuration
+- **Improved**: Terraform now manages all Cloud service account IAM permissions automatically (no more manual scripts needed)
+- Configured storage bucket with CORS settings for web uploads and versioning for data protection
+- Migrated Terraform Cloud service account permission management from manual script to Infrastructure as Code
+
 ### Bug Fixes
 - Fixed team logo uploads being deleted on each deployment
 - Fixed Pydantic validation errors in Settings class
+- **Critical: Fixed dashboard/homepage loading error** - Removed broken SQLAlchemy User relationship from Team model that was causing dashboard page to crash
+- Fixed SQLAlchemy relationship error that prevented model loading
+- **Fixed team logo 404 errors** - Template logo function and JavaScript now check database first before attempting to load images, preventing 404 errors for teams without logos
+
+### Testing
+- Added comprehensive UI tests for dashboard data display functionality
+- Added tests for Recent Games and Players sections on dashboard
+- Added tests to verify dashboard handles empty data gracefully
+- Added unit tests for database-aware team logo URL generation
+- Added UI tests to prevent team logo 404 errors and verify fallback icons
 
 ### Refactoring / Optimization
 - Moved uploads directory outside application code directory for better separation
 - Updated all upload URLs from `/static/uploads/` to `/uploads/` for consistency
 - Added dedicated `/uploads` mount point in FastAPI for serving uploaded files
+- Optimized the Dockerfile to cache dependencies more effectively
+- Cleaned up unnecessary TYPE_CHECKING imports in models
 
 v0.4.12
 -------
