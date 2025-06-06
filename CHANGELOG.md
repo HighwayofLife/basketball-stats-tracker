@@ -1,3 +1,15 @@
+v0.4.14
+-------
+
+### Changed
+- Dockerfile installs dependencies using extras to improve caching
+
+v0.4.13
+-------
+
+### Changed
+- Optimized Dockerfile caching to avoid reinstalling dependencies on code changes
+
 v0.4.12
 -------
 
