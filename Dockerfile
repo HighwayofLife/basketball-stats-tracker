@@ -1,74 +1,64 @@
-# Base stage with common setup
+# Base image with common system setup
 FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# Install system dependencies
+# Install build tools
 RUN apt-get update && apt-get install -y \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files and app structure
+# Copy dependency descriptors only
 COPY pyproject.toml ./
 COPY README.md ./
 COPY LICENSE ./
-COPY app ./app
 
-# Development stage
+# Provide a minimal package structure so pip can resolve dependencies
+RUN mkdir app && touch app/__init__.py \
+    && pip install --no-cache-dir . \
+    && rm -rf app
+
+# Development stage ------------------------------------------------------
 FROM base AS development
 
-# Install all dependencies including dev
-RUN pip install --no-cache-dir -e ".[dev]"
+# Install additional development dependencies
+RUN pip install --no-cache-dir .[dev]
 
-# Don't copy files in development - we'll use volume mount instead
-# COPY . .
+# Copy application code and install in editable mode without deps
+COPY . .
+RUN pip install --no-cache-dir --no-deps -e .
 
-# Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-root user for security
 RUN adduser --disabled-password --gecos "" appuser && \
     chown -R appuser:appuser /app
 
-# Switch to non-root user
 USER appuser
-
-# Expose port
 EXPOSE 8000
-
-# Use uvicorn with reload for development
 CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--reload"]
 
-# Production stage
+# Production stage ------------------------------------------------------
 FROM base AS production
 
-# Accept build arguments for version info
 ARG APP_VERSION
 ARG GIT_HASH=unknown
-
-# Install only runtime dependencies
-RUN pip install --no-cache-dir .
 
 # Copy application code
 COPY . .
 
-# Create version info file
+# Install package without reinstalling dependencies
+RUN pip install --no-cache-dir --no-deps .
+
+# Write version information
 RUN echo "{\"version\": \"$APP_VERSION\", \"git_hash\": \"$GIT_HASH\", \"full_version\": \"v$APP_VERSION-$GIT_HASH\"}" > /app/app/VERSION.json
 
-# Set environment variables
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1
 
-# Create a non-root user for security
 RUN adduser --disabled-password --gecos "" appuser && \
     chown -R appuser:appuser /app
 
-# Switch to non-root user
 USER appuser
-
-# Expose port
 EXPOSE 8000
-
-# Use uvicorn directly for better performance
 CMD ["uvicorn", "app.web_ui.api:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers"]
