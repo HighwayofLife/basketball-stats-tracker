@@ -69,9 +69,10 @@ class TestAPIEndpoints:
         # Set up a temporary upload directory for tests
         test_upload_dir = tmp_path / "test_uploads"
         test_upload_dir.mkdir(exist_ok=True)
-        
+
         # Override the UPLOAD_DIR setting for tests
         from app import config
+
         monkeypatch.setattr(config.settings, "UPLOAD_DIR", str(test_upload_dir))
 
         # Monkey-patch the get_db_session function in all the modules that import it

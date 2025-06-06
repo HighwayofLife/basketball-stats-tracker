@@ -139,7 +139,9 @@ class TestTeamLogoDisplay:
 
                 # Check that logo is referenced in the HTML
                 html_content = response.text
-                assert f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in html_content or "team_logo_url" in html_content
+                assert (
+                    f"{UPLOADS_URL_PREFIX}teams/1/120x120/logo.jpg" in html_content or "team_logo_url" in html_content
+                )
 
                 # Test team without logo
                 response = client.get(f"/teams/{team3.id}")

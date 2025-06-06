@@ -35,7 +35,7 @@ class TestTeamLogoContainerEnvironment:
                 email="test@example.com",
                 role=UserRole.ADMIN,
                 is_active=True,
-                provider="local"
+                provider="local",
             )
 
         app.dependency_overrides[get_db] = override_get_db
@@ -65,17 +65,14 @@ class TestTeamLogoContainerEnvironment:
 
     @pytest.mark.skipif(
         not settings.UPLOAD_DIR.startswith("/data/"),
-        reason="This test only runs in container environment with /data/uploads"
+        reason="This test only runs in container environment with /data/uploads",
     )
     def test_upload_team_logo_real_container_directory(self, client, test_team, valid_image_file):
         """Test team logo upload using the real container upload directory."""
         # This test specifically DOES NOT mock the upload directory
         # It tests against the actual /data/uploads path used in the container
-        
-        response = client.post(
-            f"/v1/teams/{test_team.id}/logo",
-            files={"file": valid_image_file}
-        )
+
+        response = client.post(f"/v1/teams/{test_team.id}/logo", files={"file": valid_image_file})
 
         # Check response
         assert response.status_code == 200
@@ -105,20 +102,18 @@ class TestTeamLogoContainerEnvironment:
 
         # Clean up - delete the uploaded files
         import shutil
+
         if team_dir.exists():
             shutil.rmtree(team_dir)
 
     @pytest.mark.skipif(
         not settings.UPLOAD_DIR.startswith("/data/"),
-        reason="This test only runs in container environment with /data/uploads"
+        reason="This test only runs in container environment with /data/uploads",
     )
     def test_delete_team_logo_real_container_directory(self, client, test_team, valid_image_file):
         """Test team logo deletion using the real container upload directory."""
         # First upload a logo
-        response = client.post(
-            f"/v1/teams/{test_team.id}/logo",
-            files={"file": valid_image_file}
-        )
+        response = client.post(f"/v1/teams/{test_team.id}/logo", files={"file": valid_image_file})
         assert response.status_code == 200
 
         # Verify files exist
@@ -139,26 +134,27 @@ class TestTeamLogoContainerEnvironment:
 
     @pytest.mark.skipif(
         not settings.UPLOAD_DIR.startswith("/data/"),
-        reason="This test only runs in container environment with /data/uploads"
+        reason="This test only runs in container environment with /data/uploads",
     )
     def test_upload_permissions_container_environment(self, client, test_team):
         """Test that upload permissions work correctly in container environment."""
         # This test verifies that the container permission fix works
         upload_dir = Path(settings.UPLOAD_DIR)
-        
+
         # Should be able to create subdirectories
         test_subdir = upload_dir / "test_permissions"
         test_subdir.mkdir(exist_ok=True)
-        
+
         # Should be able to create files
         test_file = test_subdir / "test.txt"
         test_file.write_text("test content")
-        
+
         # Verify file was created
         assert test_file.exists()
         assert test_file.read_text() == "test content"
-        
+
         # Clean up
         import shutil
+
         if test_subdir.exists():
             shutil.rmtree(test_subdir)
