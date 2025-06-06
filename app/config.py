@@ -39,6 +39,10 @@ UPLOADS_MOUNT_PATH_PRODUCTION = "/mnt/uploads"
 TEAM_LOGOS_SUBDIR = "teams"
 PLAYER_IMAGES_SUBDIR = "players"
 
+# Team logo processing configuration
+TEAM_LOGO_MAX_WIDTH = 250
+TEAM_LOGO_MAX_HEIGHT = 250
+
 
 def _get_default_upload_dir() -> str:
     """Get the default upload directory path."""

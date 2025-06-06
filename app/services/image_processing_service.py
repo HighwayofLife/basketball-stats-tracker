@@ -10,7 +10,7 @@ from pathlib import Path
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 
-from app.config import TEAM_LOGOS_SUBDIR, UPLOADS_URL_PREFIX, settings
+from app.config import TEAM_LOGO_MAX_HEIGHT, TEAM_LOGO_MAX_WIDTH, TEAM_LOGOS_SUBDIR, UPLOADS_URL_PREFIX, settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,14 +18,10 @@ UPLOADS_DIR = Path(settings.UPLOAD_DIR)
 
 
 class ImageProcessingService:
-    """Service for processing and storing team logo images with multiple sizes."""
+    """Service for processing and storing team logo images."""
 
-    # Define the sizes we need for team logos
-    LOGO_SIZES = {
-        "original": None,  # Keep original size
-        "120x120": (120, 120),  # Medium size for team detail page
-        "64x64": (64, 64),  # Small size for games tables
-    }
+    # Maximum dimensions for team logos (preserves aspect ratio)
+    MAX_LOGO_DIMENSIONS = (TEAM_LOGO_MAX_WIDTH, TEAM_LOGO_MAX_HEIGHT)
 
     # Supported image formats
     SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -57,23 +53,20 @@ class ImageProcessingService:
             raise HTTPException(status_code=400, detail="Invalid image file.") from e
 
     @staticmethod
-    def resize_and_crop_image(image: Image.Image, target_size: tuple[int, int]) -> Image.Image:
-        """Resize an image to fit within target dimensions while maintaining aspect ratio."""
-        # Calculate scaling factor to fit within target dimensions
+    def resize_image_to_fit(image: Image.Image, max_width: int, max_height: int) -> Image.Image:
+        """Resize an image to fit within max dimensions while maintaining aspect ratio."""
         original_width, original_height = image.size
-        target_width, target_height = target_size
 
-        # Calculate aspect ratios
-        original_ratio = original_width / original_height
-        target_ratio = target_width / target_height
+        # If image is already smaller than max dimensions, return as-is
+        if original_width <= max_width and original_height <= max_height:
+            return image
 
-        # Determine scaling factor - scale to fit within the target dimensions
-        if original_ratio > target_ratio:
-            # Image is wider, scale by width
-            scale_factor = target_width / original_width
-        else:
-            # Image is taller, scale by height
-            scale_factor = target_height / original_height
+        # Calculate scaling factor to fit within max dimensions
+        width_ratio = max_width / original_width
+        height_ratio = max_height / original_height
+
+        # Use the smaller ratio to ensure image fits within both dimensions
+        scale_factor = min(width_ratio, height_ratio)
 
         # Calculate new dimensions
         new_width = int(original_width * scale_factor)
@@ -89,22 +82,21 @@ class ImageProcessingService:
         return Path(settings.UPLOAD_DIR) / TEAM_LOGOS_SUBDIR / str(team_id)
 
     @staticmethod
-    def get_team_logo_path(team_id: int, size: str, filename: str) -> Path:
-        """Get the full path for a team logo file of a specific size."""
+    def get_team_logo_path(team_id: int, filename: str) -> Path:
+        """Get the full path for a team logo file."""
         team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-        return team_dir / size / filename
+        return team_dir / filename
 
     @staticmethod
-    def get_team_logo_url(team_id: int, size: str = "120x120") -> str | None:
-        """Get the URL for a team logo of a specific size."""
+    def get_team_logo_url(team_id: int) -> str | None:
+        """Get the URL for a team logo."""
         team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-        size_dir = team_dir / size
 
-        if not size_dir.exists():
+        if not team_dir.exists():
             return None
 
         # Look for any supported image file
-        for file_path in size_dir.iterdir():
+        for file_path in team_dir.iterdir():
             if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
                 # Always use uploads endpoint since uploads are outside app directory
                 try:
@@ -112,7 +104,7 @@ class ImageProcessingService:
                     return f"{UPLOADS_URL_PREFIX}{relative_path}"
                 except ValueError:
                     # Fallback for tests or edge cases
-                    return f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{size}/{file_path.name}"
+                    return f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{file_path.name}"
 
         return None
 
@@ -133,16 +125,16 @@ class ImageProcessingService:
             logger.info(f"Logo directory for team {team_id} does not exist: {team_dir}")
 
     @staticmethod
-    async def process_team_logo(team_id: int, file: UploadFile) -> dict[str, str]:
+    async def process_team_logo(team_id: int, file: UploadFile) -> str:
         """
-        Process and store a team logo in multiple sizes.
+        Process and store a team logo.
 
         Args:
             team_id: The ID of the team
             file: The uploaded image file
 
         Returns:
-            Dictionary with URLs for each size: {"120x120": "/uploads/teams/1/120x120/logo.jpg", ...}
+            URL for the processed logo: "/uploads/teams/1/logo.jpg"
         """
         try:
             # Read file contents
@@ -151,18 +143,16 @@ class ImageProcessingService:
             # Validate the file
             ImageProcessingService.validate_image_file(file, contents)
 
-            # Create team directory structure
+            # Create team directory
             team_dir = ImageProcessingService.get_team_logo_directory(team_id)
 
             # Clean up existing logo if it exists
             logger.info(f"Processing new logo for team {team_id}, checking for existing logos...")
             ImageProcessingService.delete_team_logo(team_id)
 
-            # Create new directory structure
-            logger.info(f"Creating new directory structure for team {team_id}")
-            for size in ImageProcessingService.LOGO_SIZES:
-                size_dir = team_dir / size
-                size_dir.mkdir(parents=True, exist_ok=True)
+            # Create directory
+            logger.info(f"Creating directory for team {team_id}")
+            team_dir.mkdir(parents=True, exist_ok=True)
 
             # Determine output format and filename based on original file
             file_extension = os.path.splitext(file.filename or "")[1].lower()
@@ -173,56 +163,47 @@ class ImageProcessingService:
             output_format = format_mapping.get(file_extension, "JPEG")
             filename = f"logo{file_extension}" if file_extension else "logo.jpg"
 
-            # Open the image
+            # Open and process the image
             with Image.open(io.BytesIO(contents)) as original_image:
-                # Process each size
-                urls = {}
+                # Resize to fit within max dimensions while preserving aspect ratio
+                max_width, max_height = ImageProcessingService.MAX_LOGO_DIMENSIONS
+                processed_image = ImageProcessingService.resize_image_to_fit(original_image, max_width, max_height)
 
-                for size_name, dimensions in ImageProcessingService.LOGO_SIZES.items():
-                    if size_name == "original":
-                        # Save original as-is, preserving format
-                        processed_image = original_image
-                    else:
-                        # Resize and crop to target dimensions
-                        processed_image = ImageProcessingService.resize_and_crop_image(original_image, dimensions)
+                # Save the processed image
+                output_path = ImageProcessingService.get_team_logo_path(team_id, filename)
 
-                    # Save the processed image
-                    output_path = ImageProcessingService.get_team_logo_path(team_id, size_name, filename)
+                # Handle different formats appropriately
+                save_kwargs = {}
+                if output_format == "JPEG":
+                    # For JPEG, convert to RGB if necessary
+                    if processed_image.mode != "RGB":
+                        processed_image = processed_image.convert("RGB")
+                    # Use high quality
+                    save_kwargs["quality"] = 90
+                    save_kwargs["optimize"] = True
+                elif output_format == "PNG":
+                    # PNG supports transparency
+                    if processed_image.mode not in ("RGBA", "RGB"):
+                        processed_image = processed_image.convert("RGBA")
+                    # PNG compression level
+                    save_kwargs["optimize"] = True
+                elif output_format == "WEBP":
+                    # Use high quality WebP
+                    save_kwargs["quality"] = 90
+                    save_kwargs["method"] = 6
 
-                    # Handle different formats appropriately
-                    save_kwargs = {}
-                    if output_format == "JPEG":
-                        # For JPEG, convert to RGB if necessary
-                        if processed_image.mode != "RGB":
-                            processed_image = processed_image.convert("RGB")
-                        # Use maximum quality (95-100 is essentially lossless for JPEG)
-                        save_kwargs["quality"] = 100
-                        save_kwargs["subsampling"] = 0  # Disable chroma subsampling
-                        save_kwargs["optimize"] = False  # Don't optimize to maintain quality
-                    elif output_format == "PNG":
-                        # PNG supports transparency
-                        if processed_image.mode not in ("RGBA", "RGB"):
-                            processed_image = processed_image.convert("RGBA")
-                        # PNG is lossless by default, but ensure no compression
-                        save_kwargs["compress_level"] = 0  # No compression
-                    elif output_format == "WEBP":
-                        # Use lossless WebP
-                        save_kwargs["lossless"] = True
-                        save_kwargs["quality"] = 100  # Ignored in lossless mode
-                        save_kwargs["method"] = 6  # Highest quality method
+                processed_image.save(output_path, output_format, **save_kwargs)
 
-                    processed_image.save(output_path, output_format, **save_kwargs)
-
-                    # Generate URL - always use uploads endpoint
-                    try:
-                        relative_path = output_path.relative_to(UPLOADS_DIR)
-                        urls[size_name] = f"{UPLOADS_URL_PREFIX}{relative_path}"
-                    except ValueError:
-                        # Fallback for tests or edge cases
-                        urls[size_name] = f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{size_name}/{filename}"
+                # Generate URL - always use uploads endpoint
+                try:
+                    relative_path = output_path.relative_to(UPLOADS_DIR)
+                    logo_url = f"{UPLOADS_URL_PREFIX}{relative_path}"
+                except ValueError:
+                    # Fallback for tests or edge cases
+                    logo_url = f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{filename}"
 
                 logger.info(f"Successfully processed team logo for team {team_id}")
-                return urls
+                return logo_url
 
         except HTTPException:
             raise
@@ -234,26 +215,25 @@ class ImageProcessingService:
             raise HTTPException(status_code=500, detail="Failed to process logo image") from e
 
     @staticmethod
-    def update_team_logo_filename(team_id: int) -> str:
+    def update_team_logo_filename(team_id: int) -> str | None:
         """
         Update and return the logo filename for a team.
         This should be called after successful logo processing to update the database.
 
         Returns:
-            The relative path to store in the database (e.g., "uploads/teams/1/120x120/logo.png")
+            The relative path to store in the database (e.g., "teams/1/logo.png") or None if no logo exists
         """
-        logo_url = ImageProcessingService.get_team_logo_url(team_id, "120x120")
+        logo_url = ImageProcessingService.get_team_logo_url(team_id)
         if logo_url and logo_url.startswith(UPLOADS_URL_PREFIX):
             # Remove uploads URL prefix for database storage
             return logo_url.removeprefix(UPLOADS_URL_PREFIX)
 
-        # Fallback: look for any supported format in the 120x120 directory
+        # Fallback: look for any supported format in the team directory
         team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-        size_dir = team_dir / "120x120"
-        if size_dir.exists():
-            for file_path in size_dir.iterdir():
+        if team_dir.exists():
+            for file_path in team_dir.iterdir():
                 if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
-                    return f"{TEAM_LOGOS_SUBDIR}/{team_id}/120x120/{file_path.name}"
+                    return f"{TEAM_LOGOS_SUBDIR}/{team_id}/{file_path.name}"
 
-        # Ultimate fallback (should rarely be used)
-        return f"{TEAM_LOGOS_SUBDIR}/{team_id}/120x120/logo.jpg"
+        # No logo found
+        return None
