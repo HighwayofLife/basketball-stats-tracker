@@ -84,25 +84,34 @@ def test_production_environment_variables():
 
     with patch.dict(os.environ, prod_env, clear=False):
         try:
-            # Clear the module cache to ensure fresh import with new env vars
+            # Store original modules before clearing cache
             modules_to_reload = [
                 "app.web_ui.api",
                 "app.config",  # Config module might cache environment variables
             ]
+            original_modules = {}
             for module_name in modules_to_reload:
                 if module_name in sys.modules:
+                    original_modules[module_name] = sys.modules[module_name]
                     del sys.modules[module_name]
 
-            from app.web_ui.api import app
+            try:
+                from app.web_ui.api import app
 
-            client = TestClient(app)
+                with TestClient(app) as client:
+                    # App should start successfully in production mode
+                    assert app is not None
 
-            # App should start successfully in production mode
-            assert app is not None
-
-            # Verify middleware is configured for production
-            middleware_classes = [middleware.cls.__name__ for middleware in app.user_middleware]
-            assert "TrustedHostMiddleware" in middleware_classes
+                    # Verify middleware is configured for production
+                    middleware_classes = [middleware.cls.__name__ for middleware in app.user_middleware]
+                    assert "TrustedHostMiddleware" in middleware_classes
+            finally:
+                # Restore original modules to prevent pollution
+                for module_name in modules_to_reload:
+                    if module_name in sys.modules:
+                        del sys.modules[module_name]
+                    if module_name in original_modules:
+                        sys.modules[module_name] = original_modules[module_name]
 
         except Exception as e:
             pytest.fail(f"FastAPI app failed to start in production mode: {e}")

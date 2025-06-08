@@ -9,6 +9,7 @@ from sqlalchemy import Integer, func
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
+from app.config import PLAYER_IMAGES_SUBDIR, settings
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.season_stats_service import SeasonStatsService
@@ -561,13 +562,17 @@ async def upload_player_image(
             raise HTTPException(status_code=400, detail="File too large. Maximum size is 5MB.")
 
         # Create upload directory if it doesn't exist
-        upload_dir = Path("app/web_ui/static/uploads/players")
+        upload_dir = Path(settings.UPLOAD_DIR) / PLAYER_IMAGES_SUBDIR
         upload_dir.mkdir(parents=True, exist_ok=True)
+
+        # Import supported formats from image processing service
+        from app.services.image_processing_service import ImageProcessingService
 
         # Generate filename
         file_extension = os.path.splitext(file.filename)[1]
-        if file_extension.lower() not in [".jpg", ".jpeg", ".png"]:
-            raise HTTPException(status_code=400, detail="Invalid file format. Only JPG and PNG files are allowed.")
+        if file_extension.lower() not in ImageProcessingService.SUPPORTED_FORMATS:
+            formats = ", ".join(ImageProcessingService.SUPPORTED_FORMATS)
+            raise HTTPException(status_code=400, detail=f"Invalid file format. Supported formats: {formats}.")
 
         filename = f"player_{player_id}{file_extension}"
         file_path = upload_dir / filename
@@ -587,11 +592,11 @@ async def upload_player_image(
 
             # Remove old image if exists
             if player.thumbnail_image:
-                old_path = Path("app/web_ui/static") / player.thumbnail_image
+                old_path = Path(settings.UPLOAD_DIR) / player.thumbnail_image
                 if old_path.exists():
                     old_path.unlink()
 
-            player.thumbnail_image = f"uploads/players/{filename}"
+            player.thumbnail_image = f"{PLAYER_IMAGES_SUBDIR}/{filename}"
             session.commit()
 
             return {"success": True, "message": "Image uploaded successfully", "image_path": player.thumbnail_image}

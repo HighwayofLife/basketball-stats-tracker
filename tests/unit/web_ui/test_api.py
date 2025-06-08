@@ -16,11 +16,11 @@ from app.web_ui.dependencies import get_db
 class TestAPIEndpoints:
     """Test cases for API endpoints."""
 
-    @pytest.fixture(scope="class")
-    def test_db_file(self, tmp_path_factory):
+    @pytest.fixture
+    def test_db_file(self, tmp_path):
         """Create a temporary database file for testing."""
         # Create a temporary file for the database
-        db_file = tmp_path_factory.mktemp("data") / "test.db"
+        db_file = tmp_path / "test.db"
         return str(db_file)
 
     @pytest.fixture
@@ -46,7 +46,7 @@ class TestAPIEndpoints:
             session.close()
 
     @pytest.fixture
-    def client(self, db_session, test_db_engine, monkeypatch):
+    def client(self, db_session, test_db_engine, monkeypatch, tmp_path):
         """Create a test client with proper database dependency override."""
         from contextlib import contextmanager
 
@@ -65,6 +65,15 @@ class TestAPIEndpoints:
                 yield new_session
             finally:
                 new_session.close()
+
+        # Set up a temporary upload directory for tests
+        test_upload_dir = tmp_path / "test_uploads"
+        test_upload_dir.mkdir(exist_ok=True)
+
+        # Override the UPLOAD_DIR setting for tests
+        from app import config
+
+        monkeypatch.setattr(config.settings, "UPLOAD_DIR", str(test_upload_dir))
 
         # Monkey-patch the get_db_session function in all the modules that import it
         import app.data_access.db_session as db_session_module
@@ -109,13 +118,19 @@ class TestAPIEndpoints:
             """Mock admin user for testing."""
             return mock_current_user()
 
+        # Store original overrides before modifying
+        original_overrides = app.dependency_overrides.copy()
+
         app.dependency_overrides[get_current_user] = mock_current_user
         app.dependency_overrides[require_admin] = mock_admin_user
 
-        yield TestClient(app)
-
-        # Clean up
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            # Always restore original state
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     @pytest.fixture
     def sample_team(self, db_session):
@@ -1041,7 +1056,7 @@ class TestAPIEndpoints:
         data = response.json()
         assert data["success"] is True
         assert "image_path" in data
-        assert data["image_path"] == f"uploads/players/player_{sample_players[0].id}.jpg"
+        assert data["image_path"] == f"players/player_{sample_players[0].id}.jpg"
 
     def test_upload_player_image_invalid_type(self, client, sample_players, tmp_path):
         """Test uploading invalid file type."""

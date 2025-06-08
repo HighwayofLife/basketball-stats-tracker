@@ -20,6 +20,23 @@ os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-vali
 class TestContainerStartup:
     """Test container startup scenarios that mirror Cloud Run deployment."""
 
+    @pytest.fixture(autouse=True)
+    def reset_app_for_each_test(self):
+        """Reset app state before and after each test."""
+        from app.web_ui.api import app
+
+        # Store original state
+        original_overrides = app.dependency_overrides.copy()
+
+        # Clear before test
+        app.dependency_overrides.clear()
+
+        yield
+
+        # Restore after test
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(original_overrides)
+
     def test_fastapi_uvicorn_startup_simulation(self):
         """Simulate how uvicorn starts the FastAPI app in production."""
         try:
@@ -27,14 +44,19 @@ class TestContainerStartup:
             from app.web_ui.api import app
 
             # Create test client (simulates uvicorn creating the ASGI app)
-            client = TestClient(app)
+            with TestClient(app) as client:
+                # Verify the app is ready to serve traffic
+                response = client.get("/health")
+                if response.status_code != 200:
+                    # Print debugging info when test fails
+                    print(f"Response status: {response.status_code}")
+                    print(f"Response content: {response.content}")
+                    print(f"Response headers: {dict(response.headers)}")
+                    print(f"App dependency overrides: {dict(app.dependency_overrides)}")
+                assert response.status_code == 200
 
-            # Verify the app is ready to serve traffic
-            response = client.get("/health")
-            assert response.status_code == 200
-
-            data = response.json()
-            assert data["status"] == "ok"
+                data = response.json()
+                assert data["status"] == "ok"
 
         except Exception as e:
             pytest.fail(f"Uvicorn startup simulation failed: {e}")
@@ -53,11 +75,10 @@ class TestContainerStartup:
             try:
                 from app.web_ui.api import app
 
-                client = TestClient(app)
-
-                # App should start without errors in production mode
-                response = client.get("/health")
-                assert response.status_code == 200
+                with TestClient(app) as client:
+                    # App should start without errors in production mode
+                    response = client.get("/health")
+                    assert response.status_code == 200
 
             except Exception as e:
                 pytest.fail(f"Production environment startup failed: {e}")
@@ -90,13 +111,12 @@ class TestContainerStartup:
         try:
             from app.web_ui.api import app
 
-            client = TestClient(app)
+            with TestClient(app) as client:
+                # Make a request to ensure app is fully loaded
+                response = client.get("/health")
+                assert response.status_code == 200
 
-            # Make a request to ensure app is fully loaded
-            response = client.get("/health")
-            assert response.status_code == 200
-
-            total_time = time.time() - start_time
+                total_time = time.time() - start_time
 
             # Cloud Run has a default startup timeout, app should start much faster
             assert total_time < 10.0, f"Startup took {total_time:.2f}s, may timeout in Cloud Run"
@@ -125,14 +145,13 @@ class TestContainerStartup:
                     try:
                         from app.web_ui.api import app
 
-                        client = TestClient(app)
+                        with TestClient(app) as client:
+                            # App should start without attempting migrations
+                            response = client.get("/health")
+                            assert response.status_code == 200
 
-                        # App should start without attempting migrations
-                        response = client.get("/health")
-                        assert response.status_code == 200
-
-                        # No migration attempts should have been made
-                        assert len(migration_logs) == 0, f"Migration attempts detected: {migration_logs}"
+                            # No migration attempts should have been made
+                            assert len(migration_logs) == 0, f"Migration attempts detected: {migration_logs}"
 
                     except Exception as e:
                         if "Migrations should not run" in str(e):
@@ -148,11 +167,10 @@ class TestContainerStartup:
             try:
                 from app.web_ui.api import app
 
-                client = TestClient(app)
-
-                # App should start regardless of PORT env var (TestClient handles this)
-                response = client.get("/health")
-                assert response.status_code == 200
+                with TestClient(app) as client:
+                    # App should start regardless of PORT env var (TestClient handles this)
+                    response = client.get("/health")
+                    assert response.status_code == 200
 
             except Exception as e:
                 pytest.fail(f"Port binding test failed: {e}")

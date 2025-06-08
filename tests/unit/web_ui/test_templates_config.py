@@ -2,112 +2,212 @@
 
 from unittest.mock import Mock, patch
 
-import pytest
+from app.config import UPLOADS_URL_PREFIX
+from app.web_ui.templates_config import clear_team_logo_cache, team_logo_url
 
-from app.web_ui.templates_config import team_logo_url
 
+class TestTeamLogoUrl:
+    """Test cases for team_logo_url function."""
 
-class TestTemplatesConfig:
-    """Test cases for template configuration helpers."""
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_team_logo_cache()
 
-    def test_team_logo_url_success(self):
-        """Test successful team logo URL generation."""
-        # Create mock team
+    def teardown_method(self):
+        """Clear cache after each test."""
+        clear_team_logo_cache()
+
+    def test_team_logo_url_with_valid_team_object(self):
+        """Test team logo URL generation with valid team object that has logo."""
         mock_team = Mock()
         mock_team.id = 123
 
-        with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/static/uploads/teams/123/120x120/logo.jpg"
+        # Mock the database query
+        mock_team_obj = Mock()
+        mock_team_obj.logo_filename = "teams/123/logo.png"
 
-            result = team_logo_url(mock_team, "120x120")
+        with (
+            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.data_access.models") as mock_models,
+            patch("app.config.settings") as mock_settings,
+            patch("pathlib.Path.exists") as mock_exists,
+        ):
+            # Setup database mock
+            mock_session = Mock()
+            mock_get_db.return_value.__enter__.return_value = mock_session
+            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
 
-            assert result == "/static/uploads/teams/123/120x120/logo.jpg"
-            mock_get_url.assert_called_once_with(123, "120x120")
+            # Setup settings mock
+            mock_settings.UPLOAD_DIR = "/uploads"
 
-    def test_team_logo_url_default_size(self):
-        """Test team logo URL generation with default size."""
-        # Create mock team
-        mock_team = Mock()
-        mock_team.id = 456
+            # Mock file exists
+            mock_exists.return_value = True
 
-        with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/static/uploads/teams/456/120x120/logo.png"
+            result = team_logo_url(mock_team)
 
-            result = team_logo_url(mock_team)  # No size specified, should use default
+            assert result == f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
 
-            assert result == "/static/uploads/teams/456/120x120/logo.png"
-            mock_get_url.assert_called_once_with(456, "120x120")  # Default size
+    def test_team_logo_url_with_dict_input(self):
+        """Test team logo URL generation with dict input."""
+        team_dict = {"id": 456}
 
-    def test_team_logo_url_no_logo_exists(self):
-        """Test team logo URL generation when no logo exists."""
-        # Create mock team
+        # Mock the database query
+        mock_team_obj = Mock()
+        mock_team_obj.logo_filename = "teams/456/logo.jpg"
+
+        with (
+            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.data_access.models") as mock_models,
+            patch("app.config.settings") as mock_settings,
+            patch("pathlib.Path.exists") as mock_exists,
+        ):
+            # Setup database mock
+            mock_session = Mock()
+            mock_get_db.return_value.__enter__.return_value = mock_session
+            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
+
+            # Setup settings mock
+            mock_settings.UPLOAD_DIR = "/uploads"
+
+            # Mock file exists
+            mock_exists.return_value = True
+
+            result = team_logo_url(team_dict)
+
+            assert result == f"{UPLOADS_URL_PREFIX}teams/456/logo.jpg"
+
+    def test_team_logo_url_no_logo_filename_in_db(self):
+        """Test team logo URL when team has no logo_filename in database."""
         mock_team = Mock()
         mock_team.id = 789
 
-        with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = None  # No logo exists
+        # Mock the database query - team exists but no logo_filename
+        mock_team_obj = Mock()
+        mock_team_obj.logo_filename = None
 
-            result = team_logo_url(mock_team, "64x64")
+        with (
+            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.data_access.models") as mock_models,
+        ):
+            # Setup database mock
+            mock_session = Mock()
+            mock_get_db.return_value.__enter__.return_value = mock_session
+            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
+
+            result = team_logo_url(mock_team)
 
             assert result is None
-            mock_get_url.assert_called_once_with(789, "64x64")
 
-    def test_team_logo_url_none_team(self):
-        """Test team logo URL generation with None team."""
-        result = team_logo_url(None, "120x120")
-        assert result is None
-
-    def test_team_logo_url_team_without_id(self):
-        """Test team logo URL generation with team that has no id attribute."""
+    def test_team_logo_url_team_not_found_in_db(self):
+        """Test team logo URL when team is not found in database."""
         mock_team = Mock()
-        # Don't set id attribute, or delete it
-        if hasattr(mock_team, "id"):
-            delattr(mock_team, "id")
+        mock_team.id = 999
 
-        result = team_logo_url(mock_team, "120x120")
-        assert result is None
+        with (
+            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.data_access.models") as mock_models,
+        ):
+            # Setup database mock - team not found
+            mock_session = Mock()
+            mock_get_db.return_value.__enter__.return_value = mock_session
+            mock_session.query.return_value.filter.return_value.first.return_value = None
 
-    def test_team_logo_url_different_sizes(self):
-        """Test team logo URL generation with different sizes."""
-        mock_team = Mock()
-        mock_team.id = 100
+            result = team_logo_url(mock_team)
 
-        test_cases = [
-            ("original", "/static/uploads/teams/100/original/logo.jpg"),
-            ("120x120", "/static/uploads/teams/100/120x120/logo.jpg"),
-            ("64x64", "/static/uploads/teams/100/64x64/logo.jpg"),
-        ]
+            assert result is None
 
-        for size, expected_url in test_cases:
-            with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-                mock_get_url.return_value = expected_url
-
-                result = team_logo_url(mock_team, size)
-
-                assert result == expected_url
-                mock_get_url.assert_called_once_with(100, size)
-
-    def test_team_logo_url_with_string_id(self):
-        """Test team logo URL generation when team id is a string."""
-        mock_team = Mock()
-        mock_team.id = "123"  # String ID (should still work)
-
-        with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.return_value = "/static/uploads/teams/123/120x120/logo.jpg"
-
-            result = team_logo_url(mock_team, "120x120")
-
-            assert result == "/static/uploads/teams/123/120x120/logo.jpg"
-            mock_get_url.assert_called_once_with("123", "120x120")
-
-    def test_team_logo_url_error_handling(self):
-        """Test team logo URL generation when service raises exception."""
+    def test_team_logo_url_file_does_not_exist(self):
+        """Test team logo URL when database has filename but file doesn't exist."""
         mock_team = Mock()
         mock_team.id = 123
 
-        with patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url:
-            mock_get_url.side_effect = RuntimeError("File system error")
+        # Mock the database query - team has logo_filename but file doesn't exist
+        mock_team_obj = Mock()
+        mock_team_obj.logo_filename = "teams/123/logo.png"
 
-            # Should propagate the exception from the service
-            with pytest.raises(RuntimeError, match="File system error"):
-                team_logo_url(mock_team, "120x120")
+        with (
+            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
+            patch("app.config.settings") as mock_settings,
+            patch("pathlib.Path.exists") as mock_exists,
+        ):
+            # Setup cached database mock
+            mock_cached_data.return_value = "teams/123/logo.png"
+
+            # Setup settings mock
+            mock_settings.UPLOAD_DIR = "/uploads"
+
+            # Mock file doesn't exist
+            mock_exists.return_value = False
+
+            result = team_logo_url(mock_team)
+
+            assert result is None
+
+    def test_team_logo_url_handles_uploads_prefix_in_filename(self):
+        """Test team logo URL handles logo_filename with uploads/ prefix."""
+        mock_team = Mock()
+        mock_team.id = 123
+
+        # Mock the database query - team has logo_filename with uploads/ prefix
+        mock_team_obj = Mock()
+        mock_team_obj.logo_filename = "uploads/teams/123/logo.png"
+
+        with (
+            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.data_access.models") as mock_models,
+            patch("app.config.settings") as mock_settings,
+            patch("pathlib.Path.exists") as mock_exists,
+        ):
+            # Setup database mock
+            mock_session = Mock()
+            mock_get_db.return_value.__enter__.return_value = mock_session
+            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
+
+            # Setup settings mock
+            mock_settings.UPLOAD_DIR = "/uploads"
+
+            # Mock file exists
+            mock_exists.return_value = True
+
+            result = team_logo_url(mock_team)
+
+            assert result == f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
+
+    def test_team_logo_url_none_input(self):
+        """Test team logo URL with None input."""
+        result = team_logo_url(None)
+        assert result is None
+
+    def test_team_logo_url_no_id_attribute(self):
+        """Test team logo URL with object that has no id."""
+        mock_team = Mock()
+        if hasattr(mock_team, "id"):
+            delattr(mock_team, "id")
+
+        result = team_logo_url(mock_team)
+        assert result is None
+
+    def test_team_logo_url_empty_dict(self):
+        """Test team logo URL with empty dict."""
+        result = team_logo_url({})
+        assert result is None
+
+    def test_team_logo_url_fallback_to_filesystem_on_db_error(self):
+        """Test team logo URL falls back to filesystem check on database error."""
+        mock_team = Mock()
+        mock_team.id = 123
+
+        with (
+            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
+            patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url,
+        ):
+            # Mock database error in cached function
+            mock_cached_data.side_effect = Exception("Database connection error")
+
+            # Mock filesystem fallback
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
+
+            result = team_logo_url(mock_team)
+
+            assert result == f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
+            mock_get_url.assert_called_once_with(123)

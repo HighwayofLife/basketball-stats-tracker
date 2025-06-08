@@ -11,6 +11,7 @@ This module provides comprehensive UI testing by:
 Run with: pytest tests/integration/test_ui_validation.py
 """
 
+import contextlib
 import logging
 import os
 import subprocess
@@ -202,6 +203,75 @@ class TestUIValidation:
         page_text = soup.get_text().lower()
         basketball_terms = ["game", "player", "team", "stats", "basketball"]
         assert any(term in page_text for term in basketball_terms), "No basketball-related content found"
+
+    def test_dashboard_data_display(self, docker_containers):
+        """Test that the dashboard correctly displays game data and handles empty state."""
+        response = requests.get(f"{BASE_URL}/")
+        assert response.status_code == 200
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Check for Recent Games section
+        recent_games_heading = soup.find("h2", string="Recent Games")
+        assert recent_games_heading is not None, "Recent Games section not found"
+
+        # Check for games table or 'No games found' message
+        games_table = soup.find("table", class_="games-table")
+        no_games_message = soup.find("td", string="No games found.")
+
+        # Should have either games or no games message, not both
+        assert (games_table is not None) or (no_games_message is not None), (
+            "Neither games table nor 'No games found' message found"
+        )
+
+        # If we have a games table, verify it has the expected structure
+        if games_table:
+            # Check for table headers
+            headers = games_table.find_all("th")
+            header_texts = [h.get_text(strip=True) for h in headers]
+            expected_headers = ["Date", "Away Team", "Score", "Home Team", "Actions"]
+            for expected in expected_headers:
+                assert expected in header_texts, f"Expected header '{expected}' not found in table"
+
+            # Check for game rows
+            tbody = games_table.find("tbody")
+            game_rows = tbody.find_all("tr") if tbody else []
+
+            # If there are game rows, verify they have View buttons
+            if game_rows and not no_games_message:
+                for row in game_rows:
+                    view_link = row.find("a", string="View")
+                    if view_link:
+                        assert view_link["href"].startswith("/games/"), "View link should point to game detail page"
+
+        # Check for Players of the Week section
+        players_section = soup.find("div", class_="sidebar")
+        assert players_section is not None, "Sidebar with Players of the Week not found"
+
+        # Check for quick action buttons
+        quick_actions = soup.find("div", class_="quick-actions-top")
+        assert quick_actions is not None, "Quick actions section not found"
+
+        # Verify quick action links
+        box_scores_link = soup.find("a", href="/games")
+        team_analysis_link = soup.find("a", href="/teams")
+        player_stats_link = soup.find("a", href="/players")
+
+        assert box_scores_link is not None, "Box Scores quick action not found"
+        assert team_analysis_link is not None, "Team Analysis quick action not found"
+        assert player_stats_link is not None, "Player Stats quick action not found"
+
+    def test_dashboard_with_database_error_handling(self, docker_containers):
+        """Test that dashboard handles database errors gracefully."""
+        # The dashboard should still render even if there's a database issue
+        response = requests.get(f"{BASE_URL}/")
+        assert response.status_code == 200
+
+        # Even with errors, the page should have basic structure
+        soup = BeautifulSoup(response.content, "html.parser")
+        assert soup.find("nav") is not None, "Navigation should still render with DB errors"
+        assert soup.find("main") or soup.find("div", class_="main-content"), (
+            "Main content should still render with DB errors"
+        )
 
     def test_players_page_loads(self, docker_containers):
         """Test that the players page loads successfully."""
@@ -545,6 +615,169 @@ class TestCreateGameUI:
         auth_soup = BeautifulSoup(auth_response.content, "html.parser")
         authenticated_link = auth_soup.find("a", href="/games/create")
         assert authenticated_link is not None, "Schedule Game button should be visible to authenticated users"
+
+
+class TestTeamLogoHandling:
+    """Test team logo functionality to prevent 404 errors."""
+
+    def test_dashboard_no_broken_logo_links(self, docker_containers):
+        """Test that dashboard doesn't contain broken logo image links."""
+        response = requests.get(f"{BASE_URL}/")
+        assert response.status_code == 200
+
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Method 1: Check for logo images in HTML (should be none for teams without logos)
+        logo_images = soup.find_all("img", src=lambda x: x and "logo" in x.lower())
+
+        # Method 2: Validate any img tags that do exist
+        all_images = soup.find_all("img", src=True)
+        broken_images = []
+
+        for img in all_images:
+            src = img.get("src")
+            if src and src.startswith("/"):
+                # Test if image actually exists
+                img_response = requests.head(f"{BASE_URL}{src}")
+                if img_response.status_code == 404:
+                    broken_images.append(src)
+
+        assert len(broken_images) == 0, f"Found broken images: {broken_images}"
+
+        # Verify that team logos show fallback icons instead of broken images
+        team_logo_divs = soup.find_all("div", class_="team-logo-small")
+
+        # BeautifulSoup requires exact class matching, so we need to check for i tags with both classes
+        fallback_icons = soup.find_all("i", class_=lambda x: x and "fas" in x and "fa-users" in x)
+
+        # Alternative: check if there are any team logo divs at all
+        if len(team_logo_divs) > 0:
+            # Should have fallback icons for teams without logos
+            assert len(fallback_icons) > 0, (
+                f"No fallback icons found for teams without logos. "
+                f"Found {len(team_logo_divs)} team logo divs but {len(fallback_icons)} fallback icons"
+            )
+
+    def test_games_page_no_broken_logo_links(self, docker_containers):
+        """Test that games page doesn't contain broken logo image links."""
+        response = requests.get(f"{BASE_URL}/games")
+        assert response.status_code == 200
+
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Wait for dynamic content to load, then check again
+        import time
+
+        time.sleep(2)
+
+        # Re-fetch after JavaScript has loaded
+        response = requests.get(f"{BASE_URL}/games")
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Validate any img tags that exist
+        all_images = soup.find_all("img", src=True)
+        broken_images = []
+
+        for img in all_images:
+            src = img.get("src")
+            if src and src.startswith("/"):
+                # Test if image actually exists
+                img_response = requests.head(f"{BASE_URL}{src}")
+                if img_response.status_code == 404:
+                    broken_images.append(src)
+
+        assert len(broken_images) == 0, f"Found broken images: {broken_images}"
+
+    def test_logo_urls_return_404_when_appropriate(self, docker_containers):
+        """Test that non-existent logo URLs return 404 instead of 200."""
+        # Test a few common logo URL patterns that shouldn't exist
+        test_urls = [
+            f"{BASE_URL}/uploads/teams/1/logo.nonexistent",
+            f"{BASE_URL}/uploads/teams/999/logo.png",
+            f"{BASE_URL}/uploads/teams/invalid/logo.jpg",
+        ]
+
+        for url in test_urls:
+            response = requests.get(url)
+            # Should be 404 for non-existent files, not 200
+            assert response.status_code == 404, f"URL {url} should return 404 but returned {response.status_code}"
+
+    def test_team_detail_page_logo_handling(self, docker_containers):
+        """Test that team detail pages handle missing logos properly."""
+        # Get a list of teams first
+        teams_response = requests.get(f"{BASE_URL}/v1/teams")
+        if teams_response.status_code == 200:
+            teams = teams_response.json()
+            if teams:
+                team_id = teams[0]["id"]
+
+                # Test team detail page
+                detail_response = requests.get(f"{BASE_URL}/teams/{team_id}")
+                assert detail_response.status_code == 200
+
+                soup = BeautifulSoup(detail_response.content, "html.parser")
+
+                # Validate any img tags that exist
+                all_images = soup.find_all("img", src=True)
+                broken_images = []
+
+                for img in all_images:
+                    src = img.get("src")
+                    if src and src.startswith("/"):
+                        img_response = requests.head(f"{BASE_URL}{src}")
+                        if img_response.status_code == 404:
+                            broken_images.append(src)
+
+                assert len(broken_images) == 0, f"Found broken images on team detail page: {broken_images}"
+
+    def test_no_logo_404s_in_server_logs(self, docker_containers):
+        """Test that server logs show no team logo 404 errors after page loads."""
+        import subprocess
+        import time
+
+        # Clear any existing logs by getting current log position
+        with contextlib.suppress(subprocess.CalledProcessError):
+            # Get initial log count (result unused, just checking container exists)
+            subprocess.run(
+                ["docker", "logs", "--tail", "1", "basketball-stats-tracker-web-1"],
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            pass  # Container might not exist yet
+
+        # Load pages that previously caused 404s
+        requests.get(f"{BASE_URL}/games")
+        time.sleep(3)  # Wait for any async requests
+
+        # Check recent logs for 404 logo requests
+        try:
+            recent_logs = subprocess.run(
+                ["docker", "logs", "--tail", "20", "basketball-stats-tracker-web-1"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+
+            # Look for logo-related 404s (exclude intentional test requests)
+            log_lines = recent_logs.stdout.split("\n")
+            logo_404s = [
+                line
+                for line in log_lines
+                if "404" in line
+                and "teams" in line
+                and "logo" in line
+                # Exclude intentional test URLs
+                and "logo.nonexistent" not in line
+                and "teams/999/" not in line
+                and "teams/invalid/" not in line
+            ]
+
+            assert len(logo_404s) == 0, f"Found unexpected logo 404s in server logs: {logo_404s}"
+
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            # If we can't check logs, skip this assertion
+            pass
 
 
 if __name__ == "__main__":

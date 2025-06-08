@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "basketball_stats_tracker"
-version = "0.4.12"
+version = "0.4.13"
 description = "A simple web app for tracking basketball game statistics."
 authors = [
   { name = "David 'Jedi' Lewis", email = "highwayoflife@gmail.com" }
@@ -154,6 +154,12 @@ testpaths = ["tests"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
+markers = [
+    "unit: Unit tests (deselect with '-m \"not unit\"')",
+    "integration: Integration tests (deselect with '-m \"not integration\"')",
+    "slow: Slow tests that should be run separately",
+    "team_logo: Tests that involve team logo functionality",
+]
 filterwarnings = [
     "ignore::DeprecationWarning",
     "ignore::PendingDeprecationWarning",
@@ -163,7 +169,7 @@ log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
 cache_dir = ".pytest_cache"
-addopts = "--no-header -v --color=yes"
+addopts = "--strict-markers --no-header -v --color=yes"
 
 [tool.alembic]
 script_location = "migrations"

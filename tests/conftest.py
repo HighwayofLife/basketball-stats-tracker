@@ -39,6 +39,47 @@ from app.data_access.models import (  # noqa: F401
 )
 
 
+@pytest.fixture(autouse=True)
+def reset_app_state_globally():
+    """
+    Globally reset FastAPI app state before each test.
+    This prevents any test from leaving the app in a bad state that affects other tests.
+    """
+    try:
+        from app.web_ui.api import app
+
+        # Store original state
+        original_overrides = app.dependency_overrides.copy()
+
+        # Clear any existing overrides before test
+        app.dependency_overrides.clear()
+
+        # Clear team logo cache to prevent unit test mocks from affecting integration tests
+        try:
+            from app.web_ui.templates_config import clear_team_logo_cache
+
+            clear_team_logo_cache()
+        except ImportError:
+            pass
+
+        yield
+
+        # Restore original state after test
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(original_overrides)
+
+        # Clear team logo cache again after test
+        try:
+            from app.web_ui.templates_config import clear_team_logo_cache
+
+            clear_team_logo_cache()
+        except ImportError:
+            pass
+    except ImportError:
+        # If the app can't be imported (e.g., some tests don't need it), just pass
+        yield
+
+
 @pytest.fixture
 def test_db_url() -> str:
     """

@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-from fastapi.testclient import TestClient
 from PIL import Image
 
+from app.config import UPLOADS_URL_PREFIX
 from app.data_access.models import Team
 from app.services.image_processing_service import ImageProcessingService
 
@@ -17,39 +17,14 @@ class TestTeamLogoUploadWorkflow:
     """Integration tests for the complete team logo upload workflow."""
 
     @pytest.fixture
-    def client(self, test_db_file_session):
-        """Create a FastAPI test client with isolated database."""
-        from app.auth.dependencies import get_current_user
-        from app.auth.models import User
-        from app.web_ui.api import app
-        from app.web_ui.dependencies import get_db
-
-        def override_get_db():
-            return test_db_file_session
-
-        def mock_current_user():
-            return User(id=1, username="testuser", email="test@example.com", role="admin", is_active=True)
-
-        app.dependency_overrides[get_db] = override_get_db
-        app.dependency_overrides[get_current_user] = mock_current_user
-        client = TestClient(app)
-        yield client
-        app.dependency_overrides.clear()
+    def client(self, isolated_client):
+        """Use the isolated client from conftest."""
+        return isolated_client
 
     @pytest.fixture
-    def unauthenticated_client(self, test_db_file_session):
-        """Create a FastAPI test client without authentication override."""
-        from app.web_ui.api import app
-        from app.web_ui.dependencies import get_db
-
-        def override_get_db():
-            return test_db_file_session
-
-        app.dependency_overrides[get_db] = override_get_db
-        # Note: no auth override here, so authentication will be required
-        client = TestClient(app)
-        yield client
-        app.dependency_overrides.clear()
+    def unauthenticated_client(self, isolated_unauthenticated_client):
+        """Use the isolated unauthenticated client from conftest."""
+        return isolated_unauthenticated_client
 
     @pytest.fixture
     def test_team(self, test_db_file_session):
@@ -102,23 +77,17 @@ class TestTeamLogoUploadWorkflow:
                 data = response.json()
                 assert data["success"] is True
                 assert data["message"] == "Logo uploaded successfully"
-                assert "logo_urls" in data
-                assert "original" in data["logo_urls"]
-                assert "120x120" in data["logo_urls"]
-                assert "64x64" in data["logo_urls"]
+                assert "logo_url" in data
+                assert data["logo_url"].startswith(UPLOADS_URL_PREFIX)
 
-                # Verify files were created
+                # Verify file was created
                 team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-                assert (team_dir / "original" / "logo.jpg").exists()
-                assert (team_dir / "120x120" / "logo.jpg").exists()
-                assert (team_dir / "64x64" / "logo.jpg").exists()
+                assert (team_dir / "logo.jpg").exists()
 
-                # Verify image dimensions
-                with Image.open(team_dir / "120x120" / "logo.jpg") as img:
-                    assert img.size == (120, 120)
-
-                with Image.open(team_dir / "64x64" / "logo.jpg") as img:
-                    assert img.size == (64, 64)
+                # Verify image dimensions (should be resized to fit within 250x250)
+                with Image.open(team_dir / "logo.jpg") as img:
+                    assert img.size[0] <= 250
+                    assert img.size[1] <= 250
 
     def test_upload_team_logo_unauthenticated(self, unauthenticated_client, test_team, valid_image_file):
         """Test team logo upload without authentication."""
@@ -216,7 +185,7 @@ class TestTeamLogoUploadWorkflow:
 
                 # Verify first logo exists
                 team_dir = Path(temp_dir) / "teams" / str(test_team.id)
-                assert (team_dir / "original" / "logo.jpg").exists()
+                assert (team_dir / "logo.jpg").exists()
 
                 # Upload second logo (PNG)
                 img2 = Image.new("RGB", (100, 100), color="blue")
@@ -231,45 +200,84 @@ class TestTeamLogoUploadWorkflow:
                 assert response2.status_code == 200
 
                 # Verify second logo exists and first is gone
-                assert not (team_dir / "original" / "logo.jpg").exists()
-                assert (team_dir / "original" / "logo.png").exists()
+                assert not (team_dir / "logo.jpg").exists()
+                assert (team_dir / "logo.png").exists()
 
-    def test_logo_url_generation_after_upload(self, client, test_team, authenticated_headers, valid_image_file):
+    def test_logo_url_generation_after_upload(
+        self, client, test_team, authenticated_headers, valid_image_file, test_db_file_session, monkeypatch
+    ):
         """Test that logo URLs are properly generated after upload."""
+        # Import and clear caches FIRST, before any other imports
+        import app.web_ui.templates_config as templates_config_module
+
+        # Force clear ALL caches before starting
+        if hasattr(templates_config_module, "_get_cached_team_logo_data"):
+            templates_config_module._get_cached_team_logo_data.cache_clear()
+        if hasattr(templates_config_module, "_check_file_exists"):
+            templates_config_module._check_file_exists.cache_clear()
+
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(test_team.id)
 
-                # Authentication is already mocked in the client fixture
+                # Also mock update_team_logo_filename to return expected filename
+                with patch.object(ImageProcessingService, "update_team_logo_filename") as mock_update_filename:
+                    mock_update_filename.return_value = f"teams/{test_team.id}/logo.jpg"
 
-                # Upload logo
-                response = client.post(
-                    f"/v1/teams/{test_team.id}/logo",
-                    files={"file": valid_image_file},
-                    headers=authenticated_headers,
-                )
+                    # Authentication is already mocked in the client fixture
 
-                data = response.json()
-                logo_urls = data["logo_urls"]
+                    # Upload logo
+                    response = client.post(
+                        f"/v1/teams/{test_team.id}/logo",
+                        files={"file": valid_image_file},
+                        headers=authenticated_headers,
+                    )
 
-                # Verify URL structure
-                for size, url in logo_urls.items():
-                    assert url.startswith("/static/")
-                    assert f"teams/{test_team.id}" in url
-                    assert size in url
-                    assert "logo.jpg" in url
+                    data = response.json()
+                    logo_url = data["logo_url"]
 
-                # Test URL helper function
-                from app.web_ui.templates_config import team_logo_url
+                    # Verify URL structure
+                    assert logo_url.startswith(UPLOADS_URL_PREFIX)
+                    assert f"teams/{test_team.id}" in logo_url
+                    assert "logo.jpg" in logo_url
 
-                # Create mock team object
-                mock_team = type("Team", (), {"id": test_team.id})()
+                    # Test URL helper function
+                    from app import config
+                    from app.web_ui.templates_config import (
+                        _get_team_logo_data_uncached,
+                        clear_team_logo_cache,
+                        team_logo_url,
+                    )
 
-                # Test different sizes
-                url_120 = team_logo_url(mock_team, "120x120")
-                url_64 = team_logo_url(mock_team, "64x64")
-                url_original = team_logo_url(mock_team, "original")
+                    # Clear cache again after imports
+                    clear_team_logo_cache()
 
-                assert url_120 == logo_urls["120x120"]
-                assert url_64 == logo_urls["64x64"]
-                assert url_original == logo_urls["original"]
+                    # Patch get_db_session to use the test session
+                    from contextlib import contextmanager
+
+                    @contextmanager
+                    def test_get_db_session():
+                        try:
+                            yield test_db_file_session
+                        finally:
+                            pass
+
+                    import app.data_access.db_session as db_session_module
+
+                    monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
+
+                    # Patch the cached function to use uncached version for integration tests
+                    import app.web_ui.templates_config as templates_config_module
+
+                    monkeypatch.setattr(
+                        templates_config_module, "_get_cached_team_logo_data", _get_team_logo_data_uncached
+                    )
+
+                    # Patch the UPLOAD_DIR to point to our temp directory
+                    with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
+                        # Refresh team from database to get updated logo_filename
+                        test_db_file_session.refresh(test_team)
+
+                        # Test URL generation
+                        generated_url = team_logo_url(test_team)
+                        assert generated_url == logo_url

@@ -101,6 +101,7 @@ target/
 debug/
 logs/
 docs/
+uploads/
 
 # Infrastructure
 infra/

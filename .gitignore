@@ -51,6 +51,7 @@ junit/
 
 # Static / test data
 app/web_ui/static/uploads/
+uploads/
 import/
 **.db
 
