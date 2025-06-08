@@ -16,11 +16,11 @@ from app.web_ui.dependencies import get_db
 class TestAPIEndpoints:
     """Test cases for API endpoints."""
 
-    @pytest.fixture(scope="class")
-    def test_db_file(self, tmp_path_factory):
+    @pytest.fixture
+    def test_db_file(self, tmp_path):
         """Create a temporary database file for testing."""
         # Create a temporary file for the database
-        db_file = tmp_path_factory.mktemp("data") / "test.db"
+        db_file = tmp_path / "test.db"
         return str(db_file)
 
     @pytest.fixture
@@ -118,13 +118,19 @@ class TestAPIEndpoints:
             """Mock admin user for testing."""
             return mock_current_user()
 
+        # Store original overrides before modifying
+        original_overrides = app.dependency_overrides.copy()
+
         app.dependency_overrides[get_current_user] = mock_current_user
         app.dependency_overrides[require_admin] = mock_admin_user
 
-        yield TestClient(app)
-
-        # Clean up
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            # Always restore original state
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     @pytest.fixture
     def sample_team(self, db_session):

@@ -3,11 +3,19 @@
 from unittest.mock import Mock, patch
 
 from app.config import UPLOADS_URL_PREFIX
-from app.web_ui.templates_config import team_logo_url
+from app.web_ui.templates_config import clear_team_logo_cache, team_logo_url
 
 
 class TestTeamLogoUrl:
     """Test cases for team_logo_url function."""
+
+    def setup_method(self):
+        """Clear cache before each test."""
+        clear_team_logo_cache()
+
+    def teardown_method(self):
+        """Clear cache after each test."""
+        clear_team_logo_cache()
 
     def test_team_logo_url_with_valid_team_object(self):
         """Test team logo URL generation with valid team object that has logo."""
@@ -118,15 +126,12 @@ class TestTeamLogoUrl:
         mock_team_obj.logo_filename = "teams/123/logo.png"
 
         with (
-            patch("app.data_access.db_session.get_db_session") as mock_get_db,
-            patch("app.data_access.models") as mock_models,
+            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
             patch("app.config.settings") as mock_settings,
             patch("pathlib.Path.exists") as mock_exists,
         ):
-            # Setup database mock
-            mock_session = Mock()
-            mock_get_db.return_value.__enter__.return_value = mock_session
-            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
+            # Setup cached database mock
+            mock_cached_data.return_value = "teams/123/logo.png"
 
             # Setup settings mock
             mock_settings.UPLOAD_DIR = "/uploads"
@@ -193,11 +198,11 @@ class TestTeamLogoUrl:
         mock_team.id = 123
 
         with (
-            patch("app.data_access.db_session.get_db_session") as mock_get_db,
+            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
             patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url,
         ):
-            # Mock database error
-            mock_get_db.side_effect = Exception("Database connection error")
+            # Mock database error in cached function
+            mock_cached_data.side_effect = Exception("Database connection error")
 
             # Mock filesystem fallback
             mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/logo.png"

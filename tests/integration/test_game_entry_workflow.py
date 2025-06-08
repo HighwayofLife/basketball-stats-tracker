@@ -28,12 +28,15 @@ from app.services.game_state_service import GameStateService
 from app.web_ui.api import app
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture
 def test_client():
     """Create a test client for the FastAPI app."""
     # Override authentication dependencies for testing
     from app.auth.dependencies import get_current_user, require_admin
     from app.auth.models import User, UserRole
+
+    # Store original overrides
+    original_overrides = app.dependency_overrides.copy()
 
     def mock_current_user():
         """Mock current user for testing."""
@@ -51,18 +54,18 @@ def test_client():
         """Mock admin user for testing."""
         return mock_current_user()
 
-    # Clear any existing overrides first
-    app.dependency_overrides.clear()
+    try:
+        # Clear and set new overrides
+        app.dependency_overrides.clear()
+        app.dependency_overrides[get_current_user] = mock_current_user
+        app.dependency_overrides[require_admin] = mock_admin_user
 
-    # Set up auth mocks
-    app.dependency_overrides[get_current_user] = mock_current_user
-    app.dependency_overrides[require_admin] = mock_admin_user
-
-    client = TestClient(app)
-    yield client
-
-    # Clean up
-    app.dependency_overrides.clear()
+        with TestClient(app) as client:
+            yield client
+    finally:
+        # Always restore original state
+        app.dependency_overrides.clear()
+        app.dependency_overrides.update(original_overrides)
 
 
 @pytest.fixture

@@ -13,11 +13,11 @@ from app.web_ui.api import app
 class TestScoreboardFormatEndpoint:
     """Test the scorebook format endpoint."""
 
-    @pytest.fixture(scope="class")
-    def test_db_file(self, tmp_path_factory):
+    @pytest.fixture
+    def test_db_file(self, tmp_path):
         """Create a temporary database file for testing."""
         # Create a temporary file for the database
-        db_file = tmp_path_factory.mktemp("data") / "test.db"
+        db_file = tmp_path / "test.db"
         return str(db_file)
 
     @pytest.fixture
@@ -63,8 +63,6 @@ class TestScoreboardFormatEndpoint:
             finally:
                 session.close()
 
-        app.dependency_overrides[get_db] = override_get_db
-
         # Mock authenticated user
         def mock_current_user():
             user = User(
@@ -78,12 +76,16 @@ class TestScoreboardFormatEndpoint:
             user.teams = []
             return user
 
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_current_user
 
-        yield TestClient(app)
-
-        # Clean up after each test
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     def test_get_game_scorebook_format_success(self, client, db_session):
         """Test successful retrieval of game in scorebook format."""

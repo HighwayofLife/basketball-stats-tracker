@@ -219,9 +219,9 @@ class TestUIValidation:
         no_games_message = soup.find("td", string="No games found.")
 
         # Should have either games or no games message, not both
-        assert (games_table is not None) or (
-            no_games_message is not None
-        ), "Neither games table nor 'No games found' message found"
+        assert (games_table is not None) or (no_games_message is not None), (
+            "Neither games table nor 'No games found' message found"
+        )
 
         # If we have a games table, verify it has the expected structure
         if games_table:
@@ -269,9 +269,9 @@ class TestUIValidation:
         # Even with errors, the page should have basic structure
         soup = BeautifulSoup(response.content, "html.parser")
         assert soup.find("nav") is not None, "Navigation should still render with DB errors"
-        assert soup.find("main") or soup.find(
-            "div", class_="main-content"
-        ), "Main content should still render with DB errors"
+        assert soup.find("main") or soup.find("div", class_="main-content"), (
+            "Main content should still render with DB errors"
+        )
 
     def test_players_page_loads(self, docker_containers):
         """Test that the players page loads successfully."""
@@ -307,12 +307,12 @@ class TestUIValidation:
 
                 # Check that the JavaScript uses correct API URLs (without /api prefix)
                 content = detail_response.text
-                assert f"/v1/players/${player_id}/stats" in content.replace(
-                    "{playerId}", str(player_id)
-                ), "Player detail page should use /v1/players/ID/stats endpoint"
-                assert f"/v1/players/${player_id}/upload-image" in content.replace(
-                    "{playerId}", str(player_id)
-                ), "Player detail page should use /v1/players/ID/upload-image endpoint"
+                assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
+                    "Player detail page should use /v1/players/ID/stats endpoint"
+                )
+                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
+                    "Player detail page should use /v1/players/ID/upload-image endpoint"
+                )
 
                 # Ensure incorrect API URLs are not present
                 assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
@@ -417,9 +417,9 @@ class TestUIValidation:
 
             if response.status_code == 200:
                 # If it returns data, it should be JSON
-                assert "application/json" in response.headers.get(
-                    "content-type", ""
-                ), f"API endpoint {endpoint} not returning JSON"
+                assert "application/json" in response.headers.get("content-type", ""), (
+                    f"API endpoint {endpoint} not returning JSON"
+                )
 
 
 class TestContainerHealthCheck:
@@ -757,9 +757,13 @@ class TestTeamLogoHandling:
             logo_404s = [
                 line
                 for line in log_lines
-                if "404" in line and "teams" in line and "logo" in line
+                if "404" in line
+                and "teams" in line
+                and "logo" in line
                 # Exclude intentional test URLs
-                and "logo.nonexistent" not in line and "teams/999/" not in line and "teams/invalid/" not in line
+                and "logo.nonexistent" not in line
+                and "teams/999/" not in line
+                and "teams/invalid/" not in line
             ]
 
             assert len(logo_404s) == 0, f"Found unexpected logo 404s in server logs: {logo_404s}"

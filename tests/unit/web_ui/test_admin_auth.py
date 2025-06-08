@@ -13,10 +13,10 @@ from app.web_ui.dependencies import get_db
 class TestAdminAuthentication:
     """Test cases for admin authentication requirements."""
 
-    @pytest.fixture(scope="class")
-    def test_db_file(self, tmp_path_factory):
+    @pytest.fixture
+    def test_db_file(self, tmp_path):
         """Create a temporary database file for testing."""
-        db_file = tmp_path_factory.mktemp("data") / "test.db"
+        db_file = tmp_path / "test.db"
         return str(db_file)
 
     @pytest.fixture
@@ -72,8 +72,6 @@ class TestAdminAuthentication:
             finally:
                 new_session.close()
 
-        app.dependency_overrides[get_db] = override_get_db
-
         # Mock admin user authentication
         from app.auth.dependencies import get_current_user, require_admin
         from app.auth.models import User, UserRole
@@ -89,11 +87,17 @@ class TestAdminAuthentication:
                 provider="local",
             )
 
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_admin_user
         app.dependency_overrides[require_admin] = mock_admin_user
 
-        yield TestClient(app)
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     @pytest.fixture
     def non_admin_client(self, db_session, test_db_engine, monkeypatch):
@@ -126,8 +130,6 @@ class TestAdminAuthentication:
             finally:
                 new_session.close()
 
-        app.dependency_overrides[get_db] = override_get_db
-
         # Mock non-admin user authentication
         from fastapi import HTTPException, status
 
@@ -149,11 +151,17 @@ class TestAdminAuthentication:
             """Mock require_admin that fails for non-admin users."""
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
 
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_regular_user
         app.dependency_overrides[require_admin] = mock_require_admin
 
-        yield TestClient(app)
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     @pytest.fixture
     def unauthenticated_client(self, db_session, test_db_engine, monkeypatch):
@@ -186,8 +194,6 @@ class TestAdminAuthentication:
             finally:
                 new_session.close()
 
-        app.dependency_overrides[get_db] = override_get_db
-
         # Mock unauthenticated state
         from fastapi import HTTPException, status
 
@@ -197,11 +203,17 @@ class TestAdminAuthentication:
             """Mock unauthenticated state."""
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
 
+        original_overrides = app.dependency_overrides.copy()
+        app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = mock_unauthenticated
         app.dependency_overrides[require_admin] = mock_unauthenticated
 
-        yield TestClient(app)
-        app.dependency_overrides.clear()
+        try:
+            with TestClient(app) as client:
+                yield client
+        finally:
+            app.dependency_overrides.clear()
+            app.dependency_overrides.update(original_overrides)
 
     def test_admin_can_access_seasons(self, admin_client):
         """Test that admin users can access seasons endpoints."""
