@@ -1041,14 +1041,15 @@ class TestAPIEndpoints:
     def test_upload_player_image_success(self, client, sample_players, tmp_path):
         """Test uploading a player image successfully."""
         # Create a valid test image file
-        from PIL import Image
         import io
-        
+
+        from PIL import Image
+
         img = Image.new("RGB", (200, 200), color="blue")
         img_bytes = io.BytesIO()
         img.save(img_bytes, format="JPEG")
         image_content = img_bytes.getvalue()
-        
+
         image_file = tmp_path / "test.jpg"
         image_file.write_bytes(image_content)
 

@@ -29,15 +29,16 @@ ENTITY_CONFIG = {
         "model_class": "Team",
         "filename_attr": "logo_filename",
         "service_method": "get_team_logo_url",
-        "subdir": "teams"
+        "subdir": "teams",
     },
     "player": {
-        "model_class": "Player", 
+        "model_class": "Player",
         "filename_attr": "thumbnail_image",
         "service_method": "get_player_portrait_url",
-        "subdir": "players"
-    }
+        "subdir": "players",
+    },
 }
+
 
 @lru_cache(maxsize=256)
 def _get_cached_entity_image_data(entity_id: int, entity_type: ImageEntityType) -> str | None:
@@ -45,7 +46,7 @@ def _get_cached_entity_image_data(entity_id: int, entity_type: ImageEntityType) 
 
     This function is cached to avoid repeated database queries for the same entity.
     Returns the image filename from the database, or None if not found.
-    
+
     Args:
         entity_id: The ID of the entity (team or player)
         entity_type: Type of entity ("team" or "player")
@@ -57,7 +58,7 @@ def _get_cached_entity_image_data(entity_id: int, entity_type: ImageEntityType) 
         config = ENTITY_CONFIG[entity_type]
         model_class = getattr(models, config["model_class"])
         filename_attr = config["filename_attr"]
-        
+
         with get_db_session() as session:
             entity_obj = session.query(model_class).filter(model_class.id == entity_id).first()
             if entity_obj:
@@ -105,9 +106,9 @@ def _get_team_logo_data_uncached(team_id: int) -> str | None:
 
 def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
     """Generic helper to get entity image URL.
-    
+
     Optimized with caching to reduce database queries and file system checks.
-    
+
     Args:
         entity: Entity object with id attribute or dict with 'id' key
         entity_type: Type of entity ("team" or "player")
@@ -127,7 +128,7 @@ def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
 
     try:
         config = ENTITY_CONFIG[entity_type]
-        
+
         # Use cached database lookup (for performance in production)
         image_filename = _get_cached_entity_image_data(entity_id, entity_type)
         if not image_filename:

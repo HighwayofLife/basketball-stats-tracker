@@ -1,20 +1,17 @@
 """Players router for Basketball Stats Tracker."""
 
 import logging
-import os
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import Integer, func
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
-from app.config import PLAYER_IMAGES_SUBDIR, settings
 from app.data_access import models
 from app.data_access.db_session import get_db_session
-from app.web_ui.dependencies import get_db
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
+from app.web_ui.dependencies import get_db
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
 
@@ -319,7 +316,7 @@ async def get_deleted_players():
 
 
 @router.get("/{player_id}/stats")
-async def get_player_stats(player_id: int, session = Depends(get_db)):
+async def get_player_stats(player_id: int, session=Depends(get_db)):
     """Get player statistics including season and career stats."""
     try:
         player = session.query(models.Player).filter(models.Player.id == player_id).first()
@@ -398,9 +395,7 @@ async def get_player_stats(player_id: int, session = Depends(get_db)):
 
             team_score = (
                 team_stats_query.total_points
-                if (
-                    team_stats_query and hasattr(team_stats_query, "total_points") and team_stats_query.total_points
-                )
+                if (team_stats_query and hasattr(team_stats_query, "total_points") and team_stats_query.total_points)
                 else 0
             )
             opponent_score = (
@@ -546,10 +541,10 @@ async def get_player_stats(player_id: int, session = Depends(get_db)):
 
 @router.post("/{player_id}/portrait")
 async def upload_player_portrait(
-    player_id: int, 
-    file: UploadFile = File(...), 
+    player_id: int,
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    session = Depends(get_db)
+    session=Depends(get_db),
 ):
     """Upload a portrait image for a player."""
     try:
@@ -560,22 +555,22 @@ async def upload_player_portrait(
                 detail={
                     "error": "INVALID_FILE_TYPE",
                     "message": "Please upload an image file (JPG, PNG, or WebP)",
-                    "accepted_types": ["image/jpeg", "image/png", "image/webp"]
-                }
+                    "accepted_types": ["image/jpeg", "image/png", "image/webp"],
+                },
             )
-        
+
         # Check file size (5MB limit) - skip if in test environment with mock objects
         try:
             file_size = 0
-            if hasattr(file, 'size') and file.size and isinstance(file.size, int):
+            if hasattr(file, "size") and file.size and isinstance(file.size, int):
                 file_size = file.size
-            elif file.file and hasattr(file.file, 'tell') and hasattr(file.file, 'seek'):
+            elif file.file and hasattr(file.file, "tell") and hasattr(file.file, "seek"):
                 # Get file size by seeking to end
                 current_pos = file.file.tell()
                 file.file.seek(0, 2)  # Seek to end
                 file_size = file.file.tell()
                 file.file.seek(current_pos)  # Reset position
-            
+
             max_size = 5 * 1024 * 1024  # 5MB
             if file_size > max_size:
                 raise HTTPException(
@@ -583,27 +578,24 @@ async def upload_player_portrait(
                     detail={
                         "error": "FILE_TOO_LARGE",
                         "message": f"File size ({file_size / 1024 / 1024:.1f}MB) exceeds maximum allowed size (5MB)",
-                        "max_size_mb": 5
-                    }
+                        "max_size_mb": 5,
+                    },
                 )
         except (AttributeError, TypeError):
             # Skip file size check if we can't determine it (e.g., in tests with mocks)
             pass
-        
+
         # Verify player exists
         player = session.query(models.Player).filter(models.Player.id == player_id).first()
         if not player:
             raise HTTPException(
-                status_code=404, 
-                detail={
-                    "error": "PLAYER_NOT_FOUND",
-                    "message": f"Player with ID {player_id} not found"
-                }
+                status_code=404,
+                detail={"error": "PLAYER_NOT_FOUND", "message": f"Player with ID {player_id} not found"},
             )
-        
+
         # Process the portrait using the image processing service
         from app.services.image_processing_service import ImageProcessingService
-        
+
         try:
             portrait_url = await ImageProcessingService.process_player_portrait(player_id, file)
         except HTTPException as e:
@@ -611,11 +603,7 @@ async def upload_player_portrait(
             if e.status_code == 400:
                 raise HTTPException(
                     status_code=422,
-                    detail={
-                        "error": "IMAGE_PROCESSING_FAILED",
-                        "message": str(e.detail),
-                        "player_id": player_id
-                    }
+                    detail={"error": "IMAGE_PROCESSING_FAILED", "message": str(e.detail), "player_id": player_id},
                 ) from e
             else:
                 raise HTTPException(
@@ -623,46 +611,40 @@ async def upload_player_portrait(
                     detail={
                         "error": "PROCESSING_ERROR",
                         "message": "Failed to process image file",
-                        "player_id": player_id
-                    }
+                        "player_id": player_id,
+                    },
                 ) from e
-        
+
         # Update the player's portrait filename in the database
         portrait_filename = ImageProcessingService.update_player_portrait_filename(player_id)
         player.thumbnail_image = portrait_filename
         session.commit()
-        
+
         # Clear template cache for this player
         from app.web_ui.templates_config import clear_player_portrait_cache
+
         clear_player_portrait_cache(player_id)
-        
+
         logger.info(f"Successfully uploaded portrait for player {player_id}")
-        return {
-            "success": True, 
-            "portrait_url": portrait_url,
-            "player_id": player_id,
-            "filename": portrait_filename
-        }
+        return {"success": True, "portrait_url": portrait_url, "player_id": player_id, "filename": portrait_filename}
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Error uploading player portrait for player {player_id}: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail={
                 "error": "UPLOAD_FAILED",
                 "message": "An unexpected error occurred while uploading the portrait",
-                "player_id": player_id
-            }
+                "player_id": player_id,
+            },
         ) from e
 
 
 @router.delete("/{player_id}/portrait")
 async def delete_player_portrait(
-    player_id: int, 
-    current_user: User = Depends(get_current_user),
-    session = Depends(get_db)
+    player_id: int, current_user: User = Depends(get_current_user), session=Depends(get_db)
 ):
     """Delete a player's portrait image."""
     try:
@@ -670,29 +652,26 @@ async def delete_player_portrait(
         player = session.query(models.Player).filter(models.Player.id == player_id).first()
         if not player:
             raise HTTPException(
-                status_code=404, 
-                detail={
-                    "error": "PLAYER_NOT_FOUND",
-                    "message": f"Player with ID {player_id} not found"
-                }
+                status_code=404,
+                detail={"error": "PLAYER_NOT_FOUND", "message": f"Player with ID {player_id} not found"},
             )
-        
+
         if not player.thumbnail_image:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail={
                     "error": "NO_PORTRAIT_TO_DELETE",
                     "message": f"Player {player.name} does not have a portrait to delete",
-                    "player_id": player_id
-                }
+                    "player_id": player_id,
+                },
             )
-        
+
         # Store the filename for logging
         deleted_filename = player.thumbnail_image
-        
+
         # Delete the portrait using the image processing service
         from app.services.image_processing_service import ImageProcessingService
-        
+
         try:
             ImageProcessingService.delete_player_portrait(player_id)
         except HTTPException as e:
@@ -703,8 +682,8 @@ async def delete_player_portrait(
                     "error": "DELETE_FAILED",
                     "message": f"Failed to delete portrait files: {e.detail}",
                     "player_id": player_id,
-                    "filename": deleted_filename
-                }
+                    "filename": deleted_filename,
+                },
             ) from e
         except Exception as e:
             raise HTTPException(
@@ -713,24 +692,25 @@ async def delete_player_portrait(
                     "error": "FILE_DELETE_ERROR",
                     "message": "Failed to delete portrait files from storage",
                     "player_id": player_id,
-                    "filename": deleted_filename
-                }
+                    "filename": deleted_filename,
+                },
             ) from e
-        
+
         # Clear the portrait filename in the database
         player.thumbnail_image = None
         session.commit()
-        
+
         # Clear template cache for this player
         from app.web_ui.templates_config import clear_player_portrait_cache
+
         clear_player_portrait_cache(player_id)
-        
+
         logger.info(f"Successfully deleted portrait for player {player_id} (was: {deleted_filename})")
         return {
-            "success": True, 
+            "success": True,
             "message": "Portrait deleted successfully",
             "player_id": player_id,
-            "deleted_filename": deleted_filename
+            "deleted_filename": deleted_filename,
         }
 
     except HTTPException:
@@ -738,22 +718,22 @@ async def delete_player_portrait(
     except Exception as e:
         logger.error(f"Error deleting player portrait for player {player_id}: {e}", exc_info=True)
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail={
                 "error": "DELETE_FAILED",
                 "message": "An unexpected error occurred while deleting the portrait",
-                "player_id": player_id
-            }
+                "player_id": player_id,
+            },
         ) from e
 
 
 # Legacy endpoint for backward compatibility
 @router.post("/{player_id}/upload-image")
 async def upload_player_image(
-    player_id: int, 
-    file: UploadFile = File(...), 
+    player_id: int,
+    file: UploadFile = File(...),
     current_user: User = Depends(get_current_user),
-    session = Depends(get_db)
+    session=Depends(get_db),
 ):
     """Legacy endpoint for uploading player images. Redirects to portrait endpoint."""
     return await upload_player_portrait(player_id, file, current_user, session)

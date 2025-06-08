@@ -239,7 +239,13 @@ class TestTeamLogoDisplay:
                 monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
 
                 # Patch the cached function to use uncached version for integration tests
-                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
+                monkeypatch.setattr(
+                    templates_config_module,
+                    "_get_cached_entity_image_data",
+                    lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id)
+                    if entity_type == "team"
+                    else None,
+                )
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
@@ -335,7 +341,13 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
+                monkeypatch.setattr(
+                    templates_config_module,
+                    "_get_cached_entity_image_data",
+                    lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id)
+                    if entity_type == "team"
+                    else None,
+                )
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
@@ -394,7 +406,13 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
+                monkeypatch.setattr(
+                    templates_config_module,
+                    "_get_cached_entity_image_data",
+                    lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id)
+                    if entity_type == "team"
+                    else None,
+                )
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):

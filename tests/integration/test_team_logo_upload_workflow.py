@@ -270,7 +270,11 @@ class TestTeamLogoUploadWorkflow:
                     import app.web_ui.templates_config as templates_config_module
 
                     monkeypatch.setattr(
-                        templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None
+                        templates_config_module,
+                        "_get_cached_entity_image_data",
+                        lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id)
+                        if entity_type == "team"
+                        else None,
                     )
 
                     # Patch the UPLOAD_DIR to point to our temp directory

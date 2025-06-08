@@ -37,49 +37,49 @@ class TestPlayerPortraitAPI:
         img_bytes.seek(0)
         mock_file.read = AsyncMock(return_value=img_bytes.getvalue())
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query
+        mock_player = Mock(spec=models.Player)
+        mock_player.id = player_id
+        mock_player.name = "Test Player"
+        mock_player.thumbnail_image = None
+        
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = mock_player
+        mock_session.query.return_value = mock_query
+        
+        # Mock the image processing service
+        with patch.object(ImageProcessingService, "process_player_portrait") as mock_process:
+            mock_process.return_value = "/uploads/players/123/portrait.jpg"
             
-            # Mock the player query
-            mock_player = Mock(spec=models.Player)
-            mock_player.id = player_id
-            mock_player.name = "Test Player"
-            mock_player.thumbnail_image = None
-            
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = mock_player
-            mock_session.query.return_value = mock_query
-            
-            # Mock the image processing service
-            with patch.object(ImageProcessingService, "process_player_portrait") as mock_process:
-                mock_process.return_value = "/uploads/players/123/portrait.jpg"
+            with patch.object(ImageProcessingService, "update_player_portrait_filename") as mock_update:
+                mock_update.return_value = "players/123/portrait.jpg"
                 
-                with patch.object(ImageProcessingService, "update_player_portrait_filename") as mock_update:
-                    mock_update.return_value = "players/123/portrait.jpg"
-                    
-                    # Call the endpoint
-                    result = await upload_player_portrait(
-                        player_id=player_id,
-                        file=mock_file,
-                        current_user=mock_user
-                    )
-                    
-                    # Verify results
-                    assert result["success"] is True
-                    assert result["portrait_url"] == "/uploads/players/123/portrait.jpg"
-                    assert result["player_id"] == 123
-                    assert result["filename"] == "players/123/portrait.jpg"
-                    
-                    # Verify the player's thumbnail_image was updated
-                    assert mock_player.thumbnail_image == "players/123/portrait.jpg"
-                    
-                    # Verify database commit was called
-                    mock_session.commit.assert_called_once()
-                    
-                    # Verify image processing was called
-                    mock_process.assert_called_once_with(player_id, mock_file)
-                    mock_update.assert_called_once_with(player_id)
+                # Call the endpoint with session parameter
+                result = await upload_player_portrait(
+                    player_id=player_id,
+                    file=mock_file,
+                    current_user=mock_user,
+                    session=mock_session
+                )
+                
+                # Verify results
+                assert result["success"] is True
+                assert result["portrait_url"] == "/uploads/players/123/portrait.jpg"
+                assert result["player_id"] == 123
+                assert result["filename"] == "players/123/portrait.jpg"
+                
+                # Verify the player's thumbnail_image was updated
+                assert mock_player.thumbnail_image == "players/123/portrait.jpg"
+                
+                # Verify database commit was called
+                mock_session.commit.assert_called_once()
+                
+                # Verify image processing was called
+                mock_process.assert_called_once_with(player_id, mock_file)
+                mock_update.assert_called_once_with(player_id)
 
     @pytest.mark.asyncio
     async def test_upload_player_portrait_player_not_found(self):
@@ -93,22 +93,22 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            
-            # Mock the player query to return None
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = None
-            mock_session.query.return_value = mock_query
-            
-            # Call the endpoint and expect an exception
-            with pytest.raises(HTTPException) as exc_info:
-                await upload_player_portrait(
-                    player_id=player_id,
-                    file=mock_file,
-                    current_user=mock_user
-                )
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query to return None
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = None
+        mock_session.query.return_value = mock_query
+        
+        # Call the endpoint and expect an exception
+        with pytest.raises(HTTPException) as exc_info:
+            await upload_player_portrait(
+                player_id=player_id,
+                file=mock_file,
+                current_user=mock_user,
+                session=mock_session
+            )
             
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail["error"] == "PLAYER_NOT_FOUND"
@@ -126,30 +126,30 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query
+        mock_player = Mock(spec=models.Player)
+        mock_player.id = player_id
+        mock_player.name = "Test Player"
+        
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = mock_player
+        mock_session.query.return_value = mock_query
+        
+        # Mock the image processing service to raise an error
+        with patch.object(ImageProcessingService, "process_player_portrait") as mock_process:
+            mock_process.side_effect = Exception("Processing failed")
             
-            # Mock the player query
-            mock_player = Mock(spec=models.Player)
-            mock_player.id = player_id
-            mock_player.name = "Test Player"
-            
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = mock_player
-            mock_session.query.return_value = mock_query
-            
-            # Mock the image processing service to raise an error
-            with patch.object(ImageProcessingService, "process_player_portrait") as mock_process:
-                mock_process.side_effect = Exception("Processing failed")
-                
-                # Call the endpoint and expect an exception
-                with pytest.raises(HTTPException) as exc_info:
-                    await upload_player_portrait(
-                        player_id=player_id,
-                        file=mock_file,
-                        current_user=mock_user
-                    )
+            # Call the endpoint and expect an exception
+            with pytest.raises(HTTPException) as exc_info:
+                await upload_player_portrait(
+                    player_id=player_id,
+                    file=mock_file,
+                    current_user=mock_user,
+                    session=mock_session
+                )
                 
                 assert exc_info.value.status_code == 500
                 assert exc_info.value.detail["error"] == "UPLOAD_FAILED"
@@ -163,27 +163,27 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            
-            # Mock the player query
-            mock_player = Mock(spec=models.Player)
-            mock_player.id = player_id
-            mock_player.name = "Test Player"
-            mock_player.thumbnail_image = "players/123/portrait.jpg"
-            
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = mock_player
-            mock_session.query.return_value = mock_query
-            
-            # Mock the image processing service
-            with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
-                # Call the endpoint
-                result = await delete_player_portrait(
-                    player_id=player_id,
-                    current_user=mock_user
-                )
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query
+        mock_player = Mock(spec=models.Player)
+        mock_player.id = player_id
+        mock_player.name = "Test Player"
+        mock_player.thumbnail_image = "players/123/portrait.jpg"
+        
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = mock_player
+        mock_session.query.return_value = mock_query
+        
+        # Mock the image processing service
+        with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
+            # Call the endpoint
+            result = await delete_player_portrait(
+                player_id=player_id,
+                current_user=mock_user,
+                session=mock_session
+            )
                 
                 # Verify results
                 assert result["success"] is True
@@ -208,21 +208,21 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            
-            # Mock the player query to return None
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = None
-            mock_session.query.return_value = mock_query
-            
-            # Call the endpoint and expect an exception
-            with pytest.raises(HTTPException) as exc_info:
-                await delete_player_portrait(
-                    player_id=player_id,
-                    current_user=mock_user
-                )
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query to return None
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = None
+        mock_session.query.return_value = mock_query
+        
+        # Call the endpoint and expect an exception
+        with pytest.raises(HTTPException) as exc_info:
+            await delete_player_portrait(
+                player_id=player_id,
+                current_user=mock_user,
+                session=mock_session
+            )
             
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail["error"] == "PLAYER_NOT_FOUND"
@@ -236,26 +236,26 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
-            
-            # Mock the player query
-            mock_player = Mock(spec=models.Player)
-            mock_player.id = player_id
-            mock_player.name = "Test Player"
-            mock_player.thumbnail_image = None  # No portrait
-            
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = mock_player
-            mock_session.query.return_value = mock_query
-            
-            # Call the endpoint and expect an exception
-            with pytest.raises(HTTPException) as exc_info:
-                await delete_player_portrait(
-                    player_id=player_id,
-                    current_user=mock_user
-                )
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query
+        mock_player = Mock(spec=models.Player)
+        mock_player.id = player_id
+        mock_player.name = "Test Player"
+        mock_player.thumbnail_image = None  # No portrait
+        
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = mock_player
+        mock_session.query.return_value = mock_query
+        
+        # Call the endpoint and expect an exception
+        with pytest.raises(HTTPException) as exc_info:
+            await delete_player_portrait(
+                player_id=player_id,
+                current_user=mock_user,
+                session=mock_session
+            )
             
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail["error"] == "PORTRAIT_NOT_FOUND"
@@ -269,30 +269,30 @@ class TestPlayerPortraitAPI:
         mock_user = Mock(spec=User)
         mock_user.id = 1
         
-        with patch("app.web_ui.routers.players.get_db_session") as mock_get_session:
-            mock_session = Mock(spec=Session)
-            mock_get_session.return_value.__enter__.return_value = mock_session
+        # Create a mock session
+        mock_session = Mock(spec=Session)
+        
+        # Mock the player query
+        mock_player = Mock(spec=models.Player)
+        mock_player.id = player_id
+        mock_player.name = "Test Player"
+        mock_player.thumbnail_image = "players/123/portrait.jpg"
+        
+        mock_query = Mock()
+        mock_query.filter.return_value.first.return_value = mock_player
+        mock_session.query.return_value = mock_query
+        
+        # Mock the image processing service to raise an error
+        with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
+            mock_delete.side_effect = Exception("Deletion failed")
             
-            # Mock the player query
-            mock_player = Mock(spec=models.Player)
-            mock_player.id = player_id
-            mock_player.name = "Test Player"
-            mock_player.thumbnail_image = "players/123/portrait.jpg"
-            
-            mock_query = Mock()
-            mock_query.filter.return_value.first.return_value = mock_player
-            mock_session.query.return_value = mock_query
-            
-            # Mock the image processing service to raise an error
-            with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
-                mock_delete.side_effect = Exception("Deletion failed")
-                
-                # Call the endpoint and expect an exception
-                with pytest.raises(HTTPException) as exc_info:
-                    await delete_player_portrait(
-                        player_id=player_id,
-                        current_user=mock_user
-                    )
+            # Call the endpoint and expect an exception
+            with pytest.raises(HTTPException) as exc_info:
+                await delete_player_portrait(
+                    player_id=player_id,
+                    current_user=mock_user,
+                    session=mock_session
+                )
                 
                 assert exc_info.value.status_code == 500
                 assert exc_info.value.detail["error"] == "FILE_DELETE_ERROR"
