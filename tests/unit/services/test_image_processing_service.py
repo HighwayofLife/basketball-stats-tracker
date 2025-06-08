@@ -347,13 +347,13 @@ class TestImageProcessingService:
         # Test when no logo exists
         with patch.object(ImageProcessingService, "get_image_url") as mock_get_url:
             mock_get_url.return_value = None
-            
+
             # Mock the fallback directory check
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_dir = Mock()
                 mock_dir.exists.return_value = False
                 mock_get_dir.return_value = mock_dir
-                
+
                 filename = ImageProcessingService.update_team_logo_filename(team_id)
 
                 # Should return None when no logo exists
@@ -512,7 +512,7 @@ class TestImageProcessingService:
         """Test that max dimensions are defined for each image type."""
         assert ImageType.TEAM_LOGO in ImageProcessingService.MAX_DIMENSIONS
         assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.MAX_DIMENSIONS
-        
+
         # Player portraits should use 250x250
         assert ImageProcessingService.MAX_DIMENSIONS[ImageType.PLAYER_PORTRAIT] == (250, 250)
 
@@ -520,7 +520,7 @@ class TestImageProcessingService:
         """Test that subdirectories are defined for each image type."""
         assert ImageType.TEAM_LOGO in ImageProcessingService.SUBDIRECTORIES
         assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.SUBDIRECTORIES
-        
+
         assert ImageProcessingService.SUBDIRECTORIES[ImageType.TEAM_LOGO] == "teams"
         assert ImageProcessingService.SUBDIRECTORIES[ImageType.PLAYER_PORTRAIT] == "players"
 
@@ -528,6 +528,6 @@ class TestImageProcessingService:
         """Test that file prefixes are defined for each image type."""
         assert ImageType.TEAM_LOGO in ImageProcessingService.FILE_PREFIXES
         assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.FILE_PREFIXES
-        
+
         assert ImageProcessingService.FILE_PREFIXES[ImageType.TEAM_LOGO] == "logo"
         assert ImageProcessingService.FILE_PREFIXES[ImageType.PLAYER_PORTRAIT] == "portrait"
