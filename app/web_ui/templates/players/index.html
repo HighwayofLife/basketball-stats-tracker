@@ -312,6 +312,29 @@
     text-transform: uppercase;
 }
 
+.player-portrait-small {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #f0f0f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.player-portrait-small img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.player-portrait-small i {
+    color: #999;
+    font-size: 1.2rem;
+}
+
 
 @media (max-width: 768px) {
     .form-row {
@@ -402,7 +425,12 @@ async function loadPlayers() {
             players.forEach(player => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td data-label="Name"><strong>${player.name}</strong></td>
+                    <td data-label="Name">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${getPlayerPortraitSmall(player)}
+                            <strong>${player.name}</strong>
+                        </div>
+                    </td>
                     <td data-label="Team">${player.team_name}</td>
                     <td data-label="#"><strong>#${player.jersey_number}</strong></td>
                     <td data-label="Position" class="col-position">${player.position || '-'}</td>
@@ -437,6 +465,13 @@ function formatHeight(inches) {
     const feet = Math.floor(inches / 12);
     const remainingInches = inches % 12;
     return `${feet}'${remainingInches}"`;
+}
+
+function getPlayerPortraitSmall(player) {
+    // For now, just return a placeholder - in production this would use the template helper
+    return `<div class="player-portrait-small">
+                <i class="fas fa-user"></i>
+            </div>`;
 }
 
 function showAddPlayerModal() {

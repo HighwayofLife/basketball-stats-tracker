@@ -49,16 +49,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="card-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            ${player.thumbnail_image ?
-                                `<img class="rounded-circle border border-3 border-white shadow"
-                                     src="/static/${player.thumbnail_image}"
-                                     alt="${player.name}"
-                                     style="width: 100px; height: 100px; object-fit: cover;"
-                                     onerror="this.onerror=null; this.src='/static/img/default-player.png';">` :
-                                `<div class="rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
-                                    <i class="fas fa-user fa-3x text-muted"></i>
-                                </div>`
-                            }
+                            <div class="position-relative">
+                                ${getPlayerPortrait(player)}
+                                {% if is_authenticated %}
+                                <button onclick="showUploadModal()" class="btn btn-sm btn-light position-absolute bottom-0 end-0 rounded-circle" 
+                                        style="width: 32px; height: 32px; padding: 0; margin: -8px -8px;" 
+                                        title="Upload Portrait">
+                                    <i class="fas fa-camera"></i>
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
                         <div class="col">
                             <h1 class="h2 mb-2 text-white">${player.name}</h1>
@@ -73,11 +73,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${player.year ? ` • Year: ${player.year}` : ''}
                             </div>
                         </div>
+                        {% if is_authenticated %}
                         <div class="col-auto">
-                            <button onclick="showUploadModal()" class="btn btn-outline-light">
-                                <i class="fas fa-camera me-2"></i>Upload Photo
-                            </button>
+                            ${player.thumbnail_image ? `
+                                <button onclick="deletePortrait()" class="btn btn-outline-light">
+                                    <i class="fas fa-trash me-2"></i>Remove Photo
+                                </button>
+                            ` : ''}
                         </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -348,31 +352,53 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Helper function to get player portrait HTML
+function getPlayerPortrait(player) {
+    // Construct portrait URL from thumbnail_image field
+    const portraitUrl = player.thumbnail_image ? `/uploads/${player.thumbnail_image}` : null;
+    
+    if (portraitUrl && portraitUrl !== 'None') {
+        return `<img class="rounded-circle border border-3 border-white shadow"
+                     src="${portraitUrl}"
+                     alt="${player.name}"
+                     style="width: 120px; height: 120px; object-fit: cover;"
+                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center\" style=\"width: 120px; height: 120px;\"><i class=\"fas fa-user fa-3x text-muted\"></i></div>';">`;                
+    } else {
+        return `<div class="rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                    <i class="fas fa-user fa-3x text-muted"></i>
+                </div>`;
+    }
+}
+
 // Image upload modal
 function showUploadModal() {
     const modal = document.createElement('div');
-    modal.className = 'modal fade';
+    modal.className = 'modal fade show';
     modal.style.display = 'block';
     modal.style.backgroundColor = 'rgba(0,0,0,0.5)';
     modal.innerHTML = `
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title">Upload Player Photo</h5>
+                    <h5 class="modal-title">Upload Player Portrait</h5>
                     <button type="button" class="btn-close" onclick="this.closest('.modal').remove()"></button>
                 </div>
                 <div class="modal-body">
                     <form id="upload-form" enctype="multipart/form-data">
                         <div class="mb-3">
-                            <label class="form-label">Select Image (JPG or PNG, max 5MB)</label>
-                            <input type="file" name="file" accept="image/jpeg,image/jpg,image/png" required class="form-control">
+                            <label class="form-label">Select Image</label>
+                            <input type="file" name="file" accept="image/jpeg,image/jpg,image/png,image/webp" required class="form-control" id="portrait-file-input">
+                            <div class="form-text">Supported formats: JPG, PNG, WebP (max 5MB). Image will be resized to 250x250 max.</div>
+                        </div>
+                        <div id="portrait-preview" class="text-center mb-3" style="display: none;">
+                            <img id="preview-image" style="max-width: 200px; max-height: 200px; border-radius: 50%;" class="border">
                         </div>
                         <div class="d-flex justify-content-end gap-2">
                             <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">
                                 Cancel
                             </button>
-                            <button type="submit" class="btn btn-primary">
-                                Upload
+                            <button type="submit" class="btn btn-primary" id="upload-btn">
+                                <i class="fas fa-upload me-2"></i>Upload
                             </button>
                         </div>
                     </form>
@@ -382,13 +408,31 @@ function showUploadModal() {
     `;
     document.body.appendChild(modal);
 
+    // Preview image before upload
+    document.getElementById('portrait-file-input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('preview-image').src = e.target.result;
+                document.getElementById('portrait-preview').style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
     document.getElementById('upload-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(e.target);
         const playerId = {{ player_id }};
+        const uploadBtn = document.getElementById('upload-btn');
+        
+        // Show loading state
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading...';
 
         try {
-            const response = await fetch(`/v1/players/${playerId}/upload-image`, {
+            const response = await fetch(`/v1/players/${playerId}/portrait`, {
                 method: 'POST',
                 body: formData
             });
@@ -399,11 +443,39 @@ function showUploadModal() {
             } else {
                 const error = await response.json();
                 alert(error.detail || 'Upload failed');
+                uploadBtn.disabled = false;
+                uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload';
             }
         } catch (error) {
             alert('Upload failed: ' + error.message);
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload me-2"></i>Upload';
         }
     });
+}
+
+// Delete portrait function
+async function deletePortrait() {
+    if (!confirm('Are you sure you want to delete the player portrait?')) {
+        return;
+    }
+    
+    const playerId = {{ player_id }};
+    
+    try {
+        const response = await fetch(`/v1/players/${playerId}/portrait`, {
+            method: 'DELETE'
+        });
+        
+        if (response.ok) {
+            location.reload();
+        } else {
+            const error = await response.json();
+            alert(error.detail || 'Delete failed');
+        }
+    } catch (error) {
+        alert('Delete failed: ' + error.message);
+    }
 }
 </script>
 {% endblock %}

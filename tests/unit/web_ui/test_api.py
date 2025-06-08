@@ -1040,8 +1040,15 @@ class TestAPIEndpoints:
 
     def test_upload_player_image_success(self, client, sample_players, tmp_path):
         """Test uploading a player image successfully."""
-        # Create a test image file
-        image_content = b"fake image content"
+        # Create a valid test image file
+        from PIL import Image
+        import io
+        
+        img = Image.new("RGB", (200, 200), color="blue")
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="JPEG")
+        image_content = img_bytes.getvalue()
+        
         image_file = tmp_path / "test.jpg"
         image_file.write_bytes(image_content)
 
@@ -1055,8 +1062,9 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
-        assert "image_path" in data
-        assert data["image_path"] == f"players/player_{sample_players[0].id}.jpg"
+        assert "portrait_url" in data
+        assert data["player_id"] == sample_players[0].id
+        assert "filename" in data
 
     def test_upload_player_image_invalid_type(self, client, sample_players, tmp_path):
         """Test uploading invalid file type."""
@@ -1071,8 +1079,10 @@ class TestAPIEndpoints:
             )
 
         # Assertions
-        assert response.status_code == 400
-        assert "Invalid file type" in response.json()["detail"]
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["error"] == "INVALID_FILE_TYPE"
+        assert "Please upload an image file" in detail["message"]
 
     def test_upload_player_image_invalid_extension(self, client, sample_players, tmp_path):
         """Test uploading image with invalid extension."""
@@ -1087,8 +1097,10 @@ class TestAPIEndpoints:
             )
 
         # Assertions
-        assert response.status_code == 400
-        assert "Invalid file format" in response.json()["detail"]
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["error"] == "IMAGE_PROCESSING_FAILED"
+        assert "Invalid file format" in detail["message"]
 
     def test_upload_player_image_too_large(self, client, sample_players, tmp_path):
         """Test uploading image that's too large."""
@@ -1104,8 +1116,10 @@ class TestAPIEndpoints:
             )
 
         # Assertions
-        assert response.status_code == 400
-        assert "File too large" in response.json()["detail"]
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert detail["error"] == "FILE_TOO_LARGE"
+        assert "exceeds maximum allowed size" in detail["message"]
 
     def test_upload_player_image_player_not_found(self, client, tmp_path):
         """Test uploading image for non-existent player."""
@@ -1119,7 +1133,9 @@ class TestAPIEndpoints:
 
         # Assertions
         assert response.status_code == 404
-        assert "Player not found" in response.json()["detail"]
+        detail = response.json()["detail"]
+        assert detail["error"] == "PLAYER_NOT_FOUND"
+        assert "Player with ID 999 not found" in detail["message"]
 
     @patch("app.web_ui.routers.pages.templates")
     def test_player_detail_page(self, mock_templates, client, sample_players):

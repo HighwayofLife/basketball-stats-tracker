@@ -10,7 +10,7 @@ from fastapi import HTTPException, UploadFile
 from PIL import Image
 
 from app.config import UPLOADS_URL_PREFIX
-from app.services.image_processing_service import ImageProcessingService
+from app.services.image_processing_service import ImageProcessingService, ImageType
 
 
 class TestImageProcessingService:
@@ -153,7 +153,7 @@ class TestImageProcessingService:
             logo_file = logo_dir / "logo.jpg"
             logo_file.touch()
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(team_id)
 
                 # Mock the Path.relative_to call to return our expected relative path
@@ -171,7 +171,7 @@ class TestImageProcessingService:
         team_id = 999
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(team_id)
 
                 url = ImageProcessingService.get_team_logo_url(team_id)
@@ -188,7 +188,7 @@ class TestImageProcessingService:
             team_dir.mkdir(parents=True)
             (team_dir / "logo.jpg").touch()
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = team_dir
 
                 # Should not raise exception
@@ -202,7 +202,7 @@ class TestImageProcessingService:
         team_id = 999
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(team_id)
 
                 # Should not raise exception
@@ -228,14 +228,14 @@ class TestImageProcessingService:
             # Set up path structure that service expects
             team_base_dir = Path(temp_dir) / "teams" / str(team_id)
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = team_base_dir
 
-                # Mock the get_team_logo_path to return paths within our temp dir
-                def mock_get_path(tid, filename):
+                # Mock the get_image_path to return paths within our temp dir
+                def mock_get_path(tid, filename, img_type):
                     return team_base_dir / filename
 
-                with patch.object(ImageProcessingService, "get_team_logo_path", side_effect=mock_get_path):
+                with patch.object(ImageProcessingService, "get_image_path", side_effect=mock_get_path):
                     # Mock Path.relative_to to avoid path resolution issues
                     with patch.object(Path, "relative_to") as mock_relative:
                         mock_relative.return_value = Path(f"uploads/teams/{team_id}/logo.jpg")
@@ -291,14 +291,14 @@ class TestImageProcessingService:
             # Set up path structure that service expects
             team_base_dir = Path(temp_dir) / "teams" / str(team_id)
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = team_base_dir
 
-                # Mock the get_team_logo_path to return paths within our temp dir
-                def mock_get_path(tid, filename):
+                # Mock the get_image_path to return paths within our temp dir
+                def mock_get_path(tid, filename, img_type):
                     return team_base_dir / filename
 
-                with patch.object(ImageProcessingService, "get_team_logo_path", side_effect=mock_get_path):
+                with patch.object(ImageProcessingService, "get_image_path", side_effect=mock_get_path):
                     # Mock Path.relative_to to avoid path resolution issues
                     with patch.object(Path, "relative_to") as mock_relative:
                         # Return appropriate relative paths for each call
@@ -335,23 +335,29 @@ class TestImageProcessingService:
         """Test updating team logo filename."""
         team_id = 123
 
-        # Mock get_team_logo_url to return a URL
-        with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
+        # Mock get_image_url to return a URL (the method now calls get_image_url)
+        with patch.object(ImageProcessingService, "get_image_url") as mock_get_url:
             mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/{team_id}/logo.jpg"
 
             filename = ImageProcessingService.update_team_logo_filename(team_id)
 
             assert filename == f"teams/{team_id}/logo.jpg"
-            mock_get_url.assert_called_once_with(team_id)
+            mock_get_url.assert_called_once_with(team_id, ImageType.TEAM_LOGO)
 
         # Test when no logo exists
-        with patch.object(ImageProcessingService, "get_team_logo_url") as mock_get_url:
+        with patch.object(ImageProcessingService, "get_image_url") as mock_get_url:
             mock_get_url.return_value = None
+            
+            # Mock the fallback directory check
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
+                mock_dir = Mock()
+                mock_dir.exists.return_value = False
+                mock_get_dir.return_value = mock_dir
+                
+                filename = ImageProcessingService.update_team_logo_filename(team_id)
 
-            filename = ImageProcessingService.update_team_logo_filename(team_id)
-
-            # Should return None when no logo exists
-            assert filename is None
+                # Should return None when no logo exists
+                assert filename is None
 
     def test_supported_formats(self):
         """Test that all expected formats are supported."""
@@ -363,8 +369,165 @@ class TestImageProcessingService:
         from app.config import TEAM_LOGO_MAX_HEIGHT, TEAM_LOGO_MAX_WIDTH
 
         expected_dimensions = (TEAM_LOGO_MAX_WIDTH, TEAM_LOGO_MAX_HEIGHT)
-        assert expected_dimensions == ImageProcessingService.MAX_LOGO_DIMENSIONS
+        assert expected_dimensions == ImageProcessingService.MAX_DIMENSIONS[ImageType.TEAM_LOGO]
 
     def test_max_file_size(self):
         """Test that max file size is 5MB."""
         assert ImageProcessingService.MAX_FILE_SIZE == 5 * 1024 * 1024
+
+    # Player Portrait Tests
+    def test_get_player_portrait_url_exists(self):
+        """Test getting player portrait URL when portrait exists."""
+        player_id = 456
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create mock directory structure
+            portrait_dir = Path(temp_dir) / "players" / str(player_id)
+            portrait_dir.mkdir(parents=True)
+            portrait_file = portrait_dir / "portrait.jpg"
+            portrait_file.touch()
+
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
+                mock_get_dir.return_value = Path(temp_dir) / "players" / str(player_id)
+
+                # Mock the Path.relative_to call to return our expected relative path
+                with patch.object(Path, "relative_to") as mock_relative_to:
+                    mock_relative_to.return_value = Path("uploads/players/456/portrait.jpg")
+
+                    url = ImageProcessingService.get_player_portrait_url(player_id)
+
+                    assert url is not None
+                    assert url.startswith(UPLOADS_URL_PREFIX)
+                    assert "portrait.jpg" in url
+
+    def test_get_player_portrait_url_not_exists(self):
+        """Test getting player portrait URL when portrait doesn't exist."""
+        player_id = 999
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
+                mock_get_dir.return_value = Path(temp_dir) / "players" / str(player_id)
+
+                url = ImageProcessingService.get_player_portrait_url(player_id)
+
+                assert url is None
+
+    def test_delete_player_portrait_exists(self):
+        """Test deleting existing player portrait."""
+        player_id = 456
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create mock directory structure with files
+            player_dir = Path(temp_dir) / "players" / str(player_id)
+            player_dir.mkdir(parents=True)
+            (player_dir / "portrait.jpg").touch()
+
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
+                mock_get_dir.return_value = player_dir
+
+                # Should not raise exception
+                ImageProcessingService.delete_player_portrait(player_id)
+
+                # Directory should be deleted
+                assert not player_dir.exists()
+
+    @pytest.mark.asyncio
+    async def test_process_player_portrait_success(self):
+        """Test successful player portrait processing."""
+        player_id = 456
+
+        # Create a valid test image that's larger than 250x250
+        img = Image.new("RGB", (400, 300), color="blue")
+        img_bytes = io.BytesIO()
+        img.save(img_bytes, format="PNG")
+        img_bytes.seek(0)
+
+        file = Mock(spec=UploadFile)
+        file.content_type = "image/png"
+        file.filename = "test.png"
+        file.read = AsyncMock(return_value=img_bytes.getvalue())
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Set up path structure that service expects
+            player_base_dir = Path(temp_dir) / "players" / str(player_id)
+
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
+                mock_get_dir.return_value = player_base_dir
+
+                # Mock the get_image_path to return paths within our temp dir
+                def mock_get_path(pid, filename, img_type):
+                    return player_base_dir / filename
+
+                with patch.object(ImageProcessingService, "get_image_path", side_effect=mock_get_path):
+                    # Mock Path.relative_to to avoid path resolution issues
+                    with patch.object(Path, "relative_to") as mock_relative:
+                        mock_relative.return_value = Path(f"uploads/players/{player_id}/portrait.png")
+
+                        portrait_url = await ImageProcessingService.process_player_portrait(player_id, file)
+
+                        # Check that URL is returned
+                        assert portrait_url is not None
+                        assert portrait_url.startswith(UPLOADS_URL_PREFIX)
+                        assert "portrait.png" in portrait_url
+
+                        # Check that file was created
+                        assert (player_base_dir / "portrait.png").exists()
+
+                        # Verify image dimensions - should fit within 250x250
+                        with Image.open(player_base_dir / "portrait.png") as resized_img:
+                            width, height = resized_img.size
+                            assert width <= 250
+                            assert height <= 250
+                            # Verify aspect ratio is preserved (original was 4:3)
+                            assert abs(width / height - 4 / 3) < 0.01
+
+    def test_update_player_portrait_filename(self):
+        """Test updating player portrait filename."""
+        player_id = 456
+
+        # Mock get_image_url to return a URL (this is what update_image_filename calls)
+        with patch.object(ImageProcessingService, "get_image_url") as mock_get_url:
+            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}players/{player_id}/portrait.jpg"
+
+            filename = ImageProcessingService.update_player_portrait_filename(player_id)
+
+            assert filename == f"players/{player_id}/portrait.jpg"
+            mock_get_url.assert_called_once_with(player_id, ImageType.PLAYER_PORTRAIT)
+
+        # Test when no portrait exists
+        with patch.object(ImageProcessingService, "get_image_url") as mock_get_url:
+            mock_get_url.return_value = None
+
+            filename = ImageProcessingService.update_player_portrait_filename(player_id)
+
+            # Should return None when no portrait exists
+            assert filename is None
+
+    def test_image_type_enum(self):
+        """Test ImageType enum values."""
+        assert ImageType.TEAM_LOGO.value == "team_logo"
+        assert ImageType.PLAYER_PORTRAIT.value == "player_portrait"
+
+    def test_max_dimensions_by_type(self):
+        """Test that max dimensions are defined for each image type."""
+        assert ImageType.TEAM_LOGO in ImageProcessingService.MAX_DIMENSIONS
+        assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.MAX_DIMENSIONS
+        
+        # Player portraits should use 250x250
+        assert ImageProcessingService.MAX_DIMENSIONS[ImageType.PLAYER_PORTRAIT] == (250, 250)
+
+    def test_subdirectories_by_type(self):
+        """Test that subdirectories are defined for each image type."""
+        assert ImageType.TEAM_LOGO in ImageProcessingService.SUBDIRECTORIES
+        assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.SUBDIRECTORIES
+        
+        assert ImageProcessingService.SUBDIRECTORIES[ImageType.TEAM_LOGO] == "teams"
+        assert ImageProcessingService.SUBDIRECTORIES[ImageType.PLAYER_PORTRAIT] == "players"
+
+    def test_file_prefixes_by_type(self):
+        """Test that file prefixes are defined for each image type."""
+        assert ImageType.TEAM_LOGO in ImageProcessingService.FILE_PREFIXES
+        assert ImageType.PLAYER_PORTRAIT in ImageProcessingService.FILE_PREFIXES
+        
+        assert ImageProcessingService.FILE_PREFIXES[ImageType.TEAM_LOGO] == "logo"
+        assert ImageProcessingService.FILE_PREFIXES[ImageType.PLAYER_PORTRAIT] == "portrait"

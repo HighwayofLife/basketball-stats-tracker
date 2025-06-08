@@ -1,10 +1,11 @@
-"""Image processing service for team logos and other image uploads."""
+"""Image processing service for team logos and player portraits."""
 
 import contextlib
 import io
 import logging
 import os
 import shutil
+from enum import Enum
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
@@ -15,13 +16,40 @@ from app.config import TEAM_LOGO_MAX_HEIGHT, TEAM_LOGO_MAX_WIDTH, TEAM_LOGOS_SUB
 logger = logging.getLogger(__name__)
 
 UPLOADS_DIR = Path(settings.UPLOAD_DIR)
+PLAYER_PORTRAITS_SUBDIR = "players"  # Subdirectory for player portraits
+
+# Maximum dimensions for portraits (same as team logos)
+PLAYER_PORTRAIT_MAX_WIDTH = 250
+PLAYER_PORTRAIT_MAX_HEIGHT = 250
+
+
+class ImageType(Enum):
+    """Enum for different types of images."""
+
+    TEAM_LOGO = "team_logo"
+    PLAYER_PORTRAIT = "player_portrait"
 
 
 class ImageProcessingService:
-    """Service for processing and storing team logo images."""
+    """Service for processing and storing images (team logos, player portraits)."""
 
-    # Maximum dimensions for team logos (preserves aspect ratio)
-    MAX_LOGO_DIMENSIONS = (TEAM_LOGO_MAX_WIDTH, TEAM_LOGO_MAX_HEIGHT)
+    # Maximum dimensions by image type
+    MAX_DIMENSIONS = {
+        ImageType.TEAM_LOGO: (TEAM_LOGO_MAX_WIDTH, TEAM_LOGO_MAX_HEIGHT),
+        ImageType.PLAYER_PORTRAIT: (PLAYER_PORTRAIT_MAX_WIDTH, PLAYER_PORTRAIT_MAX_HEIGHT),
+    }
+
+    # Subdirectories by image type
+    SUBDIRECTORIES = {
+        ImageType.TEAM_LOGO: TEAM_LOGOS_SUBDIR,
+        ImageType.PLAYER_PORTRAIT: PLAYER_PORTRAITS_SUBDIR,
+    }
+
+    # File prefixes by image type
+    FILE_PREFIXES = {
+        ImageType.TEAM_LOGO: "logo",
+        ImageType.PLAYER_PORTRAIT: "portrait",
+    }
 
     # Supported image formats
     SUPPORTED_FORMATS = {".jpg", ".jpeg", ".png", ".webp"}
@@ -77,26 +105,27 @@ class ImageProcessingService:
         return resized_image
 
     @staticmethod
-    def get_team_logo_directory(team_id: int) -> Path:
-        """Get the directory path for a team's logo files."""
-        return Path(settings.UPLOAD_DIR) / TEAM_LOGOS_SUBDIR / str(team_id)
+    def get_image_directory(entity_id: int, image_type: ImageType) -> Path:
+        """Get the directory path for an entity's image files."""
+        subdir = ImageProcessingService.SUBDIRECTORIES[image_type]
+        return Path(settings.UPLOAD_DIR) / subdir / str(entity_id)
 
     @staticmethod
-    def get_team_logo_path(team_id: int, filename: str) -> Path:
-        """Get the full path for a team logo file."""
-        team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-        return team_dir / filename
+    def get_image_path(entity_id: int, filename: str, image_type: ImageType) -> Path:
+        """Get the full path for an image file."""
+        entity_dir = ImageProcessingService.get_image_directory(entity_id, image_type)
+        return entity_dir / filename
 
     @staticmethod
-    def get_team_logo_url(team_id: int) -> str | None:
-        """Get the URL for a team logo."""
-        team_dir = ImageProcessingService.get_team_logo_directory(team_id)
+    def get_image_url(entity_id: int, image_type: ImageType) -> str | None:
+        """Get the URL for an image."""
+        entity_dir = ImageProcessingService.get_image_directory(entity_id, image_type)
 
-        if not team_dir.exists():
+        if not entity_dir.exists():
             return None
 
         # Look for any supported image file
-        for file_path in team_dir.iterdir():
+        for file_path in entity_dir.iterdir():
             if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
                 # Always use uploads endpoint since uploads are outside app directory
                 try:
@@ -104,38 +133,68 @@ class ImageProcessingService:
                     return f"{UPLOADS_URL_PREFIX}{relative_path}"
                 except ValueError:
                     # Fallback for tests or edge cases
-                    return f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{file_path.name}"
+                    subdir = ImageProcessingService.SUBDIRECTORIES[image_type]
+                    return f"{UPLOADS_URL_PREFIX}{subdir}/{entity_id}/{file_path.name}"
 
         return None
 
+    # Legacy methods for backward compatibility
+    @staticmethod
+    def get_team_logo_directory(team_id: int) -> Path:
+        """Get the directory path for a team's logo files."""
+        return ImageProcessingService.get_image_directory(team_id, ImageType.TEAM_LOGO)
+
+    @staticmethod
+    def get_team_logo_path(team_id: int, filename: str) -> Path:
+        """Get the full path for a team logo file."""
+        return ImageProcessingService.get_image_path(team_id, filename, ImageType.TEAM_LOGO)
+
+    @staticmethod
+    def get_team_logo_url(team_id: int) -> str | None:
+        """Get the URL for a team logo."""
+        return ImageProcessingService.get_image_url(team_id, ImageType.TEAM_LOGO)
+
+    @staticmethod
+    def delete_image(entity_id: int, image_type: ImageType) -> None:
+        """Delete all image files for an entity."""
+        entity_dir = ImageProcessingService.get_image_directory(entity_id, image_type)
+        entity_name = "team" if image_type == ImageType.TEAM_LOGO else "player"
+
+        if entity_dir.exists():
+            try:
+                logger.info(
+                    f"Attempting to delete {image_type.value} directory for {entity_name} {entity_id}: {entity_dir}"
+                )
+                shutil.rmtree(entity_dir)
+                logger.info(f"Successfully deleted {image_type.value} directory for {entity_name} {entity_id}")
+            except Exception as e:
+                logger.error(f"Error deleting {image_type.value} directory for {entity_name} {entity_id}: {e}")
+                raise HTTPException(status_code=500, detail=f"Failed to delete {image_type.value} files") from e
+        else:
+            logger.info(f"{image_type.value} directory for {entity_name} {entity_id} does not exist: {entity_dir}")
+
+    # Legacy method for backward compatibility
     @staticmethod
     def delete_team_logo(team_id: int) -> None:
         """Delete all logo files for a team."""
-        team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-
-        if team_dir.exists():
-            try:
-                logger.info(f"Attempting to delete logo directory for team {team_id}: {team_dir}")
-                shutil.rmtree(team_dir)
-                logger.info(f"Successfully deleted logo directory for team {team_id}")
-            except Exception as e:
-                logger.error(f"Error deleting logo directory for team {team_id}: {e}")
-                raise HTTPException(status_code=500, detail="Failed to delete logo files") from e
-        else:
-            logger.info(f"Logo directory for team {team_id} does not exist: {team_dir}")
+        ImageProcessingService.delete_image(team_id, ImageType.TEAM_LOGO)
 
     @staticmethod
-    async def process_team_logo(team_id: int, file: UploadFile) -> str:
+    async def process_image(entity_id: int, file: UploadFile, image_type: ImageType) -> str:
         """
-        Process and store a team logo.
+        Process and store an image.
 
         Args:
-            team_id: The ID of the team
+            entity_id: The ID of the entity (team or player)
             file: The uploaded image file
+            image_type: The type of image being processed
 
         Returns:
-            URL for the processed logo: "/uploads/teams/1/logo.jpg"
+            URL for the processed image: "/uploads/teams/1/logo.jpg" or "/uploads/players/1/portrait.jpg"
         """
+        entity_name = "team" if image_type == ImageType.TEAM_LOGO else "player"
+        file_prefix = ImageProcessingService.FILE_PREFIXES[image_type]
+
         try:
             # Read file contents
             contents = await file.read()
@@ -143,16 +202,18 @@ class ImageProcessingService:
             # Validate the file
             ImageProcessingService.validate_image_file(file, contents)
 
-            # Create team directory
-            team_dir = ImageProcessingService.get_team_logo_directory(team_id)
+            # Create entity directory
+            entity_dir = ImageProcessingService.get_image_directory(entity_id, image_type)
 
-            # Clean up existing logo if it exists
-            logger.info(f"Processing new logo for team {team_id}, checking for existing logos...")
-            ImageProcessingService.delete_team_logo(team_id)
+            # Clean up existing image if it exists
+            logger.info(
+                f"Processing new {image_type.value} for {entity_name} {entity_id}, checking for existing images..."
+            )
+            ImageProcessingService.delete_image(entity_id, image_type)
 
             # Create directory
-            logger.info(f"Creating directory for team {team_id}")
-            team_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Creating directory for {entity_name} {entity_id}")
+            entity_dir.mkdir(parents=True, exist_ok=True)
 
             # Determine output format and filename based on original file
             file_extension = os.path.splitext(file.filename or "")[1].lower()
@@ -161,16 +222,16 @@ class ImageProcessingService:
             format_mapping = {".jpg": "JPEG", ".jpeg": "JPEG", ".png": "PNG", ".webp": "WEBP"}
 
             output_format = format_mapping.get(file_extension, "JPEG")
-            filename = f"logo{file_extension}" if file_extension else "logo.jpg"
+            filename = f"{file_prefix}{file_extension}" if file_extension else f"{file_prefix}.jpg"
 
             # Open and process the image
             with Image.open(io.BytesIO(contents)) as original_image:
                 # Resize to fit within max dimensions while preserving aspect ratio
-                max_width, max_height = ImageProcessingService.MAX_LOGO_DIMENSIONS
+                max_width, max_height = ImageProcessingService.MAX_DIMENSIONS[image_type]
                 processed_image = ImageProcessingService.resize_image_to_fit(original_image, max_width, max_height)
 
                 # Save the processed image
-                output_path = ImageProcessingService.get_team_logo_path(team_id, filename)
+                output_path = ImageProcessingService.get_image_path(entity_id, filename, image_type)
 
                 # Handle different formats appropriately
                 save_kwargs = {}
@@ -197,23 +258,81 @@ class ImageProcessingService:
                 # Generate URL - always use uploads endpoint
                 try:
                     relative_path = output_path.relative_to(UPLOADS_DIR)
-                    logo_url = f"{UPLOADS_URL_PREFIX}{relative_path}"
+                    image_url = f"{UPLOADS_URL_PREFIX}{relative_path}"
                 except ValueError:
                     # Fallback for tests or edge cases
-                    logo_url = f"{UPLOADS_URL_PREFIX}{TEAM_LOGOS_SUBDIR}/{team_id}/{filename}"
+                    subdir = ImageProcessingService.SUBDIRECTORIES[image_type]
+                    image_url = f"{UPLOADS_URL_PREFIX}{subdir}/{entity_id}/{filename}"
 
-                logger.info(f"Successfully processed team logo for team {team_id}")
-                return logo_url
+                logger.info(f"Successfully processed {image_type.value} for {entity_name} {entity_id}")
+                return image_url
 
         except HTTPException:
             raise
         except Exception as e:
-            logger.error(f"Error processing team logo for team {team_id}: {e}")
+            logger.error(f"Error processing {image_type.value} for {entity_name} {entity_id}: {e}")
             # Clean up any partial files on error
             with contextlib.suppress(Exception):
-                ImageProcessingService.delete_team_logo(team_id)
-            raise HTTPException(status_code=500, detail="Failed to process logo image") from e
+                ImageProcessingService.delete_image(entity_id, image_type)
+            raise HTTPException(status_code=500, detail=f"Failed to process {image_type.value} image") from e
 
+    # Legacy method for backward compatibility
+    @staticmethod
+    async def process_team_logo(team_id: int, file: UploadFile) -> str:
+        """
+        Process and store a team logo.
+
+        Args:
+            team_id: The ID of the team
+            file: The uploaded image file
+
+        Returns:
+            URL for the processed logo: "/uploads/teams/1/logo.jpg"
+        """
+        return await ImageProcessingService.process_image(team_id, file, ImageType.TEAM_LOGO)
+
+    # New method for player portraits
+    @staticmethod
+    async def process_player_portrait(player_id: int, file: UploadFile) -> str:
+        """
+        Process and store a player portrait.
+
+        Args:
+            player_id: The ID of the player
+            file: The uploaded image file
+
+        Returns:
+            URL for the processed portrait: "/uploads/players/1/portrait.jpg"
+        """
+        return await ImageProcessingService.process_image(player_id, file, ImageType.PLAYER_PORTRAIT)
+
+    @staticmethod
+    def update_image_filename(entity_id: int, image_type: ImageType) -> str | None:
+        """
+        Update and return the image filename for an entity.
+        This should be called after successful image processing to update the database.
+
+        Returns:
+            The relative path to store in the database (e.g., "teams/1/logo.png" or
+            "players/1/portrait.jpg") or None if no image exists
+        """
+        image_url = ImageProcessingService.get_image_url(entity_id, image_type)
+        if image_url and image_url.startswith(UPLOADS_URL_PREFIX):
+            # Remove uploads URL prefix for database storage
+            return image_url.removeprefix(UPLOADS_URL_PREFIX)
+
+        # Fallback: look for any supported format in the entity directory
+        entity_dir = ImageProcessingService.get_image_directory(entity_id, image_type)
+        if entity_dir.exists():
+            for file_path in entity_dir.iterdir():
+                if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
+                    subdir = ImageProcessingService.SUBDIRECTORIES[image_type]
+                    return f"{subdir}/{entity_id}/{file_path.name}"
+
+        # No image found
+        return None
+
+    # Legacy method for backward compatibility
     @staticmethod
     def update_team_logo_filename(team_id: int) -> str | None:
         """
@@ -223,17 +342,26 @@ class ImageProcessingService:
         Returns:
             The relative path to store in the database (e.g., "teams/1/logo.png") or None if no logo exists
         """
-        logo_url = ImageProcessingService.get_team_logo_url(team_id)
-        if logo_url and logo_url.startswith(UPLOADS_URL_PREFIX):
-            # Remove uploads URL prefix for database storage
-            return logo_url.removeprefix(UPLOADS_URL_PREFIX)
+        return ImageProcessingService.update_image_filename(team_id, ImageType.TEAM_LOGO)
 
-        # Fallback: look for any supported format in the team directory
-        team_dir = ImageProcessingService.get_team_logo_directory(team_id)
-        if team_dir.exists():
-            for file_path in team_dir.iterdir():
-                if file_path.suffix.lower() in ImageProcessingService.SUPPORTED_FORMATS:
-                    return f"{TEAM_LOGOS_SUBDIR}/{team_id}/{file_path.name}"
+    # New methods for player portraits
+    @staticmethod
+    def get_player_portrait_url(player_id: int) -> str | None:
+        """Get the URL for a player portrait."""
+        return ImageProcessingService.get_image_url(player_id, ImageType.PLAYER_PORTRAIT)
 
-        # No logo found
-        return None
+    @staticmethod
+    def delete_player_portrait(player_id: int) -> None:
+        """Delete all portrait files for a player."""
+        ImageProcessingService.delete_image(player_id, ImageType.PLAYER_PORTRAIT)
+
+    @staticmethod
+    def update_player_portrait_filename(player_id: int) -> str | None:
+        """
+        Update and return the portrait filename for a player.
+        This should be called after successful portrait processing to update the database.
+
+        Returns:
+            The relative path to store in the database (e.g., "players/1/portrait.png") or None if no portrait exists
+        """
+        return ImageProcessingService.update_image_filename(player_id, ImageType.PLAYER_PORTRAIT)

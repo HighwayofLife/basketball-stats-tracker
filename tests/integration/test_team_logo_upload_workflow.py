@@ -60,7 +60,7 @@ class TestTeamLogoUploadWorkflow:
     def test_upload_team_logo_complete_workflow(self, client, test_team, authenticated_headers, valid_image_file):
         """Test the complete team logo upload workflow."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(test_team.id)
 
                 # Authentication is already mocked in the client fixture
@@ -127,7 +127,7 @@ class TestTeamLogoUploadWorkflow:
     def test_delete_team_logo_complete_workflow(self, client, test_team, authenticated_headers, valid_image_file):
         """Test the complete team logo deletion workflow."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(test_team.id)
 
                 # Authentication is already mocked in the client fixture
@@ -166,7 +166,7 @@ class TestTeamLogoUploadWorkflow:
     def test_upload_logo_replaces_existing(self, client, test_team, authenticated_headers):
         """Test that uploading a new logo replaces the existing one."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(test_team.id)
 
                 # Authentication is already mocked in the client fixture
@@ -211,13 +211,13 @@ class TestTeamLogoUploadWorkflow:
         import app.web_ui.templates_config as templates_config_module
 
         # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_team_logo_data"):
-            templates_config_module._get_cached_team_logo_data.cache_clear()
+        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
+            templates_config_module._get_cached_entity_image_data.cache_clear()
         if hasattr(templates_config_module, "_check_file_exists"):
             templates_config_module._check_file_exists.cache_clear()
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
                 mock_get_dir.return_value = Path(temp_dir) / "teams" / str(test_team.id)
 
                 # Also mock update_team_logo_filename to return expected filename
@@ -270,7 +270,7 @@ class TestTeamLogoUploadWorkflow:
                     import app.web_ui.templates_config as templates_config_module
 
                     monkeypatch.setattr(
-                        templates_config_module, "_get_cached_team_logo_data", _get_team_logo_data_uncached
+                        templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None
                     )
 
                     # Patch the UPLOAD_DIR to point to our temp directory

@@ -126,7 +126,7 @@ class TestTeamLogoUrl:
         mock_team_obj.logo_filename = "teams/123/logo.png"
 
         with (
-            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
+            patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_cached_data,
             patch("app.config.settings") as mock_settings,
             patch("pathlib.Path.exists") as mock_exists,
         ):
@@ -198,7 +198,7 @@ class TestTeamLogoUrl:
         mock_team.id = 123
 
         with (
-            patch("app.web_ui.templates_config._get_cached_team_logo_data") as mock_cached_data,
+            patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_cached_data,
             patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url,
         ):
             # Mock database error in cached function

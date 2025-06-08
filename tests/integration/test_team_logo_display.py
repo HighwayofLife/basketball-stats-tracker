@@ -96,9 +96,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1, 2])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -140,9 +140,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1, 2])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -173,9 +173,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1, 2])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -197,8 +197,8 @@ class TestTeamLogoDisplay:
         import app.web_ui.templates_config as templates_config_module
 
         # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_team_logo_data"):
-            templates_config_module._get_cached_team_logo_data.cache_clear()
+        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
+            templates_config_module._get_cached_entity_image_data.cache_clear()
         if hasattr(templates_config_module, "_check_file_exists"):
             templates_config_module._check_file_exists.cache_clear()
 
@@ -207,9 +207,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1, 2])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -239,7 +239,7 @@ class TestTeamLogoDisplay:
                 monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
 
                 # Patch the cached function to use uncached version for integration tests
-                monkeypatch.setattr(templates_config_module, "_get_cached_team_logo_data", _get_team_logo_data_uncached)
+                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
@@ -264,9 +264,9 @@ class TestTeamLogoDisplay:
         # Don't set up any logo files - they should be missing
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -291,8 +291,8 @@ class TestTeamLogoDisplay:
         import app.web_ui.templates_config as templates_config_module
 
         # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_team_logo_data"):
-            templates_config_module._get_cached_team_logo_data.cache_clear()
+        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
+            templates_config_module._get_cached_entity_image_data.cache_clear()
         if hasattr(templates_config_module, "_check_file_exists"):
             templates_config_module._check_file_exists.cache_clear()
 
@@ -301,9 +301,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -335,7 +335,7 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                monkeypatch.setattr(templates_config_module, "_get_cached_team_logo_data", _get_team_logo_data_uncached)
+                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
@@ -350,8 +350,8 @@ class TestTeamLogoDisplay:
         import app.web_ui.templates_config as templates_config_module
 
         # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_team_logo_data"):
-            templates_config_module._get_cached_team_logo_data.cache_clear()
+        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
+            templates_config_module._get_cached_entity_image_data.cache_clear()
         if hasattr(templates_config_module, "_check_file_exists"):
             templates_config_module._check_file_exists.cache_clear()
 
@@ -360,9 +360,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
@@ -394,7 +394,7 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                monkeypatch.setattr(templates_config_module, "_get_cached_team_logo_data", _get_team_logo_data_uncached)
+                monkeypatch.setattr(templates_config_module, "_get_cached_entity_image_data", lambda entity_id, entity_type: _get_team_logo_data_uncached(entity_id) if entity_type == "team" else None)
 
                 # Patch the UPLOAD_DIR to point to our temp directory
                 with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
@@ -413,9 +413,9 @@ class TestTeamLogoDisplay:
         with tempfile.TemporaryDirectory() as temp_dir:
             self.setup_mock_logo_files(temp_dir, [1, 2])
 
-            with patch.object(ImageProcessingService, "get_team_logo_directory") as mock_get_dir:
+            with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
-                def get_team_dir(team_id):
+                def get_team_dir(team_id, image_type):
                     return Path(temp_dir) / "teams" / str(team_id)
 
                 mock_get_dir.side_effect = get_team_dir
