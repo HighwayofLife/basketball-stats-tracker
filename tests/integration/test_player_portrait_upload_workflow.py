@@ -312,6 +312,8 @@ class TestPlayerPortraitUploadWorkflow:
 
     def test_portrait_url_template_helper(self, isolated_client, test_player, test_db_file_session):
         """Test that portrait URL is correctly generated in templates."""
+        from unittest.mock import patch
+
         from app.web_ui.templates_config import player_portrait_url
 
         # Clean up any existing portrait files and database records first
@@ -330,32 +332,35 @@ class TestPlayerPortraitUploadWorkflow:
 
         clear_player_portrait_cache()
 
-        # Test with no portrait
-        url = player_portrait_url(test_player)
-        assert url is None
+        # Mock the database session to use our test session
+        with patch("app.data_access.db_session.get_db_session") as mock_get_db:
+            # Make the context manager return our test session
+            mock_get_db.return_value.__enter__.return_value = test_db_file_session
 
-        # Upload portrait
-        image_data = self.create_test_image()
-        # Simulate portrait upload by updating database
-        test_player.thumbnail_image = f"players/{test_player.id}/portrait.jpg"
-        test_db_file_session.add(test_player)
-        test_db_file_session.commit()
+            # Test with no portrait
+            url = player_portrait_url(test_player)
+            assert url is None
 
-        # Create the actual file
-        portrait_dir = ImageProcessingService.get_image_directory(test_player.id, ImageType.PLAYER_PORTRAIT)
-        portrait_dir.mkdir(parents=True, exist_ok=True)
-        portrait_path = portrait_dir / "portrait.jpg"
+            # Upload portrait
+            image_data = self.create_test_image()
+            # Simulate portrait upload by updating database
+            test_player.thumbnail_image = f"players/{test_player.id}/portrait.jpg"
+            test_db_file_session.add(test_player)
+            test_db_file_session.commit()
 
-        img = Image.new("RGB", (200, 200), color="blue")
-        img.save(portrait_path, "JPEG")
+            # Create the actual file
+            portrait_dir = ImageProcessingService.get_image_directory(test_player.id, ImageType.PLAYER_PORTRAIT)
+            portrait_dir.mkdir(parents=True, exist_ok=True)
+            portrait_path = portrait_dir / "portrait.jpg"
 
-        # Clear cache to get fresh data
-        from app.web_ui.templates_config import clear_player_portrait_cache
+            img = Image.new("RGB", (200, 200), color="blue")
+            img.save(portrait_path, "JPEG")
 
-        clear_player_portrait_cache()
+            # Clear cache to get fresh data
+            clear_player_portrait_cache()
 
-        # Test portrait URL generation - refresh player from database to get real object
-        test_db_file_session.refresh(test_player)
-        url = player_portrait_url(test_player)
-        assert url is not None
-        assert f"/uploads/players/{test_player.id}/portrait.jpg" in url
+            # Test portrait URL generation - refresh player from database to get real object
+            test_db_file_session.refresh(test_player)
+            url = player_portrait_url(test_player)
+            assert url is not None
+            assert f"/uploads/players/{test_player.id}/portrait.jpg" in url

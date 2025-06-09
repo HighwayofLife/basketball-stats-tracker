@@ -92,6 +92,9 @@ class TestPlayerPortraitTemplateHelpers:
         # Object without id attribute
         invalid_player = Mock()
         invalid_player.name = "Test"
+        # Ensure this mock doesn't have an id attribute
+        if hasattr(invalid_player, "id"):
+            delattr(invalid_player, "id")
 
         url = player_portrait_url(invalid_player)
         assert url is None
@@ -121,20 +124,22 @@ class TestPlayerPortraitTemplateHelpers:
         player.id = 123
         player.thumbnail_image = "players/123/portrait.jpg"
 
-        # Mock the cached database lookup to raise an exception
+        # Mock the cached database lookup and path operations to trigger exception path
         with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
-            mock_get_data.side_effect = Exception("Database error")
+            with patch("app.web_ui.templates_config.Path") as mock_path_class:
+                # Make the cached lookup fail to trigger exception path
+                mock_get_data.side_effect = KeyError("Database error")
 
-            # Mock the ImageProcessingService fallback
-            with patch(
-                "app.services.image_processing_service.ImageProcessingService.get_player_portrait_url"
-            ) as mock_service:
-                mock_service.return_value = "/uploads/players/123/portrait.jpg"
+                # Mock the ImageProcessingService fallback
+                with patch(
+                    "app.web_ui.templates_config.ImageProcessingService.get_player_portrait_url"
+                ) as mock_service:
+                    mock_service.return_value = "/uploads/players/123/portrait.jpg"
 
-                url = player_portrait_url(player)
+                    url = player_portrait_url(player)
 
-                assert url == "/uploads/players/123/portrait.jpg"
-                mock_service.assert_called_once_with(123)
+                    assert url == "/uploads/players/123/portrait.jpg"
+                    mock_service.assert_called_once_with(123)
 
     def test_player_portrait_url_fallback_returns_none(self):
         """Test player_portrait_url when all methods fail."""
@@ -142,19 +147,21 @@ class TestPlayerPortraitTemplateHelpers:
         player.id = 123
         player.thumbnail_image = "players/123/portrait.jpg"
 
-        # Mock the cached database lookup to raise an exception
+        # Mock the cached database lookup and path operations to trigger exception path
         with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
-            mock_get_data.side_effect = Exception("Database error")
+            with patch("app.web_ui.templates_config.Path") as mock_path_class:
+                # Make the cached lookup fail to trigger exception path
+                mock_get_data.side_effect = OSError("Database error")
 
-            # Mock the ImageProcessingService fallback to also fail
-            with patch(
-                "app.services.image_processing_service.ImageProcessingService.get_player_portrait_url"
-            ) as mock_service:
-                mock_service.side_effect = Exception("Service error")
+                # Mock the ImageProcessingService fallback to also fail
+                with patch(
+                    "app.web_ui.templates_config.ImageProcessingService.get_player_portrait_url"
+                ) as mock_service:
+                    mock_service.side_effect = AttributeError("Service error")
 
-                url = player_portrait_url(player)
+                    url = player_portrait_url(player)
 
-                assert url is None
+                    assert url is None
 
     def test_clear_player_portrait_cache(self):
         """Test clearing player portrait cache."""

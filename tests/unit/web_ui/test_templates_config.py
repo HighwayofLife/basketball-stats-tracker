@@ -80,41 +80,35 @@ class TestTeamLogoUrl:
         """Test team logo URL when team has no logo_filename in database."""
         mock_team = Mock()
         mock_team.id = 789
+        # Ensure the mock doesn't have logo_filename
+        if hasattr(mock_team, "logo_filename"):
+            delattr(mock_team, "logo_filename")
 
-        # Mock the database query - team exists but no logo_filename
-        mock_team_obj = Mock()
-        mock_team_obj.logo_filename = None
-
-        with (
-            patch("app.data_access.db_session.get_db_session") as mock_get_db,
-            patch("app.data_access.models") as mock_models,
-        ):
-            # Setup database mock
-            mock_session = Mock()
-            mock_get_db.return_value.__enter__.return_value = mock_session
-            mock_session.query.return_value.filter.return_value.first.return_value = mock_team_obj
+        # Mock the cached database lookup to return None
+        with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
+            mock_get_data.return_value = None
 
             result = team_logo_url(mock_team)
 
             assert result is None
+            mock_get_data.assert_called_once_with(789, "team")
 
     def test_team_logo_url_team_not_found_in_db(self):
         """Test team logo URL when team is not found in database."""
         mock_team = Mock()
         mock_team.id = 999
+        # Ensure the mock doesn't have logo_filename
+        if hasattr(mock_team, "logo_filename"):
+            delattr(mock_team, "logo_filename")
 
-        with (
-            patch("app.data_access.db_session.get_db_session") as mock_get_db,
-            patch("app.data_access.models") as mock_models,
-        ):
-            # Setup database mock - team not found
-            mock_session = Mock()
-            mock_get_db.return_value.__enter__.return_value = mock_session
-            mock_session.query.return_value.filter.return_value.first.return_value = None
+        # Mock the cached database lookup to return None (team not found)
+        with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
+            mock_get_data.return_value = None
 
             result = team_logo_url(mock_team)
 
             assert result is None
+            mock_get_data.assert_called_once_with(999, "team")
 
     def test_team_logo_url_file_does_not_exist(self):
         """Test team logo URL when database has filename but file doesn't exist."""
@@ -199,10 +193,11 @@ class TestTeamLogoUrl:
 
         with (
             patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_cached_data,
+            patch("app.web_ui.templates_config.Path") as mock_path_class,
             patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url,
         ):
-            # Mock database error in cached function
-            mock_cached_data.side_effect = Exception("Database connection error")
+            # Mock database error in cached function with appropriate exception type
+            mock_cached_data.side_effect = OSError("Database connection error")
 
             # Mock filesystem fallback
             mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/logo.png"

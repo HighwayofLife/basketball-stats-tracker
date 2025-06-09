@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from fastapi.templating import Jinja2Templates
 
@@ -18,8 +19,6 @@ class CustomTemplates(Jinja2Templates):
         context["version_info"] = VERSION_INFO
         return super().TemplateResponse(name, context, **kwargs)
 
-
-from typing import Literal
 
 ImageEntityType = Literal["team", "player"]
 
@@ -66,7 +65,7 @@ def _get_cached_entity_image_data(entity_id: int, entity_type: ImageEntityType) 
                 if filename:
                     return filename
             return None
-    except Exception:
+    except (KeyError, AttributeError, OSError):
         return None
 
 
@@ -100,7 +99,7 @@ def _get_team_logo_data_uncached(team_id: int) -> str | None:
             if team_obj and team_obj.logo_filename:
                 return team_obj.logo_filename
             return None
-    except Exception:
+    except (AttributeError, OSError):
         return None
 
 
@@ -162,12 +161,12 @@ def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
             # File doesn't exist, return None
             return None
 
-    except Exception:
+    except (KeyError, AttributeError, OSError, ValueError):
         # If there's any error, fallback to filesystem check
         try:
             service_method = getattr(ImageProcessingService, config["service_method"])
             return service_method(entity_id)
-        except Exception:
+        except (AttributeError, OSError):
             return None
 
 

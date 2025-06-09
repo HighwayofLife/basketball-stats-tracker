@@ -60,10 +60,7 @@ class TestPlayerPortraitAPI:
                 with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
                     # Call the endpoint with session parameter
                     result = await upload_player_portrait(
-                        player_id=player_id,
-                        file=mock_file,
-                        current_user=mock_user,
-                        session=mock_session
+                        player_id=player_id, file=mock_file, current_user=mock_user, session=mock_session
                     )
 
                 # Verify results
@@ -105,10 +102,7 @@ class TestPlayerPortraitAPI:
         # Call the endpoint and expect an exception
         with pytest.raises(HTTPException) as exc_info:
             await upload_player_portrait(
-                player_id=player_id,
-                file=mock_file,
-                current_user=mock_user,
-                session=mock_session
+                player_id=player_id, file=mock_file, current_user=mock_user, session=mock_session
             )
 
             assert exc_info.value.status_code == 404
@@ -146,10 +140,7 @@ class TestPlayerPortraitAPI:
             # Call the endpoint and expect an exception
             with pytest.raises(HTTPException) as exc_info:
                 await upload_player_portrait(
-                    player_id=player_id,
-                    file=mock_file,
-                    current_user=mock_user,
-                    session=mock_session
+                    player_id=player_id, file=mock_file, current_user=mock_user, session=mock_session
                 )
 
                 assert exc_info.value.status_code == 500
@@ -181,11 +172,7 @@ class TestPlayerPortraitAPI:
         with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
             with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
                 # Call the endpoint
-                result = await delete_player_portrait(
-                    player_id=player_id,
-                    current_user=mock_user,
-                    session=mock_session
-                )
+                result = await delete_player_portrait(player_id=player_id, current_user=mock_user, session=mock_session)
 
                 # Verify results
                 assert result["success"] is True
@@ -220,11 +207,7 @@ class TestPlayerPortraitAPI:
 
         # Call the endpoint and expect an exception
         with pytest.raises(HTTPException) as exc_info:
-            await delete_player_portrait(
-                player_id=player_id,
-                current_user=mock_user,
-                session=mock_session
-            )
+            await delete_player_portrait(player_id=player_id, current_user=mock_user, session=mock_session)
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail["error"] == "PLAYER_NOT_FOUND"
@@ -253,11 +236,7 @@ class TestPlayerPortraitAPI:
 
         # Call the endpoint and expect an exception
         with pytest.raises(HTTPException) as exc_info:
-            await delete_player_portrait(
-                player_id=player_id,
-                current_user=mock_user,
-                session=mock_session
-            )
+            await delete_player_portrait(player_id=player_id, current_user=mock_user, session=mock_session)
 
             assert exc_info.value.status_code == 404
             assert exc_info.value.detail["error"] == "PORTRAIT_NOT_FOUND"
@@ -291,11 +270,7 @@ class TestPlayerPortraitAPI:
             with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
                 # Call the endpoint and expect an exception
                 with pytest.raises(HTTPException) as exc_info:
-                    await delete_player_portrait(
-                        player_id=player_id,
-                        current_user=mock_user,
-                        session=mock_session
-                    )
+                    await delete_player_portrait(player_id=player_id, current_user=mock_user, session=mock_session)
 
                 assert exc_info.value.status_code == 500
                 assert exc_info.value.detail["error"] == "FILE_DELETE_ERROR"

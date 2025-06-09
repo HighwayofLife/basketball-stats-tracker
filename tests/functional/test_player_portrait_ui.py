@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
@@ -174,7 +175,7 @@ class TestPlayerPortraitUI:
                 EC.presence_of_element_located((By.CSS_SELECTOR, "img[alt*='portrait'], img[src*='portrait']"))
             )
             assert portrait_img.is_displayed()
-        except:
+        except (TimeoutException, NoSuchElementException):
             # Alternative: check that placeholder is no longer the only image
             # This test might need adjustment based on actual implementation
             pass
@@ -226,7 +227,7 @@ class TestPlayerPortraitUI:
             # Verify portrait is removed (back to placeholder)
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".fa-user")))
 
-        except:
+        except (TimeoutException, NoSuchElementException):
             # Delete functionality might be implemented differently
             # This test may need adjustment based on actual UI implementation
             pass
@@ -311,14 +312,14 @@ class TestPlayerPortraitUI:
             alert = authenticated_driver.switch_to.alert
             assert "Invalid file" in alert.text or "error" in alert.text.lower()
             alert.accept()
-        except:
+        except (TimeoutException, NoSuchElementException):
             # Alternative: check for error message in UI
             try:
                 error_element = wait.until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, ".error, .alert-danger, [class*='error']"))
                 )
                 assert error_element.is_displayed()
-            except:
+            except (TimeoutException, NoSuchElementException):
                 # Error handling might be implemented differently
                 pass
 
@@ -341,6 +342,6 @@ class TestPlayerPortraitUI:
             # Should have at least some portrait placeholders
             assert len(portraits) >= 0  # Could be 0 if no players have stats
 
-        except:
+        except (TimeoutException, NoSuchElementException):
             # Game detail page might load differently
             pass

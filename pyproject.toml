@@ -72,6 +72,7 @@ test = [
   "debugpy>=1.6", # Debugging tool
   "requests>=2.28.0", # HTTP requests for UI testing
   "beautifulsoup4>=4.11.0", # HTML parsing for UI validation
+  "selenium>=4.0.0", # Browser automation for UI testing
 ]
 
 # Dev should inherit from test dependencies and install additional tools
