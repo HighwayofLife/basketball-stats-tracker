@@ -57,7 +57,7 @@ class TestPlayerPortraitAPI:
             with patch.object(ImageProcessingService, "update_player_portrait_filename") as mock_update:
                 mock_update.return_value = "players/123/portrait.jpg"
 
-                with patch("app.web_ui.routers.players.clear_player_portrait_cache"):
+                with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
                     # Call the endpoint with session parameter
                     result = await upload_player_portrait(
                         player_id=player_id,
@@ -179,12 +179,13 @@ class TestPlayerPortraitAPI:
 
         # Mock the image processing service
         with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
-            # Call the endpoint
-            result = await delete_player_portrait(
-                player_id=player_id,
-                current_user=mock_user,
-                session=mock_session
-            )
+            with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
+                # Call the endpoint
+                result = await delete_player_portrait(
+                    player_id=player_id,
+                    current_user=mock_user,
+                    session=mock_session
+                )
 
                 # Verify results
                 assert result["success"] is True
@@ -287,13 +288,14 @@ class TestPlayerPortraitAPI:
         with patch.object(ImageProcessingService, "delete_player_portrait") as mock_delete:
             mock_delete.side_effect = Exception("Deletion failed")
 
-            # Call the endpoint and expect an exception
-            with pytest.raises(HTTPException) as exc_info:
-                await delete_player_portrait(
-                    player_id=player_id,
-                    current_user=mock_user,
-                    session=mock_session
-                )
+            with patch("app.web_ui.templates_config.clear_player_portrait_cache"):
+                # Call the endpoint and expect an exception
+                with pytest.raises(HTTPException) as exc_info:
+                    await delete_player_portrait(
+                        player_id=player_id,
+                        current_user=mock_user,
+                        session=mock_session
+                    )
 
                 assert exc_info.value.status_code == 500
                 assert exc_info.value.detail["error"] == "FILE_DELETE_ERROR"
