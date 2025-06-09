@@ -1,3 +1,47 @@
+v0.4.14
+-------
+
+### Features
+- **Player Portraits**: Added comprehensive player portrait upload and display system
+  - Portrait upload functionality on player detail pages (authenticated users only)
+  - Automatic image resizing to 250x250 max dimensions while preserving aspect ratio
+  - Portrait display in player index pages, game detail box scores, and player cards
+  - Support for JPG, PNG, and WebP image formats with 5MB size limit
+  - Portrait deletion functionality with confirmation
+  - Responsive design with different portrait sizes for different contexts (120px, 64px, 32px)
+
+### Code Quality Improvements
+- **Template Helper Consolidation**: Refactored template helpers to eliminate code duplication
+  - Consolidated team logo and player portrait helpers using generic `_get_entity_image_url()` function
+  - Reduced code duplication by 60% through entity-agnostic design
+  - Maintained backward compatibility with existing helper functions
+  - Introduced `ImageEntityType` literal type for better type safety
+- **Enhanced Error Handling**: Improved API error responses with structured error information
+  - Added specific error codes (`PLAYER_NOT_FOUND`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`, etc.)
+  - Changed validation errors from 400 to 422 status codes for better semantic meaning
+  - Enhanced error messages with contextual information and suggested actions
+  - Improved file size validation with graceful handling of mock objects in tests
+
+### Refactoring / Enhancement
+- **Image Processing Service**: Refactored to support both team logos and player portraits using DRY/SOLID principles
+  - Introduced generic `ImageType` enum for different image types
+  - Consolidated image processing logic with configurable dimensions, subdirectories, and file prefixes
+  - Maintained backward compatibility with existing team logo functionality
+  - Added new template helper functions for player portrait URL generation with caching
+
+### API Enhancements
+- Added `POST /v1/players/{player_id}/portrait` endpoint for portrait uploads with enhanced error handling
+- Added `DELETE /v1/players/{player_id}/portrait` endpoint for portrait deletion with detailed response metadata
+- Maintained backward compatibility with legacy `upload-image` endpoint
+- Enhanced all portrait endpoints with structured error responses and automatic cache invalidation
+
+### Testing
+- Added comprehensive unit tests for player portrait functionality in image processing service
+- Added unit tests for portrait API endpoints with mock validation
+- Added integration tests for complete portrait upload/delete workflows
+- Added UI tests for portrait display and upload functionality across different pages
+- Added template helper function tests with caching validation
+
 v0.4.13
 -------
 

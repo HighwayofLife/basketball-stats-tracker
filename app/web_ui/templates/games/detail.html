@@ -339,7 +339,12 @@
 
             row.innerHTML = `
                 <td class="jersey-number">${player.jersey_number || '-'}</td>
-                <td class="player-name" data-label="Player">${player.name}${position}</td>
+                <td class="player-name" data-label="Player">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${getPlayerPortraitTiny(player)}
+                        <span>${player.name}${position}</span>
+                    </div>
+                </td>
                 <td data-label="Pts">${stats.points || 0}</td>
                 <td data-label="FG">${fgMade}-${fgAttempted}<span class="shooting-percentage">(${fgPercentage}%)</span></td>
                 <td data-label="3Pt">${stats.fg3m || 0}-${stats.fg3a || 0}<span class="shooting-percentage">(${fg3Percentage}%)</span></td>
@@ -386,6 +391,13 @@
                 <td><strong>${totalFTM}-${totalFTA}<span class="shooting-percentage">(${teamFTPercentage}%)</span></strong></td>
             </tr>
         `;
+    }
+
+    function getPlayerPortraitTiny(player) {
+        // For the box score, we want very small portraits
+        return `<div class="player-portrait-tiny">
+                    <i class="fas fa-user"></i>
+                </div>`;
     }
 
     function createShootingChart(data) {

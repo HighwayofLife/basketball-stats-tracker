@@ -310,8 +310,8 @@ class TestUIValidation:
                 assert f"/v1/players/${player_id}/stats" in content.replace("{playerId}", str(player_id)), (
                     "Player detail page should use /v1/players/ID/stats endpoint"
                 )
-                assert f"/v1/players/${player_id}/upload-image" in content.replace("{playerId}", str(player_id)), (
-                    "Player detail page should use /v1/players/ID/upload-image endpoint"
+                assert f"/v1/players/${player_id}/portrait" in content.replace("{playerId}", str(player_id)), (
+                    "Player detail page should use /v1/players/ID/portrait endpoint"
                 )
 
                 # Ensure incorrect API URLs are not present
