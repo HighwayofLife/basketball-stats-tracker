@@ -158,6 +158,7 @@ python_functions = "test_*"
 markers = [
     "unit: Unit tests (deselect with '-m \"not unit\"')",
     "integration: Integration tests (deselect with '-m \"not integration\"')",
+    "functional: Functional tests that test end-to-end user workflows",
     "slow: Slow tests that should be run separately",
     "team_logo: Tests that involve team logo functionality",
 ]
