@@ -10,11 +10,12 @@ from app.data_access.models import Game, Player, PlayerGameStats, PlayerQuarterS
 @pytest.fixture
 def game_with_full_data(integration_db_session):
     """Create a game with teams, players, and statistics."""
-    import uuid
     import hashlib
+    import uuid
+
     unique_suffix = str(uuid.uuid4())[:8]
     hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-    
+
     # Create teams using Team model with unique names to avoid conflicts
     home_team = Team(name=f"GameDetailHawks_{unique_suffix}", display_name=f"Game Detail Hawks {unique_suffix}")
     away_team = Team(name=f"GameDetailLakers_{unique_suffix}", display_name=f"Game Detail Lakers {unique_suffix}")
@@ -247,7 +248,7 @@ class TestGameDetailPageIntegration:
         """Test error handling for non-existent game."""
         # Use a very high ID that's guaranteed not to exist
         non_existent_id = 999999
-        
+
         # Test page load
         page_response = authenticated_client.get(f"/games/{non_existent_id}")
         assert page_response.status_code == 404  # Non-existent game returns 404

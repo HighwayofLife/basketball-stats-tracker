@@ -14,7 +14,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 # Import tempfile at the top level
-import tempfile
 
 # Set up JWT secret for tests BEFORE importing models
 if "JWT_SECRET_KEY" not in os.environ:
@@ -129,6 +128,7 @@ def test_shot_mapping() -> dict[str, dict[str, Any]]:
 # Integration tests should use integration_db_session (file-based, persistent)
 # ============================================================================
 
+
 @pytest.fixture
 def db_engine(test_db_url: str):
     """
@@ -186,25 +186,49 @@ def integration_db_engine(request):
     """
     Creates a database engine for integration tests.
     Uses PostgreSQL if DATABASE_URL is set (container environment),
-    otherwise uses in-memory SQLite for local development.
+    otherwise uses file-based SQLite for local development with Alembic migrations.
     """
     # Check if we're in a container environment with PostgreSQL
     database_url = os.environ.get("DATABASE_URL")
     if database_url and database_url.startswith("postgresql://"):
         # Use PostgreSQL for integration tests in container
         engine = create_engine(database_url)
-        # For PostgreSQL, don't drop tables - they should persist
-        # Only create tables if they don't exist
-        Base.metadata.create_all(engine, checkfirst=True)
+        # For PostgreSQL, run Alembic migrations to ensure all tables exist
+        from alembic.config import Config
+        from alembic import command
+        alembic_cfg = Config("alembic.ini")
+        command.upgrade(alembic_cfg, "head")
         yield engine
         # Don't drop tables on cleanup for PostgreSQL
     else:
-        # Use in-memory SQLite for local development
-        engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
-        Base.metadata.drop_all(engine)
-        Base.metadata.create_all(engine)
-        yield engine
-        Base.metadata.drop_all(engine)
+        # Use file-based SQLite for local development to support Alembic migrations
+        # Create a unique database name based on the test class to prevent conflicts
+        class_name = request.cls.__name__ if request.cls else "default"
+        with tempfile.NamedTemporaryFile(prefix=f"test_integration_{class_name}_", suffix=".db", delete=False) as temp_db:
+            db_path = temp_db.name
+            db_url = f"sqlite:///{db_path}"
+            
+        try:
+            engine = create_engine(db_url, connect_args={"check_same_thread": False})
+            
+            # Run Alembic migrations for SQLite to ensure all tables (including users) are created
+            from alembic.config import Config
+            from alembic import command
+            alembic_cfg = Config("alembic.ini")
+            # Set the database URL for this specific engine
+            alembic_cfg.set_main_option("sqlalchemy.url", db_url)
+            
+            # Initialize alembic_version table and upgrade to head
+            command.upgrade(alembic_cfg, "head")
+            
+            yield engine
+        finally:
+            # Clean up the temp file
+            try:
+                engine.dispose()
+                os.unlink(db_path)
+            except (OSError, FileNotFoundError):
+                pass  # File might already be deleted
 
 
 @pytest.fixture(scope="class")
@@ -258,20 +282,23 @@ def test_db_file_session(test_db_file_engine) -> Generator[Session, None, None]:
 # Use factories instead of hardcoded data for flexibility and consistency.
 # ============================================================================
 
+
 @pytest.fixture(scope="class")
 def team_factory():
     """
     Factory for creating team test data with consistent defaults.
-    
+
     Usage:
         team = team_factory()  # Creates Team A
         team = team_factory("Lakers")  # Creates Lakers
         team = team_factory("Warriors", id=2)  # Creates Warriors with specific ID
     """
+
     def _create_team(name: str = "Team A", **kwargs) -> dict[str, Any]:
         team_data = {"name": name}
         team_data.update(kwargs)
         return team_data
+
     return _create_team
 
 
@@ -279,20 +306,21 @@ def team_factory():
 def player_factory():
     """
     Factory for creating player test data with consistent defaults.
-    
+
     Usage:
         player = player_factory()  # Creates Player One
         player = player_factory("LeBron James", jersey="23", team_name="Lakers")
     """
+
     def _create_player(
         name: str = "Player One",
-        jersey_number: str = "10", 
+        jersey_number: str = "10",
         team_name: str = "Team A",
         position: str = "Forward",
         height: str = "6'8\"",
         weight: int = 220,
         year: str = "Senior",
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         player_data = {
             "name": name,
@@ -305,6 +333,7 @@ def player_factory():
         }
         player_data.update(kwargs)
         return player_data
+
     return _create_player
 
 
@@ -312,18 +341,19 @@ def player_factory():
 def game_factory():
     """
     Factory for creating game test data with consistent defaults.
-    
+
     Usage:
         game = game_factory()  # Creates game on 2025-05-01
         game = game_factory(date="2025-06-15", home_team="Lakers", away_team="Warriors")
     """
+
     def _create_game(
         date: str = "2025-05-01",
         playing_team: str = "Team A",
         opponent_team: str = "Team B",
         home_score: int | None = None,
         away_score: int | None = None,
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         game_data = {
             "date": date,
@@ -336,6 +366,7 @@ def game_factory():
             game_data["away_score"] = away_score
         game_data.update(kwargs)
         return game_data
+
     return _create_game
 
 
@@ -343,11 +374,12 @@ def game_factory():
 def player_stats_factory():
     """
     Factory for creating player game statistics with consistent defaults.
-    
+
     Usage:
         stats = player_stats_factory()  # Creates basic stats
         stats = player_stats_factory(qt1_shots="33-", qt2_shots="22-1x")
     """
+
     def _create_player_stats(
         team_name: str = "Team A",
         player_jersey: str = "10",
@@ -357,7 +389,7 @@ def player_stats_factory():
         qt2_shots: str = "",
         qt3_shots: str = "",
         qt4_shots: str = "",
-        **kwargs
+        **kwargs,
     ) -> dict[str, Any]:
         stats_data = {
             "team_name": team_name,
@@ -371,6 +403,7 @@ def player_stats_factory():
         }
         stats_data.update(kwargs)
         return stats_data
+
     return _create_player_stats
 
 
@@ -556,23 +589,24 @@ def oversized_test_image():
 def test_image_factory():
     """
     Factory for creating test images with custom properties.
-    
+
     Usage:
         image = test_image_factory(width=200, height=200, color="blue", format="PNG")
         image = test_image_factory(color="red")  # Uses defaults for other params
     """
+
     def _create_image(width=100, height=100, color="blue", format="JPEG"):
         img = Image.new("RGB", (width, height), color=color)
         img_bytes = io.BytesIO()
         img.save(img_bytes, format=format)
         img_bytes.seek(0)
-        
+
         extension = "jpg" if format.upper() == "JPEG" else format.lower()
         filename = f"test_{color}_{width}x{height}.{extension}"
         mime_type = f"image/{format.lower()}"
-        
+
         return (filename, img_bytes, mime_type)
-    
+
     return _create_image
 
 
@@ -580,29 +614,30 @@ def test_image_factory():
 def temp_image_file_factory(tmp_path):
     """
     Factory for creating temporary image files on disk.
-    
+
     Usage:
         file_path = temp_image_file_factory(test_image_blue)
         file_path = temp_image_file_factory(custom_image_tuple)
     """
+
     def _create_temp_file(image_tuple, filename_override=None):
         filename, img_bytes, mime_type = image_tuple
-        
+
         if filename_override:
             filename = filename_override
-            
+
         file_path = tmp_path / filename
-        
+
         # Reset BytesIO to beginning and write to file
         img_bytes.seek(0)
         with open(file_path, "wb") as f:
             f.write(img_bytes.read())
-        
+
         # Reset BytesIO for any future use
         img_bytes.seek(0)
-        
+
         return file_path
-    
+
     return _create_temp_file
 
 
@@ -619,19 +654,13 @@ def mock_upload_directory():
 # Consistent authentication mocking across all tests
 # ============================================================================
 
+
 @pytest.fixture
 def mock_admin_user():
     """
     Creates a mock admin user for testing authenticated endpoints.
     """
-    from app.auth.models import User
-    return User(
-        id=1,
-        username="admin",
-        email="admin@example.com",
-        role="admin",
-        is_active=True
-    )
+    return User(id=1, username="admin", email="admin@example.com", role="admin", is_active=True)
 
 
 @pytest.fixture
@@ -639,14 +668,7 @@ def mock_regular_user():
     """
     Creates a mock regular user for testing role-based access.
     """
-    from app.auth.models import User
-    return User(
-        id=2,
-        username="testuser",
-        email="test@example.com",
-        role="user",
-        is_active=True
-    )
+    return User(id=2, username="testuser", email="test@example.com", role="user", is_active=True)
 
 
 @pytest.fixture
@@ -655,14 +677,15 @@ def authenticated_client(integration_db_session, mock_admin_user):
     Creates a FastAPI test client with admin authentication.
     Use this for integration tests that require authentication.
     """
+    from fastapi.testclient import TestClient
+
     from app.auth.dependencies import get_current_user
     from app.web_ui.api import app
     from app.web_ui.dependencies import get_db
-    from fastapi.testclient import TestClient
-    
+
     # Store original overrides
     original_overrides = app.dependency_overrides.copy()
-    
+
     try:
         # Override dependencies
         def override_get_db():
@@ -670,10 +693,10 @@ def authenticated_client(integration_db_session, mock_admin_user):
                 yield integration_db_session
             finally:
                 pass
-        
+
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = lambda: mock_admin_user
-        
+
         with TestClient(app) as client:
             yield client
     finally:
@@ -689,12 +712,13 @@ def unit_test_client(unit_db_session, unit_db_engine, mock_admin_user, monkeypat
     Each test gets a fresh, isolated database.
     """
     from contextlib import contextmanager
+
+    from fastapi.testclient import TestClient
+
     from app.auth.dependencies import get_current_user
     from app.web_ui.api import app
     from app.web_ui.dependencies import get_db
-    from fastapi.testclient import TestClient
-    from sqlalchemy.orm import Session
-    
+
     # Create a context manager that yields the unit test session
     @contextmanager
     def test_get_db_session():
@@ -709,6 +733,7 @@ def unit_test_client(unit_db_session, unit_db_engine, mock_admin_user, monkeypat
 
     # Override the UPLOAD_DIR setting for tests
     from app import config
+
     monkeypatch.setattr(config.settings, "UPLOAD_DIR", str(test_upload_dir))
 
     # Monkey-patch the get_db_session function in modules that import it
@@ -722,17 +747,23 @@ def unit_test_client(unit_db_session, unit_db_engine, mock_admin_user, monkeypat
     import app.web_ui.routers.teams as teams_module
 
     modules_to_patch = [
-        db_session_module, pages_module, games_module, players_module, 
-        admin_module, auth_module, reports_module, teams_module
+        db_session_module,
+        pages_module,
+        games_module,
+        players_module,
+        admin_module,
+        auth_module,
+        reports_module,
+        teams_module,
     ]
-    
+
     for module in modules_to_patch:
         if hasattr(module, "get_db_session"):
             monkeypatch.setattr(module, "get_db_session", test_get_db_session)
-    
+
     # Store original overrides
     original_overrides = app.dependency_overrides.copy()
-    
+
     try:
         # Override dependencies with unit test database
         # Important: Return the same session that has the test data
@@ -741,10 +772,10 @@ def unit_test_client(unit_db_session, unit_db_engine, mock_admin_user, monkeypat
                 yield unit_db_session
             finally:
                 pass
-                
+
         app.dependency_overrides[get_db] = override_get_db
         app.dependency_overrides[get_current_user] = lambda: mock_admin_user
-        
+
         with TestClient(app) as client:
             yield client
     finally:
@@ -759,13 +790,14 @@ def unauthenticated_client(integration_db_session):
     Creates a FastAPI test client without authentication.
     Use this for testing endpoints that don't require auth or to test auth failures.
     """
+    from fastapi.testclient import TestClient
+
     from app.web_ui.api import app
     from app.web_ui.dependencies import get_db
-    from fastapi.testclient import TestClient
-    
+
     # Store original overrides
     original_overrides = app.dependency_overrides.copy()
-    
+
     try:
         # Override only database dependency
         def override_get_db():
@@ -773,9 +805,9 @@ def unauthenticated_client(integration_db_session):
                 yield integration_db_session
             finally:
                 pass
-        
+
         app.dependency_overrides[get_db] = override_get_db
-        
+
         with TestClient(app) as client:
             yield client
     finally:
@@ -790,24 +822,25 @@ def unit_unauthenticated_client(unit_db_session):
     Creates a FastAPI test client without authentication for unit tests.
     Use this for testing auth failures in unit tests.
     """
+    from fastapi import HTTPException, status
+    from fastapi.testclient import TestClient
+
     from app.auth.dependencies import get_current_user, require_admin
     from app.web_ui.api import app
     from app.web_ui.dependencies import get_db
-    from fastapi.testclient import TestClient
-    from fastapi import HTTPException, status
-    
+
     def mock_unauthenticated():
         """Mock unauthenticated state."""
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
-    
+
     # Store original overrides
     original_overrides = app.dependency_overrides.copy()
-    
+
     try:
         app.dependency_overrides[get_db] = lambda: unit_db_session
         app.dependency_overrides[get_current_user] = mock_unauthenticated
         app.dependency_overrides[require_admin] = mock_unauthenticated
-        
+
         with TestClient(app) as client:
             yield client
     finally:
@@ -822,24 +855,25 @@ def non_admin_client(unit_db_session, mock_regular_user):
     Creates a FastAPI test client with non-admin user authentication for unit tests.
     Use this for testing admin access restrictions.
     """
+    from fastapi import HTTPException, status
+    from fastapi.testclient import TestClient
+
     from app.auth.dependencies import get_current_user, require_admin
     from app.web_ui.api import app
     from app.web_ui.dependencies import get_db
-    from fastapi.testclient import TestClient
-    from fastapi import HTTPException, status
-    
+
     def mock_require_admin():
         """Mock require_admin that fails for non-admin users."""
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required")
-    
+
     # Store original overrides
     original_overrides = app.dependency_overrides.copy()
-    
+
     try:
         app.dependency_overrides[get_db] = lambda: unit_db_session
         app.dependency_overrides[get_current_user] = lambda: mock_regular_user
         app.dependency_overrides[require_admin] = mock_require_admin
-        
+
         with TestClient(app) as client:
             yield client
     finally:
@@ -853,40 +887,37 @@ def auth_headers_factory():
     """
     Factory for creating JWT auth headers for different users.
     Use this for tests that need custom authentication headers.
-    
+
     Usage:
         headers = auth_headers_factory(user_id=123)
         headers = auth_headers_factory(mock_user_object)
     """
+
     def _create_headers(user_or_id):
         from app.auth.jwt_handler import create_access_token
-        
-        if hasattr(user_or_id, 'id'):
-            # User object passed
-            user_id = user_or_id.id
-        else:
-            # User ID passed directly
-            user_id = user_or_id
-            
+
+        user_id = user_or_id.id if hasattr(user_or_id, "id") else user_or_id
+
         token = create_access_token(data={"sub": str(user_id)})
         return {"Authorization": f"Bearer {token}"}
-    
+
     return _create_headers
 
 
-@pytest.fixture 
+@pytest.fixture
 def team_user_factory(integration_db_session):
     """
     Factory for creating team-specific users for security testing.
     Use this for tests that need users associated with specific teams.
-    
+
     Usage:
         user = team_user_factory("testuser", "password", "user@example.com", team_id=1)
         admin = team_user_factory("admin", "pass", "admin@example.com", role="admin")
     """
+
     def _create_user(username, password, email, team_id=None, role="user"):
-        from app.auth.models import User, UserRole
-        
+        from app.auth.models import UserRole
+
         user_role = UserRole.ADMIN if role == "admin" else UserRole.USER
         user = User(
             id=None,  # Auto-generated
@@ -894,22 +925,23 @@ def team_user_factory(integration_db_session):
             email=email,
             role=user_role,
             is_active=True,
-            provider="local"
+            provider="local",
         )
-        
+
         # Note: Password hashing would be handled by AuthService in real implementation
         # For testing, we'll create a simplified user object
         integration_db_session.add(user)
         integration_db_session.commit()
         integration_db_session.refresh(user)
         return user
-    
+
     return _create_user
 
 
 # ============================================================================
 # PYTEST CONFIGURATION
 # ============================================================================
+
 
 def pytest_configure(config):
     """Register custom markers."""
@@ -927,6 +959,7 @@ def pytest_configure(config):
 # Use these instead of creating custom fixtures in individual test files.
 # ============================================================================
 
+
 @pytest.fixture(scope="class")
 def shared_test_team(integration_db_session):
     """
@@ -934,13 +967,10 @@ def shared_test_team(integration_db_session):
     Use this instead of creating custom team fixtures in individual test files.
     """
     import uuid
-    from app.data_access.models import Team
-    
+
     unique_suffix = str(uuid.uuid4())[:8]
     team = Team(
-        name=f"SharedTestTeam_{unique_suffix}",
-        display_name=f"Shared Test Team {unique_suffix}",
-        is_deleted=False
+        name=f"SharedTestTeam_{unique_suffix}", display_name=f"Shared Test Team {unique_suffix}", is_deleted=False
     )
     integration_db_session.add(team)
     integration_db_session.commit()
@@ -954,18 +984,17 @@ def shared_test_player(integration_db_session, shared_test_team):
     Create a shared test player for integration tests.
     Use this instead of creating custom player fixtures in individual test files.
     """
-    from app.data_access.models import Player
-    
+
     player = Player(
         name="Shared Test Player",
         team_id=shared_test_team.id,
         jersey_number="99",
-        position="PG", 
+        position="PG",
         height=72,
         weight=180,
         year="Senior",
         is_active=True,
-        is_substitute=False
+        is_substitute=False,
     )
     integration_db_session.add(player)
     integration_db_session.commit()

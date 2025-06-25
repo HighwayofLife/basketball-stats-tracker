@@ -2,8 +2,6 @@
 Unit tests for admin authentication requirements.
 """
 
-import pytest
-
 
 class TestAdminAuthentication:
     """Test cases for admin authentication requirements using shared fixtures."""

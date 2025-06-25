@@ -10,11 +10,12 @@ from app.data_access.models import Game, Player, PlayerGameStats, Team, TeamSeas
 @pytest.fixture
 def team_with_full_data(integration_db_session):
     """Create a team with players, games, and statistics using shared database session."""
-    import uuid
     import hashlib
+    import uuid
+
     unique_suffix = str(uuid.uuid4())[:8]
     hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-    
+
     # Create team with unique name to avoid conflicts
     team = Team(name=f"TeamDetailHawks_{unique_suffix}", display_name=f"Team Detail Hawks {unique_suffix}")
     integration_db_session.add(team)
@@ -49,9 +50,7 @@ def team_with_full_data(integration_db_session):
     # Create games with stats
     games = []
     for i in range(5):
-        game = Game(
-            playing_team_id=team.id, opponent_team_id=opponent.id, date=datetime.date(2025, 5, 1 + i * 7)
-        )
+        game = Game(playing_team_id=team.id, opponent_team_id=opponent.id, date=datetime.date(2025, 5, 1 + i * 7))
         integration_db_session.add(game)
         integration_db_session.commit()
         integration_db_session.refresh(game)
@@ -213,11 +212,11 @@ class TestTeamDetailPageIntegration:
         assert career["games_played"] >= 5  # At least our 5 games, might have more from shared DB
         assert career["wins"] >= 0
         assert career["losses"] >= 0
-        assert isinstance(career["win_percentage"], (int, float))
+        assert isinstance(career["win_percentage"], int | float)
         assert 0 <= career["win_percentage"] <= 100
         assert career["ppg"] >= 0  # Points per game should be positive
         assert career["opp_ppg"] >= 0  # Opponent points per game should be positive
-        assert isinstance(career["point_diff"], (int, float))
+        assert isinstance(career["point_diff"], int | float)
 
         # Verify shooting percentages are reasonable values
         assert 0 <= career["ft_percentage"] <= 100
@@ -240,7 +239,7 @@ class TestTeamDetailPageIntegration:
         """Test error handling for non-existent team."""
         # Use a very high ID that's guaranteed not to exist in any environment
         non_existent_id = 999999
-        
+
         # Test page load
         page_response = authenticated_client.get(f"/teams/{non_existent_id}")
         assert page_response.status_code == 200  # Page loads but will show error
@@ -278,6 +277,7 @@ class TestTeamDetailPageIntegration:
         """Test team stats when team has no games played."""
         # Create team with no games
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         empty_team = Team(name=f"EmptyTeam_{unique_suffix}", display_name=f"Empty Team {unique_suffix}")
         integration_db_session.add(empty_team)

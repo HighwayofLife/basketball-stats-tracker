@@ -51,8 +51,9 @@ def auth_headers(authenticated_client, create_admin_user):
 def sample_teams(integration_db_session):
     """Create sample teams for testing using shared session."""
     import uuid
+
     unique_suffix = str(uuid.uuid4())[:8]
-    
+
     teams = [
         Team(name=f"AuthRed_{unique_suffix}", display_name="Auth Red Dragons"),
         Team(name=f"AuthBlue_{unique_suffix}", display_name="Auth Blue Knights"),
@@ -70,11 +71,12 @@ def sample_teams(integration_db_session):
 def sample_season(integration_db_session):
     """Create a sample active season for testing using shared session."""
     import uuid
+
     unique_suffix = str(uuid.uuid4())[:8]
     season_name = f"Auth Spring 2025 {unique_suffix}"
     # Season code must be <= 20 characters for PostgreSQL
     season_code = f"auth25-{unique_suffix[:6]}"
-    
+
     season = Season(
         name=season_name,
         code=season_code,
@@ -138,8 +140,9 @@ class TestScheduledGameCreation:
 
     def test_create_scheduled_game_without_auth(self, unauthenticated_client, sample_teams, sample_season):
         """Test creating scheduled game without authentication fails."""
-        import uuid
         import time
+        import uuid
+
         # Use time and UUID to generate truly unique date to avoid conflicts
         unique_date = f"2025-{6 + abs(hash(str(uuid.uuid4()))) % 3}-{10 + int(time.time() * 1000) % 19}"
         game_data = {
@@ -158,9 +161,9 @@ class TestScheduledGameCreation:
 
     def test_create_scheduled_game_with_auth(self, authenticated_client, sample_teams, sample_season):
         """Test creating scheduled game with valid authentication."""
-        import uuid
-        import time
         import random
+        import time
+
         # Use time, UUID, and random to generate truly unique date to avoid conflicts
         random.seed(time.time() * 1000000)
         month = 1 + (random.randint(0, 11))  # 1-12
@@ -190,7 +193,7 @@ class TestScheduledGameCreation:
         # Verify scheduled date exists and is correct (API may normalize date format)
         assert "scheduled_date" in data
         # Accept both normalized (2025-06-20) and our format (2025-6-20)
-        assert data["scheduled_date"].replace('-0', '-') == unique_date.replace('-0', '-')
+        assert data["scheduled_date"].replace("-0", "-") == unique_date.replace("-0", "-")
         assert data["scheduled_time"] == "19:00"
         assert data["status"] == "scheduled"
         assert data["location"] == "Main Gym"
@@ -198,8 +201,9 @@ class TestScheduledGameCreation:
 
     def test_create_duplicate_scheduled_game(self, authenticated_client, sample_teams, sample_season):
         """Test creating duplicate scheduled game fails."""
-        import uuid
         import time
+        import uuid
+
         # Use time and UUID to generate truly unique date to avoid conflicts
         unique_date = f"2025-{6 + abs(hash(str(uuid.uuid4()))) % 3}-{10 + int(time.time() * 1000) % 19}"
         game_data = {
@@ -230,8 +234,9 @@ class TestScheduledGameCreation:
 
     def test_create_scheduled_game_same_teams(self, authenticated_client, sample_teams, sample_season):
         """Test creating scheduled game with same team as home and away fails."""
-        import uuid
         import time
+        import uuid
+
         # Use time and UUID to generate truly unique date to avoid conflicts
         unique_date = f"2025-{6 + abs(hash(str(uuid.uuid4()))) % 3}-{10 + int(time.time() * 1000) % 19}"
         game_data = {

@@ -11,6 +11,7 @@ from app.data_access.models import Player, Team
 def security_test_teams(integration_db_session: Session):
     """Create test teams with unique names for security tests."""
     import uuid
+
     unique_suffix = str(uuid.uuid4())[:8]
     team1 = Team(name=f"SecurityTeamA_{unique_suffix}", display_name=f"Security Team Alpha {unique_suffix}")
     team2 = Team(name=f"SecurityTeamB_{unique_suffix}", display_name=f"Security Team Beta {unique_suffix}")
@@ -92,16 +93,32 @@ class TestSecurityWorkflow:
     """Test complete security workflows."""
 
     def test_user_can_only_access_own_team_data(
-        self, authenticated_client, integration_db_session: Session, security_test_teams, team1_headers: dict, team2_headers: dict
+        self,
+        authenticated_client,
+        integration_db_session: Session,
+        security_test_teams,
+        team1_headers: dict,
+        team2_headers: dict,
     ):
         """Test that users can only access their own team's data."""
         team1, team2, unique_suffix = security_test_teams
 
         # Create players for each team
         import hashlib
+
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-        player1 = Player(name=f"Security Player 1 {unique_suffix}", team_id=team1.id, jersey_number=str(1 + hash_suffix % 50), is_active=True)
-        player2 = Player(name=f"Security Player 2 {unique_suffix}", team_id=team2.id, jersey_number=str(2 + hash_suffix % 50), is_active=True)
+        player1 = Player(
+            name=f"Security Player 1 {unique_suffix}",
+            team_id=team1.id,
+            jersey_number=str(1 + hash_suffix % 50),
+            is_active=True,
+        )
+        player2 = Player(
+            name=f"Security Player 2 {unique_suffix}",
+            team_id=team2.id,
+            jersey_number=str(2 + hash_suffix % 50),
+            is_active=True,
+        )
         integration_db_session.add_all([player1, player2])
         integration_db_session.commit()
 
@@ -110,7 +127,9 @@ class TestSecurityWorkflow:
         assert response.status_code != 403  # Should not be forbidden
 
         # Team 1 user should NOT be able to modify team 2 players
-        response = authenticated_client.put(f"/v1/players/{player2.id}", json={"name": "Modified Name"}, headers=team1_headers)
+        response = authenticated_client.put(
+            f"/v1/players/{player2.id}", json={"name": "Modified Name"}, headers=team1_headers
+        )
         # This should be forbidden due to team access control
         # Note: This test assumes team-based access control is implemented in the endpoints
 
@@ -121,8 +140,18 @@ class TestSecurityWorkflow:
         team1, team2, unique_suffix = security_test_teams
 
         # Create players for both teams
-        player1 = Player(name=f"Security Admin Player 1 {unique_suffix}", team_id=team1.id, jersey_number=str(10 + hash_suffix % 50), is_active=True)
-        player2 = Player(name=f"Security Admin Player 2 {unique_suffix}", team_id=team2.id, jersey_number=str(20 + hash_suffix % 50), is_active=True)
+        player1 = Player(
+            name=f"Security Admin Player 1 {unique_suffix}",
+            team_id=team1.id,
+            jersey_number=str(10 + unique_suffix % 50),
+            is_active=True,
+        )
+        player2 = Player(
+            name=f"Security Admin Player 2 {unique_suffix}",
+            team_id=team2.id,
+            jersey_number=str(20 + unique_suffix % 50),
+            is_active=True,
+        )
         integration_db_session.add_all([player1, player2])
         integration_db_session.commit()
 
@@ -134,7 +163,9 @@ class TestSecurityWorkflow:
         assert response.status_code != 403
 
         # Admin should be able to modify players from any team
-        response = authenticated_client.put(f"/v1/players/{player2.id}", json={"name": "Admin Modified"}, headers=security_admin_headers)
+        response = authenticated_client.put(
+            f"/v1/players/{player2.id}", json={"name": "Admin Modified"}, headers=security_admin_headers
+        )
         assert response.status_code != 403
 
     def test_authentication_required_for_all_modifications(
@@ -144,7 +175,12 @@ class TestSecurityWorkflow:
         team1, _, unique_suffix = security_test_teams
 
         # Create a player to test with
-        player = Player(name=f"Security Unauth Test Player {unique_suffix}", team_id=team1.id, jersey_number=str(99 - hash_suffix % 50), is_active=True)
+        player = Player(
+            name=f"Security Unauth Test Player {unique_suffix}",
+            team_id=team1.id,
+            jersey_number=str(99 - unique_suffix % 50),
+            is_active=True,
+        )
         integration_db_session.add(player)
         integration_db_session.commit()
 

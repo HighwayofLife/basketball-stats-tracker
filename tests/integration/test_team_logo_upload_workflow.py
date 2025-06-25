@@ -9,7 +9,6 @@ import pytest
 from PIL import Image
 
 from app.config import UPLOADS_URL_PREFIX
-from app.data_access.models import Team
 from app.services.image_processing_service import ImageProcessingService
 
 
@@ -136,9 +135,7 @@ class TestTeamLogoUploadWorkflow:
                 img1_bytes.seek(0)
                 file1 = ("logo1.jpg", img1_bytes, "image/jpeg")
 
-                response1 = authenticated_client.post(
-                    f"/v1/teams/{shared_test_team.id}/logo", files={"file": file1}
-                )
+                response1 = authenticated_client.post(f"/v1/teams/{shared_test_team.id}/logo", files={"file": file1})
                 assert response1.status_code == 200
 
                 # Verify first logo exists
@@ -152,9 +149,7 @@ class TestTeamLogoUploadWorkflow:
                 img2_bytes.seek(0)
                 file2 = ("logo2.png", img2_bytes, "image/png")
 
-                response2 = authenticated_client.post(
-                    f"/v1/teams/{shared_test_team.id}/logo", files={"file": file2}
-                )
+                response2 = authenticated_client.post(f"/v1/teams/{shared_test_team.id}/logo", files={"file": file2})
                 assert response2.status_code == 200
 
                 # Verify second logo exists and first is gone

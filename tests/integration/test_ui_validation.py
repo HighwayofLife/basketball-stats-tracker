@@ -625,40 +625,47 @@ class TestGameDetailPagePlayerLinks:
         """Helper method to create a test game with teams."""
         import time
         import uuid
-        
+
         # Always create new teams to avoid conflicts in shared database
         timestamp = int(time.time())
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create home team
-        home_team_data = {"name": f"UITestHome_{timestamp}_{unique_suffix}", "display_name": f"UI Test Home {timestamp}"}
+        home_team_data = {
+            "name": f"UITestHome_{timestamp}_{unique_suffix}",
+            "display_name": f"UI Test Home {timestamp}",
+        }
         home_team_response = admin_session.post(f"{BASE_URL}/v1/teams/new", json=home_team_data)
         assert home_team_response.status_code == 200, f"Failed to create home team: {home_team_response.text}"
         home_team_id = home_team_response.json()["id"]
-        
-        # Create away team  
-        away_team_data = {"name": f"UITestAway_{timestamp}_{unique_suffix}", "display_name": f"UI Test Away {timestamp}"}
+
+        # Create away team
+        away_team_data = {
+            "name": f"UITestAway_{timestamp}_{unique_suffix}",
+            "display_name": f"UI Test Away {timestamp}",
+        }
         away_team_response = admin_session.post(f"{BASE_URL}/v1/teams/new", json=away_team_data)
         assert away_team_response.status_code == 200, f"Failed to create away team: {away_team_response.text}"
         away_team_id = away_team_response.json()["id"]
-        
+
         # Create game with unique date based on timestamp and game number
         import datetime
+
         # Use a date far in the past and add unique timestamp to avoid conflicts
         base_date = datetime.date(2020, 1, 1)  # Far in the past
         unique_days = (timestamp % 1000) + game_number  # Use timestamp for uniqueness
         game_date = (base_date + datetime.timedelta(days=unique_days)).isoformat()
-        
+
         game_data = {
             "date": game_date,
             "home_team_id": home_team_id,
             "away_team_id": away_team_id,
-            "location": f"Test Arena {game_number}"
+            "location": f"Test Arena {game_number}",
         }
-        
+
         create_game_response = admin_session.post(f"{BASE_URL}/v1/games", json=game_data)
         assert create_game_response.status_code == 200, f"Failed to create game: {create_game_response.text}"
-        
+
         return create_game_response.json()["id"]
 
     def test_game_detail_page_loads_if_game_exists(self, docker_containers, admin_session):

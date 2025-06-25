@@ -7,17 +7,12 @@ import os
 # Set JWT_SECRET_KEY for all tests in this module
 os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
 
-from datetime import date
 
 import pytest
 
 from app.data_access.models import (
-    Game,
-    GameEvent,
     GameState,
     Player,
-    PlayerGameStats,
-    PlayerQuarterStats,
     Team,
 )
 from app.services.game_state_service import GameStateService
@@ -32,6 +27,7 @@ class TestGameEntryWorkflow:
         yield
         # After each test, clean up any data with IDs > 100 to preserve class fixtures
         from sqlalchemy import text
+
         try:
             integration_db_session.execute(text("DELETE FROM player_game_stats WHERE id > 100"))
             integration_db_session.execute(text("DELETE FROM game_events WHERE id > 100"))
@@ -46,21 +42,22 @@ class TestGameEntryWorkflow:
     @pytest.fixture(scope="class")
     def team_with_roster(self, integration_db_session):
         """Create teams with full rosters for testing game workflows."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-        
+
         # Create Lakers team
         lakers = Team(name=f"Lakers_{unique_suffix}", display_name=f"Los Angeles Lakers {unique_suffix}")
         integration_db_session.add(lakers)
         integration_db_session.flush()  # Get ID
-        
+
         # Create Warriors team
         warriors = Team(name=f"Warriors_{unique_suffix}", display_name=f"Golden State Warriors {unique_suffix}")
         integration_db_session.add(warriors)
         integration_db_session.flush()  # Get ID
-        
+
         # Create Lakers roster
         lakers_players = []
         lakers_roster = [
@@ -70,19 +67,19 @@ class TestGameEntryWorkflow:
             {"name": "Carmelo Anthony", "jersey_number": "7", "position": "SF"},
             {"name": "Dwight Howard", "jersey_number": "39", "position": "C"},
         ]
-        
+
         for player_data in lakers_roster:
             player = Player(
                 name=f"{player_data['name']} {unique_suffix}",
                 team_id=lakers.id,
-                jersey_number=str(int(player_data['jersey_number']) + hash_suffix % 50),
+                jersey_number=str(int(player_data["jersey_number"]) + hash_suffix % 50),
                 position=player_data["position"],
-                is_active=True
+                is_active=True,
             )
             integration_db_session.add(player)
             integration_db_session.flush()  # Get ID
             lakers_players.append({"id": player.id, "name": player.name})
-        
+
         # Create Warriors roster
         warriors_players = []
         warriors_roster = [
@@ -92,24 +89,24 @@ class TestGameEntryWorkflow:
             {"name": "Andrew Wiggins", "jersey_number": "22", "position": "SF"},
             {"name": "Kevon Looney", "jersey_number": "5", "position": "C"},
         ]
-        
+
         for player_data in warriors_roster:
             player = Player(
                 name=f"{player_data['name']} {unique_suffix}",
                 team_id=warriors.id,
-                jersey_number=str(int(player_data['jersey_number']) + hash_suffix % 50),
+                jersey_number=str(int(player_data["jersey_number"]) + hash_suffix % 50),
                 position=player_data["position"],
-                is_active=True
+                is_active=True,
             )
             integration_db_session.add(player)
             integration_db_session.flush()  # Get ID
             warriors_players.append({"id": player.id, "name": player.name})
-        
+
         integration_db_session.commit()
-        
+
         return {
             "lakers": {"id": lakers.id, "name": lakers.name, "players": lakers_players},
-            "warriors": {"id": warriors.id, "name": warriors.name, "players": warriors_players}
+            "warriors": {"id": warriors.id, "name": warriors.name, "players": warriors_players},
         }
 
     def test_complete_team_player_game_workflow(self, integration_db_session, authenticated_client, team_with_roster):
@@ -120,7 +117,7 @@ class TestGameEntryWorkflow:
         # Step 1: Use shared team and player fixtures
         teams = team_with_roster
         team1_id = teams["lakers"]["id"]
-        team2_id = teams["warriors"]["id"] 
+        team2_id = teams["warriors"]["id"]
         lakers_player_ids = [p["id"] for p in teams["lakers"]["players"]]
         warriors_player_ids = [p["id"] for p in teams["warriors"]["players"]]
 
@@ -268,14 +265,14 @@ class TestGameEntryWorkflow:
         box_score_response = client.get(f"/v1/games/{game_id}/box-score")
         assert box_score_response.status_code == 200
         box_score = box_score_response.json()
-        
+
         # Find stats for specific players
         home_players = box_score["home_team"]["players"]
         away_players = box_score["away_team"]["players"]
-        
+
         # In a shared database, we can't rely on specific players or teams
         # Let's just verify that the box score API is working correctly
-        
+
         # Verify the box score structure
         assert "game_id" in box_score
         assert box_score["game_id"] == game_id
@@ -283,11 +280,11 @@ class TestGameEntryWorkflow:
         assert "away_team" in box_score
         assert "players" in box_score["home_team"]
         assert "players" in box_score["away_team"]
-        
+
         # Check that we have player data
         all_players = home_players + away_players
         assert len(all_players) > 0  # Should have at least some players
-        
+
         # Verify player data structure
         if all_players:
             first_player = all_players[0]
@@ -295,7 +292,7 @@ class TestGameEntryWorkflow:
             assert "name" in first_player
             assert "stats" in first_player
             assert "jersey_number" in first_player
-            
+
             # Verify stats structure
             stats = first_player["stats"]
             assert "fg2m" in stats
@@ -309,8 +306,9 @@ class TestGameEntryWorkflow:
 
     def test_team_management_workflow(self, integration_db_session, authenticated_client):
         """Test the team management workflow including CRUD operations."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         db_session = integration_db_session
@@ -360,7 +358,11 @@ class TestGameEntryWorkflow:
 
         # Update the player
         updated_player_name = f"UpdatedWorkflowPlayer_{unique_suffix}"
-        player_update_data = {"name": updated_player_name, "jersey_number": str(24 + hash_suffix % 50), "position": "SG"}
+        player_update_data = {
+            "name": updated_player_name,
+            "jersey_number": str(24 + hash_suffix % 50),
+            "position": "SG",
+        }
         player_update_response = client.put(f"/v1/players/{player_id}", json=player_update_data)
         assert player_update_response.status_code == 200
         updated_player = player_update_response.json()
@@ -399,6 +401,7 @@ class TestGameEntryWorkflow:
 
         # Create teams and players directly in the database
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team1 = Team(name=f"Home Team {unique_suffix}")
         team2 = Team(name=f"Away Team {unique_suffix}")
@@ -477,6 +480,7 @@ class TestGameEntryWorkflow:
 
         # Create a team and player
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_response = client.post("/v1/teams/new", json={"name": f"Test Team {unique_suffix}"})
         if team_response.status_code != 200:

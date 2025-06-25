@@ -45,6 +45,7 @@ class TestTeamLogoDisplay:
         """Create test teams with logos."""
         # Create teams with unique names
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team1 = Team(name=f"Team Alpha {unique_suffix}", display_name=f"Alpha Team {unique_suffix}")
         team2 = Team(name=f"Team Beta {unique_suffix}", display_name=f"Beta Team {unique_suffix}")
@@ -55,7 +56,7 @@ class TestTeamLogoDisplay:
         integration_db_session.refresh(team1)
         integration_db_session.refresh(team2)
         integration_db_session.refresh(team3)
-        
+
         # Set logo filenames based on actual team IDs
         team1.logo_filename = f"teams/{team1.id}/logo.jpg"
         team2.logo_filename = f"teams/{team2.id}/logo.png"

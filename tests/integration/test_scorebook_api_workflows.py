@@ -14,10 +14,11 @@ class TestScorebookAPI:
     @pytest.fixture(scope="class")
     def sample_teams(self, integration_db_session):
         """Create sample teams in the database."""
-        import uuid
         import time
+        import uuid
+
         unique_suffix = f"{int(time.time())}_{str(uuid.uuid4())[:8]}"
-        
+
         team1 = Team(name=f"ScorebookLakers_{unique_suffix}", display_name=f"Scorebook Lakers {unique_suffix}")
         team2 = Team(name=f"ScorebookWarriors_{unique_suffix}", display_name=f"Scorebook Warriors {unique_suffix}")
         integration_db_session.add_all([team1, team2])
@@ -29,18 +30,43 @@ class TestScorebookAPI:
     @pytest.fixture(scope="class")
     def sample_players(self, integration_db_session, sample_teams):
         """Create sample players in the database."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-        
+
         lakers, warriors = sample_teams
 
         players = [
-            Player(name=f"Scorebook LeBron {unique_suffix}", team_id=lakers.id, jersey_number=str(23 + hash_suffix % 50), position="SF", is_active=True),
-            Player(name=f"Scorebook Anthony {unique_suffix}", team_id=lakers.id, jersey_number=str(3 + hash_suffix % 50), position="PF", is_active=True),
-            Player(name=f"Scorebook Stephen {unique_suffix}", team_id=warriors.id, jersey_number=str(30 + hash_suffix % 50), position="PG", is_active=True),
-            Player(name=f"Scorebook Klay {unique_suffix}", team_id=warriors.id, jersey_number=str(11 + hash_suffix % 50), position="SG", is_active=True),
+            Player(
+                name=f"Scorebook LeBron {unique_suffix}",
+                team_id=lakers.id,
+                jersey_number=str(23 + hash_suffix % 50),
+                position="SF",
+                is_active=True,
+            ),
+            Player(
+                name=f"Scorebook Anthony {unique_suffix}",
+                team_id=lakers.id,
+                jersey_number=str(3 + hash_suffix % 50),
+                position="PF",
+                is_active=True,
+            ),
+            Player(
+                name=f"Scorebook Stephen {unique_suffix}",
+                team_id=warriors.id,
+                jersey_number=str(30 + hash_suffix % 50),
+                position="PG",
+                is_active=True,
+            ),
+            Player(
+                name=f"Scorebook Klay {unique_suffix}",
+                team_id=warriors.id,
+                jersey_number=str(11 + hash_suffix % 50),
+                position="SG",
+                is_active=True,
+            ),
         ]
 
         integration_db_session.add_all(players)
@@ -54,11 +80,11 @@ class TestScorebookAPI:
         lakers, warriors = sample_teams
         lebron, anthony, curry, klay = sample_players
 
-        import uuid
         import time
+
         unique_date_suffix = int(time.time()) % 10000  # Use timestamp for unique date
         game_date = f"2024-{(unique_date_suffix % 12) + 1:02d}-{(unique_date_suffix % 28) + 1:02d}"
-        
+
         game_data = {
             "date": game_date,
             "home_team_id": lakers.id,
@@ -97,9 +123,10 @@ class TestScorebookAPI:
     def test_update_scorebook_game_missing_fields(self, authenticated_client):
         """Test updating a scorebook game with missing required fields."""
         import time
+
         unique_date_suffix = int(time.time()) % 10000
         game_date = f"2024-{(unique_date_suffix % 12) + 1:02d}-{(unique_date_suffix % 28) + 1:02d}"
-        
+
         game_data = {
             "date": game_date,
             # Missing home_team_id, away_team_id, and player_stats
@@ -112,9 +139,10 @@ class TestScorebookAPI:
     def test_update_scorebook_game_invalid_teams(self, authenticated_client):
         """Test updating a scorebook game with non-existent teams."""
         import time
+
         unique_date_suffix = int(time.time()) % 10000
         game_date = f"2024-{(unique_date_suffix % 12) + 1:02d}-{(unique_date_suffix % 28) + 1:02d}"
-        
+
         game_data = {
             "date": game_date,
             "home_team_id": 99999,  # Non-existent team
@@ -133,12 +161,12 @@ class TestScorebookAPI:
         lakers, warriors = sample_teams
         lebron, anthony, curry, klay = sample_players
 
-        import uuid
         import time
+
         # Create a unique date based on team IDs and timestamp to avoid conflicts
         unique_date_suffix = (int(time.time()) + lakers.id + warriors.id) % 10000
         game_date = f"2024-{(unique_date_suffix % 12) + 1:02d}-{(unique_date_suffix % 28) + 1:02d}"
-        
+
         game_data = {
             "date": game_date,
             "home_team_id": lakers.id,
@@ -187,4 +215,3 @@ class TestScorebookAPI:
         assert "game_id" in data
         assert "home_score" in data
         assert "away_score" in data
-

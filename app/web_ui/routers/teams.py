@@ -107,7 +107,7 @@ async def list_teams_with_counts(
         teams_response = []
         for team in teams_with_counts:
             wins, losses = records.get(team["id"], (0, 0))
-            
+
             # Calculate win percentage directly from wins/losses
             games_played = wins + losses
             win_percentage = (wins / games_played) if games_played > 0 else 0.0

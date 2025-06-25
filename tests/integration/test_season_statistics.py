@@ -34,8 +34,9 @@ class TestSeasonStatisticsIntegration:
     def setup_test_data(self, test_db_file_session: Session):
         """Set up test data for integration tests."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams with unique names
         team1_name = f"SeasonLakers_{unique_suffix}"
         team2_name = f"SeasonWarriors_{unique_suffix}"
@@ -43,10 +44,18 @@ class TestSeasonStatisticsIntegration:
         team2 = create_team(test_db_file_session, team2_name)
 
         # Create players with unique names
-        player1 = create_player(test_db_file_session, f"SeasonLeBron_{unique_suffix}", f"23_{unique_suffix[:4]}", team1.id)
-        player2 = create_player(test_db_file_session, f"SeasonAnthony_{unique_suffix}", f"3_{unique_suffix[:4]}", team1.id)
-        player3 = create_player(test_db_file_session, f"SeasonStephen_{unique_suffix}", f"30_{unique_suffix[:4]}", team2.id)
-        player4 = create_player(test_db_file_session, f"SeasonKlay_{unique_suffix}", f"11_{unique_suffix[:4]}", team2.id)
+        player1 = create_player(
+            test_db_file_session, f"SeasonLeBron_{unique_suffix}", f"23_{unique_suffix[:4]}", team1.id
+        )
+        player2 = create_player(
+            test_db_file_session, f"SeasonAnthony_{unique_suffix}", f"3_{unique_suffix[:4]}", team1.id
+        )
+        player3 = create_player(
+            test_db_file_session, f"SeasonStephen_{unique_suffix}", f"30_{unique_suffix[:4]}", team2.id
+        )
+        player4 = create_player(
+            test_db_file_session, f"SeasonKlay_{unique_suffix}", f"11_{unique_suffix[:4]}", team2.id
+        )
 
         # Create season
         season = Season(

@@ -1,12 +1,10 @@
 """Integration tests for player portrait upload workflow."""
 
-import io
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
-from app.data_access import models
 from app.services.image_processing_service import ImageProcessingService, ImageType
 
 
@@ -22,7 +20,9 @@ class TestPlayerPortraitUploadWorkflow:
         img_bytes.seek(0)
         return img_bytes.getvalue()
 
-    def test_upload_player_portrait_success(self, authenticated_client, shared_test_player, integration_db_session, test_image_red):
+    def test_upload_player_portrait_success(
+        self, authenticated_client, shared_test_player, integration_db_session, test_image_red
+    ):
         """Test successful player portrait upload."""
         # Create test image
         image_data = self.get_test_image_bytes(test_image_red)
@@ -41,7 +41,8 @@ class TestPlayerPortraitUploadWorkflow:
 
         # Verify file was created
         portrait_path = (
-            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT)) / "portrait.jpg"
+            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT))
+            / "portrait.jpg"
         )
         assert portrait_path.exists()
 
@@ -71,7 +72,9 @@ class TestPlayerPortraitUploadWorkflow:
         assert data["success"] is True
         assert "portrait.png" in data["portrait_url"]
 
-    def test_upload_player_portrait_replaces_existing(self, authenticated_client, shared_test_player, test_image_red, test_image_green):
+    def test_upload_player_portrait_replaces_existing(
+        self, authenticated_client, shared_test_player, test_image_red, test_image_green
+    ):
         """Test that uploading a new portrait replaces the existing one."""
         # Upload first portrait
         image_data1 = self.get_test_image_bytes(test_image_red)
@@ -83,7 +86,8 @@ class TestPlayerPortraitUploadWorkflow:
 
         # Verify first portrait exists
         first_path = (
-            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT)) / "portrait.jpg"
+            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT))
+            / "portrait.jpg"
         )
         assert first_path.exists()
 
@@ -98,7 +102,8 @@ class TestPlayerPortraitUploadWorkflow:
         # Verify first portrait is gone and second exists
         assert not first_path.exists()
         second_path = (
-            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT)) / "portrait.png"
+            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT))
+            / "portrait.png"
         )
         assert second_path.exists()
 
@@ -154,7 +159,9 @@ class TestPlayerPortraitUploadWorkflow:
         data = response.json()
         assert data["detail"]["error"] == "PLAYER_NOT_FOUND"
 
-    def test_delete_player_portrait_success(self, authenticated_client, shared_test_player, integration_db_session, test_image_red):
+    def test_delete_player_portrait_success(
+        self, authenticated_client, shared_test_player, integration_db_session, test_image_red
+    ):
         """Test successful player portrait deletion."""
         # First upload a portrait
         image_data = self.get_test_image_bytes(test_image_red)
@@ -166,7 +173,8 @@ class TestPlayerPortraitUploadWorkflow:
 
         # Verify portrait exists
         portrait_path = (
-            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT)) / "portrait.jpg"
+            Path(ImageProcessingService.get_image_directory(shared_test_player.id, ImageType.PLAYER_PORTRAIT))
+            / "portrait.jpg"
         )
         assert portrait_path.exists()
 

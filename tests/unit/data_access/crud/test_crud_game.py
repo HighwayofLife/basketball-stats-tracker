@@ -17,7 +17,7 @@ class TestCrudGame:
 
     # This is a true unit test - it should use mocks, not real database
     # Using local mock fixture is appropriate here
-    
+
     @pytest.fixture
     def mock_db_session(self):
         """Create a mock database session for unit testing."""

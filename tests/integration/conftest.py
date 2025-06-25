@@ -3,7 +3,6 @@ Integration test configuration and shared fixtures.
 """
 
 import pytest
-from fastapi.testclient import TestClient
 
 
 @pytest.fixture(autouse=True)

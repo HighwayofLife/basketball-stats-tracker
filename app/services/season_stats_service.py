@@ -314,10 +314,13 @@ class SeasonStatsService:
 
         # Update team stats only for teams that have games
         # This avoids processing thousands of test teams with no games
-        teams_with_games = self.db_session.query(Team).join(
-            Game, (Team.id == Game.playing_team_id) | (Team.id == Game.opponent_team_id)
-        ).distinct().all()
-        
+        teams_with_games = (
+            self.db_session.query(Team)
+            .join(Game, (Team.id == Game.playing_team_id) | (Team.id == Game.opponent_team_id))
+            .distinct()
+            .all()
+        )
+
         for team in teams_with_games:
             try:
                 self.update_team_season_stats(team.id, season)

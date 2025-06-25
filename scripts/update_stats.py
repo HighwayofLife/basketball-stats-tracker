@@ -29,7 +29,7 @@ def get_test_stats():
     # First try to run just unit tests (faster and more reliable)
     cmd = "docker compose exec -T web pytest tests/unit/ --tb=no -q"
     stdout, stderr, returncode = run_command(cmd)
-    
+
     # If unit tests succeed, try to get coverage data with timeout
     if returncode == 0:
         print("📊 Unit tests completed successfully, gathering coverage data...")

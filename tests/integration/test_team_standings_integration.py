@@ -14,10 +14,10 @@ class TestTeamStandingsIntegration:
     def sample_teams_and_games(self, integration_db_session: Session):
         """Create sample teams and games with stats for testing."""
         # Create active season
-        from datetime import date
-
         # Make season code unique to avoid conflicts
         import uuid
+        from datetime import date
+
         season_suffix = str(uuid.uuid4())[:6]
         season = Season(
             code=f"23-24-{season_suffix}",
@@ -31,6 +31,7 @@ class TestTeamStandingsIntegration:
 
         # Create teams
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_a = Team(name=f"TeamA_{unique_suffix}", display_name=f"Team Alpha {unique_suffix}")
         team_b = Team(name=f"TeamB_{unique_suffix}", display_name=f"Team Beta {unique_suffix}")
@@ -227,11 +228,11 @@ class TestTeamStandingsIntegration:
         # In shared database environment, we have many teams, so find our specific test teams
         team_a_data = sample_teams_and_games["team_a"]
         team_b_data = sample_teams_and_games["team_b"]
-        
+
         # Find our test teams by name in the response
         team_a = next((t for t in teams if t["name"] == team_a_data.name), None)
         team_b = next((t for t in teams if t["name"] == team_b_data.name), None)
-        
+
         # Verify our teams exist and have the expected standings
         assert team_a is not None, f"Team A ({team_a_data.name}) not found in response"
         assert team_b is not None, f"Team B ({team_b_data.name}) not found in response"
@@ -241,18 +242,18 @@ class TestTeamStandingsIntegration:
         if team_a is not None:
             assert team_a["wins"] >= 0
             assert team_a["losses"] >= 0
-            assert isinstance(team_a["win_percentage"], (int, float))
+            assert isinstance(team_a["win_percentage"], int | float)
             assert 0 <= team_a["win_percentage"] <= 1
             # If team has games, should have at least one win or loss
             if team_a["wins"] + team_a["losses"] > 0:
                 expected_win_pct = team_a["wins"] / (team_a["wins"] + team_a["losses"])
                 assert team_a["win_percentage"] == pytest.approx(expected_win_pct, abs=0.001)
 
-        # Team B should have at least some games and a valid win percentage  
+        # Team B should have at least some games and a valid win percentage
         if team_b is not None:
             assert team_b["wins"] >= 0
             assert team_b["losses"] >= 0
-            assert isinstance(team_b["win_percentage"], (int, float))
+            assert isinstance(team_b["win_percentage"], int | float)
             assert 0 <= team_b["win_percentage"] <= 1
             # If team has games, should have at least one win or loss
             if team_b["wins"] + team_b["losses"] > 0:
@@ -276,8 +277,10 @@ class TestTeamStandingsIntegration:
                 # Records can be None or string (depending on if team has games)
 
         # Find games for our test teams (with UUID suffixes)
-        team_a_games = [g for g in games if "Team Alpha" in g.get("home_team", "") or "Team Alpha" in g.get("away_team", "")]
-        
+        team_a_games = [
+            g for g in games if "Team Alpha" in g.get("home_team", "") or "Team Alpha" in g.get("away_team", "")
+        ]
+
         # Should find at least one game for our test team
         if team_a_games:
             # Records should be in "W-L" format when present
@@ -312,7 +315,7 @@ class TestTeamStandingsIntegration:
         # Verify Team A standings - in shared database, check if our teams are found and verify structure
         team_a_data = sample_teams_and_games["team_a"]
         team_a = next((t for t in teams if t["name"] == team_a_data.name), None)
-        
+
         if team_a is not None:
             # If team found, verify it has the expected structure and reasonable values
             assert "wins" in team_a
@@ -320,13 +323,13 @@ class TestTeamStandingsIntegration:
             assert "win_percentage" in team_a
             assert isinstance(team_a["wins"], int)
             assert isinstance(team_a["losses"], int)
-            assert isinstance(team_a["win_percentage"], (int, float))
+            assert isinstance(team_a["win_percentage"], int | float)
             assert 0 <= team_a["win_percentage"] <= 1
-            
+
         # Verify Team B standings
         team_b_data = sample_teams_and_games["team_b"]
         team_b = next((t for t in teams if t["name"] == team_b_data.name), None)
-        
+
         if team_b is not None:
             # If team found, verify it has the expected structure and reasonable values
             assert "wins" in team_b
@@ -334,13 +337,14 @@ class TestTeamStandingsIntegration:
             assert "win_percentage" in team_b
             assert isinstance(team_b["wins"], int)
             assert isinstance(team_b["losses"], int)
-            assert isinstance(team_b["win_percentage"], (int, float))
+            assert isinstance(team_b["win_percentage"], int | float)
             assert 0 <= team_b["win_percentage"] <= 1
 
     def test_empty_standings_when_no_games(self, authenticated_client: TestClient, integration_db_session: Session):
         """Test standings display when no games exist."""
         # Create teams but no games
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_a = Team(name=f"EmptyTeamA_{unique_suffix}", display_name=f"Empty Team Alpha {unique_suffix}")
         team_b = Team(name=f"EmptyTeamB_{unique_suffix}", display_name=f"Empty Team Beta {unique_suffix}")

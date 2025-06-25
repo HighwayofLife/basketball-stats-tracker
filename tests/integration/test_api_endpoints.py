@@ -10,20 +10,17 @@ from datetime import date
 from unittest.mock import MagicMock, patch
 
 import pytest
-from fastapi.testclient import TestClient
 
-from app.data_access.models import Base, Game, Player, PlayerGameStats, Team
-from app.web_ui.api import app
-from app.web_ui.dependencies import get_db
-
+from app.data_access.models import Game, Player, PlayerGameStats, Team
 
 # NOTE: These are integration tests that test the full API stack
 # For true unit tests, individual components should be tested in isolation
 
+
 @pytest.mark.integration
 class TestAPIEndpoints:
     """Test cases for API endpoints using shared database with flexible assertions."""
-    
+
     @pytest.fixture
     def client(self, authenticated_client):
         """Use the shared authenticated client from conftest.py."""
@@ -32,18 +29,15 @@ class TestAPIEndpoints:
     @pytest.fixture(scope="class")
     def sample_team(self, integration_db_session, team_factory):
         """Create a sample team in the database using the team factory."""
-        import uuid
         import time
+        import uuid
+
         # Use timestamp + uuid to ensure absolute uniqueness across test runs
         unique_suffix = f"{int(time.time())}_{str(uuid.uuid4())[:8]}"
         team_name = f"APITestLakers_{unique_suffix}"
-        
+
         team_data = team_factory(team_name)
-        team = Team(
-            name=team_data["name"], 
-            display_name=f"API Test Lakers {unique_suffix}", 
-            is_deleted=False
-        )
+        team = Team(name=team_data["name"], display_name=f"API Test Lakers {unique_suffix}", is_deleted=False)
         integration_db_session.add(team)
         integration_db_session.commit()
         integration_db_session.refresh(team)
@@ -54,18 +48,15 @@ class TestAPIEndpoints:
     @pytest.fixture(scope="class")
     def sample_team_2(self, integration_db_session, team_factory):
         """Create a second sample team in the database using the team factory."""
-        import uuid
         import time
+        import uuid
+
         # Use timestamp + uuid to ensure absolute uniqueness across test runs
         unique_suffix = f"{int(time.time())}_{str(uuid.uuid4())[:8]}"
         team_name = f"APITestWarriors_{unique_suffix}"
-        
+
         team_data = team_factory(team_name)
-        team = Team(
-            name=team_data["name"], 
-            display_name=f"API Test Warriors {unique_suffix}", 
-            is_deleted=False
-        )
+        team = Team(name=team_data["name"], display_name=f"API Test Warriors {unique_suffix}", is_deleted=False)
         integration_db_session.add(team)
         integration_db_session.commit()
         integration_db_session.refresh(team)
@@ -78,12 +69,14 @@ class TestAPIEndpoints:
         """Create sample players in the database using the player factory."""
         # Use player factory for consistent test data
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Use hash to get numeric jersey numbers that avoid conflicts
         import hashlib
+
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-        
+
         player1_data = player_factory(
             name=f"APITestLeBron_{unique_suffix}",
             jersey_number=str(23 + hash_suffix % 50),  # 23-72 range
@@ -91,18 +84,18 @@ class TestAPIEndpoints:
             position="SF",
             height="6'9\"",
             weight=250,
-            year="Veteran"
+            year="Veteran",
         )
         player2_data = player_factory(
             name=f"APITestAnthony_{unique_suffix}",
-            jersey_number=str(3 + hash_suffix % 50),   # 3-52 range
+            jersey_number=str(3 + hash_suffix % 50),  # 3-52 range
             team_name=sample_team.name,
             position="PF",
             height="6'10\"",
             weight=253,
-            year="Veteran"
+            year="Veteran",
         )
-        
+
         player1 = Player(
             name=player1_data["name"],
             jersey_number=player1_data["jersey_number"],
@@ -112,7 +105,7 @@ class TestAPIEndpoints:
             weight=player1_data["weight"],
             year=player1_data["year"],
             is_active=True,
-            is_deleted=False
+            is_deleted=False,
         )
         player2 = Player(
             name=player2_data["name"],
@@ -123,13 +116,13 @@ class TestAPIEndpoints:
             weight=player2_data["weight"],
             year=player2_data["year"],
             is_active=True,
-            is_deleted=False
+            is_deleted=False,
         )
         integration_db_session.add_all([player1, player2])
         integration_db_session.commit()
         integration_db_session.refresh(player1)
         integration_db_session.refresh(player2)
-        
+
         # Store test data for assertions - sort by jersey number for predictable order
         players = sorted([player1, player2], key=lambda p: p.jersey_number)
         return players
@@ -137,17 +130,10 @@ class TestAPIEndpoints:
     @pytest.fixture(scope="class")
     def sample_game(self, integration_db_session, sample_team, sample_team_2, game_factory):
         """Create a sample game in the database using the game factory."""
-        game_data = game_factory(
-            date="2025-05-01",
-            playing_team=sample_team.name,
-            opponent_team=sample_team_2.name
-        )
-        
+        game_data = game_factory(date="2025-05-01", playing_team=sample_team.name, opponent_team=sample_team_2.name)
+
         game = Game(
-            date=date(2025, 5, 1),
-            playing_team_id=sample_team.id,
-            opponent_team_id=sample_team_2.id,
-            is_deleted=False
+            date=date(2025, 5, 1), playing_team_id=sample_team.id, opponent_team_id=sample_team_2.id, is_deleted=False
         )
         integration_db_session.add(game)
         integration_db_session.commit()
@@ -225,21 +211,21 @@ class TestAPIEndpoints:
         # Test the core API functionality
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response is a list (even if empty)
         assert isinstance(data, list)
-        
+
         # If games exist, verify response structure
         if data:
             for game in data:
                 # Verify all required fields are present
                 assert "id" in game
-                assert "home_team_id" in game  
+                assert "home_team_id" in game
                 assert "away_team_id" in game
                 assert "home_team" in game
                 assert "away_team" in game
                 assert "date" in game
-                
+
                 # Verify field types and constraints
                 assert isinstance(game["id"], int)
                 assert isinstance(game["home_team_id"], int)
@@ -247,11 +233,11 @@ class TestAPIEndpoints:
                 assert isinstance(game["home_team"], str)
                 assert isinstance(game["away_team"], str)
                 assert isinstance(game["date"], str)
-                
+
                 # Verify team IDs are positive
                 assert game["home_team_id"] > 0
                 assert game["away_team_id"] > 0
-                
+
                 # Verify team names are not empty
                 assert game["home_team"].strip() != ""
                 assert game["away_team"].strip() != ""
@@ -264,7 +250,7 @@ class TestAPIEndpoints:
         # Assertions
         assert response.status_code == 200
         data = response.json()
-        
+
         # In shared database environment, filter by team might not return our specific game
         # Just verify the filter functionality works
         if data:
@@ -283,7 +269,7 @@ class TestAPIEndpoints:
         data = response.json()
         # Should return 5 or fewer games (if less than 5 exist)
         assert len(data) <= 5
-        
+
         # Test pagination with a very high offset that should return empty results
         # Use an offset of 999999 which should be beyond any reasonable number of test games
         response = client.get("/v1/games?limit=10&offset=999999")
@@ -297,18 +283,18 @@ class TestAPIEndpoints:
         list_response = client.get("/v1/games")
         assert list_response.status_code == 200
         games = list_response.json()
-        
+
         if games:
             # Find a game with a positive ID
             valid_game = next((g for g in games if g["id"] > 0), None)
             if valid_game:
                 game_id = valid_game["id"]
                 response = client.get(f"/v1/games/{game_id}")
-                
+
                 # Test successful response
                 assert response.status_code == 200
                 data = response.json()
-                
+
                 # Verify response structure and data integrity
                 assert "id" in data
                 assert "home_team_id" in data
@@ -316,10 +302,10 @@ class TestAPIEndpoints:
                 assert "home_team" in data
                 assert "away_team" in data
                 assert "date" in data
-                
+
                 # Verify the ID matches what we requested
                 assert data["id"] == game_id
-                
+
                 # Verify field types
                 assert isinstance(data["id"], int)
                 assert isinstance(data["home_team_id"], int)
@@ -327,7 +313,7 @@ class TestAPIEndpoints:
                 assert isinstance(data["home_team"], str)
                 assert isinstance(data["away_team"], str)
                 assert isinstance(data["date"], str)
-                
+
                 # Verify constraints
                 assert data["home_team_id"] > 0
                 assert data["away_team_id"] > 0
@@ -427,10 +413,10 @@ class TestAPIEndpoints:
         # Test core API functionality
         assert response.status_code == 200
         data = response.json()
-        
+
         # Verify response is a list
         assert isinstance(data, list)
-        
+
         # If teams exist, verify response structure
         if data:
             for team in data:
@@ -438,12 +424,12 @@ class TestAPIEndpoints:
                 assert "id" in team
                 assert "name" in team
                 assert "display_name" in team
-                
+
                 # Verify field types
                 assert isinstance(team["id"], int)
                 assert isinstance(team["name"], str)
                 assert team["display_name"] is None or isinstance(team["display_name"], str)
-                
+
                 # Verify constraints
                 assert team["id"] > 0
                 assert team["name"] is not None and team["name"].strip() != ""
@@ -467,38 +453,38 @@ class TestAPIEndpoints:
         list_response = client.get("/v1/teams")
         assert list_response.status_code == 200
         teams = list_response.json()
-        
+
         if teams:
             # Test with the first available team
             team_id = teams[0]["id"]
             response = client.get(f"/v1/teams/{team_id}")
-            
+
             # Test successful response
             assert response.status_code == 200
             data = response.json()
-            
+
             # Verify response structure
             assert "id" in data
             assert "name" in data
             assert "display_name" in data
             assert "roster" in data
-            
+
             # Verify the ID matches what we requested
             assert data["id"] == team_id
-            
+
             # Verify field types
             assert isinstance(data["id"], int)
             assert isinstance(data["name"], str)
             assert isinstance(data["display_name"], str)
             assert isinstance(data["roster"], list)
-            
+
             # Verify roster structure if players exist
             for player in data["roster"]:
                 assert "id" in player
                 assert "name" in player
                 assert "jersey_number" in player
                 # Note: position field may not always be included in roster response
-                
+
                 assert isinstance(player["id"], int)
                 assert isinstance(player["name"], str)
                 assert isinstance(player["jersey_number"], str)
@@ -569,11 +555,11 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1  # At least our sample team
-        
+
         # Find our specific team in the results
         our_team = next((t for t in data if t["id"] == sample_team.id), None)
         assert our_team is not None
-        
+
         # Check specific values for OUR test data
         assert our_team["name"] == sample_team.name
         assert our_team["display_name"] == sample_team.test_display_name
@@ -582,9 +568,10 @@ class TestAPIEndpoints:
     def test_create_team_success(self, client):
         """Test creating a new team successfully."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_name = f"NewTeam_{unique_suffix}"
-        
+
         # Make request
         response = client.post("/v1/teams/new", json={"name": team_name})
 
@@ -599,7 +586,7 @@ class TestAPIEndpoints:
         """Test creating a team with duplicate name."""
         # Use the actual name of our test team (which has UUID suffix)
         duplicate_name = sample_team.name
-        
+
         # Make request
         response = client.post("/v1/teams/new", json={"name": duplicate_name})
 
@@ -618,17 +605,17 @@ class TestAPIEndpoints:
         assert data["id"] == sample_team.id
         assert data["name"] == sample_team.name
         assert data["display_name"] == sample_team.test_display_name
-        
+
         # Should have our fixture players plus potentially others from shared database
         assert len(data["players"]) >= 2
-        
+
         # Find our specific test players in the results by matching their IDs
         our_player_ids = {p.id for p in sample_players}
         our_players = [p for p in data["players"] if p["id"] in our_player_ids]
-        
+
         # Should find both our test players
         assert len(our_players) == 2
-        
+
         # Verify our players have correct data (strong assertions for OUR data)
         for api_player in our_players:
             # Find the corresponding fixture player
@@ -649,9 +636,10 @@ class TestAPIEndpoints:
     def test_update_team_success(self, client, sample_team, sample_players):
         """Test updating a team successfully."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         updated_name = f"UpdatedLakers_{unique_suffix}"
-        
+
         # Make request
         response = client.put(f"/v1/teams/{sample_team.id}", json={"name": updated_name})
 
@@ -674,7 +662,7 @@ class TestAPIEndpoints:
         """Test updating a team with a name that already exists."""
         # Use the actual name of sample_team_2 (which has UUID suffix)
         duplicate_name = sample_team_2.name
-        
+
         # Make request
         response = client.put(f"/v1/teams/{sample_team.id}", json={"name": duplicate_name})
 
@@ -685,9 +673,10 @@ class TestAPIEndpoints:
     def test_update_team_display_name(self, client, sample_team):
         """Test updating a team's display name."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         updated_display_name = f"Los Angeles Lakers {unique_suffix}"
-        
+
         # Make request
         response = client.put(f"/v1/teams/{sample_team.id}", json={"display_name": updated_display_name})
 
@@ -701,10 +690,11 @@ class TestAPIEndpoints:
     def test_create_team_with_display_name(self, client):
         """Test creating a team with a display name."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_name = f"Red_{unique_suffix}"
         display_name = f"Red Dragons {unique_suffix}"
-        
+
         # Make request
         response = client.post("/v1/teams/new", json={"name": team_name, "display_name": display_name})
 
@@ -718,10 +708,11 @@ class TestAPIEndpoints:
     def test_list_teams_includes_display_name(self, client, integration_db_session):
         """Test that team list includes display names."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_name = f"Blue_{unique_suffix}"
         display_name = f"Blue Knights {unique_suffix}"
-        
+
         # Create a team with display name
         team = Team(name=team_name, display_name=display_name)
         integration_db_session.add(team)
@@ -735,7 +726,7 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 1  # At least our created team
-        
+
         # Find our specific team
         our_team = next((t for t in data if t["id"] == team.id), None)
         assert our_team is not None
@@ -745,9 +736,10 @@ class TestAPIEndpoints:
     def test_delete_team_success(self, client, integration_db_session):
         """Test deleting a team successfully."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team_name = f"DeletableTeam_{unique_suffix}"
-        
+
         # Create a team without any games
         team = Team(name=team_name)
         integration_db_session.add(team)
@@ -792,24 +784,24 @@ class TestAPIEndpoints:
             print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
-        
+
         # In a shared database environment, we can't rely on specific IDs
         # Instead, let's find our players by their unique names
         expected_names = {p.name for p in sample_players}
         our_players = [p for p in data if p["name"] in expected_names]
-        
+
         # Debug: print what we found vs what we expected
         if len(our_players) != 2:
             print(f"Expected player names: {expected_names}")
             print(f"Fixture players: {[(p.id, p.name, p.team_id) for p in sample_players]}")
             print(f"All players in response: {[(p['id'], p['name'], p['team_id']) for p in data[:10]]}")  # First 10
             print(f"Our players found: {our_players}")
-        
+
         # In a shared database, we might not find our exact players if they weren't created properly
         # Let's at least verify the API is working
         assert response.status_code == 200
         assert isinstance(data, list)
-        
+
         # If we found our players, verify them
         if len(our_players) == 2:
             for api_player in our_players:
@@ -837,20 +829,20 @@ class TestAPIEndpoints:
             print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
-        
+
         # All players returned should belong to the specified team
         for player in data:
             assert player["team_id"] == sample_team.id
-        
+
         # Find our specific test players by name
         expected_names = {p.name for p in sample_players}
         our_players = [p for p in data if p["name"] in expected_names]
-        
+
         # In a shared database environment, we might not find our exact players
         # Let's verify the API is working correctly
         assert response.status_code == 200
         assert isinstance(data, list)
-        
+
         # If we found our players, verify them
         if len(our_players) == 2:
             for api_player in our_players:
@@ -863,8 +855,9 @@ class TestAPIEndpoints:
 
     def test_create_player_success(self, client, sample_team):
         """Test creating a new player successfully."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         player_data = {
@@ -906,7 +899,7 @@ class TestAPIEndpoints:
         """Test creating a player with duplicate jersey number."""
         # Use the actual jersey number from our test fixture
         existing_jersey = sample_players[0].jersey_number
-        
+
         player_data = {
             "name": "New Player",
             "team_id": sample_team.id,
@@ -923,8 +916,9 @@ class TestAPIEndpoints:
     def test_create_player_with_special_jersey_numbers(self, client, sample_team):
         """Test creating players with special jersey numbers like '0' and '00'."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create player with jersey "0"
         player_data_0 = {
             "name": f"PlayerZero_{unique_suffix}",
@@ -949,7 +943,7 @@ class TestAPIEndpoints:
         """Test getting a player successfully."""
         # Use the first sample player
         test_player = sample_players[0]
-        
+
         # Make request
         response = client.get(f"/v1/players/{test_player.id}")
 
@@ -977,20 +971,21 @@ class TestAPIEndpoints:
 
     def test_update_player_success(self, client, sample_players):
         """Test updating a player successfully."""
-        import uuid
         import hashlib
         import time
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         timestamp_suffix = int(time.time()) % 1000
         updated_name = f"UpdatedName_{unique_suffix}"
         jersey_number = str(224 + hash_suffix % 100 + timestamp_suffix)  # High range: 224-1423
-        
+
         update_data = {"name": updated_name, "jersey_number": jersey_number, "position": "PF"}
 
         # Use the second player for update test to avoid affecting the get test
         player_to_update = sample_players[1] if len(sample_players) > 1 else sample_players[0]
-        
+
         # Make request
         response = client.put(f"/v1/players/{player_to_update.id}", json=update_data)
 
@@ -1024,13 +1019,14 @@ class TestAPIEndpoints:
 
     def test_delete_player_without_stats(self, client, integration_db_session, sample_team):
         """Test deleting a player that has no game stats (should delete)."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         player_name = f"DeletablePlayer_{unique_suffix}"
         jersey_number = str(99 - hash_suffix % 50)
-        
+
         # Create a player without stats
         player = Player(name=player_name, jersey_number=jersey_number, team_id=sample_team.id, is_active=True)
         integration_db_session.add(player)
@@ -1057,12 +1053,13 @@ class TestAPIEndpoints:
 
     def test_create_player_jersey_conflict(self, client, sample_team):
         """Test creating a player with conflicting jersey number."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         jersey_number = str(10 + hash_suffix % 50)
-        
+
         # Create first player with unique jersey number
         response1 = client.post(
             "/v1/players/new",
@@ -1097,12 +1094,13 @@ class TestAPIEndpoints:
 
     def test_create_player_name_conflict(self, client, sample_team):
         """Test creating a player with conflicting name on same team."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         player_name = f"DuplicateName_{unique_suffix}"
-        
+
         # Create first player
         response1 = client.post(
             "/v1/players/new",
@@ -1139,13 +1137,14 @@ class TestAPIEndpoints:
 
     def test_update_player_jersey_conflict(self, client, sample_team):
         """Test updating a player to a jersey number that's already taken."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         jersey1 = str(30 + hash_suffix % 50)
         jersey2 = str(31 + (hash_suffix + 1) % 50)
-        
+
         # Create two players
         player1_response = client.post(
             "/v1/players/new",
@@ -1233,7 +1232,7 @@ class TestAPIEndpoints:
         """Test getting player statistics."""
         # Use the first sample player
         test_player = sample_players[0]
-        
+
         # Make request
         response = client.get(f"/v1/players/{test_player.id}/stats")
 
@@ -1285,7 +1284,7 @@ class TestAPIEndpoints:
         assert response.status_code == 200
         data = response.json()
         assert "season_stats" in data
-        
+
         # In shared database environment, season_stats might be None if no games found in current season
         # But we should verify the API structure works correctly
         if data["season_stats"] is not None:
@@ -1432,15 +1431,16 @@ class TestAPIEndpoints:
 
     def test_create_substitute_player_success(self, client, sample_team):
         """Test creating a substitute player successfully."""
-        import uuid
         import hashlib
         import time
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         timestamp_suffix = int(time.time()) % 1000
         player_name = f"SubPlayer_{unique_suffix}"
         jersey_number = str(301 + hash_suffix % 100 + timestamp_suffix)  # High range: 301-1500
-        
+
         player_data = {
             "name": player_name,
             "team_id": sample_team.id,
@@ -1474,13 +1474,14 @@ class TestAPIEndpoints:
 
     def test_update_substitute_to_regular(self, client, sample_team):
         """Test updating a substitute player to become a regular player."""
-        import uuid
         import hashlib
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         player_name = f"SubPlayer_{unique_suffix}"
         jersey_number = str(99 - hash_suffix % 50)
-        
+
         # First create a substitute player
         player_data = {
             "name": player_name,
@@ -1503,15 +1504,16 @@ class TestAPIEndpoints:
 
     def test_list_players_includes_substitute_flag(self, client, sample_team):
         """Test that the players list includes the is_substitute flag."""
-        import uuid
         import hashlib
         import time
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         timestamp_suffix = int(time.time()) % 1000
         player_name = f"SubPlayer_{unique_suffix}"
         jersey_number = str(188 + hash_suffix % 100 + timestamp_suffix)  # High range: 188-1387
-        
+
         # Create a substitute player
         player_data = {
             "name": player_name,
@@ -1535,7 +1537,7 @@ class TestAPIEndpoints:
         data = response.json()
         substitute_players = [p for p in data if p["is_substitute"]]
         assert len(substitute_players) >= 1  # At least our created player
-        
+
         # Find our specific substitute player
         our_substitute = next((p for p in substitute_players if p["id"] == created_player_id), None)
         assert our_substitute is not None
@@ -1543,15 +1545,16 @@ class TestAPIEndpoints:
 
     def test_get_player_includes_substitute_flag(self, client, sample_team):
         """Test that getting a single player includes the is_substitute flag."""
-        import uuid
         import hashlib
         import time
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
         timestamp_suffix = int(time.time()) % 1000
         player_name = f"SubPlayer_{unique_suffix}"
         jersey_number = str(177 + hash_suffix % 100 + timestamp_suffix)  # High range: 177-1376
-        
+
         # Create a substitute player
         player_data = {
             "name": player_name,
@@ -1585,12 +1588,13 @@ class TestAPIEndpoints:
 
     def test_create_season_requires_admin(self, client):
         """Test that creating a season requires admin authentication."""
-        import uuid
         import time
+        import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         timestamp_suffix = str(int(time.time()))[-8:]  # Use 8 digits for more uniqueness
         season_name = f"TestSeason_{unique_suffix}"
-        
+
         # Use dates far in the future to avoid overlap with existing seasons
         year = 2030 + int(time.time()) % 100  # Use a future year based on timestamp
         # Make season code extremely unique by combining timestamp and UUID
@@ -1616,8 +1620,8 @@ class TestAPIEndpoints:
 
     def test_update_season_requires_admin(self, client, integration_db_session):
         """Test that updating a season requires admin authentication."""
-        from datetime import date
         import uuid
+        from datetime import date
 
         from app.data_access.models import Season
 
@@ -1625,9 +1629,10 @@ class TestAPIEndpoints:
         season_name = f"TestSeason_{unique_suffix}"
         season_code = f"TEST2025_{unique_suffix[:4]}"
         updated_name = f"UpdatedSeason_{unique_suffix}"
-        
+
         # Use dates far in the future to avoid overlap with existing seasons
         import time
+
         year = 2030 + int(time.time()) % 100  # Use a future year based on timestamp
 
         # Create a test season
@@ -1654,17 +1659,18 @@ class TestAPIEndpoints:
 
     def test_activate_season_requires_admin(self, client, integration_db_session):
         """Test that activating a season requires admin authentication."""
-        from datetime import date
         import uuid
+        from datetime import date
 
         from app.data_access.models import Season
 
         unique_suffix = str(uuid.uuid4())[:8]
         season_name = f"TestSeason_{unique_suffix}"
         season_code = f"TEST2025_{unique_suffix[:4]}"
-        
+
         # Use dates far in the future to avoid overlap with existing seasons
         import time
+
         year = 2030 + int(time.time()) % 100  # Use a future year based on timestamp
 
         # Create a test season
@@ -1689,17 +1695,18 @@ class TestAPIEndpoints:
 
     def test_delete_season_requires_admin(self, client, integration_db_session):
         """Test that deleting a season requires admin authentication."""
-        from datetime import date
         import uuid
+        from datetime import date
 
         from app.data_access.models import Season
 
         unique_suffix = str(uuid.uuid4())[:8]
         season_name = f"TestSeason_{unique_suffix}"
         season_code = f"TEST2025_{unique_suffix[:4]}"
-        
+
         # Use dates far in the future to avoid overlap with existing seasons
         import time
+
         year = 2030 + int(time.time()) % 100  # Use a future year based on timestamp
 
         # Create a test season

@@ -86,8 +86,9 @@ class TestScheduledGamesAPI:
     def test_create_scheduled_game(self, test_client, test_db_file_session):
         """Test creating a scheduled game via API."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams first
         home_team_name = f"HomeTeam_{unique_suffix}"
         away_team_name = f"AwayTeam_{unique_suffix}"
@@ -135,8 +136,9 @@ class TestScheduledGamesAPI:
     def test_get_scheduled_games_list(self, test_client, test_db_file_session):
         """Test getting list of scheduled games."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams
         team1_name = f"Team1_{unique_suffix}"
         team2_name = f"Team2_{unique_suffix}"
@@ -178,8 +180,9 @@ class TestScheduledGamesAPI:
     def test_get_scheduled_game_detail(self, test_client, test_db_file_session):
         """Test getting a specific scheduled game."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams and game with unique names
         home_team_name = f"ScheduledHomeTeam_{unique_suffix}"
         away_team_name = f"ScheduledAwayTeam_{unique_suffix}"
@@ -215,8 +218,9 @@ class TestScheduledGamesAPI:
     def test_update_scheduled_game(self, test_client, test_db_file_session):
         """Test updating a scheduled game."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams and game
         team1_name = f"Team1_{unique_suffix}"
         team2_name = f"Team2_{unique_suffix}"
@@ -258,8 +262,9 @@ class TestScheduledGamesAPI:
     def test_cancel_scheduled_game(self, test_client, test_db_file_session):
         """Test canceling a scheduled game."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams and game
         home_team_name = f"HomeTeam_{unique_suffix}"
         away_team_name = f"AwayTeam_{unique_suffix}"
@@ -292,8 +297,9 @@ class TestScheduledGamesAPI:
     def test_delete_scheduled_game(self, test_client, test_db_file_session):
         """Test deleting a scheduled game."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams and game
         home_team_name = f"HomeTeam_{unique_suffix}"
         away_team_name = f"AwayTeam_{unique_suffix}"
@@ -341,8 +347,9 @@ class TestScheduledGamesAPI:
     def test_scheduled_games_appear_in_games_list(self, test_client, test_db_file_session):
         """Test that scheduled games appear in the main games list with negative IDs."""
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
-        
+
         # Create teams with unique names
         team1_name = f"ScheduledTeam1_{unique_suffix}"
         team2_name = f"ScheduledTeam2_{unique_suffix}"

@@ -2,8 +2,6 @@
 
 from datetime import date
 
-import pytest
-
 from app.auth.models import User, UserRole
 from app.data_access.models import Game, Player, PlayerGameStats, PlayerQuarterStats, Team
 
@@ -15,6 +13,7 @@ class TestScoreboardFormatEndpoint:
         """Test successful retrieval of game in scorebook format."""
         # Create test data with unique names
         import uuid
+
         unique_suffix = str(uuid.uuid4())[:8]
         team1 = Team(name=f"ScorbookHomeTeam_{unique_suffix}", display_name=f"Scorebook Home Team {unique_suffix}")
         team2 = Team(name=f"ScorbookAwayTeam_{unique_suffix}", display_name=f"Scorebook Away Team {unique_suffix}")
@@ -102,8 +101,9 @@ class TestScoreboardFormatEndpoint:
     def test_get_game_scorebook_format_access_denied(self, unauthenticated_client, integration_db_session):
         """Test access control for non-admin user."""
         from fastapi.testclient import TestClient
-        from app.web_ui.api import app
+
         from app.auth.dependencies import get_current_user
+        from app.web_ui.api import app
 
         # Mock non-admin user without team access
         def mock_regular_user():
@@ -119,13 +119,18 @@ class TestScoreboardFormatEndpoint:
             return user
 
         app.dependency_overrides[get_current_user] = mock_regular_user
-        
+
         with TestClient(app) as test_client:
             # Create test data
             import uuid
+
             unique_suffix = str(uuid.uuid4())[:8]
-            team1 = Team(name=f"ScoreAccess Home Team {unique_suffix}", display_name=f"Score Access Home Team {unique_suffix}")
-            team2 = Team(name=f"ScoreAccess Away Team {unique_suffix}", display_name=f"Score Access Away Team {unique_suffix}")
+            team1 = Team(
+                name=f"ScoreAccess Home Team {unique_suffix}", display_name=f"Score Access Home Team {unique_suffix}"
+            )
+            team2 = Team(
+                name=f"ScoreAccess Away Team {unique_suffix}", display_name=f"Score Access Away Team {unique_suffix}"
+            )
             integration_db_session.add_all([team1, team2])
             integration_db_session.flush()
 
@@ -136,6 +141,6 @@ class TestScoreboardFormatEndpoint:
             response = test_client.get(f"/v1/games/{game.id}/scorebook-format")
             assert response.status_code == 403
             assert "Access denied" in response.json()["detail"]
-        
+
         # Clear the override
         app.dependency_overrides.clear()
