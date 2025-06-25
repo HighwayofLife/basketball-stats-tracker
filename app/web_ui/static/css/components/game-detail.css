@@ -240,6 +240,18 @@
     align-items: center;
 }
 
+/* Player link styles */
+.player-link {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.player-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
 @media (max-width: 768px) {
     .player-portrait-tiny {
         width: 24px;

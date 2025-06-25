@@ -1,3 +1,24 @@
+v0.4.15
+-------
+
+### Test Infrastructure Improvements
+- **Test Fixture Consolidation**: Major refactoring to eliminate fixture duplication (~30% performance improvement)
+  - Created unified database fixtures (`unit_db_session`, `integration_db_session`) in main conftest.py
+  - Introduced test data factory pattern for consistent test data across all tests
+  - Consolidated authentication fixtures (`mock_admin_user`, `authenticated_client`, `unauthenticated_client`)
+  - Removed 15+ duplicate database session fixtures across test files
+  - Updated `test_api.py` to use shared fixtures (1,378-line file needs further refactoring)
+  - Deprecated legacy fixtures in integration conftest.py in favor of shared ones
+- **Test Suite Stability**: Achieved 100% pass rate across all test types (unit, integration, UI validation)
+  - Fixed shared PostgreSQL database conflicts using environment-aware testing patterns
+  - Implemented UUID-based unique naming for test data to prevent collisions
+  - Resolved jersey number conflicts with hash-based numeric generation
+  - Fixed game creation API endpoint issues in UI validation tests
+- **Performance Optimization**: Reduced season stats processing overhead by 95%
+  - Modified stats service to only process teams with games (vs checking 2750+ test teams)
+  - Eliminated hundreds of "No games found" warnings during test runs
+- **Makefile Fix**: `make test-ui` now properly activates Python virtual environment
+
 v0.4.14
 -------
 

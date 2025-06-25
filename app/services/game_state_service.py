@@ -642,7 +642,7 @@ class GameStateService:
             player_info = {
                 "id": player.id,
                 "name": player.name,
-                "jersey_number": player.jersey_number,
+                "jersey_number": str(player.jersey_number),  # Ensure jersey_number is a string
                 "position": player.position,
                 "is_starter": roster.is_starter,
             }

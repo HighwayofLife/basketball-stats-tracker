@@ -15,11 +15,13 @@ from app.data_access.models import Game
 class TestCrudGame:
     """Test cases for crud_game module."""
 
+    # This is a true unit test - it should use mocks, not real database
+    # Using local mock fixture is appropriate here
+
     @pytest.fixture
     def mock_db_session(self):
-        """Create a mock database session."""
-        session = MagicMock(spec=Session)
-        return session
+        """Create a mock database session for unit testing."""
+        return MagicMock(spec=Session)
 
     @pytest.fixture
     def sample_game(self):

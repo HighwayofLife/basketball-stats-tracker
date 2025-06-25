@@ -6,6 +6,20 @@
   font-size: 0.85rem;
 }
 
+/* Team record styling */
+.team-record {
+  color: #666;
+  font-size: 0.85em;
+  margin-left: 0.25rem;
+}
+
+.team-record-mobile {
+  color: #666;
+  display: block;
+  font-size: 0.8em;
+  margin-top: 0.15rem;
+}
+
 .data-table th,
 .data-table td {
   padding: 6px 4px;

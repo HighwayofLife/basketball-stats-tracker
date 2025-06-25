@@ -148,9 +148,8 @@
 
 {% block extra_scripts %}
 <script>
-    // Get game ID from URL path
-    const pathParts = window.location.pathname.split('/');
-    const gameId = pathParts[pathParts.length - 1];
+    // Get game ID from server context
+    const gameId = {{ game_id }};
 
     document.addEventListener('DOMContentLoaded', function() {
         // Load game information and box score
@@ -342,7 +341,7 @@
                 <td class="player-name" data-label="Player">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         ${getPlayerPortraitTiny(player)}
-                        <span>${player.name}${position}</span>
+                        <a href="/players/${player.player_id}" class="player-link">${player.name}${position}</a>
                     </div>
                 </td>
                 <td data-label="Pts">${stats.points || 0}</td>

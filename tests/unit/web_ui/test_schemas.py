@@ -72,8 +72,10 @@ class TestGameSummary:
             "date": "2024-01-15",
             "home_team": "Lakers",
             "home_team_id": 1,
+            "home_team_record": None,
             "away_team": "Warriors",
             "away_team_id": 2,
+            "away_team_record": None,
             "home_score": 110,
             "away_score": 105,
         }

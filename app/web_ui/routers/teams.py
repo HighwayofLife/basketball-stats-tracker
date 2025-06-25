@@ -90,19 +90,44 @@ async def list_teams(team_repo: TeamRepository = Depends(get_team_repository)): 
 
 
 @router.get("/detail", response_model=list[TeamResponse])
-async def list_teams_with_counts(team_repo: TeamRepository = Depends(get_team_repository)):  # noqa: B008
-    """Get a list of all teams with player counts."""
+async def list_teams_with_counts(
+    team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
+    db=Depends(get_db),  # noqa: B008
+):
+    """Get a list of all teams with player counts and records."""
     try:
         teams_with_counts = team_repo.get_with_player_count()
-        return [
-            TeamResponse(
-                id=team["id"],
-                name=team["name"],
-                display_name=team.get("display_name"),
-                player_count=team["player_count"],
+
+        # Get records for all teams
+        team_ids = [team["id"] for team in teams_with_counts]
+        stats_service = SeasonStatsService(db)
+        records = stats_service.get_teams_records(team_ids)
+
+        # Build response with records
+        teams_response = []
+        for team in teams_with_counts:
+            wins, losses = records.get(team["id"], (0, 0))
+
+            # Calculate win percentage directly from wins/losses
+            games_played = wins + losses
+            win_percentage = (wins / games_played) if games_played > 0 else 0.0
+
+            teams_response.append(
+                TeamResponse(
+                    id=team["id"],
+                    name=team["name"],
+                    display_name=team.get("display_name"),
+                    player_count=team["player_count"],
+                    wins=wins,
+                    losses=losses,
+                    win_percentage=win_percentage,
+                )
             )
-            for team in teams_with_counts
-        ]
+
+        # Sort by win percentage (highest to lowest)
+        teams_response.sort(key=lambda x: x.win_percentage, reverse=True)
+
+        return teams_response
     except Exception as e:
         logger.error(f"Error retrieving teams: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve teams") from e
@@ -131,7 +156,7 @@ async def get_team(
                 RosterPlayer(
                     id=player.id,
                     name=player.name,
-                    jersey_number=player.jersey_number,
+                    jersey_number=str(player.jersey_number),
                 )
                 for player in players
             ],
@@ -163,7 +188,7 @@ async def get_team_detail(
                 name=player.name,
                 team_id=player.team_id,
                 team_name=team.name,
-                jersey_number=player.jersey_number,
+                jersey_number=str(player.jersey_number),
                 position=player.position,
                 height=player.height,
                 weight=player.weight,

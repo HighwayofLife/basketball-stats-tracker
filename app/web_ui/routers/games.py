@@ -73,6 +73,23 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                 )
             scheduled_games = scheduled_query.all()
 
+            # Get all team IDs for efficient record lookup
+            team_ids = set()
+            for game in completed_games:
+                if game.playing_team_id:
+                    team_ids.add(game.playing_team_id)
+                if game.opponent_team_id:
+                    team_ids.add(game.opponent_team_id)
+            for scheduled_game in scheduled_games:
+                if scheduled_game.home_team_id:
+                    team_ids.add(scheduled_game.home_team_id)
+                if scheduled_game.away_team_id:
+                    team_ids.add(scheduled_game.away_team_id)
+
+            # Get team records
+            stats_service = SeasonStatsService(session)
+            team_records = stats_service.get_teams_records(list(team_ids)) if team_ids else {}
+
             # Convert to GameSummary objects
             result = []
 
@@ -88,14 +105,20 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                     game, player_stats
                 )
 
+                # Get team records
+                home_wins, home_losses = team_records.get(game.playing_team_id, (0, 0))
+                away_wins, away_losses = team_records.get(game.opponent_team_id, (0, 0))
+
                 result.append(
                     GameSummary(
                         id=game.id,
                         date=game.date.isoformat() if game.date else "",
                         home_team=game.playing_team.display_name or game.playing_team.name,
                         home_team_id=game.playing_team_id,
+                        home_team_record=f"{home_wins}-{home_losses}",
                         away_team=game.opponent_team.display_name or game.opponent_team.name,
                         away_team_id=game.opponent_team_id,
+                        away_team_record=f"{away_wins}-{away_losses}",
                         home_score=playing_team_score,
                         away_score=opponent_team_score,
                     )
@@ -103,14 +126,20 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
 
             # Add scheduled games with negative IDs to distinguish them
             for scheduled_game in scheduled_games:
+                # Get team records
+                home_wins, home_losses = team_records.get(scheduled_game.home_team_id, (0, 0))
+                away_wins, away_losses = team_records.get(scheduled_game.away_team_id, (0, 0))
+
                 result.append(
                     GameSummary(
                         id=-scheduled_game.id,  # Negative ID to distinguish from completed games
                         date=scheduled_game.scheduled_date.isoformat(),
                         home_team=scheduled_game.home_team.display_name or scheduled_game.home_team.name,
                         home_team_id=scheduled_game.home_team_id,
+                        home_team_record=f"{home_wins}-{home_losses}",
                         away_team=scheduled_game.away_team.display_name or scheduled_game.away_team.name,
                         away_team_id=scheduled_game.away_team_id,
+                        away_team_record=f"{away_wins}-{away_losses}",
                         home_score=0,
                         away_score=0,
                     )
@@ -469,7 +498,7 @@ async def get_box_score(game_id: int):
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
                     stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
-                    jersey_number=p.get("jersey", ""),
+                    jersey_number=str(p.get("jersey", "")),
                     position=p.get("position"),
                 )
                 for p in playing_team_players
@@ -480,7 +509,7 @@ async def get_box_score(game_id: int):
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
                     stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
-                    jersey_number=p.get("jersey", ""),
+                    jersey_number=str(p.get("jersey", "")),
                     position=p.get("position"),
                 )
                 for p in opponent_team_players

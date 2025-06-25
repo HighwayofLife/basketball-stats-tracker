@@ -193,7 +193,7 @@ class SeasonStatsService:
         games = query.all()
 
         if not games:
-            logger.warning(f"No games found for team {team_id} in season {season}")
+            logger.debug(f"No games found for team {team_id} in season {season}")
             return None
 
         # Determine season from first game if not provided
@@ -312,9 +312,16 @@ class SeasonStatsService:
             except Exception as e:
                 logger.error(f"Error updating stats for player {player.id}: {e}")
 
-        # Update all team stats
-        teams = self.db_session.query(Team).all()
-        for team in teams:
+        # Update team stats only for teams that have games
+        # This avoids processing thousands of test teams with no games
+        teams_with_games = (
+            self.db_session.query(Team)
+            .join(Game, (Team.id == Game.playing_team_id) | (Team.id == Game.opponent_team_id))
+            .distinct()
+            .all()
+        )
+
+        for team in teams_with_games:
             try:
                 self.update_team_season_stats(team.id, season)
             except Exception as e:
@@ -393,6 +400,98 @@ class SeasonStatsService:
             player["rank"] = i + 1
 
         return rankings[:limit]
+
+    def get_team_record(self, team_id: int, season: str | None = None) -> tuple[int, int]:
+        """Get a team's win-loss record for a season.
+
+        Args:
+            team_id: ID of the team
+            season: Season to get record for (if None, uses current season)
+
+        Returns:
+            Tuple of (wins, losses)
+        """
+        if not season:
+            # Get the active season from the Season table
+            active_season = self.db_session.query(Season).filter(Season.is_active).first()
+            if active_season:
+                season = active_season.code
+            else:
+                # Fallback to determining season from latest game
+                latest_game = self.db_session.query(Game).order_by(desc(Game.date)).first()
+                if latest_game:
+                    season = self.get_season_from_date(latest_game.date)
+                else:
+                    return (0, 0)
+
+        # Get team season stats
+        stats = (
+            self.db_session.query(TeamSeasonStats)
+            .filter(TeamSeasonStats.team_id == team_id, TeamSeasonStats.season == season)
+            .first()
+        )
+
+        if stats:
+            return (stats.wins, stats.losses)
+
+        # If no stats exist, calculate them
+        self.update_team_season_stats(team_id, season)
+        stats = (
+            self.db_session.query(TeamSeasonStats)
+            .filter(TeamSeasonStats.team_id == team_id, TeamSeasonStats.season == season)
+            .first()
+        )
+
+        return (stats.wins, stats.losses) if stats else (0, 0)
+
+    def get_teams_records(self, team_ids: list[int], season: str | None = None) -> dict[int, tuple[int, int]]:
+        """Get win-loss records for multiple teams efficiently.
+
+        Args:
+            team_ids: List of team IDs
+            season: Season to get records for (if None, uses current season)
+
+        Returns:
+            Dictionary mapping team_id to (wins, losses) tuples
+        """
+        if not team_ids:
+            return {}
+
+        if not season:
+            # Get the active season from the Season table
+            active_season = self.db_session.query(Season).filter(Season.is_active).first()
+            if active_season:
+                season = active_season.code
+            else:
+                # Fallback to determining season from latest game
+                latest_game = self.db_session.query(Game).order_by(desc(Game.date)).first()
+                if latest_game:
+                    season = self.get_season_from_date(latest_game.date)
+                else:
+                    return dict.fromkeys(team_ids, (0, 0))
+
+        # Get all team season stats in one query
+        stats_list = (
+            self.db_session.query(TeamSeasonStats)
+            .filter(TeamSeasonStats.team_id.in_(team_ids), TeamSeasonStats.season == season)
+            .all()
+        )
+
+        # Create a mapping of existing stats
+        records = {stats.team_id: (stats.wins, stats.losses) for stats in stats_list}
+
+        # For teams without stats, calculate them
+        missing_teams = [team_id for team_id in team_ids if team_id not in records]
+        for team_id in missing_teams:
+            self.update_team_season_stats(team_id, season)
+            stats = (
+                self.db_session.query(TeamSeasonStats)
+                .filter(TeamSeasonStats.team_id == team_id, TeamSeasonStats.season == season)
+                .first()
+            )
+            records[team_id] = (stats.wins, stats.losses) if stats else (0, 0)
+
+        return records
 
     def get_team_standings(self, season: str | None = None) -> list[dict]:
         """Get team standings for a season.
