@@ -285,13 +285,23 @@ test-integration: ensure-running ## Run integration tests inside the container
 test-ui: ## Run UI validation tests (starts/stops containers automatically)
 	@echo "${CYAN}Running UI validation tests...${NC}"
 	@echo "${YELLOW}Note: This will stop any running containers first${NC}"
-	@pytest -v tests/integration/test_ui_validation.py
+	@if [ -d "venv" ]; then \
+		echo "${BLUE}Activating virtual environment...${NC}"; \
+		. venv/bin/activate && pytest -v tests/integration/test_ui_validation.py; \
+	else \
+		echo "${YELLOW}No virtual environment found, trying system pytest...${NC}"; \
+		pytest -v tests/integration/test_ui_validation.py; \
+	fi
 
 .PHONY: test-ui-standalone
 test-ui-standalone: ## Internal target for running UI tests as part of comprehensive suite
 	@echo "${CYAN}Running UI validation tests (standalone)...${NC}"
 	@$(COMPOSE_CMD) down >/dev/null 2>&1 || true
-	@pytest -v tests/integration/test_ui_validation.py
+	@if [ -d "venv" ]; then \
+		. venv/bin/activate && pytest -v tests/integration/test_ui_validation.py; \
+	else \
+		pytest -v tests/integration/test_ui_validation.py; \
+	fi
 
 .PHONY: test-coverage
 test-coverage: ensure-running ## Run all tests with coverage reporting inside the container

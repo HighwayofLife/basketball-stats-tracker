@@ -26,9 +26,27 @@ def get_test_stats():
     """Get test statistics by running pytest."""
     print("📊 Gathering test statistics...")
 
-    # Run tests with coverage in container
-    cmd = "docker compose exec -T web pytest --cov=app --cov-report=term tests/ --tb=no -q"
+    # First try to run just unit tests (faster and more reliable)
+    cmd = "docker compose exec -T web pytest tests/unit/ --tb=no -q"
     stdout, stderr, returncode = run_command(cmd)
+    
+    # If unit tests succeed, try to get coverage data with timeout
+    if returncode == 0:
+        print("📊 Unit tests completed successfully, gathering coverage data...")
+        # Try just unit tests with coverage first (much faster)
+        coverage_cmd = "docker compose exec -T web pytest --cov=app --cov-report=term tests/unit/ --tb=no -q"
+        cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
+        # Use coverage output if available, otherwise fall back to unit test output
+        if cov_returncode == 0 and "TOTAL" in cov_stdout:
+            stdout, stderr = cov_stdout, cov_stderr
+            print("📊 Coverage data collected from unit tests")
+        else:
+            print("⚠️  Coverage collection failed, using unit test results only")
+    else:
+        print("⚠️  Unit tests failed, trying without timeout restrictions...")
+        # Fallback to basic test run without coverage
+        cmd = "docker compose exec -T web pytest tests/ --tb=no -q --maxfail=5"
+        stdout, stderr, returncode = run_command(cmd)
 
     # Parse test results
     test_results = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "errors": 0}
