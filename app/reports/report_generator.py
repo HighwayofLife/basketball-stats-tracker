@@ -125,6 +125,7 @@ class ReportGenerator:
 
         # Initialize stats for this player
         player_box_score = {
+            "player_id": player.id,
             "name": player.name,
             "jersey": player.jersey_number,
             "position": player.position,

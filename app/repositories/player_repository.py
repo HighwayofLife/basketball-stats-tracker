@@ -50,7 +50,7 @@ class PlayerRepository(BaseRepository[Player]):
 
         return query.order_by(Team.name, func.cast(Player.jersey_number, Integer)).all()  # type: ignore[return-value]
 
-    def get_by_jersey_number(self, team_id: int, jersey_number: int) -> Player | None:
+    def get_by_jersey_number(self, team_id: int, jersey_number: str) -> Player | None:
         """Get a player by team and jersey number.
 
         Args:

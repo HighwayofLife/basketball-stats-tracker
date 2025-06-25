@@ -10,6 +10,7 @@ from sqlalchemy.orm import joinedload
 from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
+from app.services.season_stats_service import SeasonStatsService
 from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
 
@@ -100,6 +101,18 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
                 .all()
             )
 
+            # Get all team IDs from recent games for efficient record lookup
+            team_ids = set()
+            for game in recent_games:
+                if game.playing_team_id:
+                    team_ids.add(game.playing_team_id)
+                if game.opponent_team_id:
+                    team_ids.add(game.opponent_team_id)
+
+            # Get team records
+            stats_service = SeasonStatsService(session)
+            team_records = stats_service.get_teams_records(list(team_ids)) if team_ids else {}
+
             # Convert to dictionary for template, calculating scores from player stats
             recent_games_data = []
             for game in recent_games:
@@ -129,6 +142,10 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
                     home_score = sum(ScoreCalculationService.calculate_player_points(s) for s in playing_team_stats)
                     away_score = sum(ScoreCalculationService.calculate_player_points(s) for s in opponent_team_stats)
 
+                    # Get team records
+                    home_wins, home_losses = team_records.get(game.playing_team_id, (0, 0))
+                    away_wins, away_losses = team_records.get(game.opponent_team_id, (0, 0))
+
                     recent_games_data.append(
                         {
                             "id": game.id,
@@ -139,12 +156,14 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
                                 else "Unknown"
                             ),
                             "home_team_id": game.playing_team_id,
+                            "home_team_record": f"{home_wins}-{home_losses}",
                             "away_team": (
                                 game.opponent_team.display_name or game.opponent_team.name
                                 if game.opponent_team
                                 else "Unknown"
                             ),
                             "away_team_id": game.opponent_team_id,
+                            "away_team_record": f"{away_wins}-{away_losses}",
                             "home_score": home_score,
                             "away_score": away_score,
                         }
@@ -180,8 +199,112 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
 @router.get("/games", response_class=HTMLResponse)
 async def games_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the games list page."""
-    context = {**auth_context, "title": "Basketball Games"}
-    return templates.TemplateResponse("games/index.html", context)
+    try:
+        with get_db_session() as session:
+            # Get games with team records (reuse the existing logic)
+            from app.services.score_calculation_service import ScoreCalculationService
+
+            # Get completed games
+            completed_games = session.query(models.Game).order_by(desc(models.Game.date)).limit(20).all()
+
+            # Get scheduled games
+            scheduled_games = (
+                session.query(models.ScheduledGame)
+                .filter(
+                    models.ScheduledGame.status == models.ScheduledGameStatus.SCHEDULED,
+                    models.ScheduledGame.is_deleted.is_not(True),
+                )
+                .order_by(desc(models.ScheduledGame.scheduled_date))
+                .limit(10)
+                .all()
+            )
+
+            # Get all team IDs for efficient record lookup
+            team_ids = set()
+            for game in completed_games:
+                if game.playing_team_id:
+                    team_ids.add(game.playing_team_id)
+                if game.opponent_team_id:
+                    team_ids.add(game.opponent_team_id)
+            for scheduled_game in scheduled_games:
+                if scheduled_game.home_team_id:
+                    team_ids.add(scheduled_game.home_team_id)
+                if scheduled_game.away_team_id:
+                    team_ids.add(scheduled_game.away_team_id)
+
+            # Get team records
+            stats_service = SeasonStatsService(session)
+            team_records = stats_service.get_teams_records(list(team_ids)) if team_ids else {}
+
+            # Convert to games data
+            games_data = []
+
+            # Add completed games
+            for game in completed_games:
+                # Get player stats for scoring
+                player_stats = (
+                    session.query(models.PlayerGameStats).filter(models.PlayerGameStats.game_id == game.id).all()
+                )
+
+                # Calculate scores
+                playing_team_score, opponent_team_score = ScoreCalculationService.calculate_game_scores(
+                    game, player_stats
+                )
+
+                # Get team records
+                home_wins, home_losses = team_records.get(game.playing_team_id, (0, 0))
+                away_wins, away_losses = team_records.get(game.opponent_team_id, (0, 0))
+
+                games_data.append(
+                    {
+                        "id": game.id,
+                        "date": game.date,
+                        "home_team": game.playing_team.display_name or game.playing_team.name,
+                        "home_team_id": game.playing_team_id,
+                        "home_team_record": f"{home_wins}-{home_losses}",
+                        "away_team": game.opponent_team.display_name or game.opponent_team.name,
+                        "away_team_id": game.opponent_team_id,
+                        "away_team_record": f"{away_wins}-{away_losses}",
+                        "home_score": playing_team_score,
+                        "away_score": opponent_team_score,
+                    }
+                )
+
+            # Add scheduled games
+            for scheduled_game in scheduled_games:
+                home_wins, home_losses = team_records.get(scheduled_game.home_team_id, (0, 0))
+                away_wins, away_losses = team_records.get(scheduled_game.away_team_id, (0, 0))
+
+                games_data.append(
+                    {
+                        "id": -scheduled_game.id,  # Negative for scheduled games
+                        "date": scheduled_game.scheduled_date,
+                        "home_team": scheduled_game.home_team.display_name or scheduled_game.home_team.name,
+                        "home_team_id": scheduled_game.home_team_id,
+                        "home_team_record": f"{home_wins}-{home_losses}",
+                        "away_team": scheduled_game.away_team.display_name or scheduled_game.away_team.name,
+                        "away_team_id": scheduled_game.away_team_id,
+                        "away_team_record": f"{away_wins}-{away_losses}",
+                        "home_score": 0,
+                        "away_score": 0,
+                    }
+                )
+
+            # Sort by date (newest first)
+            games_data.sort(key=lambda x: x["date"], reverse=True)
+
+            context = {
+                **auth_context,
+                "title": "Basketball Games",
+                "games": games_data,
+                "show_edit_actions": auth_context.get("is_authenticated", False),
+            }
+            return templates.TemplateResponse("games/index.html", context)
+
+    except Exception as e:
+        logger.error(f"Error rendering games page: {e}")
+        context = {**auth_context, "title": "Basketball Games", "games": [], "show_edit_actions": False}
+        return templates.TemplateResponse("games/index.html", context)
 
 
 @router.get("/games/create", response_class=HTMLResponse)
