@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 
-{% block extra_head %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
-{% endblock %}
-
 {% block content %}
 <!-- Success/Error Banner -->
 <div id="banner" class="banner" style="display: none;">
@@ -13,55 +9,23 @@
     </div>
 </div>
 
-<div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+<div class="page-header">
     <h2>Basketball Games</h2>
     {% if is_authenticated %}
-    <div class="header-actions" style="display: flex; gap: 10px;">
+    <div class="header-actions">
         <a href="/games/create" class="btn btn-secondary">Schedule Game</a>
         <a href="/scorebook" class="btn btn-primary">Scorebook Entry</a>
     </div>
     {% endif %}
 </div>
 
-<div class="filters">
-    <div class="filter-group">
-        <label for="team-filter">Filter by Team:</label>
-        <select id="team-filter" class="filter-select">
-            <option value="">All Teams</option>
-            <!-- Team options will be populated via JavaScript -->
-        </select>
-    </div>
+<div class="card">
+    {% set view_type = 'full' %}
+    {% set columns = ['date', 'away_team', 'score', 'home_team', 'actions'] %}
+    {% set is_authenticated = is_authenticated %}
+    {% set show_edit_actions = is_authenticated %}
+    {% include 'partials/components/games_list.html' %}
 </div>
-
-<div class="games-list card">
-    <table class="data-table games-table desktop-only-table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Away Team</th>
-                <th>Score</th>
-                <th>Home Team</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="games-table-body">
-            <!-- Game rows will be populated via JavaScript -->
-            <tr>
-                <td colspan="5" class="loading-message">Loading games...</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <!-- MOBILE GAME CARDS - New structure, shown on mobile -->
-    <div class="mobile-games-list" id="mobile-games-list">
-        <div class="loading-message">Loading games...</div>
-    </div>
-
-    <div class="pagination" id="games-pagination">
-        <!-- Pagination controls will be added via JavaScript -->
-    </div>
-</div>
-
 
 {% endblock %}
 
@@ -96,230 +60,16 @@ function hideBanner() {
     banner.style.display = 'none';
 }
 
-    // Game listing logic
-    document.addEventListener('DOMContentLoaded', function() {
-        // Setup banner close functionality
-        document.getElementById('banner-close').addEventListener('click', hideBanner);
+document.addEventListener('DOMContentLoaded', function() {
+    // Setup banner close functionality
+    document.getElementById('banner-close').addEventListener('click', hideBanner);
 
-        // Check for success message from sessionStorage
-        const successMessage = sessionStorage.getItem('successMessage');
-        if (successMessage) {
-            showSuccessBanner(successMessage);
-            sessionStorage.removeItem('successMessage'); // Clear it after showing
-        }
-        // Fetch and populate teams for filter
-        fetch('/v1/teams')
-            .then(response => response.json())
-            .then(teams => {
-                const teamSelect = document.getElementById('team-filter');
-
-                teams.forEach(team => {
-                    // Filter dropdown
-                    const option = document.createElement('option');
-                    option.value = team.id;
-                    option.textContent = team.display_name || team.name;
-                    teamSelect.appendChild(option);
-                });
-            });
-
-        // Load initial games list
-        loadGames();
-
-        // Set up event listeners
-        document.getElementById('team-filter').addEventListener('change', function() {
-            loadGames(1); // Reset to page 1 when filter changes
-        });
-
-    });
-
-    function loadGames(page = 1) {
-        const limit = 20;
-        const offset = Math.max(0, (parseInt(page) - 1) * limit);
-        const teamId = document.getElementById('team-filter').value;
-
-        let url = `/v1/games?limit=${limit}&offset=${offset}`;
-        if (teamId) {
-            url += `&team_id=${teamId}`;
-        }
-
-        fetch(url)
-            .then(response => response.json())
-            .then(games => {
-                const tableBody = document.getElementById('games-table-body');
-                const mobileList = document.getElementById('mobile-games-list');
-                tableBody.innerHTML = '';
-                mobileList.innerHTML = '';
-
-                if (games.length === 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = '<td colspan="5">No games found.</td>';
-                    tableBody.appendChild(row);
-
-                    mobileList.innerHTML = '<div class="mobile-game-card"><p style="text-align: center; margin: 0;">No games found.</p></div>';
-                } else {
-                    games.forEach(game => {
-                        const isScheduled = game.id < 0;  // Negative IDs are scheduled games
-                        const gameId = Math.abs(game.id);  // Get absolute value for URLs
-
-                        // Desktop table row
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td data-label="Date">${formatDate(game.date)}</td>
-                            <td data-label="Away Team">
-                                <div class="team-with-logo">
-                                    <div class="team-logo-small large" data-team-id="${game.away_team_id}"></div>
-                                    <span>${game.away_team}</span>
-                                </div>
-                            </td>
-                            <td data-label="Score" class="score">${isScheduled ? 'Scheduled' : `${game.away_score} - ${game.home_score}`}</td>
-                            <td data-label="Home Team">
-                                <div class="team-with-logo">
-                                    <div class="team-logo-small large" data-team-id="${game.home_team_id}"></div>
-                                    <span>${game.home_team}</span>
-                                </div>
-                            </td>
-                            <td data-label="Actions">
-                                ${isScheduled ?
-                                  '<span class="text-muted">—</span>' :
-                                  `<a href="/games/${game.id}" class="btn btn-sm">View</a>
-                                   {% if is_authenticated %}
-                                   ${game.home_score > 0 || game.away_score > 0 ?
-                                     `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` :
-                                     ''}
-                                   {% endif %}
-                                   ${game.home_score === 0 && game.away_score === 0 ?
-                                     `<a href="/games/${game.id}/live" class="btn btn-sm btn-success">Live Entry</a>` :
-                                     ''}`
-                                }
-                            </td>
-                        `;
-                        tableBody.appendChild(row);
-
-                        // Mobile game card
-                        const card = document.createElement('div');
-                        card.className = 'mobile-game-card';
-                        const gameDate = new Date(game.date);
-                        const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                        const shortDate = `${monthNames[gameDate.getMonth()]} ${gameDate.getDate()}`;
-                        // Check if scheduled based on negative ID
-                        const isScheduledGame = game.id < 0;
-                        const awayWon = !isScheduledGame && game.away_score > game.home_score;
-                        const homeWon = !isScheduledGame && game.home_score > game.away_score;
-
-                        card.innerHTML = `
-                            <div class="game-card-main-content">
-                                <div class="game-card-teams">
-                                    <div class="team-entry ${awayWon ? 'winner' : ''}">
-                                        <div class="team-with-logo-mobile">
-                                            <div class="team-logo-mobile" data-team-id="${game.away_team_id}"></div>
-                                            <span class="team-name">${game.away_team}</span>
-                                        </div>
-                                        <span class="team-score">${isScheduledGame ? '-' : game.away_score}</span>
-                                        ${awayWon ? '<span class="winner-arrow">◄</span>' : ''}
-                                    </div>
-                                    <div class="team-entry ${homeWon ? 'winner' : ''}">
-                                        <div class="team-with-logo-mobile">
-                                            <div class="team-logo-mobile" data-team-id="${game.home_team_id}"></div>
-                                            <span class="team-name">${game.home_team}</span>
-                                        </div>
-                                        <span class="team-score">${isScheduledGame ? '-' : game.home_score}</span>
-                                        ${homeWon ? '<span class="winner-arrow">◄</span>' : ''}
-                                    </div>
-                                </div>
-                                <div class="game-card-info-action">
-                                    <div class="game-time-status">
-                                        <div class="status">${isScheduledGame ? 'Scheduled' : 'Final'}</div>
-                                        <div class="date">${shortDate}</div>
-                                    </div>
-                                    ${isScheduledGame ? '' : `
-                                        <a href="/games/${game.id}" class="btn btn-sm btn-view-details">View</a>
-                                        {% if is_authenticated %}
-                                        ${game.home_score > 0 || game.away_score > 0 ?
-                                          `<a href="/scorebook?game_id=${game.id}" class="btn btn-sm btn-warning">Edit</a>` :
-                                          ''}
-                                        {% endif %}
-                                    `}
-                                </div>
-                            </div>
-                        `;
-                        mobileList.appendChild(card);
-                    });
-
-                    // Load team logos after all games are rendered
-                    loadTeamLogos();
-                }
-            })
-            .catch(error => {
-                console.error('Error loading games:', error);
-                const tableBody = document.getElementById('games-table-body');
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" class="error-message">
-                            Failed to load games. Please try again.
-                        </td>
-                    </tr>
-                `;
-            });
+    // Check for success message from sessionStorage
+    const successMessage = sessionStorage.getItem('successMessage');
+    if (successMessage) {
+        showSuccessBanner(successMessage);
+        sessionStorage.removeItem('successMessage'); // Clear it after showing
     }
-
-    function formatDate(dateString) {
-        // Parse date string as local date, not UTC
-        // For YYYY-MM-DD format, split and create date with local timezone
-        const [year, month, day] = dateString.split('-').map(num => parseInt(num, 10));
-        const date = new Date(year, month - 1, day); // month is 0-indexed
-        return date.toLocaleDateString();
-    }
-
-    async function loadTeamLogos() {
-        // Get all team logo containers
-        const logoContainers = document.querySelectorAll('.team-logo-small, .team-logo-mobile');
-
-        // Create a set of unique team IDs to avoid duplicate requests
-        const teamIds = new Set();
-        logoContainers.forEach(container => {
-            const teamId = container.getAttribute('data-team-id');
-            if (teamId) {
-                teamIds.add(teamId);
-            }
-        });
-
-        // Check if logos exist for each unique team ID by querying database first
-        const logoCache = {};
-        
-        try {
-            // Get team data with logo_filename from API
-            const response = await fetch('/v1/teams');
-            if (response.ok) {
-                const teams = await response.json();
-                
-                // Build cache from database data
-                teams.forEach(team => {
-                    if (teamIds.has(team.id.toString())) {
-                        // Only include URL if team has logo_filename in database
-                        logoCache[team.id] = team.logo_filename ? `/uploads/${team.logo_filename}` : null;
-                    }
-                });
-            }
-        } catch (error) {
-            console.warn('Failed to fetch team data:', error);
-            // Fallback: set all to null (show fallback icons)
-            teamIds.forEach(teamId => {
-                logoCache[teamId] = null;
-            });
-        }
-
-        // Apply logos to containers
-        logoContainers.forEach(container => {
-            const teamId = container.getAttribute('data-team-id');
-            const logoUrl = logoCache[teamId];
-
-            if (logoUrl) {
-                container.innerHTML = `<img src="${logoUrl}" alt="Team logo" onerror="this.parentElement.innerHTML='<i class=\\'fas fa-users\\'></i>'">`;
-            } else {
-                container.innerHTML = '<i class="fas fa-users"></i>';
-            }
-        });
-    }
-
+});
 </script>
 {% endblock %}

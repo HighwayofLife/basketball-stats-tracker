@@ -13,15 +13,17 @@
     <table class="data-table mobile-table-view">
         <thead>
             <tr>
-                <th>Short Name</th>
-                <th class="col-display-name">Display Name</th>
+                <th>Rank</th>
+                <th>Team</th>
+                <th class="col-record">Record</th>
+                <th class="col-win-pct">Win %</th>
                 <th class="col-players">Players</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody id="teams-table-body">
             <tr>
-                <td colspan="4" class="loading-message">Loading teams...</td>
+                <td colspan="6" class="loading-message">Loading teams...</td>
             </tr>
         </tbody>
     </table>
@@ -213,21 +215,29 @@ async function loadTeams() {
         if (teams.length === 0) {
             const row = document.createElement('tr');
             const createLink = isAuthenticated ? '<a href="#" onclick="showCreateTeamModal()">Create your first team</a>' : 'Please log in to create teams';
-            row.innerHTML = `<td colspan="4">No teams found. ${createLink}.</td>`;
+            row.innerHTML = `<td colspan="6">No teams found. ${createLink}.</td>`;
             tableBody.appendChild(row);
         } else {
-            teams.forEach(team => {
+            teams.forEach((team, index) => {
                 const row = document.createElement('tr');
+                const winPct = (team.win_percentage * 100).toFixed(1);
+                const teamName = team.display_name || team.name;
+                
                 row.innerHTML = `
-                    <td data-label="Short Name"><strong>${team.name}</strong></td>
-                    <td data-label="Display Name" class="col-display-name">${team.display_name || '<em style="color: #999;">Not set</em>'}</td>
+                    <td data-label="Rank">${index + 1}</td>
+                    <td data-label="Team">
+                        <strong>${teamName}</strong>
+                        ${team.display_name ? `<br><small style="color: #666;">(${team.name})</small>` : ''}
+                    </td>
+                    <td data-label="Record" class="col-record">${team.wins}-${team.losses}</td>
+                    <td data-label="Win %" class="col-win-pct">${winPct}%</td>
                     <td data-label="Players" class="col-players">${team.player_count} players</td>
                     <td data-label="Actions">
                         <div class="action-buttons">
                             <a href="/teams/${team.id}" class="btn btn-sm">View Details</a>
                             ${isAuthenticated ? `
                             <button class="btn btn-sm btn-secondary" onclick="editTeam(${team.id}, '${team.name}', '${team.display_name || ''}')">Edit</button>
-                            <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${team.display_name || team.name}')">Delete</button>
+                            <button class="btn btn-sm btn-danger" onclick="showDeleteModal(${team.id}, '${teamName}')">Delete</button>
                             `.trim() : ''}
                         </div>
                     </td>
@@ -238,7 +248,7 @@ async function loadTeams() {
     } catch (error) {
         console.error('Error loading teams:', error);
         const tableBody = document.getElementById('teams-table-body');
-        tableBody.innerHTML = '<tr><td colspan="4" class="error-message">Failed to load teams. Please try again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="error-message">Failed to load teams. Please try again.</td></tr>';
     }
 }
 

@@ -91,7 +91,11 @@ Game object structure (flexible):
                             <i class="fas fa-users"></i>
                         {% endif %}
                     </div>
-                    <span>{{ game.away_team }}</span>
+                    <span>{{ game.away_team }}
+                        {% if game.away_team_record is defined %}
+                            <small class="team-record">({{ game.away_team_record }})</small>
+                        {% endif %}
+                    </span>
                 </div>
             </td>
             {% endif %}
@@ -161,7 +165,11 @@ Game object structure (flexible):
                             <i class="fas fa-users"></i>
                         {% endif %}
                     </div>
-                    <span>{{ game.home_team }}</span>
+                    <span>{{ game.home_team }}
+                        {% if game.home_team_record is defined %}
+                            <small class="team-record">({{ game.home_team_record }})</small>
+                        {% endif %}
+                    </span>
                 </div>
             </td>
             {% endif %}
@@ -222,7 +230,11 @@ Game object structure (flexible):
                                     <i class="fas fa-users"></i>
                                 {% endif %}
                             </div>
-                            <span class="team-name">{{ game.away_team }}</span>
+                            <span class="team-name">{{ game.away_team }}
+                                {% if game.away_team_record is defined %}
+                                    <small class="team-record-mobile">({{ game.away_team_record }})</small>
+                                {% endif %}
+                            </span>
                         </div>
                         <span class="team-score">{{ '-' if is_scheduled else game.away_score }}</span>
                         {% if away_won %}<span class="winner-arrow">◄</span>{% endif %}
@@ -241,7 +253,11 @@ Game object structure (flexible):
                                     <i class="fas fa-users"></i>
                                 {% endif %}
                             </div>
-                            <span class="team-name">{{ game.home_team }}</span>
+                            <span class="team-name">{{ game.home_team }}
+                                {% if game.home_team_record is defined %}
+                                    <small class="team-record-mobile">({{ game.home_team_record }})</small>
+                                {% endif %}
+                            </span>
                         </div>
                         <span class="team-score">{{ '-' if is_scheduled else game.home_score }}</span>
                         {% if home_won %}<span class="winner-arrow">◄</span>{% endif %}

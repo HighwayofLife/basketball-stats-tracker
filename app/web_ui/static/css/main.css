@@ -357,6 +357,19 @@ h6 { font-size: 0.95rem; }
   text-align: center;
 }
 
+/* Page Layout */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 10px;
+}
+
 /* Cards */
 .card {
   background-color: var(--card-background);

@@ -16,8 +16,10 @@ class GameSummary(BaseModel):
     date: str  # Using string since that's what the model uses
     home_team: str
     home_team_id: int
+    home_team_record: str | None = None
     away_team: str
     away_team_id: int
+    away_team_record: str | None = None
     home_score: int
     away_score: int
 
@@ -190,6 +192,9 @@ class TeamResponse(BaseModel):
     name: str
     display_name: str | None = None
     player_count: int = 0
+    wins: int = 0
+    losses: int = 0
+    win_percentage: float = 0.0
 
 
 class TeamBasicResponse(BaseModel):
