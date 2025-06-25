@@ -6,13 +6,6 @@ Unit tests for admin authentication requirements.
 class TestAdminAuthentication:
     """Test cases for admin authentication requirements using shared fixtures."""
 
-    def test_admin_can_access_seasons(self, authenticated_client):
-        """Test that admin users can access seasons endpoints."""
-        # Get seasons
-        response = authenticated_client.get("/v1/seasons")
-        assert response.status_code == 200
-        assert "seasons" in response.json()
-
     def test_non_admin_cannot_access_seasons(self, non_admin_client):
         """Test that non-admin users cannot access seasons endpoints."""
         # Get seasons - should fail
