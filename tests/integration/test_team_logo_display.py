@@ -258,8 +258,13 @@ class TestTeamLogoDisplay:
                     else None,
                 )
 
-                # Patch the UPLOAD_DIR to point to our temp directory
-                with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
+                # Patch both the UPLOAD_DIR setting and the module-level UPLOADS_DIR
+                from app.services import image_processing_service
+
+                with (
+                    patch.object(config.settings, "UPLOAD_DIR", temp_dir),
+                    patch.object(image_processing_service, "UPLOADS_DIR", Path(temp_dir)),
+                ):
                     # Test team with logo
                     url1 = team_logo_url(team1)
                     assert url1 is not None
@@ -361,8 +366,13 @@ class TestTeamLogoDisplay:
                     else None,
                 )
 
-                # Patch the UPLOAD_DIR to point to our temp directory
-                with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
+                # Patch both the UPLOAD_DIR setting and the module-level UPLOADS_DIR
+                from app.services import image_processing_service
+
+                with (
+                    patch.object(config.settings, "UPLOAD_DIR", temp_dir),
+                    patch.object(image_processing_service, "UPLOADS_DIR", Path(temp_dir)),
+                ):
                     # Test logo URL generation (no longer supports multiple sizes)
                     url = team_logo_url(team1)
                     assert url is not None
@@ -427,8 +437,13 @@ class TestTeamLogoDisplay:
                     else None,
                 )
 
-                # Patch the UPLOAD_DIR to point to our temp directory
-                with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
+                # Patch both the UPLOAD_DIR setting and the module-level UPLOADS_DIR
+                from app.services import image_processing_service
+
+                with (
+                    patch.object(config.settings, "UPLOAD_DIR", temp_dir),
+                    patch.object(image_processing_service, "UPLOADS_DIR", Path(temp_dir)),
+                ):
                     # Multiple calls should return the same URL
                     url1 = team_logo_url(team1)
                     url2 = team_logo_url(team1)

@@ -186,7 +186,7 @@ def integration_db_engine(request):
     """
     Creates a database engine for integration tests.
     Uses PostgreSQL if DATABASE_URL is set (container environment),
-    otherwise uses file-based SQLite for local development with Alembic migrations.
+    otherwise uses file-based SQLite for local development.
     """
     # Check if we're in a container environment with PostgreSQL
     database_url = os.environ.get("DATABASE_URL")
@@ -194,33 +194,30 @@ def integration_db_engine(request):
         # Use PostgreSQL for integration tests in container
         engine = create_engine(database_url)
         # For PostgreSQL, run Alembic migrations to ensure all tables exist
-        from alembic.config import Config
         from alembic import command
+        from alembic.config import Config
+
         alembic_cfg = Config("alembic.ini")
         command.upgrade(alembic_cfg, "head")
         yield engine
         # Don't drop tables on cleanup for PostgreSQL
     else:
-        # Use file-based SQLite for local development to support Alembic migrations
+        # Use file-based SQLite for local development
         # Create a unique database name based on the test class to prevent conflicts
         class_name = request.cls.__name__ if request.cls else "default"
-        with tempfile.NamedTemporaryFile(prefix=f"test_integration_{class_name}_", suffix=".db", delete=False) as temp_db:
+        with tempfile.NamedTemporaryFile(
+            prefix=f"test_integration_{class_name}_", suffix=".db", delete=False
+        ) as temp_db:
             db_path = temp_db.name
             db_url = f"sqlite:///{db_path}"
-            
+
         try:
             engine = create_engine(db_url, connect_args={"check_same_thread": False})
-            
-            # Run Alembic migrations for SQLite to ensure all tables (including users) are created
-            from alembic.config import Config
-            from alembic import command
-            alembic_cfg = Config("alembic.ini")
-            # Set the database URL for this specific engine
-            alembic_cfg.set_main_option("sqlalchemy.url", db_url)
-            
-            # Initialize alembic_version table and upgrade to head
-            command.upgrade(alembic_cfg, "head")
-            
+
+            # Create all tables including those from auth models
+            # This ensures both main models and auth models are created
+            Base.metadata.create_all(engine)
+
             yield engine
         finally:
             # Clean up the temp file

@@ -227,8 +227,13 @@ class TestTeamLogoUploadWorkflow:
                         else None,
                     )
 
-                    # Patch the UPLOAD_DIR to point to our temp directory
-                    with patch.object(config.settings, "UPLOAD_DIR", temp_dir):
+                    # Patch both the UPLOAD_DIR setting and the module-level UPLOADS_DIR
+                    from app.services import image_processing_service
+
+                    with (
+                        patch.object(config.settings, "UPLOAD_DIR", temp_dir),
+                        patch.object(image_processing_service, "UPLOADS_DIR", Path(temp_dir)),
+                    ):
                         # Refresh team from database to get updated logo_filename
                         integration_db_session.refresh(shared_test_team)
 
