@@ -617,6 +617,88 @@ class TestCreateGameUI:
         assert authenticated_link is not None, "Schedule Game button should be visible to authenticated users"
 
 
+class TestGameDetailPagePlayerLinks:
+    """Test player link functionality in game detail pages."""
+
+    @staticmethod
+    def create_test_game(admin_session, game_number=1):
+        """Helper method to create a test game with teams."""
+        import time
+        import uuid
+        
+        # Always create new teams to avoid conflicts in shared database
+        timestamp = int(time.time())
+        unique_suffix = str(uuid.uuid4())[:8]
+        
+        # Create home team
+        home_team_data = {"name": f"UITestHome_{timestamp}_{unique_suffix}", "display_name": f"UI Test Home {timestamp}"}
+        home_team_response = admin_session.post(f"{BASE_URL}/v1/teams/new", json=home_team_data)
+        assert home_team_response.status_code == 200, f"Failed to create home team: {home_team_response.text}"
+        home_team_id = home_team_response.json()["id"]
+        
+        # Create away team  
+        away_team_data = {"name": f"UITestAway_{timestamp}_{unique_suffix}", "display_name": f"UI Test Away {timestamp}"}
+        away_team_response = admin_session.post(f"{BASE_URL}/v1/teams/new", json=away_team_data)
+        assert away_team_response.status_code == 200, f"Failed to create away team: {away_team_response.text}"
+        away_team_id = away_team_response.json()["id"]
+        
+        # Create game with unique date based on timestamp and game number
+        import datetime
+        # Use a date far in the past and add unique timestamp to avoid conflicts
+        base_date = datetime.date(2020, 1, 1)  # Far in the past
+        unique_days = (timestamp % 1000) + game_number  # Use timestamp for uniqueness
+        game_date = (base_date + datetime.timedelta(days=unique_days)).isoformat()
+        
+        game_data = {
+            "date": game_date,
+            "home_team_id": home_team_id,
+            "away_team_id": away_team_id,
+            "location": f"Test Arena {game_number}"
+        }
+        
+        create_game_response = admin_session.post(f"{BASE_URL}/v1/games", json=game_data)
+        assert create_game_response.status_code == 200, f"Failed to create game: {create_game_response.text}"
+        
+        return create_game_response.json()["id"]
+
+    def test_game_detail_page_loads_if_game_exists(self, docker_containers, admin_session):
+        """Test that game detail page loads if there are games in the system."""
+        # Create a test game
+        game_id = self.create_test_game(admin_session, game_number=1)
+
+        # Test the game detail page loads
+        detail_response = requests.get(f"{BASE_URL}/games/{game_id}")
+        assert detail_response.status_code == 200
+
+        # Check that the page contains player link elements
+        content = detail_response.text
+        assert "player-link" in content, "Game detail page should contain player-link class"
+        assert "/players/" in content, "Game detail page should contain player profile links"
+
+    def test_game_detail_javascript_creates_player_links(self, docker_containers, admin_session):
+        """Test that game detail page JavaScript creates proper player links."""
+        # Create a test game
+        game_id = self.create_test_game(admin_session, game_number=2)
+
+        response = requests.get(f"{BASE_URL}/games/{game_id}")
+        assert response.status_code == 200, f"Failed to load game detail page: {response.status_code}"
+        content = response.text
+
+        # Check for player link creation in JavaScript
+        assert 'href="/players/${player.player_id}"' in content, "JavaScript should create player profile links"
+        assert 'class="player-link"' in content, "Player links should have player-link class"
+
+    def test_game_detail_css_includes_player_link_styles(self, docker_containers):
+        """Test that CSS includes styling for player links."""
+        # Get the game detail CSS file
+        response = requests.get(f"{BASE_URL}/static/css/components/game-detail.css")
+        assert response.status_code == 200
+
+        content = response.text
+        assert ".player-link" in content, "CSS should include player-link styling"
+        assert "hover" in content, "CSS should include hover effects for player links"
+
+
 class TestTeamLogoHandling:
     """Test team logo functionality to prevent 404 errors."""
 

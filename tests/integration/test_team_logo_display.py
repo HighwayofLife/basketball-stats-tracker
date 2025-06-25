@@ -17,7 +17,7 @@ class TestTeamLogoDisplay:
     """Integration tests for team logo display across different pages."""
 
     @pytest.fixture
-    def client(self, isolated_client, test_db_file_session, monkeypatch):
+    def client(self, isolated_client, integration_db_session, monkeypatch):
         """Use the isolated client and patch get_db_session."""
         from contextlib import contextmanager
 
@@ -25,7 +25,7 @@ class TestTeamLogoDisplay:
         @contextmanager
         def test_get_db_session():
             try:
-                yield test_db_file_session
+                yield integration_db_session
             finally:
                 pass
 
@@ -41,23 +41,30 @@ class TestTeamLogoDisplay:
         return isolated_client
 
     @pytest.fixture
-    def test_teams_with_logos(self, test_db_file_session):
+    def test_teams_with_logos(self, integration_db_session):
         """Create test teams with logos."""
-        # Create teams
-        team1 = Team(name="Team Alpha", display_name="Alpha Team", logo_filename="teams/1/logo.jpg")
-        team2 = Team(name="Team Beta", display_name="Beta Team", logo_filename="teams/2/logo.png")
-        team3 = Team(name="Team Gamma", display_name="Gamma Team")  # No logo
+        # Create teams with unique names
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        team1 = Team(name=f"Team Alpha {unique_suffix}", display_name=f"Alpha Team {unique_suffix}")
+        team2 = Team(name=f"Team Beta {unique_suffix}", display_name=f"Beta Team {unique_suffix}")
+        team3 = Team(name=f"Team Gamma {unique_suffix}", display_name=f"Gamma Team {unique_suffix}")  # No logo
 
-        test_db_file_session.add_all([team1, team2, team3])
-        test_db_file_session.commit()
-        test_db_file_session.refresh(team1)
-        test_db_file_session.refresh(team2)
-        test_db_file_session.refresh(team3)
+        integration_db_session.add_all([team1, team2, team3])
+        integration_db_session.commit()
+        integration_db_session.refresh(team1)
+        integration_db_session.refresh(team2)
+        integration_db_session.refresh(team3)
+        
+        # Set logo filenames based on actual team IDs
+        team1.logo_filename = f"teams/{team1.id}/logo.jpg"
+        team2.logo_filename = f"teams/{team2.id}/logo.png"
+        integration_db_session.commit()
 
         return team1, team2, team3
 
     @pytest.fixture
-    def test_game(self, test_db_file_session, test_teams_with_logos):
+    def test_game(self, integration_db_session, test_teams_with_logos):
         """Create a test game between teams."""
         team1, team2, team3 = test_teams_with_logos
 
@@ -69,23 +76,23 @@ class TestTeamLogoDisplay:
             opponent_team_score=78,
         )
 
-        test_db_file_session.add(game)
-        test_db_file_session.commit()
-        test_db_file_session.refresh(game)
+        integration_db_session.add(game)
+        integration_db_session.commit()
+        integration_db_session.refresh(game)
 
         return game
 
     def setup_mock_logo_files(self, temp_dir, team_ids):
         """Set up mock logo files for testing."""
-        for team_id in team_ids:
+        for i, team_id in enumerate(team_ids):
             team_dir = Path(temp_dir) / "teams" / str(team_id)
             team_dir.mkdir(parents=True, exist_ok=True)
 
             # Create mock image file (single logo, no multiple sizes)
-            img = Image.new("RGB", (200, 200), color="red" if team_id == 1 else "blue")
+            img = Image.new("RGB", (200, 200), color="red" if i == 0 else "blue")
 
-            # Use appropriate extension based on team
-            extension = ".jpg" if team_id == 1 else ".png"
+            # Use appropriate extension based on team order (first team .jpg, second .png)
+            extension = ".jpg" if i == 0 else ".png"
             img_path = team_dir / f"logo{extension}"
             img.save(img_path)
 
@@ -94,7 +101,7 @@ class TestTeamLogoDisplay:
         team1, team2, team3 = test_teams_with_logos
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1, 2])
+            self.setup_mock_logo_files(temp_dir, [team1.id, team2.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -117,7 +124,7 @@ class TestTeamLogoDisplay:
                 assert api_response.status_code == 200
                 api_data = api_response.json()
                 assert "logo_url" in api_data
-                assert api_data["logo_url"] == f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg"
+                assert api_data["logo_url"] == f"{UPLOADS_URL_PREFIX}teams/{team1.id}/logo.jpg"
 
                 # Test team without logo
                 response = client.get(f"/teams/{team3.id}")
@@ -137,8 +144,9 @@ class TestTeamLogoDisplay:
 
     def test_games_index_page_logo_display(self, client, test_game, test_teams_with_logos):
         """Test that team logos display correctly on games index page."""
+        team1, team2, team3 = test_teams_with_logos
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1, 2])
+            self.setup_mock_logo_files(temp_dir, [team1.id, team2.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -170,8 +178,9 @@ class TestTeamLogoDisplay:
 
     def test_game_detail_page_logo_display(self, client, test_game, test_teams_with_logos):
         """Test that team logos display correctly on game detail page."""
+        team1, team2, team3 = test_teams_with_logos
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1, 2])
+            self.setup_mock_logo_files(temp_dir, [team1.id, team2.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -191,7 +200,7 @@ class TestTeamLogoDisplay:
                     "game_id" in html_content or f"/games/{test_game.id}" in html_content or response.status_code == 200
                 )
 
-    def test_template_helper_integration(self, test_teams_with_logos, test_db_file_session, monkeypatch):
+    def test_template_helper_integration(self, test_teams_with_logos, integration_db_session, monkeypatch):
         """Test that the template helper function works with real data."""
         # Import and clear caches FIRST, before any other imports
         import app.web_ui.templates_config as templates_config_module
@@ -205,7 +214,8 @@ class TestTeamLogoDisplay:
         team1, team2, team3 = test_teams_with_logos
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1, 2])
+            team1, team2, team3 = test_teams_with_logos
+            self.setup_mock_logo_files(temp_dir, [team1.id, team2.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -230,7 +240,7 @@ class TestTeamLogoDisplay:
                 @contextmanager
                 def test_get_db_session():
                     try:
-                        yield test_db_file_session
+                        yield integration_db_session
                     finally:
                         pass
 
@@ -252,12 +262,12 @@ class TestTeamLogoDisplay:
                     # Test team with logo
                     url1 = team_logo_url(team1)
                     assert url1 is not None
-                    assert f"{UPLOADS_URL_PREFIX}teams/1/logo.jpg" in url1
+                    assert f"{UPLOADS_URL_PREFIX}teams/{team1.id}/logo.jpg" in url1
 
                     # Test team with PNG logo
                     url2 = team_logo_url(team2)
                     assert url2 is not None
-                    assert f"{UPLOADS_URL_PREFIX}teams/2/logo.png" in url2
+                    assert f"{UPLOADS_URL_PREFIX}teams/{team2.id}/logo.png" in url2
 
                     # Test team without logo
                     url3 = team_logo_url(team3)
@@ -291,7 +301,7 @@ class TestTeamLogoDisplay:
                     response = client.get("/games")
                     assert response.status_code == 200
 
-    def test_different_logo_sizes_display(self, test_teams_with_logos, test_db_file_session, monkeypatch):
+    def test_different_logo_sizes_display(self, test_teams_with_logos, integration_db_session, monkeypatch):
         """Test that different logo sizes are correctly served."""
         # Import and clear caches FIRST, before any other imports
         import app.web_ui.templates_config as templates_config_module
@@ -305,7 +315,8 @@ class TestTeamLogoDisplay:
         team1, team2, team3 = test_teams_with_logos
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1])
+            team1, team2, team3 = test_teams_with_logos
+            self.setup_mock_logo_files(temp_dir, [team1.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -330,7 +341,7 @@ class TestTeamLogoDisplay:
                 @contextmanager
                 def test_get_db_session():
                     try:
-                        yield test_db_file_session
+                        yield integration_db_session
                     finally:
                         pass
 
@@ -354,9 +365,9 @@ class TestTeamLogoDisplay:
                     # Test logo URL generation (no longer supports multiple sizes)
                     url = team_logo_url(team1)
                     assert url is not None
-                    assert "teams/1/logo.jpg" in url
+                    assert f"teams/{team1.id}/logo.jpg" in url
 
-    def test_logo_url_caching_behavior(self, test_teams_with_logos, test_db_file_session, monkeypatch):
+    def test_logo_url_caching_behavior(self, test_teams_with_logos, integration_db_session, monkeypatch):
         """Test that logo URL generation is consistent."""
         # Import and clear caches FIRST, before any other imports
         import app.web_ui.templates_config as templates_config_module
@@ -370,7 +381,8 @@ class TestTeamLogoDisplay:
         team1, team2, team3 = test_teams_with_logos
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1])
+            team1, team2, team3 = test_teams_with_logos
+            self.setup_mock_logo_files(temp_dir, [team1.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 
@@ -395,7 +407,7 @@ class TestTeamLogoDisplay:
                 @contextmanager
                 def test_get_db_session():
                     try:
-                        yield test_db_file_session
+                        yield integration_db_session
                     finally:
                         pass
 
@@ -429,7 +441,8 @@ class TestTeamLogoDisplay:
         team1, team2, team3 = test_teams_with_logos
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.setup_mock_logo_files(temp_dir, [1, 2])
+            team1, team2, team3 = test_teams_with_logos
+            self.setup_mock_logo_files(temp_dir, [team1.id, team2.id])
 
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
 

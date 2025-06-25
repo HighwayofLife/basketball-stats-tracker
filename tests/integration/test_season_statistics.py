@@ -33,15 +33,20 @@ class TestSeasonStatisticsIntegration:
     @pytest.fixture
     def setup_test_data(self, test_db_file_session: Session):
         """Set up test data for integration tests."""
-        # Create teams
-        team1 = create_team(test_db_file_session, "Lakers")
-        team2 = create_team(test_db_file_session, "Warriors")
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
+        # Create teams with unique names
+        team1_name = f"SeasonLakers_{unique_suffix}"
+        team2_name = f"SeasonWarriors_{unique_suffix}"
+        team1 = create_team(test_db_file_session, team1_name)
+        team2 = create_team(test_db_file_session, team2_name)
 
-        # Create players
-        player1 = create_player(test_db_file_session, "LeBron James", 23, team1.id)
-        player2 = create_player(test_db_file_session, "Anthony Davis", 3, team1.id)
-        player3 = create_player(test_db_file_session, "Stephen Curry", 30, team2.id)
-        player4 = create_player(test_db_file_session, "Klay Thompson", 11, team2.id)
+        # Create players with unique names
+        player1 = create_player(test_db_file_session, f"SeasonLeBron_{unique_suffix}", f"23_{unique_suffix[:4]}", team1.id)
+        player2 = create_player(test_db_file_session, f"SeasonAnthony_{unique_suffix}", f"3_{unique_suffix[:4]}", team1.id)
+        player3 = create_player(test_db_file_session, f"SeasonStephen_{unique_suffix}", f"30_{unique_suffix[:4]}", team2.id)
+        player4 = create_player(test_db_file_session, f"SeasonKlay_{unique_suffix}", f"11_{unique_suffix[:4]}", team2.id)
 
         # Create season
         season = Season(
@@ -185,6 +190,7 @@ class TestSeasonStatisticsIntegration:
             "teams": {"lakers": team1, "warriors": team2},
             "players": {"lebron": player1, "davis": player2, "curry": player3, "thompson": player4},
             "games": [game1, game2],
+            "unique_suffix": unique_suffix,
         }
 
     def test_update_season_stats_integration(self, test_db_file_session: Session, setup_test_data):
@@ -233,7 +239,8 @@ class TestSeasonStatisticsIntegration:
         # Game 1: 10 + 6*2 + 8*3 = 10+12+24 = 46
         # Game 2: 8 + 8*2 + 10*3 = 8+16+30 = 54
         # Total: 100 points / 2 games = 50 PPG
-        assert ppg_rankings[0]["player_name"] == "Stephen Curry"
+        curry_name = setup_test_data["players"]["curry"].name
+        assert ppg_rankings[0]["player_name"] == curry_name
         assert ppg_rankings[0]["value"] == 50.0
 
     @pytest.mark.skip(reason="Test data setup issue - expected 2 teams but found 0")
@@ -249,14 +256,16 @@ class TestSeasonStatisticsIntegration:
 
         assert len(standings) == 2
         # Warriors should be first (2-0)
-        assert standings[0]["team_name"] == "Warriors"
+        warriors_name = setup_test_data["teams"]["warriors"].name
+        lakers_name = setup_test_data["teams"]["lakers"].name
+        assert standings[0]["team_name"] == warriors_name
         assert standings[0]["wins"] == 2
         assert standings[0]["losses"] == 0
         assert standings[0]["win_pct"] == 1.0
         assert standings[0]["games_back"] is None
 
         # Lakers should be second (0-2)
-        assert standings[1]["team_name"] == "Lakers"
+        assert standings[1]["team_name"] == lakers_name
         assert standings[1]["wins"] == 0
         assert standings[1]["losses"] == 2
         assert standings[1]["win_pct"] == 0.0

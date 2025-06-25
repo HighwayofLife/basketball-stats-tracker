@@ -85,9 +85,14 @@ class TestScheduledGamesAPI:
 
     def test_create_scheduled_game(self, test_client, test_db_file_session):
         """Test creating a scheduled game via API."""
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
         # Create teams first
-        home_team = Team(name="Home Team")
-        away_team = Team(name="Away Team")
+        home_team_name = f"HomeTeam_{unique_suffix}"
+        away_team_name = f"AwayTeam_{unique_suffix}"
+        home_team = Team(name=home_team_name)
+        away_team = Team(name=away_team_name)
         test_db_file_session.add(home_team)
         test_db_file_session.add(away_team)
         test_db_file_session.commit()
@@ -129,9 +134,14 @@ class TestScheduledGamesAPI:
 
     def test_get_scheduled_games_list(self, test_client, test_db_file_session):
         """Test getting list of scheduled games."""
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
         # Create teams
-        team1 = Team(name="Team 1")
-        team2 = Team(name="Team 2")
+        team1_name = f"Team1_{unique_suffix}"
+        team2_name = f"Team2_{unique_suffix}"
+        team1 = Team(name=team1_name)
+        team2 = Team(name=team2_name)
         test_db_file_session.add(team1)
         test_db_file_session.add(team2)
         test_db_file_session.commit()
@@ -167,9 +177,14 @@ class TestScheduledGamesAPI:
 
     def test_get_scheduled_game_detail(self, test_client, test_db_file_session):
         """Test getting a specific scheduled game."""
-        # Create teams and game
-        home_team = Team(name="Home Team")
-        away_team = Team(name="Away Team")
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
+        # Create teams and game with unique names
+        home_team_name = f"ScheduledHomeTeam_{unique_suffix}"
+        away_team_name = f"ScheduledAwayTeam_{unique_suffix}"
+        home_team = Team(name=home_team_name)
+        away_team = Team(name=away_team_name)
         test_db_file_session.add(home_team)
         test_db_file_session.add(away_team)
         test_db_file_session.commit()
@@ -194,15 +209,21 @@ class TestScheduledGamesAPI:
         assert data["id"] == game.id
         assert data["scheduled_date"] == "2025-06-15"
         assert data["scheduled_time"] == "19:30"
-        assert data["home_team_name"] == "Home Team"
-        assert data["away_team_name"] == "Away Team"
+        assert data["home_team_name"] == home_team_name
+        assert data["away_team_name"] == away_team_name
 
     def test_update_scheduled_game(self, test_client, test_db_file_session):
         """Test updating a scheduled game."""
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
         # Create teams and game
-        team1 = Team(name="Team 1")
-        team2 = Team(name="Team 2")
-        team3 = Team(name="Team 3")
+        team1_name = f"Team1_{unique_suffix}"
+        team2_name = f"Team2_{unique_suffix}"
+        team3_name = f"Team3_{unique_suffix}"
+        team1 = Team(name=team1_name)
+        team2 = Team(name=team2_name)
+        team3 = Team(name=team3_name)
         test_db_file_session.add_all([team1, team2, team3])
         test_db_file_session.commit()
 
@@ -236,9 +257,14 @@ class TestScheduledGamesAPI:
 
     def test_cancel_scheduled_game(self, test_client, test_db_file_session):
         """Test canceling a scheduled game."""
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
         # Create teams and game
-        home_team = Team(name="Home Team")
-        away_team = Team(name="Away Team")
+        home_team_name = f"HomeTeam_{unique_suffix}"
+        away_team_name = f"AwayTeam_{unique_suffix}"
+        home_team = Team(name=home_team_name)
+        away_team = Team(name=away_team_name)
         test_db_file_session.add(home_team)
         test_db_file_session.add(away_team)
         test_db_file_session.commit()
@@ -265,9 +291,14 @@ class TestScheduledGamesAPI:
 
     def test_delete_scheduled_game(self, test_client, test_db_file_session):
         """Test deleting a scheduled game."""
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
         # Create teams and game
-        home_team = Team(name="Home Team")
-        away_team = Team(name="Away Team")
+        home_team_name = f"HomeTeam_{unique_suffix}"
+        away_team_name = f"AwayTeam_{unique_suffix}"
+        home_team = Team(name=home_team_name)
+        away_team = Team(name=away_team_name)
         test_db_file_session.add(home_team)
         test_db_file_session.add(away_team)
         test_db_file_session.commit()
@@ -309,9 +340,14 @@ class TestScheduledGamesAPI:
 
     def test_scheduled_games_appear_in_games_list(self, test_client, test_db_file_session):
         """Test that scheduled games appear in the main games list with negative IDs."""
-        # Create teams
-        team1 = Team(name="Test Team 1")
-        team2 = Team(name="Test Team 2")
+        import uuid
+        unique_suffix = str(uuid.uuid4())[:8]
+        
+        # Create teams with unique names
+        team1_name = f"ScheduledTeam1_{unique_suffix}"
+        team2_name = f"ScheduledTeam2_{unique_suffix}"
+        team1 = Team(name=team1_name)
+        team2 = Team(name=team2_name)
         test_db_file_session.add(team1)
         test_db_file_session.add(team2)
         test_db_file_session.commit()
@@ -340,8 +376,8 @@ class TestScheduledGamesAPI:
         assert scheduled_game_in_list["date"] == "2025-12-25"
         assert scheduled_game_in_list["home_score"] == 0
         assert scheduled_game_in_list["away_score"] == 0
-        assert scheduled_game_in_list["home_team"] == "Test Team 1"
-        assert scheduled_game_in_list["away_team"] == "Test Team 2"
+        assert scheduled_game_in_list["home_team"] == team1_name
+        assert scheduled_game_in_list["away_team"] == team2_name
 
     def test_csv_import_matches_scheduled_game(self, test_client, test_db_file_session):
         """Test that CSV import matches and updates scheduled games."""
