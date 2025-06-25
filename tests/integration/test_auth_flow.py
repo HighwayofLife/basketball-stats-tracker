@@ -1,14 +1,6 @@
 """Integration tests for authentication flow and authenticated endpoints."""
 
 import os
-
-# Set JWT_SECRET_KEY for all tests in this module
-os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
-
-# Get admin password from environment, fallback to test default
-ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "TestAdminPassword123!")
-os.environ["ADMIN_PASSWORD"] = ADMIN_PASSWORD
-
 from datetime import date
 
 import pytest
@@ -16,6 +8,13 @@ import pytest
 from app.auth.jwt_handler import get_password_hash
 from app.auth.models import User, UserRole
 from app.data_access.models import Season, Team
+
+# Set JWT_SECRET_KEY for all tests in this module
+os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
+
+# Get admin password from environment, fallback to test default
+ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "TestAdminPassword123!")
+os.environ["ADMIN_PASSWORD"] = ADMIN_PASSWORD
 
 
 @pytest.fixture
