@@ -4,7 +4,10 @@ import os
 
 # Set JWT_SECRET_KEY for all tests in this module
 os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key-that-is-long-enough-for-validation-purposes"
-os.environ["ADMIN_PASSWORD"] = "TestAdminPassword123!"
+
+# Get admin password from environment, fallback to test default
+ADMIN_PASSWORD = os.environ.get("DEFAULT_ADMIN_PASSWORD", "TestAdminPassword123!")
+os.environ["ADMIN_PASSWORD"] = ADMIN_PASSWORD
 
 from datetime import date
 
@@ -24,7 +27,7 @@ def create_admin_user(integration_db_session):
         admin_user = User(
             username="admin",
             email="admin@test.com",
-            hashed_password=get_password_hash("TestAdminPassword123!"),
+            hashed_password=get_password_hash(ADMIN_PASSWORD),
             role=UserRole.ADMIN,
             is_active=True,
             provider="local",  # Required for password authentication
@@ -39,7 +42,7 @@ def auth_headers(authenticated_client, create_admin_user):
     # Login to get token
     response = authenticated_client.post(
         "/auth/token",
-        data={"username": "admin", "password": "TestAdminPassword123!"},
+        data={"username": "admin", "password": ADMIN_PASSWORD},
     )
     assert response.status_code == 200
     token_data = response.json()
@@ -106,7 +109,7 @@ class TestAuthenticationFlow:
         """Test login with valid credentials returns tokens."""
         response = authenticated_client.post(
             "/auth/token",
-            data={"username": "admin", "password": "TestAdminPassword123!"},
+            data={"username": "admin", "password": ADMIN_PASSWORD},
         )
         assert response.status_code == 200
 
