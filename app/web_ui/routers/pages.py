@@ -3,7 +3,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse
 from sqlalchemy import desc
 from sqlalchemy.orm import joinedload
 
@@ -555,3 +555,21 @@ async def about_page(auth_context: dict = Depends(get_template_auth_context)):
     """Render the about page."""
     context = {**auth_context, "title": "About"}
     return templates.TemplateResponse("about.html", context)
+
+
+@router.get("/robots.txt", response_class=PlainTextResponse)
+async def robots_txt():
+    """Serve robots.txt file."""
+    content = """User-agent: *
+Allow: /"""
+    return PlainTextResponse(content=content, media_type="text/plain")
+
+
+@router.get("/.well-known/security.txt", response_class=PlainTextResponse)
+async def security_txt():
+    """Serve security.txt file."""
+    content = """Contact: https://github.com/HighwayofLife/basketball-stats-tracker/issues
+Expires: 2025-12-31T23:59:59.000Z
+Preferred-Languages: en
+Canonical: https://league-stats.net/.well-known/security.txt"""
+    return PlainTextResponse(content=content, media_type="text/plain")
