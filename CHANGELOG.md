@@ -1,3 +1,13 @@
+v0.4.16
+-------
+
+### Code Architecture Improvements
+- **Report Service Refactoring**: Consolidated business logic into dedicated service layer
+  - Created `report_service.py` to handle all report generation business logic
+  - Refactored `ReportCommands` to delegate to `ReportService` instead of containing business logic
+  - Improved separation of concerns following SOLID principles
+  - Maintained backward compatibility for all report generation features
+
 v0.4.15
 -------
 
