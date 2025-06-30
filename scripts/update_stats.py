@@ -26,42 +26,24 @@ def get_test_stats():
     """Get test statistics by running pytest."""
     print("📊 Gathering test statistics...")
 
-    # Try local pytest first (faster and more reliable)
-    if Path("venv/bin/activate").exists():
-        print("📊 Using local virtual environment...")
-        # Always run without maxfail to get full count, but suppress output for performance
-        cmd = "source venv/bin/activate && pytest tests/ --tb=no -q --disable-warnings"
-        stdout, stderr, returncode = run_command(cmd)
+    # Use Docker containers for consistent environment
+    print("📊 Using Docker container...")
 
-        # If we got output, try to get coverage data (but don't require it)
-        if stdout or stderr:
-            print("📊 Tests completed, attempting coverage collection...")
-            coverage_cmd = (
-                "source venv/bin/activate && pytest --cov=app --cov-report=term tests/ --tb=no -q --disable-warnings"
-            )
-            cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
-            if cov_returncode == 0 and "TOTAL" in cov_stdout:
-                stdout, stderr = cov_stdout, cov_stderr
-                print("📊 Coverage data collected from all tests")
-            else:
-                print("⚠️  Coverage collection failed, using test results only")
+    # Run all tests to get accurate counts
+    cmd = "docker compose exec -T web pytest tests/ --tb=no -q --disable-warnings"
+    stdout, stderr, returncode = run_command(cmd)
+
+    # Try to get coverage data if tests ran
+    print("📊 Tests completed, attempting coverage collection...")
+    coverage_cmd = "docker compose exec -T web pytest --cov=app --cov-report=term tests/ --tb=no -q --disable-warnings"
+    cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
+
+    # Use coverage output if available, otherwise use test output
+    if "TOTAL" in cov_stdout:
+        stdout, stderr = cov_stdout, cov_stderr
+        print("📊 Coverage data collected from all tests")
     else:
-        print("📊 No virtual environment found, trying Docker...")
-        # Fallback to Docker if no venv
-        cmd = "docker compose exec -T web pytest tests/ --tb=no -q --disable-warnings"
-        stdout, stderr, returncode = run_command(cmd)
-
-        if stdout or stderr:
-            print("📊 Tests completed, attempting coverage collection...")
-            coverage_cmd = (
-                "docker compose exec -T web pytest --cov=app --cov-report=term tests/ --tb=no -q --disable-warnings"
-            )
-            cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
-            if cov_returncode == 0 and "TOTAL" in cov_stdout:
-                stdout, stderr = cov_stdout, cov_stderr
-                print("📊 Coverage data collected from all tests")
-            else:
-                print("⚠️  Coverage collection failed, using test results only")
+        print("⚠️  Coverage collection failed, using test results only")
 
     # Parse test results
     test_results = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "errors": 0}
