@@ -269,6 +269,12 @@ local-test-watch: ## Run tests in watch mode locally, rerunning on file changes
 	@echo "${CYAN}Running tests in watch mode locally...${NC}"
 	@pytest-watch -- -v tests/
 
+.PHONY: local-test-cleanup
+local-test-cleanup: ## Clean up all test data and reset test database
+	@echo "${CYAN}Cleaning up test data and resetting test database...${NC}"
+	@python -m app.cli init-db --force
+	@echo "${GREEN}Test database has been reset and cleaned up.${NC}"
+
 # --- Convenience Testing Targets (delegates to container) ---
 
 .PHONY: test-unit
@@ -307,6 +313,12 @@ test-ui-standalone: ## Internal target for running UI tests as part of comprehen
 test-coverage: ensure-running ## Run all tests with coverage reporting inside the container
 	@echo "${CYAN}Running tests with coverage in container...${NC}"
 	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) pytest --cov=app --cov-report=term --cov-report=html tests/
+
+.PHONY: test-cleanup
+test-cleanup: ensure-running ## Clean up all test data and reset test database in container
+	@echo "${CYAN}Cleaning up test data and resetting test database in container...${NC}"
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats init-db --force
+	@echo "${GREEN}Test database has been reset and cleaned up.${NC}"
 
 # --- MCP Server ---
 

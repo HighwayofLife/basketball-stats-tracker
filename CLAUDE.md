@@ -22,6 +22,7 @@ make test-unit        # Unit tests only
 make test-integration # Integration tests only
 make test-ui          # UI validation tests (starts/stops containers)
 make test-coverage    # With coverage report
+make test-cleanup     # Clean up test database and reset all test data
 pytest                # Direct pytest execution (after activating venv)
 
 # Code quality
