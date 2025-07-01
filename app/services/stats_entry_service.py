@@ -136,20 +136,25 @@ class StatsEntryService:
                 player_game_stats.playing_for_team_id = playing_for_team_id
                 self._db_session.commit()
 
-            # Create quarter stats
-            create_player_quarter_stats(
-                self._db_session,
-                player_game_stats.id,
-                quarter,
-                {
-                    "ftm": stats.get("ftm", 0),
-                    "fta": stats.get("fta", 0),
-                    "fg2m": stats.get("fg2m", 0),
-                    "fg2a": stats.get("fg2a", 0),
-                    "fg3m": stats.get("fg3m", 0),
-                    "fg3a": stats.get("fg3a", 0),
-                },
-            )
+            # Check if quarter stats already exist
+            from app.data_access.crud.crud_player_quarter_stats import get_quarter_stats_by_quarter
+            
+            existing_quarter_stats = get_quarter_stats_by_quarter(self._db_session, player_game_stats.id, quarter)
+            if not existing_quarter_stats:
+                # Create quarter stats only if they don't exist
+                create_player_quarter_stats(
+                    self._db_session,
+                    player_game_stats.id,
+                    quarter,
+                    {
+                        "ftm": stats.get("ftm", 0),
+                        "fta": stats.get("fta", 0),
+                        "fg2m": stats.get("fg2m", 0),
+                        "fg2a": stats.get("fg2a", 0),
+                        "fg3m": stats.get("fg3m", 0),
+                        "fg3a": stats.get("fg3a", 0),
+                    },
+                )
 
             # Update totals
             self._update_player_game_totals(player_game_stats.id)

@@ -281,7 +281,7 @@ class PlayerQuarterStats(Base):
 
     __table_args__ = (
         UniqueConstraint("player_game_stat_id", "quarter_number", name="uq_player_game_quarter"),
-        CheckConstraint("quarter_number >= 1 AND quarter_number <= 4", name="check_quarter_number"),
+        CheckConstraint("quarter_number >= 1 AND quarter_number <= 6", name="check_quarter_number"),
     )
 
     def __repr__(self):
@@ -313,7 +313,7 @@ class GameState(Base):
 
     game: Mapped[Game] = relationship("Game", back_populates="game_state")
 
-    __table_args__ = (CheckConstraint("current_quarter >= 1 AND current_quarter <= 4", name="check_quarter_number"),)
+    __table_args__ = (CheckConstraint("current_quarter >= 1 AND current_quarter <= 6", name="check_quarter_number"),)
 
     def __repr__(self):
         return (

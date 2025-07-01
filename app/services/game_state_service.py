@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import and_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.data_access.models import (
     ActiveRoster,
@@ -303,7 +303,16 @@ class GameStateService:
             raise ValueError("Game is not in progress")
 
         if game_state.current_quarter >= 4:
-            raise ValueError("Cannot advance past 4th quarter. Use finalize_game to end the game.")
+            home_score = self._calculate_team_score(game_id, game_state.game.playing_team_id)
+            away_score = self._calculate_team_score(game_id, game_state.game.opponent_team_id)
+
+            # If tied at end of regulation (Q4) or tied at end of OT1 (Q5), go to overtime
+            if home_score == away_score and game_state.current_quarter <= 5:
+                pass  # Allow advancing to overtime (Q5 or Q6)
+            # If not tied OR we're at end of OT2 (Q6), finalize the game
+            elif home_score != away_score or game_state.current_quarter >= 6:
+                self.finalize_game(game_id)
+                return self._get_game_state(game_id)
 
         # Create quarter end event
         event = GameEvent(
@@ -475,7 +484,12 @@ class GameStateService:
 
     def _get_game_state(self, game_id: int) -> GameState:
         """Get the game state for a game."""
-        game_state = self.session.query(GameState).filter(GameState.game_id == game_id).first()
+        game_state = (
+            self.session.query(GameState)
+            .options(joinedload(GameState.game))
+            .filter(GameState.game_id == game_id)
+            .first()
+        )
         if not game_state:
             raise ValueError(f"Game state for game {game_id} not found")
         return game_state

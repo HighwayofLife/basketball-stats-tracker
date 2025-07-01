@@ -302,7 +302,7 @@ class ReportGenerator:
             "team_scoring_distribution": team_totals["scoring_distribution"],
         }
 
-    def _handle_missing_quarter_data(self, quarter_stats, quarters=4):
+    def _handle_missing_quarter_data(self, quarter_stats, quarters=6):
         """
         Ensure quarter data is complete by filling in missing quarters with zeroes.
 
@@ -486,7 +486,7 @@ class ReportGenerator:
         quarter_map = self._handle_missing_quarter_data(quarter_stats)
 
         # Process each quarter in order
-        for quarter in range(1, 5):
+        for quarter in sorted(quarter_map.keys()):
             qs = quarter_map[quarter]
 
             # Calculate points for this quarter
@@ -804,8 +804,8 @@ class ReportGenerator:
         player_game_stats = crud_player_game_stats.get_player_game_stats_by_game(self.db_session, game_id)
 
         # Initialize quarter scoring for both teams
-        playing_team_quarters = {1: 0, 2: 0, 3: 0, 4: 0}
-        opponent_team_quarters = {1: 0, 2: 0, 3: 0, 4: 0}
+        playing_team_quarters = dict.fromkeys(range(1, 7), 0)
+        opponent_team_quarters = dict.fromkeys(range(1, 7), 0)
 
         # Process each player's stats
         for pgs in player_game_stats:
@@ -826,34 +826,24 @@ class ReportGenerator:
                     opponent_team_quarters[qs.quarter_number] += points
 
         # Calculate cumulative scores
-        playing_team_cumulative = {
-            1: playing_team_quarters[1],
-            2: playing_team_quarters[1] + playing_team_quarters[2],
-            3: playing_team_quarters[1] + playing_team_quarters[2] + playing_team_quarters[3],
-            4: playing_team_quarters[1]
-            + playing_team_quarters[2]
-            + playing_team_quarters[3]
-            + playing_team_quarters[4],
-        }
-
-        opponent_team_cumulative = {
-            1: opponent_team_quarters[1],
-            2: opponent_team_quarters[1] + opponent_team_quarters[2],
-            3: opponent_team_quarters[1] + opponent_team_quarters[2] + opponent_team_quarters[3],
-            4: (
-                opponent_team_quarters[1]
-                + opponent_team_quarters[2]
-                + opponent_team_quarters[3]
-                + opponent_team_quarters[4]
-            ),
-        }
+        playing_team_cumulative = {}
+        opponent_team_cumulative = {}
+        playing_team_running_total = 0
+        opponent_team_running_total = 0
+        for q in sorted(playing_team_quarters.keys()):
+            playing_team_running_total += playing_team_quarters[q]
+            playing_team_cumulative[q] = playing_team_running_total
+            opponent_team_running_total += opponent_team_quarters[q]
+            opponent_team_cumulative[q] = opponent_team_running_total
 
         # Identify scoring runs
         scoring_runs = self._identify_scoring_runs(playing_team_quarters, opponent_team_quarters)
 
         # Calculate point differentials by quarter
         point_differentials = {
-            quarter: playing_team_quarters[quarter] - opponent_team_quarters[quarter] for quarter in range(1, 5)
+            quarter: playing_team_quarters[quarter] - opponent_team_quarters[quarter]
+            for quarter in sorted(playing_team_quarters.keys())
+            if playing_team_quarters[quarter] > 0 or opponent_team_quarters[quarter] > 0
         }
 
         # Format date for display
@@ -900,7 +890,7 @@ class ReportGenerator:
         runs = []
 
         # Look for quarters where one team outscores the other by a significant margin
-        for quarter in range(1, 5):
+        for quarter in sorted(team_a_quarters.keys()):
             differential = team_a_quarters[quarter] - team_b_quarters[quarter]
 
             # Define a "significant" run as outscoring by 5+ points

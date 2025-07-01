@@ -275,8 +275,15 @@ class TestGameDetailPageIntegration:
         home_quarters = data["home_team"]["stats"]["quarter_scores"]
         away_quarters = data["away_team"]["stats"]["quarter_scores"]
 
-        assert isinstance(home_quarters, dict)
-        assert isinstance(away_quarters, dict)
+        assert isinstance(home_quarters, list)
+        assert isinstance(away_quarters, list)
+
+        # Verify quarter score objects have correct structure
+        if home_quarters:
+            for quarter in home_quarters:
+                assert "quarter" in quarter
+                assert "label" in quarter
+                assert "score" in quarter
 
     def test_game_detail_shooting_stats(self, authenticated_client, game_with_full_data):
         """Test that shooting statistics are calculated correctly."""

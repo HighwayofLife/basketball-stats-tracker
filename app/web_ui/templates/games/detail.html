@@ -193,8 +193,8 @@
     function createScoreboard(game, boxScore) {
         const awayTeam = boxScore.away_team;
         const homeTeam = boxScore.home_team;
-        const awayQuarters = awayTeam.stats.quarter_scores || {};
-        const homeQuarters = homeTeam.stats.quarter_scores || {};
+        const awayQuarters = awayTeam.stats.quarter_scores || [];
+        const homeQuarters = homeTeam.stats.quarter_scores || [];
         const awayRecord = awayTeam.record || '0-0';
         const homeRecord = homeTeam.record || '0-0';
 
@@ -228,30 +228,21 @@
 
                 <table class="quarter-scores-table">
                     <thead>
-                        <tr>
+                        <tr id="quarter-headers">
                             <th>Team</th>
-                            <th>Q1</th>
-                            <th>Q2</th>
-                            <th>Q3</th>
-                            <th>Q4</th>
+                            ${awayQuarters.map(q => `<th>${q.label}</th>`).join('')}
                             <th>Total</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="quarter-scores-body">
                         <tr>
                             <td data-label="Team" class="team-name-cell">${awayTeam.name}</td>
-                            <td data-label="Q1">${awayQuarters[1] || 0}</td>
-                            <td data-label="Q2">${awayQuarters[2] || 0}</td>
-                            <td data-label="Q3">${awayQuarters[3] || 0}</td>
-                            <td data-label="Q4">${awayQuarters[4] || 0}</td>
+                            ${awayQuarters.map(q => `<td data-label="${q.label}">${q.score}</td>`).join('')}
                             <td data-label="Total" class="total-score">${awayTeam.score}</td>
                         </tr>
                         <tr>
                             <td data-label="Team" class="team-name-cell">${homeTeam.name}</td>
-                            <td data-label="Q1">${homeQuarters[1] || 0}</td>
-                            <td data-label="Q2">${homeQuarters[2] || 0}</td>
-                            <td data-label="Q3">${homeQuarters[3] || 0}</td>
-                            <td data-label="Q4">${homeQuarters[4] || 0}</td>
+                            ${homeQuarters.map(q => `<td data-label="${q.label}">${q.score}</td>`).join('')}
                             <td data-label="Total" class="total-score">${homeTeam.score}</td>
                         </tr>
                     </tbody>

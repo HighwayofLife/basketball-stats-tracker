@@ -45,6 +45,8 @@ class PlayerStatsRowSchema(BaseModel):
     QT2Shots: str = ""
     QT3Shots: str = ""
     QT4Shots: str = ""
+    OT1Shots: str = ""
+    OT2Shots: str = ""
 
     @classmethod
     @field_validator("Fouls")
