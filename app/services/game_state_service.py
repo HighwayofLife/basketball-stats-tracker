@@ -290,7 +290,12 @@ class GameStateService:
         }
 
     def end_quarter(self, game_id: int) -> GameState:
-        """End the current quarter.
+        """End the current quarter and advance to the next quarter or finalize the game.
+
+        After regulation (Q4), checks if game is tied to determine overtime.
+        Allows up to 2 overtime periods (Q5, Q6). Game is finalized when:
+        - Not tied at end of regulation or any overtime period
+        - At the end of 2nd overtime period regardless of score
 
         Args:
             game_id: ID of the game
@@ -302,15 +307,18 @@ class GameStateService:
         if not game_state.is_live:
             raise ValueError("Game is not in progress")
 
+        # After regulation (Q4) or overtime periods, check if game should continue or end
         if game_state.current_quarter >= 4:
             home_score = self._calculate_team_score(game_id, game_state.game.playing_team_id)
             away_score = self._calculate_team_score(game_id, game_state.game.opponent_team_id)
 
-            # If tied at end of regulation (Q4) or tied at end of OT1 (Q5), go to overtime
-            if home_score == away_score and game_state.current_quarter <= 5:
-                pass  # Allow advancing to overtime (Q5 or Q6)
-            # If not tied OR we're at end of OT2 (Q6), finalize the game
-            elif home_score != away_score or game_state.current_quarter >= 6:
+            # Determine if game should continue to overtime or be finalized
+            should_finalize = (
+                home_score != away_score  # Game not tied
+                or game_state.current_quarter >= 6  # End of 2nd overtime (Q6)
+            )
+
+            if should_finalize:
                 self.finalize_game(game_id)
                 return self._get_game_state(game_id)
 

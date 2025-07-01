@@ -38,7 +38,10 @@ def get_test_stats():
 
     # Try to get coverage data if tests ran
     print("📊 Tests completed, attempting coverage collection...")
-    coverage_cmd = f"docker compose exec -T web pytest --cov=app --cov-report=term tests/ --tb=no -q --disable-warnings {exclude_args}"
+    coverage_cmd = (
+        f"docker compose exec -T web pytest --cov=app --cov-report=term tests/ "
+        f"--tb=no -q --disable-warnings {exclude_args}"
+    )
     cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
 
     # Use coverage output if available, otherwise use test output
@@ -65,9 +68,9 @@ def get_test_stats():
     # Also handle pytest format like "============ 1 failed, 768 passed, 28 skipped, 57 errors in 26.59s ============="
     summary_patterns = [
         r"=+\s*(.*?)\s*in\s+[\d.]+s\s*=+",  # Standard format
-        r"=+\s*(.*?)\s+in\s+[\d.]+s\s*=+"   # Alternative format
+        r"=+\s*(.*?)\s+in\s+[\d.]+s\s*=+",  # Alternative format
     ]
-    
+
     summary_text = None
     for pattern in summary_patterns:
         summary_match = re.search(pattern, clean_output)
