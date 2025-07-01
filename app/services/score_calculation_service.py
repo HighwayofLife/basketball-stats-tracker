@@ -86,6 +86,6 @@ class ScoreCalculationService:
         # Update game with calculated scores
         game.playing_team_score = playing_team_score
         game.opponent_team_score = opponent_team_score
-        
+
         if commit:
             db.commit()

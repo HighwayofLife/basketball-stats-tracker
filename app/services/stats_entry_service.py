@@ -138,7 +138,7 @@ class StatsEntryService:
 
             # Check if quarter stats already exist
             from app.data_access.crud.crud_player_quarter_stats import get_quarter_stats_by_quarter
-            
+
             existing_quarter_stats = get_quarter_stats_by_quarter(self._db_session, player_game_stats.id, quarter)
             if not existing_quarter_stats:
                 # Create quarter stats only if they don't exist

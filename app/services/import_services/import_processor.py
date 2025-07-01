@@ -262,12 +262,12 @@ class ImportProcessor:
                 else:
                     # No seasons exist at all, create a default season
                     typer.echo("No seasons found in database. Creating default season...")
-                    
+
                     # Determine season based on game date
                     # Basketball seasons typically run Oct-Apr
                     year = game_date.year
                     month = game_date.month
-                    
+
                     # If game is in Oct-Dec, it's the start of season YYYY-(YYYY+1)
                     # If game is in Jan-Apr, it's the end of season (YYYY-1)-YYYY
                     if month >= 10:  # October or later
@@ -276,21 +276,22 @@ class ImportProcessor:
                     else:  # January through April
                         start_year = year - 1
                         end_year = year
-                    
+
                     season_code = f"{start_year}-{end_year}"
                     season_name = f"Season {season_code}"
-                    
+
                     # Create the season
                     from datetime import date as date_type
+
                     success, message, season = season_service.create_season(
                         name=season_name,
                         code=season_code,
                         start_date=date_type(start_year, 10, 1),
                         end_date=date_type(end_year, 4, 30),
                         description="Auto-created during game import",
-                        set_as_active=True
+                        set_as_active=True,
                     )
-                    
+
                     if success and season:
                         typer.echo(f"Created season: {season_name}")
                     else:
@@ -420,7 +421,7 @@ class ImportProcessor:
         if not player_stats.PlayerJersey or not player_stats.PlayerJersey.strip():
             typer.echo(f"Warning: Skipping player with empty jersey number: {player_stats.PlayerName}")
             return True  # Return True to not fail the entire import
-        
+
         if not player_stats.TeamName or not player_stats.TeamName.strip():
             typer.echo(f"Warning: Skipping player with empty team name: {player_stats.PlayerName}")
             return True  # Return True to not fail the entire import

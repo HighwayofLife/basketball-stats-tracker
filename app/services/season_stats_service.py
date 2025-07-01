@@ -3,7 +3,7 @@
 import logging
 from datetime import date, datetime
 
-from sqlalchemy import and_, desc
+from sqlalchemy import desc
 from sqlalchemy.orm import Session, joinedload
 
 from app.data_access.models import (
@@ -183,7 +183,7 @@ class SeasonStatsService:
         )
 
         if season:
-            # Look up the actual season record 
+            # Look up the actual season record
             season_record = self.db_session.query(Season).filter(Season.code == season).first()
             if season_record:
                 # Use season_id for filtering when available
