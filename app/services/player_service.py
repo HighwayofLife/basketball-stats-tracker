@@ -51,10 +51,19 @@ class PlayerService:
             # Create the player
             player = create_player(self._db_session, player_name, jersey_number, team_id)
 
-        # If the player exists but the name was provided and differs, update the name
+        # If the player exists but the name was provided and differs, check if we can safely update
         if player is not None and player_name and player.name != player_name:
-            player.name = player_name
-            self._db_session.commit()
+            # Check if another player on the same team already has this name
+            existing_with_name = (
+                self._db_session.query(Player)
+                .filter(Player.team_id == team_id, Player.name == player_name, Player.id != player.id)
+                .first()
+            )
+            if not existing_with_name:
+                # Safe to update the name
+                player.name = player_name
+                self._db_session.commit()
+            # If another player has this name, keep the existing name to avoid conflicts
 
         return player
 
