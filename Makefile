@@ -189,6 +189,33 @@ local-import-game-stats: ## Import game statistics from a CSV file locally (with
 	@# Example: make local-import-game-stats GAME_STATS_FILE=game_stats_template.csv
 	@basketball-stats import-game --file $(GAME_STATS_FILE)
 
+.PHONY: test-data
+test-data: ensure-running ## Load realistic test data from import/ directory into containerized PostgreSQL (localhost:8000)
+	@echo "${CYAN}Loading test data into containerized PostgreSQL database...${NC}"
+	@echo "${YELLOW}This will import all games from the import/ directory into your containerized database.${NC}"
+	@echo "${YELLOW}Make sure containers are running and database is initialized.${NC}"
+	@for csv_file in import/*.csv; do \
+		if [ -f "$$csv_file" ]; then \
+			echo "${GREEN}Importing: $$csv_file${NC}"; \
+			$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) basketball-stats import-game --file "$$csv_file" || echo "${RED}Failed to import: $$csv_file${NC}"; \
+		fi; \
+	done
+	@echo "${GREEN}Test data loading complete! View at localhost:8000${NC}"
+
+.PHONY: populate-test-data
+populate-test-data: test-data ## Alias for test-data - Load realistic test data into containerized PostgreSQL
+
+.PHONY: test-db-data 
+test-db-data: test-data ## Alias for test-data - Load realistic test data into containerized PostgreSQL
+
+.PHONY: fresh-test-data
+fresh-test-data: ## Reset database and load fresh test data (complete workflow)
+	@echo "${CYAN}Performing complete test data refresh...${NC}"
+	@echo "${YELLOW}This will reset the database and load all test data.${NC}"
+	@$(MAKE) reset-db
+	@$(MAKE) test-data
+	@echo "${GREEN}Fresh test data setup complete! Ready for development at localhost:8000${NC}"
+
 # --- Database Targets ---
 
 .PHONY: init-db
