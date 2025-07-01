@@ -836,7 +836,7 @@ class TestReportGenerator:
 
         # Create mock quarter stats that only have quarter_number (like the real model)
         quarter_stats = []
-        for q in range(1, 5):
+        for q in range(1, 7):
             qs = MagicMock(spec=PlayerQuarterStats)
             qs.player_game_stat_id = 1
             qs.quarter_number = q  # Only quarter_number, not quarter
@@ -858,8 +858,8 @@ class TestReportGenerator:
 
         # Should return a dict with quarter numbers as keys
         assert isinstance(result, dict)
-        assert len(result) == 4
-        for q in range(1, 5):
+        assert len(result) == 6
+        for q in range(1, 7):
             assert q in result
             assert result[q].quarter_number == q
 
@@ -868,7 +868,7 @@ class TestReportGenerator:
 
         # Should complete without AttributeError
         assert isinstance(breakdown, list)
-        assert len(breakdown) == 4
+        assert len(breakdown) == 6
         for i, quarter_data in enumerate(breakdown):
             assert quarter_data["quarter"] == i + 1
             assert "ftm" in quarter_data

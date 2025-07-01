@@ -71,12 +71,13 @@ class ScoreCalculationService:
         return ScoreCalculationService.calculate_game_scores(game, player_stats)
 
     @staticmethod
-    def update_game_scores(db: Session, game: Game) -> None:
+    def update_game_scores(db: Session, game: Game, commit: bool = True) -> None:
         """Update game scores in the database based on player statistics.
 
         Args:
             db: Database session
             game: The game to update scores for
+            commit: Whether to commit the transaction (default True for backward compatibility)
         """
         player_stats = db.query(PlayerGameStats).filter(PlayerGameStats.game_id == game.id).all()
 
@@ -85,4 +86,6 @@ class ScoreCalculationService:
         # Update game with calculated scores
         game.playing_team_score = playing_team_score
         game.opponent_team_score = opponent_team_score
-        db.commit()
+
+        if commit:
+            db.commit()

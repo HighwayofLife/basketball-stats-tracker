@@ -54,6 +54,8 @@ class DataValidator:
                             "QT2Shots": player_data.get("quarter_2", ""),
                             "QT3Shots": player_data.get("quarter_3", ""),
                             "QT4Shots": player_data.get("quarter_4", ""),
+                            "OT1Shots": player_data.get("overtime_1", ""),
+                            "OT2Shots": player_data.get("overtime_2", ""),
                         }
                         validated_player = PlayerStatsRowSchema(**mapped_player_data)
                         player_stats.append(validated_player)
@@ -105,12 +107,18 @@ class DataValidator:
                     return None
             elif col.lower() == "fouls":
                 player_data["fouls"] = value
+            elif col.lower().startswith("qt") and col[2:].isdigit():
+                # This is a quarter column (QT1, QT2, etc.)
+                quarter_num = int(col[2:])
+                player_data[f"quarter_{quarter_num}"] = value
             elif col.lower().startswith("q") and col[1:].isdigit():
                 # This is a quarter column (Q1, Q2, etc.)
                 quarter_num = int(col[1:])
                 player_data[f"quarter_{quarter_num}"] = value
-            elif col.lower() in ["ot", "overtime"]:
-                player_data["overtime"] = value
+            elif col.lower().startswith("ot") and col[2:].isdigit():
+                # This is an overtime column (OT1, OT2, etc.)
+                ot_num = int(col[2:])
+                player_data[f"overtime_{ot_num}"] = value
 
         # Validate required fields
         if (

@@ -48,13 +48,10 @@
         </div>
         <div class="card-body">
             <table class="table table-sm text-center">
-                <thead>
+                <thead id="quarter-headers-container">
                     <tr>
                         <th>Team</th>
-                        <th>Q1</th>
-                        <th>Q2</th>
-                        <th>Q3</th>
-                        <th>Q4</th>
+                        <!-- Quarter headers will be populated via JavaScript -->
                         <th>Total</th>
                     </tr>
                 </thead>
@@ -243,23 +240,37 @@ async function loadBoxScore() {
 }
 
 function updateQuarterScores(data) {
+    const thead = document.getElementById('quarter-headers-container');
     const tbody = document.getElementById('quarterScores');
     tbody.innerHTML = '';
-    
+    thead.innerHTML = '';
+
+    const homeQuarters = data.home_team.stats.quarter_scores || [];
+    const awayQuarters = data.away_team.stats.quarter_scores || [];
+
+    // Create header row
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = '<th>Team</th>';
+    homeQuarters.forEach(q => {
+        headerRow.innerHTML += `<th>${q.label}</th>`;
+    });
+    headerRow.innerHTML += '<th>Total</th>';
+    thead.appendChild(headerRow);
+
     // Home team row
     const homeRow = tbody.insertRow();
     homeRow.insertCell().textContent = data.home_team.name;
-    for (let q = 1; q <= 4; q++) {
-        homeRow.insertCell().textContent = data.home_team.quarter_scores[`q${q}`] || 0;
-    }
+    homeQuarters.forEach(q => {
+        homeRow.insertCell().textContent = q.score;
+    });
     homeRow.insertCell().innerHTML = `<strong>${data.home_team.score}</strong>`;
-    
+
     // Away team row
     const awayRow = tbody.insertRow();
     awayRow.insertCell().textContent = data.away_team.name;
-    for (let q = 1; q <= 4; q++) {
-        awayRow.insertCell().textContent = data.away_team.quarter_scores[`q${q}`] || 0;
-    }
+    awayQuarters.forEach(q => {
+        awayRow.insertCell().textContent = q.score;
+    });
     awayRow.insertCell().innerHTML = `<strong>${data.away_team.score}</strong>`;
 }
 

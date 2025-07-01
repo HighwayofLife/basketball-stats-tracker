@@ -253,26 +253,68 @@ class ImportProcessor:
             season = season_service.get_season_for_date(game_date)
 
             if not season:
-                # No season found for this date, use active season if available
+                # No season found for this date, check for active season
                 season = season_service.get_active_season()
                 if season:
                     typer.echo(
                         f"Note: Game date {date_str} is outside active season '{season.name}', but using it anyway."
                     )
+                else:
+                    # No seasons exist at all, create a default season
+                    typer.echo("No seasons found in database. Creating default season...")
 
-            # Create the game
-            game = self.game_state_service.create_game(
+                    # Determine season based on game date
+                    # Basketball seasons typically run Oct-Apr
+                    year = game_date.year
+                    month = game_date.month
+
+                    # If game is in Oct-Dec, it's the start of season YYYY-(YYYY+1)
+                    # If game is in Jan-Apr, it's the end of season (YYYY-1)-YYYY
+                    if month >= 10:  # October or later
+                        start_year = year
+                        end_year = year + 1
+                    else:  # January through April
+                        start_year = year - 1
+                        end_year = year
+
+                    season_code = f"{start_year}-{end_year}"
+                    season_name = f"Season {season_code}"
+
+                    # Create the season
+                    from datetime import date as date_type
+
+                    success, message, season = season_service.create_season(
+                        name=season_name,
+                        code=season_code,
+                        start_date=date_type(start_year, 10, 1),
+                        end_date=date_type(end_year, 4, 30),
+                        description="Auto-created during game import",
+                        set_as_active=True,
+                    )
+
+                    if success and season:
+                        typer.echo(f"Created season: {season_name}")
+                    else:
+                        typer.echo(f"Warning: Could not create season - {message}")
+                        # Continue without season association
+
+            # Get or create the game (handles duplicates gracefully)
+            game = self.game_service.add_game(
                 date=date_str,
-                home_team_id=home_team.id,
-                away_team_id=visitor_team.id,
-                season_id=season.id if season else None,
+                playing_team_name=home_team.name,
+                opponent_team_name=visitor_team.name,
             )
 
             if not game:
                 typer.echo("Error: Failed to create game.")
                 return False
 
-            typer.echo(f"\nCreated game: {home_team.name} vs {visitor_team.name} on {validated_data.game_info.Date}")
+            # Update season if needed
+            if season and not game.season_id:
+                game.season_id = season.id
+                self.db.flush()
+
+            typer.echo(f"\nProcessing game: {home_team.name} vs {visitor_team.name} on {validated_data.game_info.Date}")
 
             # Process player statistics
             players_processed = 0
@@ -285,8 +327,8 @@ class ImportProcessor:
                 else:
                     players_error += 1
 
-            # Update game scores
-            ScoreCalculationService.update_game_scores(self.db, game)
+            # Update game scores (let orchestrator handle commits)
+            ScoreCalculationService.update_game_scores(self.db, game, commit=False)
 
             typer.echo(f"\nProcessed {players_processed} player stats successfully.")
             if players_error > 0:
@@ -295,38 +337,47 @@ class ImportProcessor:
             # Update season statistics for all players who played in this game
             if players_processed > 0:
                 typer.echo("\nUpdating season statistics...")
-                season = self.season_stats_service.get_season_from_date(game.date)
-
-                # Get all unique player IDs from this game
-                player_ids = set()
-                for player_stats in validated_data.player_stats:
-                    # Get the team
-                    team = self.db.query(Team).filter(Team.name == player_stats.TeamName).first()
-                    if team:
-                        # Get the player
-                        player = (
-                            self.db.query(Player)
-                            .filter(Player.team_id == team.id, Player.jersey_number == player_stats.PlayerJersey)
-                            .first()
-                        )
-                        if player:
-                            player_ids.add(player.id)
-
-                # Update season stats for each player
-                for player_id in player_ids:
-                    try:
-                        self.season_stats_service.update_player_season_stats(player_id, season)
-                    except Exception as e:
-                        typer.echo(f"Warning: Failed to update season stats for player {player_id}: {e}")
-
-                # Update team season stats
                 try:
-                    self.season_stats_service.update_team_season_stats(home_team.id, season)
-                    self.season_stats_service.update_team_season_stats(visitor_team.id, season)
-                except Exception as e:
-                    typer.echo(f"Warning: Failed to update team season stats: {e}")
+                    # Use the season code from the game's associated Season object
+                    if game.season_id and game.season:
+                        season_code = game.season.code
+                    else:
+                        # Fallback to date-based season
+                        season_code = self.season_stats_service.get_season_from_date(game.date)
 
-                typer.echo("Season statistics updated.")
+                    # Get all unique player IDs from this game
+                    player_ids = set()
+                    for player_stats in validated_data.player_stats:
+                        # Get the team
+                        team = self.db.query(Team).filter(Team.name == player_stats.TeamName).first()
+                        if team:
+                            # Get the player
+                            player = (
+                                self.db.query(Player)
+                                .filter(Player.team_id == team.id, Player.jersey_number == player_stats.PlayerJersey)
+                                .first()
+                            )
+                            if player:
+                                player_ids.add(player.id)
+
+                    # Update season stats for each player
+                    for player_id in player_ids:
+                        try:
+                            self.season_stats_service.update_player_season_stats(player_id, season_code)
+                        except Exception as e:
+                            typer.echo(f"Warning: Failed to update season stats for player {player_id}: {e}")
+
+                    # Update team season stats
+                    try:
+                        self.season_stats_service.update_team_season_stats(home_team.id, season_code)
+                        self.season_stats_service.update_team_season_stats(visitor_team.id, season_code)
+                    except Exception as e:
+                        typer.echo(f"Warning: Failed to update team season stats: {e}")
+
+                    typer.echo("Season statistics updated.")
+                except Exception as e:
+                    typer.echo(f"Warning: Season statistics update failed: {e}")
+                    # Don't let season stats failure break the import
 
             return players_error == 0
 
@@ -366,6 +417,15 @@ class ImportProcessor:
         Returns:
             True if successful, False otherwise
         """
+        # Skip players with empty jersey numbers or team names
+        if not player_stats.PlayerJersey or not player_stats.PlayerJersey.strip():
+            typer.echo(f"Warning: Skipping player with empty jersey number: {player_stats.PlayerName}")
+            return True  # Return True to not fail the entire import
+
+        if not player_stats.TeamName or not player_stats.TeamName.strip():
+            typer.echo(f"Warning: Skipping player with empty team name: {player_stats.PlayerName}")
+            return True  # Return True to not fail the entire import
+
         # Get the team
         team = self.db.query(Team).filter(Team.name == player_stats.TeamName).first()
         if not team:
@@ -409,8 +469,8 @@ class ImportProcessor:
                 return False
 
         # Process quarter statistics
-        for quarter in range(1, 5):
-            quarter_key = f"QT{quarter}Shots"
+        for i, quarter_key in enumerate(["QT1Shots", "QT2Shots", "QT3Shots", "QT4Shots", "OT1Shots", "OT2Shots"]):
+            quarter = i + 1
             if hasattr(player_stats, quarter_key):
                 shot_string = getattr(player_stats, quarter_key)
                 if shot_string and shot_string.strip():
@@ -425,20 +485,6 @@ class ImportProcessor:
                         )
                     except ValueError as e:
                         typer.echo(f"Warning: Invalid shot string for {player.name} Q{quarter}: {e}")
-
-        # Process overtime if present
-        if hasattr(player_stats, "overtime") and player_stats.overtime and player_stats.overtime.strip():
-            try:
-                shot_stats = parse_quarter_shot_string(player_stats.overtime, shot_mapping=SHOT_MAPPING)
-                self.stats_service.add_player_quarter_stats(
-                    game_id=game.id,
-                    player_id=player.id,
-                    quarter=5,  # OT is quarter 5
-                    stats=shot_stats,
-                    playing_for_team_id=playing_for_team_id,
-                )
-            except ValueError as e:
-                typer.echo(f"Warning: Invalid shot string for {player.name} OT: {e}")
 
         return True
 

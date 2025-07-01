@@ -1,3 +1,44 @@
+v0.4.17
+-------
+
+### Features
+- **Overtime Support**: Added comprehensive overtime functionality for basketball games
+  - Support for up to 2 overtime periods (OT1, OT2) with automatic tie detection
+  - Smart game state progression: regulation tie → OT1, OT1 tie → OT2, OT2 → final
+  - Extended CSV import format with `OT1Shots` and `OT2Shots` columns
+  - Dynamic UI display for overtime quarters in game detail and box score pages
+  - Database schema extended to support quarters 1-6 (regulation + 2 overtime periods)
+
+### Database Improvements
+- **Schema Migration**: Added overtime support migration (`e31c9e352add_add_overtime_support.py`)
+  - Extended quarter constraints from 4 to 6 quarters in `game_states` and `player_quarter_stats` tables
+  - Maintains backward compatibility with existing 4-quarter games
+
+### Service Layer Enhancements
+- **Game State Service**: Enhanced with intelligent overtime logic and performance optimizations
+  - Added `joinedload` optimization for game relationship queries
+  - Automatic overtime advancement when games are tied after regulation or OT1
+- **Report Generator**: Updated to handle dynamic quarter counts instead of hardcoded 4 quarters
+  - Dynamic quarter initialization supporting variable quarter counts
+  - Improved cumulative scoring and point differential calculations for overtime games
+
+### UI/UX Improvements
+- **Dynamic Quarter Display**: Web interface automatically adapts to show overtime columns
+  - JavaScript-driven dynamic quarter headers (Q1, Q2, Q3, Q4, OT1, OT2) based on actual game data
+  - Responsive design maintained for overtime games
+  - Box score templates updated for variable quarter display
+
+### Testing
+- **Comprehensive Test Coverage**: Added 17 new tests (837 → 854 total tests)
+  - 4 new unit tests for overtime game state logic scenarios
+  - Complete integration test suite (271 lines) covering overtime database storage, CSV import, and UI display
+  - Functional tests for overtime UI display validation
+  - Maintained 66% code coverage with expanded codebase
+
+### Development Infrastructure
+- **Makefile Enhancements**: Added test data loading targets for development workflow
+- **Code Quality**: Lint cleanup and code formatting improvements
+
 v0.4.16
 -------
 

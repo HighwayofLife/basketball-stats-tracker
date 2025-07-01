@@ -106,6 +106,55 @@ class TestPlayerStatsRowSchema:
         assert validated.QT2Shots == "3/2"
         assert validated.QT3Shots == "11"
         assert validated.QT4Shots == ""
+        assert validated.OT1Shots == ""
+        assert validated.OT2Shots == ""
+
+    def test_valid_player_stats_row_with_overtime(self):
+        """Test validating valid player stats row with overtime data."""
+        player_stats = {
+            "TeamName": "Team A",
+            "PlayerJersey": "10",
+            "PlayerName": "Player One",
+            "Fouls": 2,
+            "QT1Shots": "22-1x",
+            "QT2Shots": "3/2",
+            "QT3Shots": "11",
+            "QT4Shots": "2x",
+            "OT1Shots": "2/",
+            "OT2Shots": "3+",
+        }
+        validated = PlayerStatsRowSchema(**player_stats)
+
+        assert validated.TeamName == "Team A"
+        assert validated.PlayerJersey == "10"
+        assert validated.PlayerName == "Player One"
+        assert validated.Fouls == 2
+        assert validated.QT1Shots == "22-1x"
+        assert validated.QT2Shots == "3/2"
+        assert validated.QT3Shots == "11"
+        assert validated.QT4Shots == "2x"
+        assert validated.OT1Shots == "2/"
+        assert validated.OT2Shots == "3+"
+
+    def test_valid_player_stats_row_with_single_overtime(self):
+        """Test validating valid player stats row with only OT1 data."""
+        player_stats = {
+            "TeamName": "Team A",
+            "PlayerJersey": "10",
+            "PlayerName": "Player One",
+            "Fouls": 3,
+            "QT1Shots": "22-1x",
+            "QT2Shots": "3/2",
+            "QT3Shots": "11",
+            "QT4Shots": "2x",
+            "OT1Shots": "2/",
+            # OT2Shots omitted (should default to empty string)
+        }
+        validated = PlayerStatsRowSchema(**player_stats)
+
+        assert validated.TeamName == "Team A"
+        assert validated.OT1Shots == "2/"
+        assert validated.OT2Shots == ""
 
     def test_missing_team_name(self):
         """Test validating player stats row with missing team name."""
@@ -263,3 +312,56 @@ class TestGameStatsCSVInputSchema:
 
         assert "player_stats" in str(excinfo.value)
         assert "List should have at least 1 item" in str(excinfo.value)
+
+    def test_valid_game_stats_csv_input_with_overtime(self):
+        """Test validating valid game stats CSV input with overtime data."""
+        # Create GameInfoSchema first
+        game_info_data = {"HomeTeam": "Team A", "VisitorTeam": "Team B", "Date": "2025-05-01"}
+        game_info = GameInfoSchema(**game_info_data)
+
+        # Create PlayerStatsRowSchema objects with overtime data
+        player_stats_data = [
+            {
+                "TeamName": "Team A",
+                "PlayerJersey": "10",
+                "PlayerName": "Player One",
+                "Fouls": 2,
+                "QT1Shots": "22-1x",
+                "QT2Shots": "3/2",
+                "QT3Shots": "11",
+                "QT4Shots": "2x",
+                "OT1Shots": "2/",
+                "OT2Shots": "3+",
+            },
+            {
+                "TeamName": "Team B",
+                "PlayerJersey": "5",
+                "PlayerName": "Player Alpha",
+                "Fouls": 1,
+                "QT1Shots": "x",
+                "QT2Shots": "11",
+                "QT3Shots": "",
+                "QT4Shots": "33-",
+                "OT1Shots": "1x",
+                "OT2Shots": "",
+            },
+        ]
+        player_stats = [PlayerStatsRowSchema(**data) for data in player_stats_data]
+
+        # Now create the full schema with proper types
+        csv_input = {
+            "game_info": game_info,
+            "player_stats": player_stats,
+        }
+        validated = GameStatsCSVInputSchema(**csv_input)
+
+        assert validated.game_info.HomeTeam == "Team A"
+        assert validated.game_info.VisitorTeam == "Team B"
+        assert validated.game_info.Date == "2025-05-01"
+        assert len(validated.player_stats) == 2
+        assert validated.player_stats[0].PlayerName == "Player One"
+        assert validated.player_stats[0].OT1Shots == "2/"
+        assert validated.player_stats[0].OT2Shots == "3+"
+        assert validated.player_stats[1].PlayerName == "Player Alpha"
+        assert validated.player_stats[1].OT1Shots == "1x"
+        assert validated.player_stats[1].OT2Shots == ""

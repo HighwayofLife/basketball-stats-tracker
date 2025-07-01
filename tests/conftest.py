@@ -291,7 +291,7 @@ def team_factory():
         team = team_factory("Warriors", id=2)  # Creates Warriors with specific ID
     """
 
-    def _create_team(name: str = "Team A", **kwargs) -> dict[str, Any]:
+    def _create_team(name: str = "Green", **kwargs) -> dict[str, Any]:
         team_data = {"name": name}
         team_data.update(kwargs)
         return team_data
@@ -310,9 +310,9 @@ def player_factory():
     """
 
     def _create_player(
-        name: str = "Player One",
-        jersey_number: str = "10",
-        team_name: str = "Team A",
+        name: str = "John",
+        jersey_number: str = "0",
+        team_name: str = "Green",
         position: str = "Forward",
         height: str = "6'8\"",
         weight: int = 220,
@@ -346,8 +346,8 @@ def game_factory():
 
     def _create_game(
         date: str = "2025-05-01",
-        playing_team: str = "Team A",
-        opponent_team: str = "Team B",
+        playing_team: str = "Green",
+        opponent_team: str = "Black",
         home_score: int | None = None,
         away_score: int | None = None,
         **kwargs,
@@ -378,14 +378,14 @@ def player_stats_factory():
     """
 
     def _create_player_stats(
-        team_name: str = "Team A",
-        player_jersey: str = "10",
-        player_name: str = "Player One",
+        team_name: str = "Green",
+        player_jersey: str = "0",
+        player_name: str = "John",
         fouls: int = 2,
-        qt1_shots: str = "22-1x",
-        qt2_shots: str = "",
-        qt3_shots: str = "",
-        qt4_shots: str = "",
+        qt1_shots: str = "/-x1",
+        qt2_shots: str = "-",
+        qt3_shots: str = "-",
+        qt4_shots: str = "-/2---11",
         **kwargs,
     ) -> dict[str, Any]:
         stats_data = {
@@ -411,7 +411,7 @@ def sample_teams(team_factory) -> list[dict[str, str]]:
     DEPRECATED: Use team_factory instead.
     Returns sample team data for testing.
     """
-    return [team_factory("Team A"), team_factory("Team B")]
+    return [team_factory("Green"), team_factory("Black")]
 
 
 @pytest.fixture
@@ -421,10 +421,10 @@ def sample_players(player_factory) -> list[dict[str, Any]]:
     Returns sample player data for testing.
     """
     return [
-        player_factory("Player One", "10", "Team A"),
-        player_factory("Player Two", "23", "Team A"),
-        player_factory("Player Alpha", "5", "Team B"),
-        player_factory("Player Beta", "15", "Team B"),
+        player_factory("John", "0", "Green"),
+        player_factory("Zach", "21", "Green"),
+        player_factory("Jordan", "00", "Black"),
+        player_factory("Kyle", "5", "Black"),
     ]
 
 
@@ -441,47 +441,48 @@ def sample_game(game_factory) -> dict[str, Any]:
 def sample_player_stats() -> list[dict[str, Any]]:
     """
     Returns sample player game statistics for testing.
+    Uses realistic patterns from actual game data.
     """
     return [
         {
-            "team_name": "Team A",
-            "player_jersey": "10",
-            "player_name": "Player One",
+            "team_name": "Green",
+            "player_jersey": "0",
+            "player_name": "John",
             "fouls": 2,
-            "qt1_shots": "22-1x",
-            "qt2_shots": "3/2",
-            "qt3_shots": "11",
-            "qt4_shots": "",
+            "qt1_shots": "/-x1",
+            "qt2_shots": "-",
+            "qt3_shots": "-",
+            "qt4_shots": "-/2---11",
         },
         {
-            "team_name": "Team A",
-            "player_jersey": "23",
-            "player_name": "Player Two",
-            "fouls": 3,
-            "qt1_shots": "12",
-            "qt2_shots": "x",
-            "qt3_shots": "-/",
-            "qt4_shots": "22",
+            "team_name": "Green",
+            "player_jersey": "21",
+            "player_name": "Zach",
+            "fouls": 5,
+            "qt1_shots": "//2-/-2",
+            "qt2_shots": "3-/2-2-1",
+            "qt3_shots": "-////-1111",
+            "qt4_shots": "2-2-22x",
         },
         {
-            "team_name": "Team B",
-            "player_jersey": "5",
-            "player_name": "Player Alpha",
+            "team_name": "Black",
+            "player_jersey": "00",
+            "player_name": "Jordan",
             "fouls": 1,
-            "qt1_shots": "x",
-            "qt2_shots": "11",
-            "qt3_shots": "",
-            "qt4_shots": "33-",
+            "qt1_shots": "-/",
+            "qt2_shots": "",
+            "qt3_shots": "33",
+            "qt4_shots": "/-//2/x1",
         },
         {
-            "team_name": "Team B",
-            "player_jersey": "15",
-            "player_name": "Player Beta",
+            "team_name": "Black",
+            "player_jersey": "5",
+            "player_name": "Kyle",
             "fouls": 4,
-            "qt1_shots": "2//1",
-            "qt2_shots": "2",
-            "qt3_shots": "x",
-            "qt4_shots": "1",
+            "qt1_shots": "-/",
+            "qt2_shots": "-/-1x",
+            "qt3_shots": "//",
+            "qt4_shots": "2/",
         },
     ]
 
@@ -490,15 +491,18 @@ def sample_player_stats() -> list[dict[str, Any]]:
 def sample_game_csv_content() -> str:
     """
     Returns sample CSV content for game stats import testing.
+    Uses realistic team names, player names, and shot patterns based on actual game data.
     """
-    return """Home,Team A
-Visitor,Team B
+    return """Home,Green
+Away,Black
 Date,2025-05-01
 Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
-Team A,10,Player One,2,22-1x,3/2,11,
-Team A,23,Player Two,3,12,x,-/,22
-Team B,5,Player Alpha,1,x,11,,33-
-Team B,15,Player Beta,4,2//1,2,x,1"""
+Green,0,John,2,/-x1,-,-,-/2---11
+Green,21,Zach,5,//2-/-2,3-/2-2-1,-////-1111,2-2-22x
+Green,77,Luke,1,3,,-22,-2
+Black,00,Jordan,1,-/,,33,/-//2/x1
+Black,5,Kyle,4,-/,-/-1x,//,2/
+Black,25,Brad,1,22x,-2---221x,/2-,-2---"""
 
 
 @pytest.fixture

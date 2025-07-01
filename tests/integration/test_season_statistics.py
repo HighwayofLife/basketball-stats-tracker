@@ -73,6 +73,11 @@ class TestSeasonStatisticsIntegration:
         game1 = create_game(test_db_file_session, "2024-11-01", team1.id, team2.id)
         game2 = create_game(test_db_file_session, "2024-11-05", team2.id, team1.id)
 
+        # Associate games with the season
+        game1.season_id = season.id
+        game2.season_id = season.id
+        test_db_file_session.commit()
+
         # Create game stats for game 1 (Lakers home)
         # Lakers players
         from app.data_access.crud import update_player_game_stats_totals
