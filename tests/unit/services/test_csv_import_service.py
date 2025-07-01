@@ -29,13 +29,27 @@ Warriors,Klay Thompson,11"""
 
     @pytest.fixture
     def sample_game_stats_csv_content(self):
-        """Sample game stats CSV content."""
-        return """Home,Lakers
-Visitor,Warriors
+        """Sample game stats CSV content with realistic data."""
+        return """Home,Green
+Away,Black
 Date,2025-05-01
 Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4
-Lakers,23,LeBron James,2,22-1x,3/2,22,3/
-Lakers,3,Anthony Davis,3,22x1,22/,1x3/-,22"""
+Green,0,John,2,/-x1,-,-,-/2---11
+Green,21,Zach,5,//2-/-2,3-/2-2-1,-////-1111,2-2-22x
+Black,00,Jordan,1,-/,,33,/-//2/x1
+Black,5,Kyle,4,-/,-/-1x,//,2/"""
+
+    @pytest.fixture
+    def sample_game_stats_csv_content_with_overtime(self):
+        """Sample game stats CSV content with overtime data based on real game."""
+        return """Home,Green
+Visitor,Blue
+Date,2025-06-30
+Team,Jersey Number,Player Name,Fouls,QT1,QT2,QT3,QT4,OT1
+Green,0,John,,//,3,3/,22,-3
+Green,21,Zach,3,/21-232-,2-xx3--22-2/--,/2/-,21122,-3
+Blue,0,Jose,3,---2/2,2/--2-,2---/,xx2--22-,211x
+Blue,2,Jonathan,1,2-2-11,2-,-33,23--xx2,2311"""
 
     @pytest.fixture
     def invalid_roster_csv_content(self):
@@ -267,15 +281,15 @@ Lakers,LeBron James,twenty-three"""
             assert result is not None
             game_info_data, player_stats_header, player_stats_rows = result
 
-            assert game_info_data["Home"] == "Lakers"
-            assert game_info_data["Visitor"] == "Warriors"
+            assert game_info_data["Home"] == "Green"
+            assert game_info_data["Visitor"] == "Black"
             assert game_info_data["Date"] == "2025-05-01"
 
             assert len(player_stats_header) == 8
             assert player_stats_header[0] == "Team"
 
-            assert len(player_stats_rows) == 2
-            assert player_stats_rows[0][2] == "LeBron James"
+            assert len(player_stats_rows) == 4
+            assert player_stats_rows[0][2] == "John"
 
     @patch("typer.echo")
     def test_read_and_parse_game_stats_csv_empty(self, mock_echo):
@@ -450,3 +464,83 @@ Lakers,LeBron James,twenty-three"""
 
         with pytest.raises(SQLAlchemyError):
             csv_import_service._record_player_stats(mock_db, mock_game, player_stats)
+
+    def test_read_and_parse_game_stats_csv_with_overtime(self, sample_game_stats_csv_content_with_overtime):
+        """Test reading and parsing a game stats CSV with overtime data."""
+        with patch("builtins.open", mock_open(read_data=sample_game_stats_csv_content_with_overtime)):
+            result = csv_import_service._read_and_parse_game_stats_csv(Path("/path/to/game.csv"))
+
+            assert result is not None
+            game_info_data, player_stats_header, player_stats_rows = result
+
+            assert game_info_data["Home"] == "Green"
+            assert game_info_data["Visitor"] == "Blue"
+            assert game_info_data["Date"] == "2025-06-30"
+
+            assert len(player_stats_header) == 9  # Team, Jersey, Name, Fouls, QT1-4, OT1
+            assert "OT1" in player_stats_header
+
+            assert len(player_stats_rows) == 4
+            assert player_stats_rows[0][8] == "-3"  # OT1 for John
+            assert player_stats_rows[1][8] == "-3"  # OT1 for Zach
+            assert player_stats_rows[2][8] == "211x"  # OT1 for Jose
+            assert player_stats_rows[3][8] == "2311"  # OT1 for Jonathan
+
+    def test_validate_game_stats_data_with_overtime(self):
+        """Test validating game stats data with overtime columns."""
+        game_info_data = {"Home": "Lakers", "Visitor": "Warriors", "Date": "2025-05-01"}
+        player_stats_header = [
+            "Team",
+            "Jersey Number",
+            "Player Name",
+            "Fouls",
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
+            "OT1",
+            "OT2",
+        ]
+        player_stats_rows = [
+            ["Lakers", "23", "LeBron James", "2", "22-1x", "", "", "", "2/", "3+"],
+            ["Warriors", "30", "Stephen Curry", "1", "33+", "", "", "", "2/", ""],
+        ]
+
+        result = csv_import_service._validate_game_stats_data(game_info_data, player_stats_header, player_stats_rows)
+
+        assert result is not None
+        assert isinstance(result, GameStatsCSVInputSchema)
+        assert result.game_info.HomeTeam == "Lakers"
+        assert result.game_info.VisitorTeam == "Warriors"
+        assert len(result.player_stats) == 2
+        assert result.player_stats[0].TeamName == "Lakers"
+        assert result.player_stats[0].OT1Shots == "2/"
+        assert result.player_stats[0].OT2Shots == "3+"
+        assert result.player_stats[1].OT1Shots == "2/"
+        assert result.player_stats[1].OT2Shots == ""
+
+    def test_extract_player_data_from_row_with_overtime(self):
+        """Test extracting player data from a row with overtime columns."""
+        header = [
+            "Team",
+            "Jersey",
+            "Player",
+            "Fouls",
+            "Q1",
+            "Q2",
+            "Q3",
+            "Q4",
+            "OT1",
+            "OT2",
+        ]
+        row = ["Lakers", "23", "LeBron James", "2", "FT-", "22+", "33X", "", "2/", "3+"]
+
+        result = csv_import_service._extract_player_data_from_row(row, header)
+
+        assert result["team_name"] == "Lakers"
+        assert result["jersey_number"] == "23"
+        assert result["player_name"] == "LeBron James"
+        assert result["quarter_1"] == "FT-"
+        assert result["quarter_2"] == "22+"
+        assert result["overtime_1"] == "2/"
+        assert result["overtime_2"] == "3+"

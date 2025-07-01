@@ -248,16 +248,85 @@ class TestGameStateService:
         mock_db_session.add.assert_called()  # For GameEvent
         mock_db_session.commit.assert_called_once()
 
-    def test_end_quarter_past_fourth(self, mock_db_session):
-        """Test ending quarter when already in 4th quarter."""
+    def test_end_quarter_regulation_tie_goes_to_overtime(self, mock_db_session):
+        """Test ending quarter 4 when game is tied - should advance to OT1."""
         service = GameStateService(mock_db_session)
 
         # Mock game state in 4th quarter
+        mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
         mock_game_state = GameState(game_id=1, is_live=True, current_quarter=4)
-        service._get_game_state = MagicMock(return_value=mock_game_state)
+        mock_game_state.game = mock_game
 
-        with pytest.raises(ValueError, match="Cannot advance past 4th quarter"):
-            service.end_quarter(1)
+        service._get_game_state = MagicMock(return_value=mock_game_state)
+        service._calculate_team_score = MagicMock(side_effect=[85, 85])  # Tied game
+
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+
+        result = service.end_quarter(1)
+
+        # Should advance to overtime (quarter 5)
+        assert result.current_quarter == 5
+        mock_db_session.add.assert_called()  # For GameEvent
+        mock_db_session.commit.assert_called_once()
+
+    def test_end_quarter_regulation_no_tie_finalizes_game(self, mock_db_session):
+        """Test ending quarter 4 when game is not tied - should finalize game."""
+        service = GameStateService(mock_db_session)
+
+        # Mock game state in 4th quarter
+        mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
+        mock_game_state = GameState(game_id=1, is_live=True, current_quarter=4)
+        mock_game_state.game = mock_game
+
+        service._get_game_state = MagicMock(return_value=mock_game_state)
+        service._calculate_team_score = MagicMock(side_effect=[88, 85])  # Home team wins
+        service.finalize_game = MagicMock(return_value=mock_game_state)
+
+        result = service.end_quarter(1)
+
+        # Should finalize the game instead of advancing quarters
+        service.finalize_game.assert_called_once_with(1)
+
+    def test_end_quarter_ot1_tie_goes_to_ot2(self, mock_db_session):
+        """Test ending OT1 when game is tied - should advance to OT2."""
+        service = GameStateService(mock_db_session)
+
+        # Mock game state in OT1 (quarter 5)
+        mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
+        mock_game_state = GameState(game_id=1, is_live=True, current_quarter=5)
+        mock_game_state.game = mock_game
+
+        service._get_game_state = MagicMock(return_value=mock_game_state)
+        service._calculate_team_score = MagicMock(side_effect=[90, 90])  # Still tied
+
+        mock_db_session.add = MagicMock()
+        mock_db_session.commit = MagicMock()
+
+        result = service.end_quarter(1)
+
+        # Should advance to second overtime (quarter 6)
+        assert result.current_quarter == 6
+        mock_db_session.add.assert_called()  # For GameEvent
+        mock_db_session.commit.assert_called_once()
+
+    def test_end_quarter_ot2_always_finalizes_game(self, mock_db_session):
+        """Test ending OT2 - should always finalize game regardless of tie."""
+        service = GameStateService(mock_db_session)
+
+        # Mock game state in OT2 (quarter 6)
+        mock_game = Game(id=1, playing_team_id=1, opponent_team_id=2)
+        mock_game_state = GameState(game_id=1, is_live=True, current_quarter=6)
+        mock_game_state.game = mock_game
+
+        service._get_game_state = MagicMock(return_value=mock_game_state)
+        service._calculate_team_score = MagicMock(side_effect=[93, 93])  # Still tied
+        service.finalize_game = MagicMock(return_value=mock_game_state)
+
+        result = service.end_quarter(1)
+
+        # Should finalize the game even if tied (no 3rd OT)
+        service.finalize_game.assert_called_once_with(1)
 
     def test_finalize_game(self, mock_db_session):
         """Test finalizing a game."""
@@ -388,7 +457,7 @@ class TestGameStateService:
         """Test getting game state that doesn't exist."""
         service = GameStateService(mock_db_session)
 
-        mock_db_session.query.return_value.filter.return_value.first.return_value = None
+        mock_db_session.query.return_value.options.return_value.filter.return_value.first.return_value = None
 
         with pytest.raises(ValueError, match="Game state for game 1 not found"):
             service._get_game_state(1)
