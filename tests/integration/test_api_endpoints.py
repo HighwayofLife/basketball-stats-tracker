@@ -79,7 +79,7 @@ class TestAPIEndpoints:
 
         player1_data = player_factory(
             name=f"APITestLeBron_{unique_suffix}",
-            jersey_number=str(23 + hash_suffix % 50),  # 23-72 range
+            jersey_number=str(200 + hash_suffix % 50),  # 200-249 range
             team_name=sample_team.name,
             position="SF",
             height="6'9\"",
@@ -88,7 +88,7 @@ class TestAPIEndpoints:
         )
         player2_data = player_factory(
             name=f"APITestAnthony_{unique_suffix}",
-            jersey_number=str(3 + hash_suffix % 50),  # 3-52 range
+            jersey_number=str(250 + hash_suffix % 50),  # 250-299 range
             team_name=sample_team.name,
             position="PF",
             height="6'10\"",
@@ -863,7 +863,7 @@ class TestAPIEndpoints:
         player_data = {
             "name": f"NewPlayer_{unique_suffix}",
             "team_id": sample_team.id,
-            "jersey_number": str(24 + hash_suffix % 50),
+            "jersey_number": str(100 + hash_suffix % 50),
             "position": "SF",
             "height": 79,
             "weight": 220,
@@ -880,7 +880,7 @@ class TestAPIEndpoints:
         data = response.json()
         assert data["name"] == f"NewPlayer_{unique_suffix}"
         assert data["team_id"] == sample_team.id
-        assert data["jersey_number"] == str(24 + hash_suffix % 50)
+        assert data["jersey_number"] == str(100 + hash_suffix % 50)
         assert data["position"] == "SF"
         assert data["is_substitute"] is False  # Default value
 
@@ -935,21 +935,21 @@ class TestAPIEndpoints:
         player_data_0 = {
             "name": f"PlayerNineNine_{unique_suffix}",
             "team_id": team.id,
-            "jersey_number": "999",
+            "jersey_number": "9999",
         }
         response = client.post("/v1/players/new", json=player_data_0)
         assert response.status_code == 200
-        assert response.json()["jersey_number"] == "999"
+        assert response.json()["jersey_number"] == "9999"
 
-        # Create player with jersey "998" (should work as it's different from "999")
+        # Create player with jersey "9998" (should work as it's different from "9999")
         player_data_00 = {
             "name": f"PlayerNineEight_{unique_suffix}",
             "team_id": team.id,
-            "jersey_number": "998",
+            "jersey_number": "9998",
         }
         response = client.post("/v1/players/new", json=player_data_00)
         assert response.status_code == 200
-        assert response.json()["jersey_number"] == "998"
+        assert response.json()["jersey_number"] == "9998"
 
     def test_get_player_success(self, client, sample_players):
         """Test getting a player successfully."""
@@ -1070,7 +1070,7 @@ class TestAPIEndpoints:
 
         unique_suffix = str(uuid.uuid4())[:8]
         hash_suffix = int(hashlib.md5(unique_suffix.encode()).hexdigest()[:4], 16)
-        jersey_number = str(10 + hash_suffix % 50)
+        jersey_number = str(300 + hash_suffix % 50)
 
         # Create first player with unique jersey number
         response1 = client.post(
@@ -1118,7 +1118,7 @@ class TestAPIEndpoints:
             "/v1/players/new",
             json={
                 "name": player_name,
-                "jersey_number": str(120 + hash_suffix % 30),
+                "jersey_number": str(350 + hash_suffix % 30),
                 "team_id": sample_team.id,
                 "position": "C",
                 "height": None,

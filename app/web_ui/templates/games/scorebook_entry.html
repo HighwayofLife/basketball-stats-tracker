@@ -124,7 +124,7 @@
                             <ul class="list-unstyled small">
                                 <li>Use the <strong>Import CSV</strong> button to load game data</li>
                                 <li>CSV must include game info and player stats</li>
-                                <li>Headers: <code>Team Name</code>, <code>Player Jersey</code>, <code>Player Name</code>, <code>Fouls</code>, <code>QT1-4 Shots</code></li>
+                                <li>Headers: <code>Team Name</code>, <code>Player Jersey</code>, <code>Player Name</code>, <code>Fouls</code>, <code>QT1-4 Shots</code>, <code>OT1-2 Shots</code> (optional)</li>
                                 <li><a href="/static/game_stats_template.csv" download class="text-primary">Download Template CSV</a></li>
                             </ul>
                         </div>
@@ -153,6 +153,8 @@
                                     <th style="width: 150px;">Q2 Scoring</th>
                                     <th style="width: 150px;">Q3 Scoring</th>
                                     <th style="width: 150px;">Q4 Scoring</th>
+                                    <th style="width: 150px;">OT1 Scoring</th>
+                                    <th style="width: 150px;">OT2 Scoring</th>
                                     <th style="width: 100px;">Actions</th>
                                 </tr>
                             </thead>
@@ -228,6 +230,14 @@
         </td>
         <td>
             <input type="text" class="form-control scoring-input" placeholder="e.g., -/" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., 2-3" 
+                   onchange="updateGameSummary()">
+        </td>
+        <td>
+            <input type="text" class="form-control scoring-input" placeholder="e.g., /11" 
                    onchange="updateGameSummary()">
         </td>
         <td>
@@ -453,6 +463,8 @@ async function loadGameForEdit(gameId) {
                 scoringInputs[1].value = playerStat.shots_q2 || '';
                 scoringInputs[2].value = playerStat.shots_q3 || '';
                 scoringInputs[3].value = playerStat.shots_q4 || '';
+                scoringInputs[4].value = playerStat.shots_ot1 || '';
+                scoringInputs[5].value = playerStat.shots_ot2 || '';
             }
         });
         
@@ -632,8 +644,26 @@ function updateGameSummary() {
         const playerSelect = row.querySelector('.player-select');
         const selectedOption = playerSelect.options[playerSelect.selectedIndex];
         
+        // Handle both existing players and NEW players
+        let teamId = null;
+        let isValidPlayer = false;
+        
         if (selectedOption.value) {
-            const teamId = selectedOption.dataset.teamId;
+            // Existing player from database
+            teamId = selectedOption.dataset.teamId;
+            isValidPlayer = true;
+        } else if (row.dataset.newPlayer === 'true') {
+            // NEW player not in database
+            const teamName = row.dataset.teamName;
+            if (teamName === homeTeamName) {
+                teamId = homeTeamId;
+            } else if (teamName === awayTeamName) {
+                teamId = awayTeamId;
+            }
+            isValidPlayer = true;
+        }
+        
+        if (isValidPlayer && teamId) {
             const fouls = parseInt(row.querySelector('.fouls-input').value) || 0;
             
             // Calculate scoring for all quarters
@@ -873,7 +903,9 @@ async function saveGame() {
                     qt1_shots: quarters[0],
                     qt2_shots: quarters[1],
                     qt3_shots: quarters[2],
-                    qt4_shots: quarters[3]
+                    qt4_shots: quarters[3],
+                    ot1_shots: quarters[4],
+                    ot2_shots: quarters[5]
                 });
             }
         });
@@ -1065,6 +1097,17 @@ async function importCSV(event) {
                     }
                 }
                 
+                // Add overtime data
+                const ot1Index = headers.indexOf('OT1');
+                if (ot1Index >= 0 && parts[ot1Index]) {
+                    playerRow['ot1_shots'] = parts[ot1Index];
+                }
+                
+                const ot2Index = headers.indexOf('OT2');
+                if (ot2Index >= 0 && parts[ot2Index]) {
+                    playerRow['ot2_shots'] = parts[ot2Index];
+                }
+                
                 playerData.push(playerRow);
             }
             
@@ -1243,6 +1286,8 @@ async function importCSV(event) {
                 scoringInputs[1].value = player['qt2_shots'] || '';
                 scoringInputs[2].value = player['qt3_shots'] || '';
                 scoringInputs[3].value = player['qt4_shots'] || '';
+                scoringInputs[4].value = player['ot1_shots'] || '';
+                scoringInputs[5].value = player['ot2_shots'] || '';
             }
         }
         

@@ -211,7 +211,7 @@ Lakers,LeBron James,twenty-three"""
         assert mock_db.add.call_count == 2
 
     @patch("typer.echo")
-    @patch("app.services.import_services.ImportProcessor._names_match_simple")
+    @patch("app.utils.fuzzy_matching.names_match_enhanced")
     def test_process_players_with_conflict(self, mock_names_match, mock_echo):
         """Test _process_players with player conflicts."""
         mock_db = MagicMock()
@@ -219,7 +219,9 @@ Lakers,LeBron James,twenty-three"""
         # Mock team lookup
         team_mock = MagicMock(id=1, name="Lakers")
         # Mock existing player with different name
-        existing_player = MagicMock(name="Different Player", jersey_number="23")
+        existing_player = MagicMock()
+        existing_player.name = "Different Player"
+        existing_player.jersey_number = "23"
 
         mock_db.query.return_value.filter.return_value.first.side_effect = [
             team_mock,  # Team lookup

@@ -1,3 +1,38 @@
+v0.4.18
+-------
+
+### Features
+- **Enhanced Fuzzy Name Matching**: Added comprehensive fuzzy matching for player name variations
+  - New `fuzzy_matching.py` utility module with advanced name comparison algorithms
+  - Support for common abbreviations, nicknames, and minor typos in player names
+  - Intelligent matching for first name + last initial, middle initials, and name component variations
+  - Replaced simple string matching with enhanced matching using Levenshtein distance and similarity ratios
+
+### Overtime Support Enhancements
+- **Scorebook Entry UI**: Added OT1 and OT2 columns to scorebook entry form
+  - Extended player entry table with overtime quarter columns
+  - Updated CSV import to handle overtime data (OT1, OT2 headers)
+  - Enhanced JavaScript scoring calculation to include overtime periods
+- **Shot Notation Service**: Improved overtime quarter handling
+  - Fixed quarter mapping for overtime periods (Q5→OT1, Q6→OT2)
+  - Proper initialization of all quarter fields including overtime
+- **Scorebook Parser**: Extended to support overtime quarters in entry parsing
+  - Added quarter mappings for OT1 and OT2 (quarters 5 and 6)
+
+### Bug Fixes
+- **Game Query Filtering**: Fixed game queries to use `is_deleted` instead of deprecated `deleted_at` column
+  - Updated scorebook creation and retrieval endpoints
+  - Ensures proper filtering of soft-deleted games
+- **Test Data Conflicts**: Resolved jersey number conflicts in integration tests
+  - Updated jersey number ranges to prevent collisions between test cases
+  - Improved test isolation and data uniqueness
+
+### Code Quality Improvements
+- **Refactoring**: Extracted name matching logic from import processor to dedicated utility module
+  - Removed 50+ lines of duplicated name matching code
+  - Improved maintainability and testability of name matching algorithms
+- **Version Bump**: Updated project version to 0.4.18 across all configuration files
+
 v0.4.17
 -------
 

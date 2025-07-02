@@ -145,7 +145,7 @@ class TestParseScorebookEntry:
 
         assert result["player_id"] == 123
         assert result["fouls"] == 3
-        assert len(result["quarter_stats"]) == 4
+        assert len(result["quarter_stats"]) == 6
 
         # Check total stats
         total = result["total_stats"]
