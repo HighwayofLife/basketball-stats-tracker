@@ -343,9 +343,14 @@ async def team_detail_page(team_id: int, auth_context: dict = Depends(get_templa
 
 
 @router.get("/players", response_class=HTMLResponse)
-async def players_page(auth_context: dict = Depends(get_template_auth_context)):
+async def players_page(request: Request, auth_context: dict = Depends(get_template_auth_context)):
     """Render the players management page."""
-    context = {**auth_context, "title": "Player Management"}
+    # Check for tab parameter in URL
+    raw_tab = request.query_params.get("tab", "players")
+    # Only allow valid tab values, default to 'players' for any invalid value
+    active_tab = raw_tab if raw_tab in ["players", "statistics"] else "players"
+
+    context = {**auth_context, "title": "Player Management", "active_tab": active_tab}
     return templates.TemplateResponse("players/index.html", context)
 
 

@@ -10,8 +10,8 @@
 
 <!-- Tab Navigation -->
 <div class="tab-navigation">
-    <button class="tab-button {% if active_tab == 'players' %}active{% endif %}" onclick="switchTab('players')">Players</button>
-    <button class="tab-button {% if active_tab == 'statistics' %}active{% endif %}" onclick="switchTab('statistics')">Player Statistics</button>
+    <button class="tab-button {% if active_tab == 'players' %}active{% endif %}" onclick="switchTab(event, 'players')">Players</button>
+    <button class="tab-button {% if active_tab == 'statistics' %}active{% endif %}" onclick="switchTab(event, 'statistics')">Player Statistics</button>
 </div>
 
 <!-- Players Management Tab -->
@@ -527,7 +527,7 @@ function switchTabWithoutHistory(tabName) {
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
     
     // Find and activate the correct tab button
-    const targetButton = document.querySelector(`button[onclick="switchTab('${tabName}')"]`);
+    const targetButton = document.querySelector(`button[onclick*="switchTab(event, '${tabName}')"]`);
     if (targetButton) {
         targetButton.classList.add('active');
     }
@@ -796,7 +796,7 @@ async function confirmDeletePlayer() {
 }
 
 // Tab switching functionality
-function switchTab(tabName) {
+function switchTab(event, tabName) {
     // Remove active class from all tabs and content
     document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
