@@ -162,9 +162,11 @@ def parse_scorebook_entry(player_data: dict[str, Any]) -> dict[str, Any]:
         "quarter_stats": [],
     }
 
-    # Process each quarter
-    for quarter in range(1, 5):
-        quarter_key = f"qt{quarter}_shots"
+    # Process each quarter (Q1-Q4 and OT1-OT2)
+    quarter_mappings = {1: "qt1_shots", 2: "qt2_shots", 3: "qt3_shots", 4: "qt4_shots", 5: "ot1_shots", 6: "ot2_shots"}
+
+    for quarter in range(1, 7):
+        quarter_key = quarter_mappings.get(quarter, f"qt{quarter}_shots")
         notation = player_data.get(quarter_key, "")
 
         # Validate notation
