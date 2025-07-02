@@ -78,6 +78,7 @@ class TestGameSummary:
             "away_team_record": None,
             "home_score": 110,
             "away_score": 105,
+            "status": "completed",
         }
         game_summary = GameSummary(**data)
         dumped = game_summary.model_dump()

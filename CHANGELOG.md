@@ -1,3 +1,42 @@
+v0.4.23
+-------
+
+### Features
+- **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
+  - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
+  - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
+  - **Key Players Section**: Top 5 players from each team with season averages (PPG, shooting stats, games played)
+  - **Head-to-Head History**: Previous matchups between teams with dates, scores, and winners
+  - **Game Details**: Scheduled date, time, location displayed prominently
+  - **Responsive Design**: Optimized for both desktop and mobile viewing
+  - **Smart UI Integration**: Games list automatically shows "View Matchup" button for scheduled games vs "View Game" for completed games
+
+### API Enhancements
+- **GameSummary Schema**: Added `status` field to distinguish between completed and scheduled games
+- **Games List Endpoint**: Updated to properly set status values for completed vs scheduled games
+- **Matchup Router**: New dedicated router for matchup preview functionality with comprehensive error handling
+
+### Services & Architecture
+- **MatchupService**: New service layer for matchup data aggregation
+  - Fetches and calculates team season statistics with computed fields (PPG, win percentage, shooting percentages)
+  - Retrieves top players by points per game with proper season filtering
+  - Compiles head-to-head game history between competing teams
+  - **Smart Season Handling**: Automatically determines current/active season instead of hardcoded fallbacks
+  - **Consistent Record Formatting**: Centralized team record formatting for maintainability
+  - Handles missing data gracefully with appropriate defaults
+- **Database Integration**: Leverages existing models (ScheduledGame, TeamSeasonStats, PlayerSeasonStats) without schema changes
+
+### UI/UX Improvements
+- **Games List Enhancement**: Updated games list component to show appropriate action buttons based on game status
+- **Template System**: New comprehensive matchup.html template with structured sections for all data types
+- **Data Formatting**: Proper rounding and percentage display for all statistical comparisons
+
+### Testing
+- **Comprehensive Test Coverage**: Full unit and integration test suites for matchup functionality
+  - Unit tests for MatchupService covering all methods and edge cases
+  - Integration tests for matchup router endpoint with various data scenarios
+  - Tests handle missing data, formatting validation, and error conditions
+
 v0.1.22
 -------
 
