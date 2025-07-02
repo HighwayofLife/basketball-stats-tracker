@@ -1,3 +1,13 @@
+v0.1.22
+-------
+
+### Features
+- **Player Statistics Sorting Improvements**: Enhanced player statistics table sorting behavior
+  - **Smart Default Sort Order**: Percentage columns (FG%, 2P%, 3P%, FT%, eFG%, TS%) now default to descending sort on first click
+  - **Minimum Points Filter**: When sorting by percentage columns, only players with 20+ total points are shown to eliminate misleading high percentages from players with minimal playing time
+  - Non-percentage columns (Player, Team, GP, PPG) maintain ascending default sort behavior
+  - Improved user experience by showing most relevant statistical leaders first
+
 v0.4.21
 -------
 
