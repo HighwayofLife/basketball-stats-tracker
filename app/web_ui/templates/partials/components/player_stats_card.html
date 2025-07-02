@@ -37,7 +37,7 @@ Player object structure:
             </div>
             <div class="player-info">
                 <h3 class="team-name">{{ player.team_name }}</h3>
-                <p class="player-name">{{ player.name }}</p>
+                <p class="player-name"><a href="/players/{{ player.player_id }}" class="player-link">{{ player.name }}</a></p>
                 {% if show_game_info and player.game_date and player.opponent %}
                 <p class="game-info">{{ player.game_date }} vs {{ player.opponent }}</p>
                 {% endif %}

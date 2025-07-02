@@ -277,7 +277,8 @@
             const fg3Percentage = (player.fg3a > 0) ? ((player.fg3m || 0) / player.fg3a * 100).toFixed(1) : '0.0';
             
             document.getElementById(`${teamType}-top-team-name-${playerIndex}`).textContent = teamName;
-            document.getElementById(`${teamType}-top-player-name-${playerIndex}`).textContent = player.name;
+            document.getElementById(`${teamType}-top-player-name-${playerIndex}`).innerHTML =
+                `<a href="/players/${player.player_id}" class="player-link">${player.name}</a>`;
             document.getElementById(`${teamType}-top-player-stats-${playerIndex}`).innerHTML =
                 `${player.points} PTS, ${fgMade}/${fgAttempted} FG (${player.fg_percentage.toFixed(1)}%)<br>` +
                 `${player.fg3m || 0}/${player.fg3a || 0} 3PT (${fg3Percentage}%)`;

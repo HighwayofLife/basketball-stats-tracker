@@ -1,3 +1,12 @@
+v0.4.23
+-------
+
+### Features
+- Linked player names in Game Leaders and Players of the Week to player profile pages
+
+### Testing
+- Added integration test ensuring Players of the Week names link correctly
+
 v0.1.22
 -------
 

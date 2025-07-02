@@ -57,6 +57,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
         top_players_data.append(
             {
+                "player_id": player.id,
                 "name": player.name,
                 "team_name": team.display_name or team.name,
                 "points": points,

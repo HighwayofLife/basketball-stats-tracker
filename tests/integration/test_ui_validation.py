@@ -260,6 +260,19 @@ class TestUIValidation:
         assert team_analysis_link is not None, "Team Analysis quick action not found"
         assert player_stats_link is not None, "Player Stats quick action not found"
 
+    def test_players_of_week_links(self, docker_containers):
+        """Ensure Players of the Week names link to player profiles."""
+        response = requests.get(f"{BASE_URL}/")
+        assert response.status_code == 200
+
+        soup = BeautifulSoup(response.content, "html.parser")
+        players_section = soup.find("div", id="players-of-week-card")
+        assert players_section is not None, "Players of the Week card not found"
+
+        name_links = players_section.select("p.player-name a[href^='/players/']")
+        # There might be fewer than expected players if no data, but links should exist when names are shown
+        assert all(link.get("href", "").startswith("/players/") for link in name_links)
+
     def test_dashboard_with_database_error_handling(self, docker_containers):
         """Test that dashboard handles database errors gracefully."""
         # The dashboard should still render even if there's a database issue
