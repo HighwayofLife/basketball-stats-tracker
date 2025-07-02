@@ -126,3 +126,17 @@ def get_player_game_stats_for_game_and_team(db: Session, game_id: int, team_id: 
         .filter(PlayerGameStats.game_id == game_id, Player.team_id == team_id)
         .all()
     )
+
+
+def get_all_player_game_stats_for_player(db: Session, player_id: int) -> list[PlayerGameStats]:
+    """
+    Get all player game stats for a specific player across all games.
+
+    Args:
+        db: SQLAlchemy database session
+        player_id: ID of the player
+
+    Returns:
+        List of PlayerGameStats instances for the specified player
+    """
+    return db.query(PlayerGameStats).filter(PlayerGameStats.player_id == player_id).all()
