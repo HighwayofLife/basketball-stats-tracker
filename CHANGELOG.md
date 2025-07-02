@@ -8,6 +8,13 @@ v0.1.22
   - Non-percentage columns (Player, Team, GP, PPG) maintain ascending default sort behavior
   - Improved user experience by showing most relevant statistical leaders first
 
+### Code Quality
+- **Enhanced Maintainability**: Replaced hard-coded column index ranges with semantic `data-is-percentage` attributes for better flexibility
+- **Comprehensive Test Coverage**: Added integration tests for player statistics sorting functionality
+  - Tests verify proper HTML data attributes for percentage columns
+  - Tests validate JavaScript filtering logic and minimum points threshold
+  - Ensures sorting enhancements work correctly in real browser environment
+
 v0.4.21
 -------
 

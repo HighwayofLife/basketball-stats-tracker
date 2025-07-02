@@ -88,12 +88,12 @@
                     <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">GP <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">PPG <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">FG% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">2P% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">3P% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">FT% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">eFG% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">TS% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">FG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">2P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">3P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">FT% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">eFG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">TS% <i class="fas fa-sort"></i></th>
                 </tr>
             </thead>
             <tbody id="stats-table-body">
@@ -882,8 +882,8 @@ function initializeSortableTables() {
                 const sortType = header.dataset.sortType || 'string';
                 const isAscending = header.classList.contains('asc');
                 
-                // Check if this is a percentage column (FG%, 2P%, 3P%, FT%, eFG%, TS%)
-                const isPercentageColumn = index >= 5 && index <= 10;
+                // Check if this is a percentage column using data attribute
+                const isPercentageColumn = header.dataset.isPercentage === 'true';
                 
                 // Remove sort classes from all headers
                 headers.forEach(h => {
