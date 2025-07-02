@@ -1,8 +1,6 @@
 """Integration tests for teams page tab functionality."""
 
 
-
-
 class TestTeamsPageTabs:
     """Integration tests for teams page tab navigation and URL parameters."""
 

@@ -10,12 +10,12 @@
 
 <!-- Tab Navigation -->
 <div class="tab-navigation">
-    <button class="tab-button active" onclick="switchTab('players')">Players</button>
-    <button class="tab-button" onclick="switchTab('statistics')">Player Statistics</button>
+    <button class="tab-button {% if active_tab == 'players' %}active{% endif %}" onclick="switchTab('players')">Players</button>
+    <button class="tab-button {% if active_tab == 'statistics' %}active{% endif %}" onclick="switchTab('statistics')">Player Statistics</button>
 </div>
 
 <!-- Players Management Tab -->
-<div id="players-tab" class="tab-content active">
+<div id="players-tab" class="tab-content {% if active_tab == 'players' %}active{% endif %}">
     <!-- Filters -->
     <div class="filters">
         <div class="filter-group">
@@ -66,7 +66,7 @@
 </div>
 
 <!-- Player Statistics Tab -->
-<div id="statistics-tab" class="tab-content">
+<div id="statistics-tab" class="tab-content {% if active_tab == 'statistics' %}active{% endif %}">
     <!-- Statistics Filters -->
     <div class="filters">
         <div class="filter-group">
@@ -79,15 +79,14 @@
 
     <!-- Player Statistics Table -->
     <div class="card">
-        <table class="data-table mobile-table-view sortable-table" id="player-stats-table">
+        <div class="table-scroll-wrapper">
+            <table class="data-table mobile-table-view sortable-table" id="player-stats-table">
             <thead>
                 <tr>
                     <th data-sort-type="string"># <i class="fas fa-sort"></i></th>
                     <th data-sort-type="string">Player <i class="fas fa-sort"></i></th>
                     <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="string">Pos <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">GP <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">PTS <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">PPG <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">FG% <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">2P% <i class="fas fa-sort"></i></th>
@@ -95,16 +94,15 @@
                     <th data-sort-type="number">FT% <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">eFG% <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">TS% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">Fouls <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">FPG <i class="fas fa-sort"></i></th>
                 </tr>
             </thead>
             <tbody id="stats-table-body">
                 <tr>
-                    <td colspan="15" class="loading-message">Loading statistics...</td>
+                    <td colspan="11" class="loading-message">Loading statistics...</td>
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -265,6 +263,17 @@
 
 .sortable-table th:hover {
     background-color: #f8f9fa;
+}
+
+/* Horizontal Scrolling for Tables */
+.table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper table {
+    min-width: 800px;
+    width: 100%;
 }
 
 /* Modal styles */
@@ -486,12 +495,54 @@ document.addEventListener('DOMContentLoaded', () => {
     loadPlayers();
     initializeSortableTables();
     
+    // Check if statistics tab should be active and load data
+    const activeTab = '{{ active_tab }}';
+    if (activeTab === 'statistics') {
+        loadPlayerStatistics();
+    }
+    
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', handlePopState);
+    
     // Set up event listeners
     document.getElementById('team-filter').addEventListener('change', loadPlayers);
     document.getElementById('player-type-filter').addEventListener('change', loadPlayers);
     document.getElementById('active-only').addEventListener('change', loadPlayers);
     document.getElementById('stats-team-filter').addEventListener('change', loadPlayerStatistics);
 });
+
+// Handle browser back/forward button navigation
+function handlePopState(event) {
+    const url = new URL(window.location);
+    const tabParam = url.searchParams.get('tab') || 'players';
+    
+    // Switch to the tab specified in the URL without adding to history
+    switchTabWithoutHistory(tabParam);
+}
+
+// Switch tab without modifying browser history (used for popstate)
+function switchTabWithoutHistory(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Find and activate the correct tab button
+    const targetButton = document.querySelector(`button[onclick="switchTab('${tabName}')"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+    }
+    
+    // Activate the correct content div
+    const targetContent = document.getElementById(`${tabName}-tab`);
+    if (targetContent) {
+        targetContent.classList.add('active');
+    }
+    
+    // Load statistics data if switching to statistics tab
+    if (tabName === 'statistics') {
+        loadPlayerStatistics();
+    }
+}
 
 async function loadTeams() {
     try {
@@ -754,10 +805,22 @@ function switchTab(tabName) {
     event.target.classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
+    // Update URL parameter without page reload
+    updateUrlParameter('tab', tabName);
+    
     // Load statistics data if switching to statistics tab
     if (tabName === 'statistics') {
         loadPlayerStatistics();
     }
+}
+
+// Function to update URL parameter without page reload
+function updateUrlParameter(paramName, paramValue) {
+    const url = new URL(window.location);
+    url.searchParams.set(paramName, paramValue);
+    
+    // Update browser history without reload
+    window.history.pushState({ tab: paramValue }, '', url);
 }
 
 async function loadPlayerStatistics() {
@@ -777,7 +840,7 @@ async function loadPlayerStatistics() {
         
         if (stats.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="15">No statistics available. Import some game data to see player statistics.</td>';
+            row.innerHTML = '<td colspan="11">No statistics available. Import some game data to see player statistics.</td>';
             tableBody.appendChild(row);
         } else {
             stats.forEach((player) => {
@@ -786,9 +849,7 @@ async function loadPlayerStatistics() {
                     <td data-label="#"><strong>#${player.jersey_number}</strong></td>
                     <td data-label="Player"><strong>${player.player_name}</strong></td>
                     <td data-label="Team">${player.team_name}</td>
-                    <td data-label="Pos">${player.position || '-'}</td>
                     <td data-label="GP">${player.games_played}</td>
-                    <td data-label="PTS">${player.total_points}</td>
                     <td data-label="PPG">${player.points_per_game}</td>
                     <td data-label="FG%">${player.fg_percentage}%</td>
                     <td data-label="2P%">${player.fg2_percentage}%</td>
@@ -796,8 +857,6 @@ async function loadPlayerStatistics() {
                     <td data-label="FT%">${player.ft_percentage}%</td>
                     <td data-label="eFG%">${player.effective_fg_percentage}%</td>
                     <td data-label="TS%">${player.true_shooting_percentage}%</td>
-                    <td data-label="Fouls">${player.total_fouls}</td>
-                    <td data-label="FPG">${player.fouls_per_game}</td>
                 `;
                 tableBody.appendChild(row);
             });
@@ -805,7 +864,7 @@ async function loadPlayerStatistics() {
     } catch (error) {
         console.error('Error loading player statistics:', error);
         const tableBody = document.getElementById('stats-table-body');
-        tableBody.innerHTML = '<tr><td colspan="15" class="error-message">Failed to load statistics. Please try again.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="11" class="error-message">Failed to load statistics. Please try again.</td></tr>';
     }
 }
 

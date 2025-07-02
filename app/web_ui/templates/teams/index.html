@@ -40,7 +40,8 @@
 <!-- Team Rankings Table -->
 <div id="rankings-tab" class="tab-content {% if active_tab == 'rankings' %}active{% endif %}">
     <div class="card">
-        <table class="data-table mobile-table-view sortable-table" id="team-rankings-table">
+        <div class="table-scroll-wrapper">
+            <table class="data-table mobile-table-view sortable-table" id="team-rankings-table">
             <thead>
                 <tr>
                     <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
@@ -60,6 +61,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -171,6 +173,17 @@
 
 .sortable-table th:hover {
     background-color: #f8f9fa;
+}
+
+/* Horizontal Scrolling for Tables */
+.table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper table {
+    min-width: 800px;
+    width: 100%;
 }
 
 /* Modal Styles */
