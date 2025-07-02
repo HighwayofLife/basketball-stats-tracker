@@ -8,6 +8,30 @@ allowing for common variations, abbreviations, and minor typos in player names.
 import re
 from difflib import SequenceMatcher
 
+# Common nickname mappings for fuzzy name matching
+COMMON_NICKNAMES = {
+    "william": ["bill", "will", "billy"],
+    "robert": ["bob", "rob", "bobby"],
+    "richard": ["rick", "dick", "richie"],
+    "michael": ["mike", "mick"],
+    "james": ["jim", "jimmy"],
+    "david": ["dave", "davy"],
+    "christopher": ["chris"],
+    "matthew": ["matt"],
+    "daniel": ["dan", "danny"],
+    "thomas": ["tom", "tommy"],
+    "anthony": ["tony"],
+    "joshua": ["josh"],
+    "andrew": ["andy", "drew"],
+    "joseph": ["joe", "joey"],
+    "jonathan": ["jon"],
+    "benjamin": ["ben", "benny"],
+    "nicholas": ["nick"],
+    "alexander": ["alex"],
+    "zachary": ["zach"],
+    "stephen": ["steve", "steph"],
+}
+
 
 def levenshtein_distance(s1: str, s2: str) -> int:
     """
@@ -184,31 +208,7 @@ def fuzzy_name_match(existing_name: str, new_name: str, threshold: float = 0.8) 
                 first_names_related = True
 
             # Check for common nicknames
-            common_nicknames = {
-                "william": ["bill", "will", "billy"],
-                "robert": ["bob", "rob", "bobby"],
-                "richard": ["rick", "dick", "richie"],
-                "michael": ["mike", "mick"],
-                "james": ["jim", "jimmy"],
-                "david": ["dave", "davy"],
-                "christopher": ["chris"],
-                "matthew": ["matt"],
-                "daniel": ["dan", "danny"],
-                "thomas": ["tom", "tommy"],
-                "anthony": ["tony"],
-                "joshua": ["josh"],
-                "andrew": ["andy", "drew"],
-                "joseph": ["joe", "joey"],
-                "jonathan": ["jon"],
-                "benjamin": ["ben", "benny"],
-                "nicholas": ["nick"],
-                "alexander": ["alex"],
-                "zachary": ["zach"],
-                "stephen": ["steve", "steph"],
-            }
-
-            # Check if one is a common nickname of the other
-            for full_name, nicknames in common_nicknames.items():
+            for full_name, nicknames in COMMON_NICKNAMES.items():
                 if (
                     (existing_first == full_name and new_first in nicknames)
                     or (new_first == full_name and existing_first in nicknames)

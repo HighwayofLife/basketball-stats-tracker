@@ -214,6 +214,7 @@ Lakers,LeBron James,twenty-three"""
     @patch("app.utils.fuzzy_matching.names_match_enhanced")
     def test_process_players_with_conflict(self, mock_names_match, mock_echo):
         """Test _process_players with player conflicts."""
+        mock_names_match.return_value = False
         mock_db = MagicMock()
 
         # Mock team lookup

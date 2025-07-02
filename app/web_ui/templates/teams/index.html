@@ -8,25 +8,59 @@
     {% endif %}
 </div>
 
+<!-- Tab Navigation -->
+<div class="tab-navigation">
+    <button class="tab-button active" onclick="switchTab('teams')">Teams</button>
+    <button class="tab-button" onclick="switchTab('rankings')">Team Rankings</button>
+</div>
+
 <!-- Teams Table -->
-<div class="card">
-    <table class="data-table mobile-table-view">
-        <thead>
-            <tr>
-                <th>Rank</th>
-                <th>Team</th>
-                <th class="col-record">Record</th>
-                <th class="col-win-pct">Win %</th>
-                <th class="col-players">Players</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="teams-table-body">
-            <tr>
-                <td colspan="6" class="loading-message">Loading teams...</td>
-            </tr>
-        </tbody>
-    </table>
+<div id="teams-tab" class="tab-content active">
+    <div class="card">
+        <table class="data-table mobile-table-view">
+            <thead>
+                <tr>
+                    <th>Rank</th>
+                    <th>Team</th>
+                    <th class="col-record">Record</th>
+                    <th class="col-win-pct">Win %</th>
+                    <th class="col-players">Players</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="teams-table-body">
+                <tr>
+                    <td colspan="6" class="loading-message">Loading teams...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Team Rankings Table -->
+<div id="rankings-tab" class="tab-content">
+    <div class="card">
+        <table class="data-table mobile-table-view sortable-table" id="team-rankings-table">
+            <thead>
+                <tr>
+                    <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Games <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Avg PPG <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">FG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Opp PPG <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Opp FG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Offensive Rating <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Defensive Rating <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">Point Diff <i class="fas fa-sort"></i></th>
+                </tr>
+            </thead>
+            <tbody id="rankings-table-body">
+                <tr>
+                    <td colspan="9" class="loading-message">Loading rankings...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
 </div>
 
 <!-- Create/Edit Team Modal -->
@@ -76,6 +110,69 @@
 </div>
 
 <style>
+/* Tab Styles */
+.tab-navigation {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 1rem;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Sortable Table Styles */
+.sortable-table th {
+    cursor: pointer;
+    position: relative;
+    padding-right: 25px;
+    user-select: none;
+}
+
+.sortable-table th i {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    font-size: 0.8rem;
+}
+
+.sortable-table th.asc i,
+.sortable-table th.desc i {
+    color: #007bff;
+}
+
+.sortable-table th:hover {
+    background-color: #f8f9fa;
+}
+
 /* Modal Styles */
 .modal {
     position: fixed;
@@ -202,7 +299,10 @@ let currentTeamId = null;
 let deleteTeamId = null;
 
 // Load teams on page load
-document.addEventListener('DOMContentLoaded', loadTeams);
+document.addEventListener('DOMContentLoaded', () => {
+    loadTeams();
+    initializeSortableTables();
+});
 
 async function loadTeams() {
     try {
@@ -347,6 +447,125 @@ async function confirmDelete() {
         console.error('Error deleting team:', error);
         alert('Failed to delete team. Please try again.');
     }
+}
+
+// Tab switching functionality
+function switchTab(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Add active class to selected tab and content
+    event.target.classList.add('active');
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Load rankings data if switching to rankings tab
+    if (tabName === 'rankings') {
+        loadTeamRankings();
+    }
+}
+
+async function loadTeamRankings() {
+    try {
+        const response = await fetch('/v1/teams/rankings');
+        const rankings = await response.json();
+        
+        const tableBody = document.getElementById('rankings-table-body');
+        tableBody.innerHTML = '';
+        
+        if (rankings.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="9">No ranking data available. Import some game data to see team rankings.</td>';
+            tableBody.appendChild(row);
+        } else {
+            rankings.forEach((team) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td data-label="Team"><strong>${team.team_name}</strong></td>
+                    <td data-label="Games">${team.games_played}</td>
+                    <td data-label="Avg PPG">${team.avg_points_scored}</td>
+                    <td data-label="FG%">${team.fg_percentage}%</td>
+                    <td data-label="Opp PPG">${team.avg_points_allowed}</td>
+                    <td data-label="Opp FG%">${team.opponent_fg_percentage}%</td>
+                    <td data-label="Offensive Rating">${team.offensive_rating}</td>
+                    <td data-label="Defensive Rating">${team.defensive_rating}</td>
+                    <td data-label="Point Diff" style="color: ${team.point_differential >= 0 ? 'green' : 'red'}">${team.point_differential > 0 ? '+' : ''}${team.point_differential}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading team rankings:', error);
+        const tableBody = document.getElementById('rankings-table-body');
+        tableBody.innerHTML = '<tr><td colspan="9" class="error-message">Failed to load rankings. Please try again.</td></tr>';
+    }
+}
+
+// Initialize sortable tables
+function initializeSortableTables() {
+    const tables = document.querySelectorAll('.sortable-table');
+    
+    tables.forEach(table => {
+        const headers = table.querySelectorAll('th[data-sort-type]');
+        const tbody = table.querySelector('tbody');
+        
+        headers.forEach((header, index) => {
+            header.addEventListener('click', () => {
+                const sortType = header.dataset.sortType || 'string';
+                const isAscending = header.classList.contains('asc');
+                
+                // Remove sort classes from all headers
+                headers.forEach(h => {
+                    h.classList.remove('asc', 'desc');
+                    const icon = h.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort-up', 'fa-sort-down');
+                        icon.classList.add('fa-sort');
+                    }
+                });
+                
+                // Toggle sort direction
+                if (isAscending) {
+                    header.classList.add('desc');
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort', 'fa-sort-up');
+                        icon.classList.add('fa-sort-down');
+                    }
+                } else {
+                    header.classList.add('asc');
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort', 'fa-sort-down');
+                        icon.classList.add('fa-sort-up');
+                    }
+                }
+                
+                // Sort rows
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort((rowA, rowB) => {
+                    let cellA = rowA.children[index].textContent.trim();
+                    let cellB = rowB.children[index].textContent.trim();
+                    
+                    // Remove '%' and '+' signs for number comparison
+                    if (sortType === 'number') {
+                        cellA = parseFloat(cellA.replace(/[%+]/g, ''));
+                        cellB = parseFloat(cellB.replace(/[%+]/g, ''));
+                    }
+                    
+                    if (sortType === 'string') {
+                        return isAscending ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+                    } else if (sortType === 'number') {
+                        return isAscending ? cellB - cellA : cellA - cellB;
+                    }
+                    return 0;
+                });
+                
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
 }
 
 // Close modals when clicking outside

@@ -104,3 +104,25 @@ def get_player_game_stats_by_game_and_player(db: Session, game_id: int, player_i
         PlayerGameStats instance if found, None otherwise
     """
     return get_player_game_stats(db, game_id, player_id)
+
+
+def get_player_game_stats_for_game_and_team(db: Session, game_id: int, team_id: int) -> list[PlayerGameStats]:
+    """
+    Get all player game stats for a specific team in a given game.
+
+    Args:
+        db: SQLAlchemy database session
+        game_id: ID of the game
+        team_id: ID of the team
+
+    Returns:
+        List of PlayerGameStats instances for the specified team in the game
+    """
+    from app.data_access.models import Player
+
+    return (
+        db.query(PlayerGameStats)
+        .join(Player)
+        .filter(PlayerGameStats.game_id == game_id, Player.team_id == team_id)
+        .all()
+    )
