@@ -1,7 +1,8 @@
 """Unit tests for PlayerStatsService."""
 
-import pytest
 from unittest.mock import Mock
+
+import pytest
 
 from app.services.player_stats_service import PlayerStatsService
 
@@ -166,27 +167,30 @@ class TestPlayerStatsService:
         """Test integration of get_player_stats method."""
         # Mock the database calls
         from unittest.mock import patch
-        
-        with patch('app.services.player_stats_service.get_all_players') as mock_get_players, \
-             patch('app.services.player_stats_service.get_all_player_game_stats_for_player') as mock_get_stats:
-            
+
+        with (
+            patch("app.services.player_stats_service.get_all_players") as mock_get_players,
+            patch("app.services.player_stats_service.get_all_player_game_stats_for_player") as mock_get_stats,
+        ):
             mock_get_players.return_value = [mock_player]
             mock_get_stats.return_value = mock_game_stats
-            
+
             result = player_stats_service.get_player_stats()
-            
+
             assert len(result) == 1
             assert result[0]["player_name"] == "John Doe"
             assert result[0]["total_points"] == 31
-            
+
             # Verify database session was passed correctly
             mock_get_players.assert_called_once_with(mock_db_session)
             mock_get_stats.assert_called_once_with(mock_db_session, 1)
 
-    def test_get_player_stats_with_team_filter(self, player_stats_service, mock_db_session, mock_player, mock_game_stats):
+    def test_get_player_stats_with_team_filter(
+        self, player_stats_service, mock_db_session, mock_player, mock_game_stats
+    ):
         """Test get_player_stats with team filter."""
         from unittest.mock import patch
-        
+
         # Create players from different teams
         player1 = Mock()
         player1.id = 1
@@ -206,18 +210,19 @@ class TestPlayerStatsService:
         player2.team = Mock()
         player2.team.name = "Team 2"
 
-        with patch('app.services.player_stats_service.get_all_players') as mock_get_players, \
-             patch('app.services.player_stats_service.get_all_player_game_stats_for_player') as mock_get_stats:
-            
+        with (
+            patch("app.services.player_stats_service.get_all_players") as mock_get_players,
+            patch("app.services.player_stats_service.get_all_player_game_stats_for_player") as mock_get_stats,
+        ):
             mock_get_players.return_value = [player1, player2]
             mock_get_stats.return_value = []
-            
+
             # Test filtering by team_id = 1
             result = player_stats_service.get_player_stats(team_id=1)
-            
+
             assert len(result) == 1
             assert result[0]["player_name"] == "Player 1"
             assert result[0]["team_id"] == 1
-            
+
             # Verify database session was passed correctly
             mock_get_players.assert_called_once_with(mock_db_session)

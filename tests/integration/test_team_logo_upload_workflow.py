@@ -22,7 +22,9 @@ class TestTeamLogoUploadWorkflow:
         """Create an invalid file for testing."""
         return ("test.txt", io.BytesIO(b"not an image"), "text/plain")
 
-    def test_upload_team_logo_complete_workflow(self, authenticated_client, shared_test_team, test_image_blue, clear_image_caches):
+    def test_upload_team_logo_complete_workflow(
+        self, authenticated_client, shared_test_team, test_image_blue, clear_image_caches
+    ):
         """Test the complete team logo upload workflow."""
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
@@ -157,7 +159,13 @@ class TestTeamLogoUploadWorkflow:
                 assert (team_dir / "logo.png").exists()
 
     def test_logo_url_generation_after_upload(
-        self, authenticated_client, shared_test_team, test_image_blue, integration_db_session, monkeypatch, clear_image_caches
+        self,
+        authenticated_client,
+        shared_test_team,
+        test_image_blue,
+        integration_db_session,
+        monkeypatch,
+        clear_image_caches,
     ):
         """Test that logo URLs are properly generated after upload."""
         # Cache clearing is handled by clear_image_caches fixture

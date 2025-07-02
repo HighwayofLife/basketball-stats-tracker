@@ -30,7 +30,7 @@ class PlayerStatsService:
             - advanced metrics (true shooting %, effective field goal %)
         """
         players = get_all_players(self._db_session)
-        
+
         # Filter by team if specified
         if team_id is not None:
             players = [p for p in players if p.team_id == team_id]
@@ -40,7 +40,7 @@ class PlayerStatsService:
         for player in players:
             # Get all game stats for this player
             game_stats = get_all_player_game_stats_for_player(self._db_session, player.id)
-            
+
             # Calculate aggregated statistics
             stats = self._calculate_player_stats(player, game_stats)
             player_stats.append(stats)
@@ -132,9 +132,9 @@ class PlayerStatsService:
         """
         if total_fga == 0 and total_fta == 0:
             return 0
-        
+
         denominator = 2 * (total_fga + 0.44 * total_fta)
         if denominator == 0:
             return 0
-        
+
         return total_points / denominator * 100

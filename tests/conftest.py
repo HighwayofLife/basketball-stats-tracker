@@ -2,6 +2,7 @@
 Common test fixtures for the basketball stats tracker application.
 """
 
+import contextlib
 import io
 import os
 import tempfile
@@ -967,7 +968,7 @@ def clear_image_caches():
     Use this fixture for tests that need clean cache state for images.
     """
     import app.web_ui.templates_config as templates_config_module
-    
+
     def _clear_caches():
         """Helper function to clear caches safely."""
         # List of cache attributes to clear
@@ -979,36 +980,33 @@ def clear_image_caches():
             "_get_cached_team_logo_data",
             "_get_cached_player_portrait_data",
         ]
-        
+
         # Clear individual caches
         for cache_name in caches_to_clear:
             if hasattr(templates_config_module, cache_name):
                 cache_attr = getattr(templates_config_module, cache_name)
                 if hasattr(cache_attr, "cache_clear"):
-                    try:
+                    with contextlib.suppress(AttributeError, TypeError):
                         cache_attr.cache_clear()
-                    except (AttributeError, TypeError):
-                        # Ignore if cache_clear doesn't exist or isn't callable
-                        pass
-        
+
         # Use the public cache clearing functions if available
         try:
             if hasattr(templates_config_module, "clear_entity_image_cache"):
                 templates_config_module.clear_entity_image_cache()
         except (AttributeError, TypeError):
             pass
-        
+
         try:
             if hasattr(templates_config_module, "clear_team_logo_cache"):
                 templates_config_module.clear_team_logo_cache()
         except (AttributeError, TypeError):
             pass
-    
+
     # Clear caches before test
     _clear_caches()
-    
+
     yield
-    
+
     # Clear caches after test as well
     _clear_caches()
 

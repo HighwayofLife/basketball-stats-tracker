@@ -321,7 +321,7 @@ async def teams_page(request: Request, auth_context: dict = Depends(get_template
     raw_tab = request.query_params.get("tab", "teams")
     # Only allow valid tab values, default to 'teams' for any invalid value
     active_tab = raw_tab if raw_tab in ["teams", "rankings"] else "teams"
-    
+
     context = {**auth_context, "title": "Team Management", "active_tab": active_tab}
     return templates.TemplateResponse("teams/index.html", context)
 

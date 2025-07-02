@@ -201,7 +201,9 @@ class TestTeamLogoDisplay:
                     "game_id" in html_content or f"/games/{test_game.id}" in html_content or response.status_code == 200
                 )
 
-    def test_template_helper_integration(self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches):
+    def test_template_helper_integration(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that the template helper function works with real data."""
         # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
@@ -303,7 +305,9 @@ class TestTeamLogoDisplay:
                     response = client.get("/games")
                     assert response.status_code == 200
 
-    def test_different_logo_sizes_display(self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches):
+    def test_different_logo_sizes_display(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that different logo sizes are correctly served."""
         # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
@@ -370,7 +374,9 @@ class TestTeamLogoDisplay:
                     assert url is not None
                     assert f"teams/{team1.id}/logo.jpg" in url
 
-    def test_logo_url_caching_behavior(self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches):
+    def test_logo_url_caching_behavior(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that logo URL generation is consistent."""
         # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module

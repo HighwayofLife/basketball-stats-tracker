@@ -162,9 +162,9 @@ async def get_player_stats_rankings(team_id: int | None = None, session=Depends(
     try:
         stats_service = PlayerStatsService(session)
         player_stats = stats_service.get_player_stats(team_id=team_id)
-        
+
         return player_stats
-        
+
     except Exception as e:
         logger.error(f"Error getting player statistics: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve player statistics") from e
