@@ -1,3 +1,16 @@
+v0.4.29
+-------
+
+### Features
+- **Clickable Player Names**: Enhanced user experience by making player names clickable throughout the application
+  - Game Leaders section in game detail pages now link to individual player profiles
+  - Players of the Week section on dashboard now links to player profiles
+  - Added player profile navigation from game statistics displays
+  - Improved discoverability of player information across the interface
+
+### Testing
+- Added integration test ensuring Players of the Week names link correctly
+
 v0.4.28
 -------
 
