@@ -22,7 +22,7 @@ class TestMatchupRouter:
     def test_view_matchup_success(self, client: TestClient, db_session):
         """Test successful matchup view."""
         # Create test data
-        season = Season(id=1, name="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
         home_team = Team(id=1, name="home_team", display_name="Home Team")
         away_team = Team(id=2, name="away_team", display_name="Away Team")
         db_session.add_all([season, home_team, away_team])
@@ -43,29 +43,33 @@ class TestMatchupRouter:
         # Create team season stats
         home_stats = TeamSeasonStats(
             team_id=1,
-            season_id=1,
+            season="2023-24",
             games_played=10,
             wins=7,
             losses=3,
-            ppg=85.5,
-            opp_ppg=78.2,
-            win_percentage=0.7,
-            ft_percentage=0.75,
-            fg2_percentage=0.52,
-            fg3_percentage=0.35,
+            total_points_for=855,
+            total_points_against=782,
+            total_ftm=150,
+            total_fta=200,
+            total_2pm=260,
+            total_2pa=500,
+            total_3pm=70,
+            total_3pa=200,
         )
         away_stats = TeamSeasonStats(
             team_id=2,
-            season_id=1,
+            season="2023-24",
             games_played=10,
             wins=5,
             losses=5,
-            ppg=80.0,
-            opp_ppg=82.0,
-            win_percentage=0.5,
-            ft_percentage=0.70,
-            fg2_percentage=0.48,
-            fg3_percentage=0.33,
+            total_points_for=800,
+            total_points_against=820,
+            total_ftm=140,
+            total_fta=200,
+            total_2pm=240,
+            total_2pa=500,
+            total_3pm=66,
+            total_3pa=200,
         )
         db_session.add_all([home_stats, away_stats])
 
@@ -76,47 +80,36 @@ class TestMatchupRouter:
 
         home_player_stats = PlayerSeasonStats(
             player_id=1,
-            player=home_player,
-            team_id=1,
-            season_id=1,
+            season="2023-24",
             games_played=10,
-            points_per_game=20.5,
-            ftm=50,
-            fta=60,
-            fg2m=80,
-            fg2a=150,
-            fg3m=25,
-            fg3a=75,
-            ft_percentage=0.833,
+            total_ftm=50,
+            total_fta=60,
+            total_2pm=80,
+            total_2pa=150,
+            total_3pm=25,
+            total_3pa=75,
         )
         away_player_stats = PlayerSeasonStats(
             player_id=2,
-            player=away_player,
-            team_id=2,
-            season_id=1,
+            season="2023-24",
             games_played=10,
-            points_per_game=18.0,
-            ftm=40,
-            fta=55,
-            fg2m=70,
-            fg2a=140,
-            fg3m=20,
-            fg3a=65,
-            ft_percentage=0.727,
+            total_ftm=40,
+            total_fta=55,
+            total_2pm=70,
+            total_2pa=140,
+            total_3pm=20,
+            total_3pa=65,
         )
         db_session.add_all([home_player_stats, away_player_stats])
 
         # Create historical game
         past_game = Game(
             id=1,
-            game_date=date(2024, 2, 1),
-            home_team_id=1,
-            home_team=home_team,
-            away_team_id=2,
-            away_team=away_team,
-            home_score=90,
-            away_score=85,
-            status="completed",
+            date=date(2024, 2, 1),
+            playing_team_id=1,
+            opponent_team_id=2,
+            playing_team_score=90,
+            opponent_team_score=85,
         )
         db_session.add(past_game)
 
@@ -149,7 +142,7 @@ class TestMatchupRouter:
     def test_view_matchup_no_stats(self, client: TestClient, db_session):
         """Test matchup view when no stats are available."""
         # Create minimal data
-        season = Season(id=1, name="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
         home_team = Team(id=1, name="home_team", display_name="Home Team")
         away_team = Team(id=2, name="away_team", display_name="Away Team")
         db_session.add_all([season, home_team, away_team])
@@ -176,7 +169,7 @@ class TestMatchupRouter:
     def test_view_matchup_no_head_to_head(self, client: TestClient, db_session):
         """Test matchup view when no head-to-head history exists."""
         # Create test data without historical games
-        season = Season(id=1, name="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
         home_team = Team(id=1, name="home_team", display_name="Home Team")
         away_team = Team(id=2, name="away_team", display_name="Away Team")
         db_session.add_all([season, home_team, away_team])
@@ -193,7 +186,19 @@ class TestMatchupRouter:
 
         # Add some team stats
         home_stats = TeamSeasonStats(
-            team_id=1, season_id=1, games_played=5, wins=3, losses=2, ppg=75.0, opp_ppg=70.0, win_percentage=0.6
+            team_id=1,
+            season="2023-24",
+            games_played=5,
+            wins=3,
+            losses=2,
+            total_points_for=375,
+            total_points_against=350,
+            total_ftm=75,
+            total_fta=100,
+            total_2pm=100,
+            total_2pa=200,
+            total_3pm=25,
+            total_3pa=75,
         )
         db_session.add(home_stats)
         db_session.commit()
@@ -206,7 +211,7 @@ class TestMatchupRouter:
     def test_view_matchup_multiple_players(self, client: TestClient, db_session):
         """Test matchup view with multiple top players."""
         # Create test data
-        season = Season(id=1, name="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
         home_team = Team(id=1, name="home_team", display_name="Home Team")
         db_session.add_all([season, home_team])
 
@@ -224,17 +229,14 @@ class TestMatchupRouter:
 
             stats = PlayerSeasonStats(
                 player_id=i,
-                player=player,
-                team_id=1,
-                season_id=1,
+                season="2023-24",
                 games_played=10,
-                points_per_game=20.0 - i,  # Descending PPG
-                ftm=10 * i,
-                fta=12 * i,
-                fg2m=20 * i,
-                fg2a=40 * i,
-                fg3m=5 * i,
-                fg3a=15 * i,
+                total_ftm=10 * i,
+                total_fta=12 * i,
+                total_2pm=20 * i,
+                total_2pa=40 * i,
+                total_3pm=5 * i,
+                total_3pa=15 * i,
             )
             db_session.add(stats)
 
@@ -265,7 +267,7 @@ class TestMatchupRouter:
     def test_view_matchup_formatting(self, client: TestClient, db_session):
         """Test proper formatting of stats in matchup view."""
         # Create test data with specific values to test formatting
-        season = Season(id=1, name="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
         home_team = Team(id=1, name="home_team", display_name="Home Team")
         away_team = Team(id=2, name="away_team", display_name="Away Team")
         db_session.add_all([season, home_team, away_team])
@@ -283,16 +285,18 @@ class TestMatchupRouter:
         # Add stats with decimal values
         home_stats = TeamSeasonStats(
             team_id=1,
-            season_id=1,
+            season="2023-24",
             games_played=10,
             wins=7,
             losses=3,
-            ppg=85.567,  # Should be rounded to 85.6
-            opp_ppg=78.234,  # Should be rounded to 78.2
-            win_percentage=0.7,  # Should show as 70.0%
-            ft_percentage=0.756,  # Should show as 75.6%
-            fg2_percentage=0.523,  # Should show as 52.3%
-            fg3_percentage=0.351,  # Should show as 35.1%
+            total_points_for=856,  # 85.6 PPG
+            total_points_against=782,  # 78.2 opp PPG
+            total_ftm=756,  # 75.6% FT
+            total_fta=1000,
+            total_2pm=523,  # 52.3% 2P
+            total_2pa=1000,
+            total_3pm=351,  # 35.1% 3P
+            total_3pa=1000,
         )
         db_session.add(home_stats)
         db_session.commit()

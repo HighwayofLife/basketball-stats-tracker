@@ -49,7 +49,9 @@ async def view_matchup(request: Request, scheduled_game_id: int):
             if home_stats:
                 context["home_team"]["ppg"] = round(home_stats["ppg"], 1)
                 context["home_team"]["opp_ppg"] = round(home_stats["opp_ppg"], 1)
-                context["home_team"]["record"] = f"{home_stats['wins']}-{home_stats['losses']}"
+                context["home_team"]["record"] = matchup_service._format_team_record(
+                    home_stats["wins"], home_stats["losses"]
+                )
                 context["home_team"]["win_pct"] = round(home_stats["win_percentage"] * 100, 1)
                 context["home_team"]["ft_pct"] = round(home_stats["ft_percentage"] * 100, 1)
                 context["home_team"]["fg2_pct"] = round(home_stats["fg2_percentage"] * 100, 1)
@@ -57,7 +59,7 @@ async def view_matchup(request: Request, scheduled_game_id: int):
             else:
                 context["home_team"]["ppg"] = 0
                 context["home_team"]["opp_ppg"] = 0
-                context["home_team"]["record"] = "0-0"
+                context["home_team"]["record"] = matchup_service._format_team_record(0, 0)
                 context["home_team"]["win_pct"] = 0
                 context["home_team"]["ft_pct"] = 0
                 context["home_team"]["fg2_pct"] = 0
@@ -68,7 +70,9 @@ async def view_matchup(request: Request, scheduled_game_id: int):
             if away_stats:
                 context["away_team"]["ppg"] = round(away_stats["ppg"], 1)
                 context["away_team"]["opp_ppg"] = round(away_stats["opp_ppg"], 1)
-                context["away_team"]["record"] = f"{away_stats['wins']}-{away_stats['losses']}"
+                context["away_team"]["record"] = matchup_service._format_team_record(
+                    away_stats["wins"], away_stats["losses"]
+                )
                 context["away_team"]["win_pct"] = round(away_stats["win_percentage"] * 100, 1)
                 context["away_team"]["ft_pct"] = round(away_stats["ft_percentage"] * 100, 1)
                 context["away_team"]["fg2_pct"] = round(away_stats["fg2_percentage"] * 100, 1)
@@ -76,7 +80,7 @@ async def view_matchup(request: Request, scheduled_game_id: int):
             else:
                 context["away_team"]["ppg"] = 0
                 context["away_team"]["opp_ppg"] = 0
-                context["away_team"]["record"] = "0-0"
+                context["away_team"]["record"] = matchup_service._format_team_record(0, 0)
                 context["away_team"]["win_pct"] = 0
                 context["away_team"]["ft_pct"] = 0
                 context["away_team"]["fg2_pct"] = 0

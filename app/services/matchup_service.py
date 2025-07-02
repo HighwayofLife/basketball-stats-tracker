@@ -44,7 +44,11 @@ class MatchupService:
             return None
 
         # Get season string from scheduled game
-        season_string = self._get_season_string(scheduled_game.season_id) if scheduled_game.season_id else "2024-2025"
+        season_string = (
+            self._get_season_string(scheduled_game.season_id)
+            if scheduled_game.season_id
+            else self._get_current_season()
+        )
 
         # Compile matchup data
         matchup_data = {
@@ -78,14 +82,49 @@ class MatchupService:
 
         season = self.db.query(Season).filter(Season.id == season_id).first()
         if season:
-            # Convert season name to format like "2024-2025"
-            if "-" in season.name:
-                return season.name
-            # Otherwise create from dates
-            start_year = season.start_date.year
-            end_year = season.end_date.year if season.end_date.year != start_year else start_year + 1
-            return f"{start_year}-{end_year}"
-        return "2024-2025"  # Default fallback
+            return self._format_season_string(season)
+        return self._get_current_season()  # Default fallback
+
+    def _get_current_season(self) -> str:
+        """
+        Get the current or most recent season string.
+
+        Returns:
+            Current season string (e.g., "2024-2025")
+        """
+        from datetime import date
+
+        from app.data_access.models import Season
+
+        # Try to get the active season first
+        current_season = self.db.query(Season).filter(Season.is_active).first()
+        if current_season:
+            return self._format_season_string(current_season)
+
+        # Fall back to the most recent season
+        recent_season = self.db.query(Season).order_by(Season.start_date.desc()).first()
+        if recent_season:
+            return self._format_season_string(recent_season)
+
+        # Final fallback to current year
+        current_year = date.today().year
+        if date.today().month >= 10:  # Basketball season starts in October
+            return f"{current_year}-{current_year + 1}"
+        else:
+            return f"{current_year - 1}-{current_year}"
+
+    def _format_season_string(self, season) -> str:
+        """Format a Season object into a season string."""
+        if "-" in season.name:
+            return season.name
+        # Otherwise create from dates
+        start_year = season.start_date.year
+        end_year = season.end_date.year if season.end_date.year != start_year else start_year + 1
+        return f"{start_year}-{end_year}"
+
+    def _format_team_record(self, wins: int, losses: int) -> str:
+        """Format team record as 'W-L' string."""
+        return f"{wins}-{losses}"
 
     def _get_team_season_stats(self, team_id: int, season: str) -> dict[str, Any] | None:
         """
