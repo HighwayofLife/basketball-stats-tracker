@@ -372,6 +372,17 @@ class TestUIValidation:
             "Player rows should have data-total-points attribute set"
         )
 
+    def test_players_page_javascript_player_links(self, docker_containers):
+        """Test that player tables link names to player detail pages."""
+        response = requests.get(f"{BASE_URL}/players")
+        assert response.status_code == 200
+
+        content = response.text
+        assert 'href="/players/${player.id}"' in content, "Player list should create links to player detail pages"
+        assert 'href="/players/${player.player_id}"' in content, (
+            "Statistics table should link player names to detail pages"
+        )
+
     def test_teams_page_loads(self, docker_containers):
         """Test that the teams page loads successfully."""
         response = requests.get(f"{BASE_URL}/teams")
