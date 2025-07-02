@@ -9,6 +9,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 from app.web_ui.dependencies import get_db
@@ -153,6 +154,20 @@ async def create_player(player_data: PlayerCreateRequest, current_user: User = D
             error_message = f"Missing required information for player {player_data.name}."
 
         raise HTTPException(status_code=400, detail=error_message) from e
+
+
+@router.get("/stats")
+async def get_player_stats_rankings(team_id: int | None = None, session=Depends(get_db)):
+    """Get comprehensive player statistics for all players, optionally filtered by team."""
+    try:
+        stats_service = PlayerStatsService(session)
+        player_stats = stats_service.get_player_stats(team_id=team_id)
+
+        return player_stats
+
+    except Exception as e:
+        logger.error(f"Error getting player statistics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve player statistics") from e
 
 
 @router.get("/{player_id}", response_model=PlayerResponse)

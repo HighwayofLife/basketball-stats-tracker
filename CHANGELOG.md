@@ -1,3 +1,55 @@
+v0.4.21
+-------
+
+### Features
+- **Player Statistics Dashboard**: Added comprehensive player statistics and performance metrics
+  - New "Player Statistics" tab on `/players` page with detailed player performance data
+  - **Basic Statistics**: Games played, total points, points per game, fouls per game
+  - **Shooting Statistics**: Field goal %, 2-point %, 3-point %, free throw %
+  - **Advanced Metrics**: Effective field goal % (eFG%) and true shooting % (TS%) for better shooting evaluation
+  - **Team Filtering**: Dropdown filter to view statistics for specific teams only
+  - **Sortable Interface**: Click any column header to sort statistics with visual indicators
+  - **Responsive Design**: Table adapts to mobile devices with proper data labels
+  - Jersey number column positioned next to player name for better readability
+
+- **Teams Page URL Parameters**: Added comprehensive URL parameter support for tab navigation
+  - Teams page now accepts `?tab=rankings` parameter to automatically open Team Rankings tab
+  - URL parameter `?tab=teams` opens default Teams tab (or no parameter for default)
+  - JavaScript automatically loads rankings data when accessing via URL parameter
+  - **Dynamic URL Updates**: Tab switches update browser URL without page reload
+  - **Browser History Support**: Users can navigate between tabs using back/forward buttons
+  - **Input Validation**: Invalid tab parameters gracefully default to teams tab
+  - Improved user experience for sharing direct links to specific tabs and bookmark support
+
+### API Enhancements
+- **Player Statistics Endpoint**: New `GET /v1/players/stats` API endpoint
+  - Returns comprehensive player statistics for all players
+  - Optional `team_id` query parameter for filtering by team
+  - Calculates advanced shooting metrics and per-game averages
+  - Proper routing order to avoid conflicts with existing endpoints
+
+### Services & Architecture
+- **PlayerStatsService**: New service layer for player statistics calculations
+  - Aggregates data from PlayerGameStats across all games
+  - Calculates shooting percentages, advanced metrics, and averages
+  - Handles edge cases like zero attempts and missing data
+  - Team filtering support with efficient database queries
+
+### Testing
+- **Player Statistics Tests**: Added comprehensive unit test suite
+  - 11 test cases covering all calculation methods and edge cases
+  - Tests for effective field goal % and true shooting % formulas
+  - Integration tests with mocked database dependencies
+  - Team filtering and error handling validation
+  - All 623 existing tests continue to pass
+
+- **Integration Tests**: Added comprehensive test suite for teams page tab functionality
+  - Tests for URL parameter parsing and tab activation
+  - Validation of correct tab content display based on URL parameters
+  - Testing of JavaScript URL update and browser history functionality
+  - Edge case testing for invalid parameters and authentication states
+  - 10 new test cases covering tab navigation functionality
+
 v0.4.20
 -------
 

@@ -22,7 +22,9 @@ class TestTeamLogoUploadWorkflow:
         """Create an invalid file for testing."""
         return ("test.txt", io.BytesIO(b"not an image"), "text/plain")
 
-    def test_upload_team_logo_complete_workflow(self, authenticated_client, shared_test_team, test_image_blue):
+    def test_upload_team_logo_complete_workflow(
+        self, authenticated_client, shared_test_team, test_image_blue, clear_image_caches
+    ):
         """Test the complete team logo upload workflow."""
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
@@ -157,17 +159,17 @@ class TestTeamLogoUploadWorkflow:
                 assert (team_dir / "logo.png").exists()
 
     def test_logo_url_generation_after_upload(
-        self, authenticated_client, shared_test_team, test_image_blue, integration_db_session, monkeypatch
+        self,
+        authenticated_client,
+        shared_test_team,
+        test_image_blue,
+        integration_db_session,
+        monkeypatch,
+        clear_image_caches,
     ):
         """Test that logo URLs are properly generated after upload."""
-        # Import and clear caches FIRST, before any other imports
+        # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
-
-        # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
-            templates_config_module._get_cached_entity_image_data.cache_clear()
-        if hasattr(templates_config_module, "_check_file_exists"):
-            templates_config_module._check_file_exists.cache_clear()
 
         with tempfile.TemporaryDirectory() as temp_dir:
             with patch.object(ImageProcessingService, "get_image_directory") as mock_get_dir:
@@ -219,10 +221,7 @@ class TestTeamLogoUploadWorkflow:
                     # Patch the cached function to use uncached version for integration tests
                     import app.web_ui.templates_config as templates_config_module
 
-                    # Clear ALL caches that could interfere
-                    templates_config_module._get_cached_entity_image_data.cache_clear()
-                    templates_config_module._get_cached_team_logo_data.cache_clear()
-                    templates_config_module._check_file_exists.cache_clear()
+                    # Cache clearing is handled by clear_image_caches fixture
 
                     monkeypatch.setattr(
                         templates_config_module,

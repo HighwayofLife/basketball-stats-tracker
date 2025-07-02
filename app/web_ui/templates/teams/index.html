@@ -10,12 +10,12 @@
 
 <!-- Tab Navigation -->
 <div class="tab-navigation">
-    <button class="tab-button active" onclick="switchTab('teams')">Teams</button>
-    <button class="tab-button" onclick="switchTab('rankings')">Team Rankings</button>
+    <button class="tab-button {% if active_tab == 'teams' %}active{% endif %}" onclick="switchTab('teams')">Teams</button>
+    <button class="tab-button {% if active_tab == 'rankings' %}active{% endif %}" onclick="switchTab('rankings')">Team Rankings</button>
 </div>
 
 <!-- Teams Table -->
-<div id="teams-tab" class="tab-content active">
+<div id="teams-tab" class="tab-content {% if active_tab == 'teams' %}active{% endif %}">
     <div class="card">
         <table class="data-table mobile-table-view">
             <thead>
@@ -38,9 +38,10 @@
 </div>
 
 <!-- Team Rankings Table -->
-<div id="rankings-tab" class="tab-content">
+<div id="rankings-tab" class="tab-content {% if active_tab == 'rankings' %}active{% endif %}">
     <div class="card">
-        <table class="data-table mobile-table-view sortable-table" id="team-rankings-table">
+        <div class="table-scroll-wrapper">
+            <table class="data-table mobile-table-view sortable-table" id="team-rankings-table">
             <thead>
                 <tr>
                     <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
@@ -60,6 +61,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
     </div>
 </div>
 
@@ -171,6 +173,17 @@
 
 .sortable-table th:hover {
     background-color: #f8f9fa;
+}
+
+/* Horizontal Scrolling for Tables */
+.table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper table {
+    min-width: 800px;
+    width: 100%;
 }
 
 /* Modal Styles */
@@ -302,7 +315,49 @@ let deleteTeamId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadTeams();
     initializeSortableTables();
+    
+    // Check if rankings tab should be active and load data
+    const activeTab = '{{ active_tab }}';
+    if (activeTab === 'rankings') {
+        loadTeamRankings();
+    }
+    
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', handlePopState);
 });
+
+// Handle browser back/forward button navigation
+function handlePopState(event) {
+    const url = new URL(window.location);
+    const tabParam = url.searchParams.get('tab') || 'teams';
+    
+    // Switch to the tab specified in the URL without adding to history
+    switchTabWithoutHistory(tabParam);
+}
+
+// Switch tab without modifying browser history (used for popstate)
+function switchTabWithoutHistory(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Find and activate the correct tab button
+    const targetButton = document.querySelector(`button[onclick="switchTab('${tabName}')"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+    }
+    
+    // Activate the correct content div
+    const targetContent = document.getElementById(`${tabName}-tab`);
+    if (targetContent) {
+        targetContent.classList.add('active');
+    }
+    
+    // Load rankings data if switching to rankings tab
+    if (tabName === 'rankings') {
+        loadTeamRankings();
+    }
+}
 
 async function loadTeams() {
     try {
@@ -459,10 +514,22 @@ function switchTab(tabName) {
     event.target.classList.add('active');
     document.getElementById(`${tabName}-tab`).classList.add('active');
     
+    // Update URL parameter without page reload
+    updateUrlParameter('tab', tabName);
+    
     // Load rankings data if switching to rankings tab
     if (tabName === 'rankings') {
         loadTeamRankings();
     }
+}
+
+// Function to update URL parameter without page reload
+function updateUrlParameter(paramName, paramValue) {
+    const url = new URL(window.location);
+    url.searchParams.set(paramName, paramValue);
+    
+    // Update browser history without reload
+    window.history.pushState({ tab: paramValue }, '', url);
 }
 
 async function loadTeamRankings() {

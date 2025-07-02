@@ -201,16 +201,12 @@ class TestTeamLogoDisplay:
                     "game_id" in html_content or f"/games/{test_game.id}" in html_content or response.status_code == 200
                 )
 
-    def test_template_helper_integration(self, test_teams_with_logos, integration_db_session, monkeypatch):
+    def test_template_helper_integration(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that the template helper function works with real data."""
-        # Import and clear caches FIRST, before any other imports
+        # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
-
-        # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
-            templates_config_module._get_cached_entity_image_data.cache_clear()
-        if hasattr(templates_config_module, "_check_file_exists"):
-            templates_config_module._check_file_exists.cache_clear()
 
         team1, team2, team3 = test_teams_with_logos
 
@@ -249,10 +245,7 @@ class TestTeamLogoDisplay:
 
                 monkeypatch.setattr(db_session_module, "get_db_session", test_get_db_session)
 
-                # Clear ALL caches that could interfere
-                templates_config_module._get_cached_entity_image_data.cache_clear()
-                templates_config_module._get_cached_team_logo_data.cache_clear()
-                templates_config_module._check_file_exists.cache_clear()
+                # Cache clearing is handled by clear_image_caches fixture
 
                 # Patch the cached function to use uncached version for integration tests
                 monkeypatch.setattr(
@@ -312,16 +305,12 @@ class TestTeamLogoDisplay:
                     response = client.get("/games")
                     assert response.status_code == 200
 
-    def test_different_logo_sizes_display(self, test_teams_with_logos, integration_db_session, monkeypatch):
+    def test_different_logo_sizes_display(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that different logo sizes are correctly served."""
-        # Import and clear caches FIRST, before any other imports
+        # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
-
-        # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
-            templates_config_module._get_cached_entity_image_data.cache_clear()
-        if hasattr(templates_config_module, "_check_file_exists"):
-            templates_config_module._check_file_exists.cache_clear()
 
         team1, team2, team3 = test_teams_with_logos
 
@@ -363,10 +352,7 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                # Clear ALL caches that could interfere
-                templates_config_module._get_cached_entity_image_data.cache_clear()
-                templates_config_module._get_cached_team_logo_data.cache_clear()
-                templates_config_module._check_file_exists.cache_clear()
+                # Cache clearing is handled by clear_image_caches fixture
 
                 monkeypatch.setattr(
                     templates_config_module,
@@ -388,16 +374,12 @@ class TestTeamLogoDisplay:
                     assert url is not None
                     assert f"teams/{team1.id}/logo.jpg" in url
 
-    def test_logo_url_caching_behavior(self, test_teams_with_logos, integration_db_session, monkeypatch):
+    def test_logo_url_caching_behavior(
+        self, test_teams_with_logos, integration_db_session, monkeypatch, clear_image_caches
+    ):
         """Test that logo URL generation is consistent."""
-        # Import and clear caches FIRST, before any other imports
+        # Cache clearing is handled by clear_image_caches fixture
         import app.web_ui.templates_config as templates_config_module
-
-        # Force clear ALL caches before starting
-        if hasattr(templates_config_module, "_get_cached_entity_image_data"):
-            templates_config_module._get_cached_entity_image_data.cache_clear()
-        if hasattr(templates_config_module, "_check_file_exists"):
-            templates_config_module._check_file_exists.cache_clear()
 
         team1, team2, team3 = test_teams_with_logos
 
@@ -439,10 +421,7 @@ class TestTeamLogoDisplay:
                 # Patch the cached function to use uncached version for integration tests
                 import app.web_ui.templates_config as templates_config_module
 
-                # Clear ALL caches that could interfere
-                templates_config_module._get_cached_entity_image_data.cache_clear()
-                templates_config_module._get_cached_team_logo_data.cache_clear()
-                templates_config_module._check_file_exists.cache_clear()
+                # Cache clearing is handled by clear_image_caches fixture
 
                 monkeypatch.setattr(
                     templates_config_module,

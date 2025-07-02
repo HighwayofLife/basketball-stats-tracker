@@ -8,52 +8,102 @@
     {% endif %}
 </div>
 
-<!-- Filters -->
-<div class="filters">
-    <div class="filter-group">
-        <label for="team-filter">Filter by Team:</label>
-        <select id="team-filter" class="filter-select">
-            <option value="">All Teams</option>
-        </select>
+<!-- Tab Navigation -->
+<div class="tab-navigation">
+    <button class="tab-button {% if active_tab == 'players' %}active{% endif %}" onclick="switchTab(event, 'players')">Players</button>
+    <button class="tab-button {% if active_tab == 'statistics' %}active{% endif %}" onclick="switchTab(event, 'statistics')">Player Statistics</button>
+</div>
+
+<!-- Players Management Tab -->
+<div id="players-tab" class="tab-content {% if active_tab == 'players' %}active{% endif %}">
+    <!-- Filters -->
+    <div class="filters">
+        <div class="filter-group">
+            <label for="team-filter">Filter by Team:</label>
+            <select id="team-filter" class="filter-select">
+                <option value="">All Teams</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label for="player-type-filter">Player Type:</label>
+            <select id="player-type-filter" class="filter-select">
+                <option value="">All Players</option>
+                <option value="regular">Regular Players</option>
+                <option value="substitute">Substitute Players</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>
+                <input type="checkbox" id="active-only" checked> Active players only
+            </label>
+        </div>
     </div>
-    <div class="filter-group">
-        <label for="player-type-filter">Player Type:</label>
-        <select id="player-type-filter" class="filter-select">
-            <option value="">All Players</option>
-            <option value="regular">Regular Players</option>
-            <option value="substitute">Substitute Players</option>
-        </select>
-    </div>
-    <div class="filter-group">
-        <label>
-            <input type="checkbox" id="active-only" checked> Active players only
-        </label>
+
+    <!-- Players Table -->
+    <div class="card">
+        <table class="data-table mobile-table-view">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Team</th>
+                    <th>#</th>
+                    <th class="col-position">Position</th>
+                    <th class="col-height">Height</th>
+                    <th class="col-weight">Weight</th>
+                    <th class="col-year">Year</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="players-table-body">
+                <tr>
+                    <td colspan="10" class="loading-message">Loading players...</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>
 
-<!-- Players Table -->
-<div class="card">
-    <table class="data-table mobile-table-view">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>Team</th>
-                <th>#</th>
-                <th class="col-position">Position</th>
-                <th class="col-height">Height</th>
-                <th class="col-weight">Weight</th>
-                <th class="col-year">Year</th>
-                <th>Type</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody id="players-table-body">
-            <tr>
-                <td colspan="10" class="loading-message">Loading players...</td>
-            </tr>
-        </tbody>
-    </table>
+<!-- Player Statistics Tab -->
+<div id="statistics-tab" class="tab-content {% if active_tab == 'statistics' %}active{% endif %}">
+    <!-- Statistics Filters -->
+    <div class="filters">
+        <div class="filter-group">
+            <label for="stats-team-filter">Filter by Team:</label>
+            <select id="stats-team-filter" class="filter-select">
+                <option value="">All Teams</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Player Statistics Table -->
+    <div class="card">
+        <div class="table-scroll-wrapper">
+            <table class="data-table mobile-table-view sortable-table" id="player-stats-table">
+            <thead>
+                <tr>
+                    <th data-sort-type="string"># <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="string">Player <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">GP <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">PPG <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">FG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">2P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">3P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">FT% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">eFG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number">TS% <i class="fas fa-sort"></i></th>
+                </tr>
+            </thead>
+            <tbody id="stats-table-body">
+                <tr>
+                    <td colspan="11" class="loading-message">Loading statistics...</td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
 </div>
 
 <!-- Add/Edit Player Modal -->
@@ -152,6 +202,80 @@
 </div>
 
 <style>
+/* Tab Styles */
+.tab-navigation {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 1rem;
+}
+
+.tab-button {
+    background: none;
+    border: none;
+    padding: 1rem 1.5rem;
+    cursor: pointer;
+    font-size: 1rem;
+    color: #666;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+.tab-button:hover {
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+.tab-button.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: bold;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Sortable Table Styles */
+.sortable-table th {
+    cursor: pointer;
+    position: relative;
+    padding-right: 25px;
+    user-select: none;
+}
+
+.sortable-table th i {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #aaa;
+    font-size: 0.8rem;
+}
+
+.sortable-table th.asc i,
+.sortable-table th.desc i {
+    color: #007bff;
+}
+
+.sortable-table th:hover {
+    background-color: #f8f9fa;
+}
+
+/* Horizontal Scrolling for Tables */
+.table-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.table-scroll-wrapper table {
+    min-width: 800px;
+    width: 100%;
+}
+
 /* Modal styles */
 .modal {
     position: fixed;
@@ -369,12 +493,56 @@ let deletePlayerId = null;
 document.addEventListener('DOMContentLoaded', () => {
     loadTeams();
     loadPlayers();
+    initializeSortableTables();
+    
+    // Check if statistics tab should be active and load data
+    const activeTab = '{{ active_tab }}';
+    if (activeTab === 'statistics') {
+        loadPlayerStatistics();
+    }
+    
+    // Handle browser back/forward navigation
+    window.addEventListener('popstate', handlePopState);
     
     // Set up event listeners
     document.getElementById('team-filter').addEventListener('change', loadPlayers);
     document.getElementById('player-type-filter').addEventListener('change', loadPlayers);
     document.getElementById('active-only').addEventListener('change', loadPlayers);
+    document.getElementById('stats-team-filter').addEventListener('change', loadPlayerStatistics);
 });
+
+// Handle browser back/forward button navigation
+function handlePopState(event) {
+    const url = new URL(window.location);
+    const tabParam = url.searchParams.get('tab') || 'players';
+    
+    // Switch to the tab specified in the URL without adding to history
+    switchTabWithoutHistory(tabParam);
+}
+
+// Switch tab without modifying browser history (used for popstate)
+function switchTabWithoutHistory(tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Find and activate the correct tab button
+    const targetButton = document.querySelector(`button[onclick*="switchTab(event, '${tabName}')"]`);
+    if (targetButton) {
+        targetButton.classList.add('active');
+    }
+    
+    // Activate the correct content div
+    const targetContent = document.getElementById(`${tabName}-tab`);
+    if (targetContent) {
+        targetContent.classList.add('active');
+    }
+    
+    // Load statistics data if switching to statistics tab
+    if (tabName === 'statistics') {
+        loadPlayerStatistics();
+    }
+}
 
 async function loadTeams() {
     try {
@@ -383,14 +551,17 @@ async function loadTeams() {
         
         const teamFilter = document.getElementById('team-filter');
         const playerTeamSelect = document.getElementById('player-team');
+        const statsTeamFilter = document.getElementById('stats-team-filter');
         
         // Clear existing options (except "All Teams" for filter)
         teamFilter.innerHTML = '<option value="">All Teams</option>';
         playerTeamSelect.innerHTML = '<option value="">Select Team</option>';
+        statsTeamFilter.innerHTML = '<option value="">All Teams</option>';
         
         teams.forEach(team => {
             teamFilter.add(new Option(team.name, team.id));
             playerTeamSelect.add(new Option(team.name, team.id));
+            statsTeamFilter.add(new Option(team.name, team.id));
         });
     } catch (error) {
         console.error('Error loading teams:', error);
@@ -622,6 +793,146 @@ async function confirmDeletePlayer() {
         console.error('Error deleting player:', error);
         alert('Failed to delete player. Please try again.');
     }
+}
+
+// Tab switching functionality
+function switchTab(event, tabName) {
+    // Remove active class from all tabs and content
+    document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+    
+    // Add active class to selected tab and content
+    event.target.classList.add('active');
+    document.getElementById(`${tabName}-tab`).classList.add('active');
+    
+    // Update URL parameter without page reload
+    updateUrlParameter('tab', tabName);
+    
+    // Load statistics data if switching to statistics tab
+    if (tabName === 'statistics') {
+        loadPlayerStatistics();
+    }
+}
+
+// Function to update URL parameter without page reload
+function updateUrlParameter(paramName, paramValue) {
+    const url = new URL(window.location);
+    url.searchParams.set(paramName, paramValue);
+    
+    // Update browser history without reload
+    window.history.pushState({ tab: paramValue }, '', url);
+}
+
+async function loadPlayerStatistics() {
+    try {
+        const teamId = document.getElementById('stats-team-filter').value;
+        
+        let url = '/v1/players/stats';
+        if (teamId) {
+            url += `?team_id=${teamId}`;
+        }
+        
+        const response = await fetch(url);
+        const stats = await response.json();
+        
+        const tableBody = document.getElementById('stats-table-body');
+        tableBody.innerHTML = '';
+        
+        if (stats.length === 0) {
+            const row = document.createElement('tr');
+            row.innerHTML = '<td colspan="11">No statistics available. Import some game data to see player statistics.</td>';
+            tableBody.appendChild(row);
+        } else {
+            stats.forEach((player) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td data-label="#"><strong>#${player.jersey_number}</strong></td>
+                    <td data-label="Player"><strong>${player.player_name}</strong></td>
+                    <td data-label="Team">${player.team_name}</td>
+                    <td data-label="GP">${player.games_played}</td>
+                    <td data-label="PPG">${player.points_per_game}</td>
+                    <td data-label="FG%">${player.fg_percentage}%</td>
+                    <td data-label="2P%">${player.fg2_percentage}%</td>
+                    <td data-label="3P%">${player.fg3_percentage}%</td>
+                    <td data-label="FT%">${player.ft_percentage}%</td>
+                    <td data-label="eFG%">${player.effective_fg_percentage}%</td>
+                    <td data-label="TS%">${player.true_shooting_percentage}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading player statistics:', error);
+        const tableBody = document.getElementById('stats-table-body');
+        tableBody.innerHTML = '<tr><td colspan="11" class="error-message">Failed to load statistics. Please try again.</td></tr>';
+    }
+}
+
+// Initialize sortable tables
+function initializeSortableTables() {
+    const tables = document.querySelectorAll('.sortable-table');
+    
+    tables.forEach(table => {
+        const headers = table.querySelectorAll('th[data-sort-type]');
+        const tbody = table.querySelector('tbody');
+        
+        headers.forEach((header, index) => {
+            header.addEventListener('click', () => {
+                const sortType = header.dataset.sortType || 'string';
+                const isAscending = header.classList.contains('asc');
+                
+                // Remove sort classes from all headers
+                headers.forEach(h => {
+                    h.classList.remove('asc', 'desc');
+                    const icon = h.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort-up', 'fa-sort-down');
+                        icon.classList.add('fa-sort');
+                    }
+                });
+                
+                // Toggle sort direction
+                if (isAscending) {
+                    header.classList.add('desc');
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort', 'fa-sort-up');
+                        icon.classList.add('fa-sort-down');
+                    }
+                } else {
+                    header.classList.add('asc');
+                    const icon = header.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('fa-sort', 'fa-sort-down');
+                        icon.classList.add('fa-sort-up');
+                    }
+                }
+                
+                // Sort rows
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                rows.sort((rowA, rowB) => {
+                    let cellA = rowA.children[index].textContent.trim();
+                    let cellB = rowB.children[index].textContent.trim();
+                    
+                    // Remove '%' and '+' signs for number comparison
+                    if (sortType === 'number') {
+                        cellA = parseFloat(cellA.replace(/[%+]/g, ''));
+                        cellB = parseFloat(cellB.replace(/[%+]/g, ''));
+                    }
+                    
+                    if (sortType === 'string') {
+                        return isAscending ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+                    } else if (sortType === 'number') {
+                        return isAscending ? cellB - cellA : cellA - cellB;
+                    }
+                    return 0;
+                });
+                
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
 }
 
 // Close modals when clicking outside
