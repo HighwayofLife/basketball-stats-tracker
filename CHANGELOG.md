@@ -1,3 +1,39 @@
+v0.4.20
+-------
+
+### Features
+- **Team Rankings Dashboard**: Added comprehensive team statistics and rankings functionality
+  - New `/teams` page tab showing offensive and defensive team metrics
+  - Offensive metrics: average PPG, field goal percentage, offensive rating (0-100 scale)
+  - Defensive metrics: opponent PPG, opponent FG%, defensive rating (0-100 scale)
+  - Point differential tracking for each team
+  - Client-side sortable table with visual sort indicators
+  - Responsive tab-based interface for easy navigation
+
+### Backend Enhancements
+- **Team Stats Service**: New `TeamStatsService` for calculating team-level statistics
+  - Aggregates player game stats to compute team offensive/defensive performance
+  - Composite rating algorithms combining scoring and shooting efficiency
+  - Support for teams with varying numbers of games played
+- **CRUD Enhancement**: Added `get_player_game_stats_for_game_and_team()` function
+  - Efficient retrieval of all player stats for a specific team in a game
+  - Enables team-level statistical aggregation
+- **API Endpoint**: New `/v1/teams/rankings` endpoint for team statistics data
+
+### Frontend Improvements
+- **Teams Page UI**: Enhanced with tabbed interface and rankings table
+  - Tab navigation between team management and team rankings
+  - 9-column sortable table with comprehensive team metrics
+  - Color-coded point differential (green/red for positive/negative)
+  - Font Awesome icons for sort direction indicators
+  - Mobile-responsive design with proper table scaling
+
+### Testing
+- **Unit Tests**: Added comprehensive test suite for `TeamStatsService`
+  - Tests for score calculation, field goal statistics, and rating algorithms
+  - Edge case handling for teams with no games or perfect/poor performance
+  - 11 new test cases with full coverage of service methods
+
 v0.4.18
 -------
 

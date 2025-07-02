@@ -11,6 +11,7 @@ from app.repositories import PlayerRepository, TeamRepository
 from app.services.audit_log_service import AuditLogService
 from app.services.image_processing_service import ImageProcessingService
 from app.services.season_stats_service import SeasonStatsService
+from app.services.team_stats_service import TeamStatsService
 
 from ..dependencies import get_db, get_player_repository, get_team_repository
 from ..schemas import (
@@ -131,6 +132,18 @@ async def list_teams_with_counts(
     except Exception as e:
         logger.error(f"Error retrieving teams: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve teams") from e
+
+
+@router.get("/rankings")
+async def get_team_rankings(db=Depends(get_db)):  # noqa: B008
+    """Get team rankings and statistics for all teams."""
+    try:
+        team_stats_service = TeamStatsService(db)
+        rankings = team_stats_service.get_team_rankings()
+        return rankings
+    except Exception as e:
+        logger.error(f"Error retrieving team rankings: {e}")
+        raise HTTPException(status_code=500, detail="Failed to retrieve team rankings") from e
 
 
 @router.get("/{team_id}", response_model=TeamWithRosterResponse)

@@ -219,6 +219,11 @@ class TestTeamLogoUploadWorkflow:
                     # Patch the cached function to use uncached version for integration tests
                     import app.web_ui.templates_config as templates_config_module
 
+                    # Clear ALL caches that could interfere
+                    templates_config_module._get_cached_entity_image_data.cache_clear()
+                    templates_config_module._get_cached_team_logo_data.cache_clear()
+                    templates_config_module._check_file_exists.cache_clear()
+
                     monkeypatch.setattr(
                         templates_config_module,
                         "_get_cached_entity_image_data",
