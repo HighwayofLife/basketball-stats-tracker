@@ -345,10 +345,9 @@ class TestGameEditWorkflow:
 
     def test_edit_deleted_game(self, test_client, admin_headers, test_db, test_game):
         """Test that deleted games cannot be edited."""
-        from datetime import datetime
 
         # Soft delete the game
-        test_game.deleted_at = datetime.utcnow()
+        test_game.soft_delete()
         test_db.commit()
 
         # Try to get game in scorebook format

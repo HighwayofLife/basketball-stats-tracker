@@ -170,6 +170,7 @@ def fuzzy_name_match(existing_name: str, new_name: str, threshold: float = 0.8) 
             first_names_related = True
         else:
             # Check for initial matching (e.g., "Michael" vs "M")
+            # Allow this for now, will filter single-letter-only names later
             if is_initial_match(existing_first, new_first) or is_initial_match(new_first, existing_first):
                 first_names_related = True
 
@@ -219,6 +220,10 @@ def fuzzy_name_match(existing_name: str, new_name: str, threshold: float = 0.8) 
 
     # Only proceed with matching if first names are related OR we have very high similarity for single names
     if not first_names_related:
+        # For single letter names, be much more strict
+        if len(existing_norm) == 1 or len(new_norm) == 1:
+            return False
+
         # Allow very high similarity matches for single names (like last names) with strict distance check
         if ratio >= 0.9 and (not existing_last or not new_last):
             # Additional check: ensure the difference is just 1-2 characters for single names
@@ -227,8 +232,9 @@ def fuzzy_name_match(existing_name: str, new_name: str, threshold: float = 0.8) 
                 return True
         return False
 
-    # Strategy 3: First name + last initial matching
+    # Strategy 3: First name + last initial matching - but only if last initials match
     if existing_first and new_first and existing_last and new_last:
+        # Check for exact first name + last initial match
         if existing_first == new_first and (
             is_initial_match(existing_last, new_last) or is_initial_match(new_last, existing_last)
         ):
@@ -264,9 +270,22 @@ def fuzzy_name_match(existing_name: str, new_name: str, threshold: float = 0.8) 
             # Neither has middle names, just first + last match with related first names
             return True
 
-    # Strategy 5: Just first name match for single names
+    # Strategy 5: Handle cases where one name has last and other has middle initial
+    # e.g. "John Smith" vs "John B" - need to check if last name matches middle initial
     if first_names_related and (not existing_last or not new_last):
-        return True
+        # If one has a last name and the other has a middle initial, check if they match
+        if existing_last and new_middle and not new_last:
+            # e.g., "John Smith" vs "John B" -> check if "Smith" starts with "B"
+            return is_initial_match(existing_last, new_middle)
+        elif new_last and existing_middle and not existing_last:
+            # e.g., "John B" vs "John Smith" -> check if "Smith" starts with "B"
+            return is_initial_match(new_last, existing_middle)
+        elif not existing_last and not new_last:
+            # Both are single names - but don't allow single letter matches like "J" vs "John"
+            return not (len(existing_norm) == 1 or len(new_norm) == 1)
+        else:
+            # One has last name, other doesn't - allow if not single letter
+            return not (len(existing_norm) == 1 or len(new_norm) == 1)
 
     # Strategy 6: Medium similarity with distance check (only if first names are related)
     if first_names_related and ratio >= 0.8:

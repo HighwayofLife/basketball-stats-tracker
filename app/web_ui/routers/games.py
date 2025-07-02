@@ -1018,7 +1018,7 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                 # Update existing game
                 game = (
                     session.query(models.Game)
-                    .filter(models.Game.id == game_id, models.Game.deleted_at.is_(None))
+                    .filter(models.Game.id == game_id, models.Game.is_deleted.is_not(True))
                     .first()
                 )
 
@@ -1201,7 +1201,7 @@ async def get_game_scorebook_format(
         from app.services.shot_notation_service import ShotNotationService
 
         # Get the game
-        game = session.query(models.Game).filter(models.Game.id == game_id, models.Game.deleted_at.is_(None)).first()
+        game = session.query(models.Game).filter(models.Game.id == game_id, models.Game.is_deleted.is_not(True)).first()
 
         if not game:
             raise HTTPException(status_code=404, detail="Game not found")
