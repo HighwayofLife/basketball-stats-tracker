@@ -599,7 +599,7 @@ async function loadPlayers() {
                     <td data-label="Name">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
                             ${getPlayerPortraitSmall(player)}
-                            <strong>${player.name}</strong>
+                            <a href="/players/${player.id}" class="player-link"><strong>${player.name}</strong></a>
                         </div>
                     </td>
                     <td data-label="Team">${player.team_name}</td>
@@ -848,7 +848,7 @@ async function loadPlayerStatistics() {
                 row.setAttribute('data-total-points', player.total_points);
                 row.innerHTML = `
                     <td data-label="#"><strong>#${player.jersey_number}</strong></td>
-                    <td data-label="Player"><strong>${player.player_name}</strong></td>
+                    <td data-label="Player"><a href="/players/${player.player_id}" class="player-link"><strong>${player.player_name}</strong></a></td>
                     <td data-label="Team">${player.team_name}</td>
                     <td data-label="GP">${player.games_played}</td>
                     <td data-label="PPG">${player.points_per_game}</td>

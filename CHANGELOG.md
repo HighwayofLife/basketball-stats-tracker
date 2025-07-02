@@ -1,3 +1,9 @@
+v0.4.23
+-------
+
+### Changes
+* Added links to player detail pages from players list and statistics tables
+
 v0.1.22
 -------
 
