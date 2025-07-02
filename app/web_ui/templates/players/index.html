@@ -88,12 +88,12 @@
                     <th data-sort-type="string">Team <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">GP <i class="fas fa-sort"></i></th>
                     <th data-sort-type="number">PPG <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">FG% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">2P% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">3P% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">FT% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">eFG% <i class="fas fa-sort"></i></th>
-                    <th data-sort-type="number">TS% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">FG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">2P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">3P% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">FT% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">eFG% <i class="fas fa-sort"></i></th>
+                    <th data-sort-type="number" data-is-percentage="true">TS% <i class="fas fa-sort"></i></th>
                 </tr>
             </thead>
             <tbody id="stats-table-body">
@@ -845,6 +845,7 @@ async function loadPlayerStatistics() {
         } else {
             stats.forEach((player) => {
                 const row = document.createElement('tr');
+                row.setAttribute('data-total-points', player.total_points);
                 row.innerHTML = `
                     <td data-label="#"><strong>#${player.jersey_number}</strong></td>
                     <td data-label="Player"><strong>${player.player_name}</strong></td>
@@ -881,6 +882,9 @@ function initializeSortableTables() {
                 const sortType = header.dataset.sortType || 'string';
                 const isAscending = header.classList.contains('asc');
                 
+                // Check if this is a percentage column using data attribute
+                const isPercentageColumn = header.dataset.isPercentage === 'true';
+                
                 // Remove sort classes from all headers
                 headers.forEach(h => {
                     h.classList.remove('asc', 'desc');
@@ -891,8 +895,11 @@ function initializeSortableTables() {
                     }
                 });
                 
-                // Toggle sort direction
+                // Determine sort direction - percentage columns default to descending
+                let sortDescending;
                 if (isAscending) {
+                    // Toggle to descending
+                    sortDescending = true;
                     header.classList.add('desc');
                     const icon = header.querySelector('i');
                     if (icon) {
@@ -900,16 +907,53 @@ function initializeSortableTables() {
                         icon.classList.add('fa-sort-down');
                     }
                 } else {
-                    header.classList.add('asc');
-                    const icon = header.querySelector('i');
-                    if (icon) {
-                        icon.classList.remove('fa-sort', 'fa-sort-down');
-                        icon.classList.add('fa-sort-up');
+                    // Default behavior: percentage columns start descending, others start ascending
+                    sortDescending = isPercentageColumn;
+                    if (sortDescending) {
+                        header.classList.add('desc');
+                        const icon = header.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('fa-sort', 'fa-sort-up');
+                            icon.classList.add('fa-sort-down');
+                        }
+                    } else {
+                        header.classList.add('asc');
+                        const icon = header.querySelector('i');
+                        if (icon) {
+                            icon.classList.remove('fa-sort', 'fa-sort-down');
+                            icon.classList.add('fa-sort-up');
+                        }
                     }
                 }
                 
-                // Sort rows
-                const rows = Array.from(tbody.querySelectorAll('tr'));
+                // Get all rows and filter for percentage columns
+                let rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Apply minimum points filter for percentage columns
+                if (isPercentageColumn) {
+                    const originalRows = [...rows];
+                    rows = rows.filter(row => {
+                        const totalPoints = parseInt(row.getAttribute('data-total-points') || '0');
+                        return totalPoints >= 20;
+                    });
+                    
+                    // Hide/show rows based on filter
+                    originalRows.forEach(row => {
+                        const totalPoints = parseInt(row.getAttribute('data-total-points') || '0');
+                        if (totalPoints >= 20) {
+                            row.style.display = '';
+                        } else {
+                            row.style.display = 'none';
+                        }
+                    });
+                } else {
+                    // For non-percentage columns, show all rows
+                    rows.forEach(row => {
+                        row.style.display = '';
+                    });
+                }
+                
+                // Sort the filtered rows
                 rows.sort((rowA, rowB) => {
                     let cellA = rowA.children[index].textContent.trim();
                     let cellB = rowB.children[index].textContent.trim();
@@ -921,15 +965,17 @@ function initializeSortableTables() {
                     }
                     
                     if (sortType === 'string') {
-                        return isAscending ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
+                        return sortDescending ? cellB.localeCompare(cellA) : cellA.localeCompare(cellB);
                     } else if (sortType === 'number') {
-                        return isAscending ? cellB - cellA : cellA - cellB;
+                        return sortDescending ? cellB - cellA : cellA - cellB;
                     }
                     return 0;
                 });
                 
-                // Re-append sorted rows
+                // Re-append all rows (sorted visible ones first, then hidden ones)
+                const hiddenRows = Array.from(tbody.querySelectorAll('tr[style*="display: none"]'));
                 rows.forEach(row => tbody.appendChild(row));
+                hiddenRows.forEach(row => tbody.appendChild(row));
             });
         });
     });

@@ -317,6 +317,61 @@ class TestUIValidation:
                 # Ensure incorrect API URLs are not present
                 assert "/api/v1/players" not in content, "Player detail page should not use /api/v1/players prefix"
 
+    def test_player_statistics_page_sorting_attributes(self, docker_containers):
+        """Test that the player statistics page has proper data attributes for sorting."""
+        response = requests.get(f"{BASE_URL}/players?tab=statistics")
+        assert response.status_code == 200
+
+        soup = BeautifulSoup(response.content, "html.parser")
+
+        # Find the statistics table
+        stats_table = soup.find("table", {"id": "player-stats-table"})
+        assert stats_table is not None, "Player statistics table not found"
+
+        # Check that percentage columns have the data-is-percentage attribute
+        percentage_headers = stats_table.find_all("th", {"data-is-percentage": "true"})
+        assert len(percentage_headers) == 6, "Expected 6 percentage columns (FG%, 2P%, 3P%, FT%, eFG%, TS%)"
+
+        # Verify specific percentage columns are marked correctly
+        expected_percentage_columns = ["FG%", "2P%", "3P%", "FT%", "eFG%", "TS%"]
+        for header in percentage_headers:
+            header_text = header.get_text().strip()
+            assert any(col in header_text for col in expected_percentage_columns), (
+                f"Header '{header_text}' should contain one of: {expected_percentage_columns}"
+            )
+
+        # Check that non-percentage columns don't have the attribute
+        non_percentage_headers = stats_table.find_all("th", {"data-sort-type": "number"})
+        non_percentage_headers = [h for h in non_percentage_headers if not h.get("data-is-percentage")]
+
+        # Should have GP and PPG columns
+        assert len(non_percentage_headers) >= 2, "Expected at least 2 non-percentage numeric columns (GP, PPG)"
+
+    def test_player_statistics_page_javascript_logic(self, docker_containers):
+        """Test that the player statistics page contains the enhanced sorting JavaScript."""
+        response = requests.get(f"{BASE_URL}/players?tab=statistics")
+        assert response.status_code == 200
+
+        content = response.text
+
+        # Check for the data attribute usage in JavaScript
+        assert "header.dataset.isPercentage === 'true'" in content, (
+            "JavaScript should check data-is-percentage attribute"
+        )
+
+        # Check for minimum points filtering logic
+        assert "data-total-points" in content, "JavaScript should include total points data attribute logic"
+
+        # Check for minimum points threshold
+        assert "totalPoints >= 20" in content, (
+            "JavaScript should filter players with less than 20 points for percentage columns"
+        )
+
+        # Verify row data includes total points
+        assert "setAttribute('data-total-points', player.total_points)" in content, (
+            "Player rows should have data-total-points attribute set"
+        )
+
     def test_teams_page_loads(self, docker_containers):
         """Test that the teams page loads successfully."""
         response = requests.get(f"{BASE_URL}/teams")
