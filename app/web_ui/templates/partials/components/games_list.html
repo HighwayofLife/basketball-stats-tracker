@@ -177,7 +177,7 @@ Game object structure (flexible):
             {% if 'actions' in columns %}
             <td data-label="Actions">
                 {% set game_id = game.id if game.id is defined else game.game_id %}
-                {% set is_scheduled = game_id < 0 %}
+                {% set is_scheduled = game_id < 0 or (game.status is defined and game.status == 'scheduled') %}
                 {% if not is_scheduled %}
                     <a href="/games/{{ game_id }}" class="btn btn-sm">View</a>
                     {% if show_edit_actions and is_authenticated %}
@@ -189,7 +189,7 @@ Game object structure (flexible):
                         {% endif %}
                     {% endif %}
                 {% else %}
-                    <span class="text-muted">—</span>
+                    <a href="/scheduled-games/{{ game_id|abs }}/matchup" class="btn btn-sm">View Matchup</a>
                 {% endif %}
             </td>
             {% endif %}
@@ -316,9 +316,11 @@ Game object structure (flexible):
                     </div>
                 </div>
                 {% set game_id = game.id if game.id is defined else game.game_id %}
-                {% set is_scheduled = game_id < 0 %}
+                {% set is_scheduled = game_id < 0 or (game.status is defined and game.status == 'scheduled') %}
                 {% if not is_scheduled %}
                     <a href="/games/{{ game_id }}" class="btn btn-sm btn-view-details">View</a>
+                {% else %}
+                    <a href="/scheduled-games/{{ game_id|abs }}/matchup" class="btn btn-sm btn-view-details">View Matchup</a>
                 {% endif %}
             </div>
         </div>

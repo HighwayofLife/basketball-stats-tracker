@@ -121,6 +121,7 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                         away_team_record=f"{away_wins}-{away_losses}",
                         home_score=playing_team_score,
                         away_score=opponent_team_score,
+                        status="completed",
                     )
                 )
 
@@ -142,6 +143,7 @@ async def list_games(limit: int = 20, offset: int = 0, team_id: int | None = Non
                         away_team_record=f"{away_wins}-{away_losses}",
                         home_score=0,
                         away_score=0,
+                        status="scheduled",
                     )
                 )
 

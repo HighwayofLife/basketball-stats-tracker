@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}Matchup Preview - {{ home_team.team.display_name or home_team.team.name }} vs {{ away_team.team.display_name or away_team.team.name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <!-- Matchup Header -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row align-items-center">
+                <div class="col-md-5 text-center">
+                    <h2>{{ home_team.team.display_name or home_team.team.name }}</h2>
+                    <p class="text-muted mb-0">{{ home_team.record }}</p>
+                </div>
+                <div class="col-md-2 text-center">
+                    <h3 class="text-muted">VS</h3>
+                    <p class="mb-0">{{ scheduled_game.scheduled_date.strftime('%B %d, %Y') }}</p>
+                    {% if scheduled_game.scheduled_time %}
+                    <p class="mb-0">{{ scheduled_game.scheduled_time.strftime('%I:%M %p') }}</p>
+                    {% endif %}
+                    {% if scheduled_game.location %}
+                    <p class="text-muted small mb-0">{{ scheduled_game.location }}</p>
+                    {% endif %}
+                </div>
+                <div class="col-md-5 text-center">
+                    <h2>{{ away_team.team.display_name or away_team.team.name }}</h2>
+                    <p class="text-muted mb-0">{{ away_team.record }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Comparison -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4 class="mb-0">Team Comparison</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th class="text-end">{{ home_team.team.display_name or home_team.team.name }}</th>
+                            <th class="text-center">Stat</th>
+                            <th>{{ away_team.team.display_name or away_team.team.name }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="text-end">{{ home_team.record }}</td>
+                            <td class="text-center">Season Record</td>
+                            <td>{{ away_team.record }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.win_pct }}%</td>
+                            <td class="text-center">Win Percentage</td>
+                            <td>{{ away_team.win_pct }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.ppg }}</td>
+                            <td class="text-center">Points Per Game</td>
+                            <td>{{ away_team.ppg }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.opp_ppg }}</td>
+                            <td class="text-center">Opponent PPG</td>
+                            <td>{{ away_team.opp_ppg }}</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.fg2_pct }}%</td>
+                            <td class="text-center">2-Point FG%</td>
+                            <td>{{ away_team.fg2_pct }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.fg3_pct }}%</td>
+                            <td class="text-center">3-Point FG%</td>
+                            <td>{{ away_team.fg3_pct }}%</td>
+                        </tr>
+                        <tr>
+                            <td class="text-end">{{ home_team.ft_pct }}%</td>
+                            <td class="text-center">Free Throw %</td>
+                            <td>{{ away_team.ft_pct }}%</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Key Players -->
+    <div class="row mb-4">
+        <!-- Home Team Players -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ home_team.team.display_name or home_team.team.name }} - Top Players</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">Pos</th>
+                                    <th class="text-center">PPG</th>
+                                    <th class="text-center">FT</th>
+                                    <th class="text-center">2P</th>
+                                    <th class="text-center">3P</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in home_team.top_players %}
+                                <tr>
+                                    <td>{{ player.name }}</td>
+                                    <td class="text-center">{{ player.jersey_number }}</td>
+                                    <td class="text-center">{{ player.position }}</td>
+                                    <td class="text-center">{{ player.ppg }}</td>
+                                    <td class="text-center">{{ player.ftm }}/{{ player.fta }}</td>
+                                    <td class="text-center">{{ player.fg2m }}/{{ player.fg2a }}</td>
+                                    <td class="text-center">{{ player.fg3m }}/{{ player.fg3a }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Away Team Players -->
+        <div class="col-md-6">
+            <div class="card h-100">
+                <div class="card-header">
+                    <h5 class="mb-0">{{ away_team.team.display_name or away_team.team.name }} - Top Players</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th class="text-center">#</th>
+                                    <th class="text-center">Pos</th>
+                                    <th class="text-center">PPG</th>
+                                    <th class="text-center">FT</th>
+                                    <th class="text-center">2P</th>
+                                    <th class="text-center">3P</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for player in away_team.top_players %}
+                                <tr>
+                                    <td>{{ player.name }}</td>
+                                    <td class="text-center">{{ player.jersey_number }}</td>
+                                    <td class="text-center">{{ player.position }}</td>
+                                    <td class="text-center">{{ player.ppg }}</td>
+                                    <td class="text-center">{{ player.ftm }}/{{ player.fta }}</td>
+                                    <td class="text-center">{{ player.fg2m }}/{{ player.fg2a }}</td>
+                                    <td class="text-center">{{ player.fg3m }}/{{ player.fg3a }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Head-to-Head History -->
+    {% if head_to_head %}
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Head-to-Head History</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Result</th>
+                            <th>Winner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for game in head_to_head %}
+                        <tr>
+                            <td>{{ game.date }}</td>
+                            <td>{{ game.score }}</td>
+                            <td>{{ game.winner }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center text-muted">
+            <p class="mb-0">No previous matchups between these teams</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
