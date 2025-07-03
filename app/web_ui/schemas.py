@@ -22,6 +22,7 @@ class GameSummary(BaseModel):
     away_team_record: str | None = None
     home_score: int
     away_score: int
+    status: str = "completed"  # "completed" or "scheduled"
 
 
 class PlayerStats(BaseModel):

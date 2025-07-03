@@ -16,7 +16,16 @@ from app.auth.jwt_handler import verify_token
 from app.auth.models import UserRole
 from app.config import VERSION_INFO, settings
 
-from .routers import admin_router, auth_router, games_router, pages_router, players_router, reports_router, teams_router
+from .routers import (
+    admin_router,
+    auth_router,
+    games_router,
+    matchup_router,
+    pages_router,
+    players_router,
+    reports_router,
+    teams_router,
+)
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -185,6 +194,7 @@ async def health_check():
 app.include_router(auth_router)  # Auth router first for authentication endpoints
 app.include_router(pages_router)
 app.include_router(games_router)
+app.include_router(matchup_router)
 app.include_router(teams_router)
 app.include_router(players_router)
 app.include_router(admin_router)

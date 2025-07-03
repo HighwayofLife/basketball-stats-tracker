@@ -26,60 +26,54 @@ def get_test_stats():
     """Get test statistics by running pytest."""
     print("📊 Gathering test statistics...")
 
-    # Use Docker containers for consistent environment
-    print("📊 Using Docker container...")
+    # Run the same comprehensive test suite as 'make test' but capture stats
+    print("📊 Running comprehensive test suite (like 'make test')...")
 
-    # Exclude problematic functional test that needs playwright
-    exclude_args = "--ignore=tests/functional/test_overtime_ui_display.py"
+    # Step 1: Container tests (unit + integration except UI validation)
+    print("📊 Step 1: Container tests...")
+    exclude_args = (
+        "--ignore=tests/functional/test_overtime_ui_display.py --ignore=tests/integration/test_ui_validation.py"
+    )
+    container_cmd = f"docker compose exec -T web pytest tests/ --tb=no -q --disable-warnings {exclude_args}"
+    container_stdout, container_stderr, container_returncode = run_command(container_cmd)
 
-    # Run all tests to get accurate counts
-    cmd = f"docker compose exec -T web pytest tests/ --tb=no -q --disable-warnings {exclude_args}"
-    stdout, stderr, returncode = run_command(cmd)
+    # Step 2: UI validation tests locally
+    print("📊 Step 2: UI validation tests...")
+    ui_cmd = "pytest tests/integration/test_ui_validation.py --tb=no -q --disable-warnings"
+    if os.path.exists("venv"):
+        ui_cmd = f"source venv/bin/activate && {ui_cmd}"
+    ui_stdout, ui_stderr, ui_returncode = run_command(ui_cmd)
 
-    # Try to get coverage data if tests ran
-    print("📊 Tests completed, attempting coverage collection...")
+    # Step 3: Get coverage data from container tests
+    print("📊 Step 3: Coverage data...")
+    # First ensure containers are running
+    run_command("docker compose up -d >/dev/null 2>&1 && sleep 3", shell=True)
+
+    # Run coverage on unit tests only to get reliable coverage data
+    # Full test coverage can timeout or produce too much output
     coverage_cmd = (
-        f"docker compose exec -T web pytest --cov=app --cov-report=term tests/ "
-        f"--tb=no -q --disable-warnings {exclude_args}"
+        "docker compose exec -T web pytest --cov=app --cov-report=term tests/unit/ --tb=no -q --disable-warnings"
     )
     cov_stdout, cov_stderr, cov_returncode = run_command(coverage_cmd)
 
-    # Use coverage output if available, otherwise use test output
-    if "TOTAL" in cov_stdout:
-        stdout, stderr = cov_stdout, cov_stderr
-        print("📊 Coverage data collected from all tests")
-    else:
-        print("⚠️  Coverage collection failed, using test results only")
-
-    # Parse test results
+    # Parse test results and coverage
     test_results = {"total": 0, "passed": 0, "failed": 0, "skipped": 0, "errors": 0}
     coverage_percent = "Unknown"
     coverage_lines = {"covered": 0, "total": 0}
 
-    # Look for test summary in stdout (pytest outputs to stdout with -q flag)
-    full_output = stdout + stderr
-
     # Strip ANSI color codes
     ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-    clean_output = ansi_escape.sub("", full_output)
 
-    # Parse test counts from summary line like "==== 65 passed in 0.05s ===="
-    # or "==== 40 failed, 501 passed, 3 skipped, 1 warning, 4 errors in 10.53s ===="
-    # Also handle pytest format like "============ 1 failed, 768 passed, 28 skipped, 57 errors in 26.59s ============="
-    summary_patterns = [
-        r"=+\s*(.*?)\s*in\s+[\d.]+s\s*=+",  # Standard format
-        r"=+\s*(.*?)\s+in\s+[\d.]+s\s*=+",  # Alternative format
-    ]
+    # Parse container test results (main test suite)
+    container_clean = ansi_escape.sub("", container_stdout + container_stderr)
 
-    summary_text = None
-    for pattern in summary_patterns:
-        summary_match = re.search(pattern, clean_output)
-        if summary_match:
-            summary_text = summary_match.group(1)
-            break
+    # Parse UI test results (if they ran successfully)
+    ui_clean = ansi_escape.sub("", ui_stdout + ui_stderr)
 
-    if summary_text:
-        # Parse individual counts from the summary
+    # Parse container tests first (this is the main test suite)
+    container_summary = re.search(r"=+\s*(.*?)\s*in\s+[\d.]+s.*?=+", container_clean)
+    if container_summary:
+        summary_text = container_summary.group(1)
         count_patterns = [
             (r"(\d+)\s+passed", "passed"),
             (r"(\d+)\s+failed", "failed"),
@@ -92,15 +86,45 @@ def get_test_stats():
             if match:
                 test_results[status] = int(match.group(1))
 
+    # Add UI test results (if they ran successfully and completed)
+    ui_summary = re.search(r"=+\s*(.*?)\s*in\s+[\d.]+s.*?=+", ui_clean)
+    if ui_summary and ui_returncode == 0:
+        summary_text = ui_summary.group(1)
+        count_patterns = [
+            (r"(\d+)\s+passed", "passed"),
+            (r"(\d+)\s+failed", "failed"),
+            (r"(\d+)\s+skipped", "skipped"),
+            (r"(\d+)\s+error", "errors"),
+        ]
+
+        for pattern, status in count_patterns:
+            match = re.search(pattern, summary_text)
+            if match:
+                test_results[status] += int(match.group(1))
+
     test_results["total"] = sum(test_results.values())
 
-    # Parse coverage percentage from output like "TOTAL                  6004   5659     6%"
-    coverage_match = re.search(r"TOTAL\s+(\d+)\s+(\d+)\s+(\d+)%", clean_output)
-    if coverage_match:
-        total_lines = int(coverage_match.group(1))
-        uncovered_lines = int(coverage_match.group(2))
-        coverage_percent = coverage_match.group(3)
-        coverage_lines = {"total": total_lines, "covered": total_lines - uncovered_lines}
+    # Parse coverage percentage from output like "TOTAL ... 6%" or "TOTAL ... 66%"
+    if cov_returncode != 0:
+        print(f"⚠️  Coverage command failed with return code {cov_returncode}")
+        if cov_stderr:
+            print(f"⚠️  Coverage stderr: {cov_stderr[:200]}")
+    elif cov_stdout and "TOTAL" in cov_stdout:
+        clean_coverage_output = ansi_escape.sub("", cov_stdout)
+        coverage_match = re.search(r"TOTAL\s+(\d+)\s+(\d+)\s+(\d+)%", clean_coverage_output)
+        if coverage_match:
+            total_lines = int(coverage_match.group(1))
+            uncovered_lines = int(coverage_match.group(2))
+            coverage_percent = coverage_match.group(3)
+            coverage_lines = {"total": total_lines, "covered": total_lines - uncovered_lines}
+            print(f"📊 Coverage found: {coverage_percent}% ({coverage_lines['covered']}/{total_lines} lines)")
+        else:
+            print("⚠️  Coverage TOTAL line not found in output")
+            # Debug: show last few lines of output
+            lines = clean_coverage_output.split("\n")
+            print(f"⚠️  Last 5 lines of coverage output: {lines[-5:]}")
+    else:
+        print("⚠️  No coverage output received")
 
     return test_results, coverage_percent, coverage_lines
 

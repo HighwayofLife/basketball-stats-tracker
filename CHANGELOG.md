@@ -1,3 +1,63 @@
+v0.4.24
+-------
+
+### Features
+- **Matchup Page Team Logos**: Added team logos to the matchup header display
+  - 200x200px logos displayed beside team names for visual appeal
+  - Responsive design adjusts logo size to 120x120px on mobile devices
+  - Placeholder basketball icon shown when team logos not uploaded
+  - Maintains clean layout with logos, team names, and records
+- **Top Players Statistics Enhancement**: Improved player statistics display in matchup preview
+  - Replaced raw shot attempts with shooting percentages (FG%, 3P%, FT%)
+  - Moved jersey numbers to the left of player names for better readability
+  - Streamlined table layout for cleaner presentation
+  - Made player names clickable links to their individual profile pages (/players/{id})
+
+### Bug Fixes
+- **Matchup Page Authentication**: Fixed missing authentication context causing header to show logged out state
+- **Season Stats Lookup**: Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
+- **Zero Stats Display**: Resolved issue where team records and statistics showed as 0-0 despite having games in database
+- **Top Players Display**: Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
+
+v0.4.23
+-------
+
+### Features
+- **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
+  - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
+  - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
+  - **Key Players Section**: Top 5 players from each team with season averages (PPG, shooting stats, games played)
+  - **Head-to-Head History**: Previous matchups between teams with dates, scores, and winners
+  - **Game Details**: Scheduled date, time, location displayed prominently
+  - **Responsive Design**: Optimized for both desktop and mobile viewing
+  - **Smart UI Integration**: Games list automatically shows "View Matchup" button for scheduled games vs "View Game" for completed games
+
+### API Enhancements
+- **GameSummary Schema**: Added `status` field to distinguish between completed and scheduled games
+- **Games List Endpoint**: Updated to properly set status values for completed vs scheduled games
+- **Matchup Router**: New dedicated router for matchup preview functionality with comprehensive error handling
+
+### Services & Architecture
+- **MatchupService**: New service layer for matchup data aggregation
+  - Fetches and calculates team season statistics with computed fields (PPG, win percentage, shooting percentages)
+  - Retrieves top players by points per game with proper season filtering
+  - Compiles head-to-head game history between competing teams
+  - **Smart Season Handling**: Automatically determines current/active season instead of hardcoded fallbacks
+  - **Consistent Record Formatting**: Centralized team record formatting for maintainability
+  - Handles missing data gracefully with appropriate defaults
+- **Database Integration**: Leverages existing models (ScheduledGame, TeamSeasonStats, PlayerSeasonStats) without schema changes
+
+### UI/UX Improvements
+- **Games List Enhancement**: Updated games list component to show appropriate action buttons based on game status
+- **Template System**: New comprehensive matchup.html template with structured sections for all data types
+- **Data Formatting**: Proper rounding and percentage display for all statistical comparisons
+
+### Testing
+- **Comprehensive Test Coverage**: Full unit and integration test suites for matchup functionality
+  - Unit tests for MatchupService covering all methods and edge cases
+  - Integration tests for matchup router endpoint with various data scenarios
+  - Tests handle missing data, formatting validation, and error conditions
+
 v0.1.22
 -------
 

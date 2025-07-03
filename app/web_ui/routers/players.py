@@ -75,11 +75,15 @@ async def create_player(player_data: PlayerCreateRequest, current_user: User = D
                 raise HTTPException(status_code=400, detail="Team not found")
 
             # Check for duplicate jersey number on same team
+            # Cast both sides to string for comparison to handle mixed int/string types in database
+            from sqlalchemy import String, cast
+
+            jersey_str = str(player_data.jersey_number)
             existing_player = (
                 session.query(models.Player)
                 .filter(
                     models.Player.team_id == player_data.team_id,
-                    models.Player.jersey_number == player_data.jersey_number,
+                    cast(models.Player.jersey_number, String) == jersey_str,
                     models.Player.is_active,
                 )
                 .first()
@@ -107,7 +111,7 @@ async def create_player(player_data: PlayerCreateRequest, current_user: User = D
             player = models.Player(
                 name=player_data.name,
                 team_id=player_data.team_id,
-                jersey_number=player_data.jersey_number,
+                jersey_number=str(player_data.jersey_number),
                 position=player_data.position,
                 height=player_data.height,
                 weight=player_data.weight,
@@ -221,12 +225,16 @@ async def update_player(
                 player.team_id = player_data.team_id
             if player_data.jersey_number is not None:
                 # Check for duplicate jersey number on team
+                # Cast both sides to string for comparison to handle mixed int/string types in database
+                from sqlalchemy import String, cast
+
                 team_id = player_data.team_id or player.team_id
+                jersey_str = str(player_data.jersey_number)
                 existing_player = (
                     session.query(models.Player)
                     .filter(
                         models.Player.team_id == team_id,
-                        models.Player.jersey_number == player_data.jersey_number,
+                        cast(models.Player.jersey_number, String) == jersey_str,
                         models.Player.id != player_id,
                         models.Player.is_active,
                     )
@@ -236,7 +244,7 @@ async def update_player(
                     raise HTTPException(
                         status_code=400, detail=f"Jersey number {player_data.jersey_number} already exists on this team"
                     )
-                player.jersey_number = player_data.jersey_number
+                player.jersey_number = str(player_data.jersey_number)
             if player_data.position is not None:
                 player.position = player_data.position
             if player_data.height is not None:
