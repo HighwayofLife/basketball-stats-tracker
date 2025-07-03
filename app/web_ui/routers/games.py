@@ -496,16 +496,24 @@ async def get_box_score(game_id: int):
 
             # Get player portrait information and add to stats
             def add_player_portrait_info(player_stats_list):
+                # Collect all player IDs from the stats list
+                player_ids = {p.get("player_id", 0) for p in player_stats_list if p.get("player_id", 0)}
+
+                # Fetch all players in a single query
+                players = session.query(models.Player).filter(models.Player.id.in_(player_ids)).all()
+
+                # Create a mapping of player_id to Player object
+                player_map = {player.id: player for player in players}
+
+                # Add thumbnail_image to each player's stats
                 for p in player_stats_list:
                     player_id = p.get("player_id", 0)
-                    if player_id:
-                        # Get player object to access thumbnail_image
-                        player_obj = session.query(models.Player).filter(models.Player.id == player_id).first()
-                        if player_obj:
-                            p["thumbnail_image"] = player_obj.thumbnail_image
+                    if player_id and player_id in player_map:
+                        p["thumbnail_image"] = player_map[player_id].thumbnail_image
 
-            add_player_portrait_info(playing_team_players)
-            add_player_portrait_info(opponent_team_players)
+            # Apply portrait info to both teams' players
+            all_players = playing_team_players + opponent_team_players
+            add_player_portrait_info(all_players)
 
             # Convert player stats to the expected format
             excluded_fields = ["player_id", "name", "team", "jersey", "position", "thumbnail_image"]

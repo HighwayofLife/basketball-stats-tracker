@@ -2,6 +2,10 @@
 
 {% block title %}Box Score - {{ game.home_team.name }} vs {{ game.away_team.name }} - Basketball Stats Tracker{% endblock %}
 
+{% block extra_head %}
+<script src="/static/js/modules/player-portraits.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -471,22 +475,5 @@ function exportReport(format) {
     window.location.href = `/v1/reports/export/box-score/${gameId}?format=${format}`;
 }
 
-// Helper function to get tiny player portrait HTML for box scores
-function getPlayerPortraitTiny(player) {
-    // Construct portrait URL from thumbnail_image field
-    const portraitUrl = player.thumbnail_image ? `/uploads/${player.thumbnail_image}` : null;
-    
-    if (portraitUrl && portraitUrl !== 'None') {
-        return `<img class="rounded-circle"
-                     src="${portraitUrl}"
-                     alt="${player.name}"
-                     style="width: 32px; height: 32px; object-fit: cover;"
-                     onerror="this.onerror=null; this.outerHTML='<div class=\\'rounded-circle bg-light d-flex align-items-center justify-content-center\\' style=\\'width: 32px; height: 32px;\\'><i class=\\'fas fa-user text-muted\\' style=\\'font-size: 14px;\\'></i></div>';">`;                
-    } else {
-        return `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
-                    <i class="fas fa-user text-muted" style="font-size: 14px;"></i>
-                </div>`;
-    }
-}
 </script>
 {% endblock %}
