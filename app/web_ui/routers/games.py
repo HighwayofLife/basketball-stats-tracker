@@ -494,14 +494,29 @@ async def get_box_score(game_id: int):
             playing_team_players = [p for p in player_stats if p.get("team") == playing_team_name]
             opponent_team_players = [p for p in player_stats if p.get("team") == opponent_team_name]
 
+            # Get player portrait information and add to stats
+            def add_player_portrait_info(player_stats_list):
+                for p in player_stats_list:
+                    player_id = p.get("player_id", 0)
+                    if player_id:
+                        # Get player object to access thumbnail_image
+                        player_obj = session.query(models.Player).filter(models.Player.id == player_id).first()
+                        if player_obj:
+                            p["thumbnail_image"] = player_obj.thumbnail_image
+
+            add_player_portrait_info(playing_team_players)
+            add_player_portrait_info(opponent_team_players)
+
             # Convert player stats to the expected format
+            excluded_fields = ["player_id", "name", "team", "jersey", "position", "thumbnail_image"]
             playing_team_player_stats = [
                 PlayerStats(
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
+                    stats={k: v for k, v in p.items() if k not in excluded_fields},
                     jersey_number=str(p.get("jersey", "")),
                     position=p.get("position"),
+                    thumbnail_image=p.get("thumbnail_image"),
                 )
                 for p in playing_team_players
             ]
@@ -510,9 +525,10 @@ async def get_box_score(game_id: int):
                 PlayerStats(
                     player_id=p.get("player_id", 0),
                     name=p.get("name", ""),
-                    stats={k: v for k, v in p.items() if k not in ["player_id", "name", "team", "jersey", "position"]},
+                    stats={k: v for k, v in p.items() if k not in excluded_fields},
                     jersey_number=str(p.get("jersey", "")),
                     position=p.get("position"),
+                    thumbnail_image=p.get("thumbnail_image"),
                 )
                 for p in opponent_team_players
             ]
@@ -612,6 +628,7 @@ async def get_box_score(game_id: int):
                             "fg2a": player.get("fg2a", 0),
                             "fg3m": player.get("fg3m", 0),
                             "fg3a": player.get("fg3a", 0),
+                            "thumbnail_image": player.get("thumbnail_image"),
                         }
                     )
                 return top_players

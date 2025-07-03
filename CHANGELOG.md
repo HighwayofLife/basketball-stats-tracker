@@ -1,3 +1,23 @@
+v0.4.25
+-------
+
+### Features
+- **Player Portrait Display**: Added player portrait/headshot display across multiple UI pages
+  - Team detail page roster now shows 40x40px player portraits next to names
+  - Game detail box scores display 32x32px portraits in player rows
+  - Player season report shows 120x120px portrait in header
+  - Box score report includes portraits in player statistics tables
+  - Dashboard "Players of the Week" section shows 50x50px portraits
+  - Fallback to user icon when no portrait uploaded
+
+### Bug Fixes
+- **Player Portrait Display Issues**: Fixed multiple issues with player portrait rendering
+  - Resolved malformed HTML and rogue quote sequences on player detail page after upload
+  - Fixed camera button positioning to stay in bottom-right corner of portrait
+  - Added `thumbnail_image` field to box score API responses for proper portrait display
+  - Updated PlayerResponse schema to include thumbnail_image for team roster display
+  - Enhanced player stats card component to use actual portraits instead of placeholder icons
+
 v0.4.24
 -------
 

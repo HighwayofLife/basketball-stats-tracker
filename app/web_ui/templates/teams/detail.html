@@ -550,7 +550,12 @@ ${recentGames.length > 0 ? createTeamGamesHtml(recentGames, team.display_name ||
                                 ${team.players.map(player => `
                                 <tr>
                                     <td data-label="#"><strong>#${player.jersey_number}</strong></td>
-                                    <td data-label="Name"><a href="/players/${player.id}" class="text-decoration-none">${player.name}</a></td>
+                                    <td data-label="Name">
+                                        <div class="d-flex align-items-center">
+                                            ${getPlayerPortraitSmall(player)}
+                                            <a href="/players/${player.id}" class="text-decoration-none ms-2">${player.name}</a>
+                                        </div>
+                                    </td>
                                     <td data-label="Position" class="col-position">${player.position || '-'}</td>
                                     <td data-label="Height" class="col-height">${player.height ? formatHeight(player.height) : '-'}</td>
                                     <td data-label="Weight" class="col-weight">${player.weight ? player.weight + ' lbs' : '-'}</td>
@@ -925,6 +930,24 @@ window.onclick = function(event) {
     }
     if (event.target === logoModal) {
         closeLogoUploadModal();
+    }
+}
+
+// Helper function to get small player portrait HTML
+function getPlayerPortraitSmall(player) {
+    // Construct portrait URL from thumbnail_image field
+    const portraitUrl = player.thumbnail_image ? `/uploads/${player.thumbnail_image}` : null;
+    
+    if (portraitUrl && portraitUrl !== 'None') {
+        return `<img class="rounded-circle"
+                     src="${portraitUrl}"
+                     alt="${player.name}"
+                     style="width: 40px; height: 40px; object-fit: cover;"
+                     onerror="this.onerror=null; this.outerHTML='<div class=\\'rounded-circle bg-light d-flex align-items-center justify-content-center\\' style=\\'width: 40px; height: 40px;\\'><i class=\\'fas fa-user text-muted\\'></i></div>';">`;                
+    } else {
+        return `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                    <i class="fas fa-user text-muted"></i>
+                </div>`;
     }
 }
 </script>

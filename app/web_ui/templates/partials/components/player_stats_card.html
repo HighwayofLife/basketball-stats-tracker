@@ -29,11 +29,16 @@ Player object structure:
         {% for player in players %}
         <div class="top-player-box">
             <div class="player-photo-placeholder">
-                <svg width="50" height="50" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="30" cy="30" r="30" fill="#E5E7EB"/>
-                    <path d="M30 32C34.4183 32 38 28.4183 38 24C38 19.5817 34.4183 16 30 16C25.5817 16 22 19.5817 22 24C22 28.4183 25.5817 32 30 32Z" fill="#9CA3AF"/>
-                    <path d="M30 36C21.1634 36 14 43.1634 14 52V60H46V52C46 43.1634 38.8366 36 30 36Z" fill="#9CA3AF"/>
-                </svg>
+                {% set portrait_url = player_portrait_url(player) %}
+                {% if portrait_url %}
+                    <img src="{{ portrait_url }}" alt="{{ player.name }}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">
+                {% else %}
+                    <svg width="50" height="50" viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="30" cy="30" r="30" fill="#E5E7EB"/>
+                        <path d="M30 32C34.4183 32 38 28.4183 38 24C38 19.5817 34.4183 16 30 16C25.5817 16 22 19.5817 22 24C22 28.4183 25.5817 32 30 32Z" fill="#9CA3AF"/>
+                        <path d="M30 36C21.1634 36 14 43.1634 14 52V60H46V52C46 43.1634 38.8366 36 30 36Z" fill="#9CA3AF"/>
+                    </svg>
+                {% endif %}
             </div>
             <div class="player-info">
                 <h3 class="team-name">{{ player.team_name }}</h3>
