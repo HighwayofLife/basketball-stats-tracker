@@ -1608,18 +1608,22 @@ class TestAPIEndpoints:
         import uuid
 
         unique_suffix = str(uuid.uuid4())[:8]
-        timestamp_suffix = str(int(time.time()))[-8:]  # Use 8 digits for more uniqueness
+        timestamp = int(time.time())
+        timestamp_suffix = str(timestamp)[-8:]  # Use 8 digits for more uniqueness
         season_name = f"TestSeason_{unique_suffix}"
 
-        # Use dates far in the future to avoid overlap with existing seasons
-        year = 2030 + int(time.time()) % 100  # Use a future year based on timestamp
+        # Use a very specific month range to avoid overlap
+        # Use timestamp modulo to get a unique year and month combination
+        base_year = 2050 + (timestamp % 50)  # Years 2050-2099
+        month = ((timestamp // 100) % 11) + 1  # Months 1-11, leaving room for end date
+
         # Make season code extremely unique by combining timestamp and UUID
         season_code_unique = f"TS{timestamp_suffix}{unique_suffix[:4]}"  # Max 20 chars: TS + 8 + 4
         season_data = {
             "name": season_name,
             "code": season_code_unique,
-            "start_date": f"{year}-01-01",
-            "end_date": f"{year}-12-31",
+            "start_date": f"{base_year}-{month:02d}-01",
+            "end_date": f"{base_year}-{month:02d}-28",  # Use 28 to avoid month-end issues
             "description": "Test season",
             "set_as_active": False,
         }
@@ -1628,6 +1632,10 @@ class TestAPIEndpoints:
         response = client.post("/v1/seasons", json=season_data)
 
         # Assertions - should succeed because our mock user is admin
+        if response.status_code != 200:
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {response.json()}")
+            print(f"Season data sent: {season_data}")
         assert response.status_code == 200
         data = response.json()
         assert data["success"] is True
