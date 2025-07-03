@@ -2,6 +2,10 @@
 
 {% block title %}Box Score - {{ game.home_team.name }} vs {{ game.away_team.name }} - Basketball Stats Tracker{% endblock %}
 
+{% block extra_head %}
+<script src="/static/js/modules/player-portraits.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -283,7 +287,14 @@ function updateTeamStats(teamType, teamData) {
     // Add player rows
     teamData.players.forEach(player => {
         const row = tbody.insertRow();
-        row.insertCell().textContent = player.name;
+        // Player name cell with portrait
+        const nameCell = row.insertCell();
+        nameCell.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                ${getPlayerPortraitTiny(player)}
+                ${player.name}
+            </div>
+        `;
         row.insertCell().textContent = player.minutes || '-';
         row.insertCell().textContent = player.points;
         row.insertCell().textContent = player.assists;
@@ -463,5 +474,6 @@ function drawShotChart(data) {
 function exportReport(format) {
     window.location.href = `/v1/reports/export/box-score/${gameId}?format=${format}`;
 }
+
 </script>
 {% endblock %}

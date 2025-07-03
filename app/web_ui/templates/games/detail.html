@@ -2,6 +2,7 @@
 
 {% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+<script src="/static/js/modules/player-portraits.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -281,6 +282,15 @@
             document.getElementById(`${teamType}-top-player-stats-${playerIndex}`).innerHTML =
                 `${player.points} PTS, ${fgMade}/${fgAttempted} FG (${player.fg_percentage.toFixed(1)}%)<br>` +
                 `${player.fg3m || 0}/${player.fg3a || 0} 3PT (${fg3Percentage}%)`;
+            
+            // Update player photo
+            const playerBox = document.getElementById(`${teamType}-player-${playerIndex}`);
+            if (playerBox) {
+                const photoPlaceholder = playerBox.querySelector('.player-photo-placeholder');
+                if (photoPlaceholder && player.thumbnail_image) {
+                    photoPlaceholder.innerHTML = getPlayerPortraitMedium(player);
+                }
+            }
         }
 
         // Update away team players (top 2)
@@ -567,5 +577,6 @@
             }
         });
     }
+
 </script>
 {% endblock %}

@@ -207,6 +207,7 @@ async def get_team_detail(
                 weight=player.weight,
                 year=player.year,
                 is_active=player.is_active,
+                thumbnail_image=player.thumbnail_image,
             )
             for player in players
         ]
