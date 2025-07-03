@@ -4,14 +4,13 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 
 from app.data_access.db_session import get_db_session
 from app.services.matchup_service import MatchupService
+from app.web_ui.templates_config import templates
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/scheduled-games", tags=["matchup"])
-templates = Jinja2Templates(directory="app/web_ui/templates")
 
 
 @router.get("/{scheduled_game_id}/matchup", response_class=HTMLResponse)
