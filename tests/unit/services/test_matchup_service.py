@@ -327,3 +327,106 @@ class TestMatchupService:
         result = service._get_head_to_head_history(1, 2, limit=3)
 
         assert len(result) == 3
+
+    def test_get_formatted_matchup_data_success(self, db_session):
+        """Test successful retrieval of formatted matchup data."""
+        # Create test teams
+        home_team = Team(id=1, name="home_team", display_name="Home Team")
+        away_team = Team(id=2, name="away_team", display_name="Away Team")
+        db_session.add_all([home_team, away_team])
+
+        # Create scheduled game
+        scheduled_game = ScheduledGame(
+            id=1,
+            home_team_id=1,
+            away_team_id=2,
+            scheduled_date=date(2024, 3, 15),
+            season_id=1,
+            status=ScheduledGameStatus.SCHEDULED,
+        )
+        db_session.add(scheduled_game)
+
+        # Create team season stats
+        home_stats = TeamSeasonStats(
+            team_id=1,
+            season="2024-2025",
+            games_played=10,
+            wins=7,
+            losses=3,
+            total_points_for=855,
+            total_points_against=782,
+            total_ftm=150,
+            total_fta=200,
+            total_2pm=260,
+            total_2pa=500,
+            total_3pm=70,
+            total_3pa=200,
+        )
+        db_session.add(home_stats)
+
+        # Create players and their stats
+        home_player = Player(id=1, name="Home Player", team_id=1, jersey_number="10", position="PG")
+        db_session.add(home_player)
+
+        home_player_stats = PlayerSeasonStats(
+            player_id=1,
+            season="2024-2025",
+            games_played=10,
+            total_ftm=50,
+            total_fta=60,
+            total_2pm=80,
+            total_2pa=150,
+            total_3pm=25,
+            total_3pa=75,
+        )
+        db_session.add(home_player_stats)
+
+        # Create historical game
+        past_game = Game(
+            id=1,
+            date=date(2024, 2, 1),
+            playing_team_id=1,
+            opponent_team_id=2,
+            playing_team_score=90,
+            opponent_team_score=85,
+        )
+        db_session.add(past_game)
+
+        db_session.commit()
+
+        # Test the service
+        service = MatchupService(db_session)
+        result = service.get_formatted_matchup_data(1)
+
+        assert result is not None
+        assert result["scheduled_game"].id == 1
+
+        # Test formatted home team data
+        home_team_data = result["home_team"]
+        assert home_team_data["team"].id == 1
+        assert home_team_data["ppg"] == 85.5  # 855/10 rounded to 1 decimal
+        assert home_team_data["record"] == "7-3"
+        assert home_team_data["win_pct"] == 70.0  # 7/10 * 100
+        assert home_team_data["ft_pct"] == 75.0  # 150/200 * 100
+
+        # Test formatted player data
+        assert len(home_team_data["top_players"]) == 1
+        player = home_team_data["top_players"][0]
+        assert player["name"] == "Home Player"
+        assert player["position"] == "PG"
+        assert player["ppg"] == 28.5  # (50 + 80*2 + 25*3) / 10 = 285/10
+        assert player["ft_pct"] == 83.3  # 50/60 * 100 rounded to 1 decimal
+
+        # Test formatted head-to-head data
+        h2h = result["head_to_head"]
+        assert len(h2h) == 1
+        assert h2h[0]["date"] == "02/01/2024"
+        assert h2h[0]["winner"] == "Home Team"
+        assert "Home Team 90" in h2h[0]["score"]
+
+    def test_get_formatted_matchup_data_not_found(self, db_session):
+        """Test formatted matchup data when scheduled game not found."""
+        service = MatchupService(db_session)
+        result = service.get_formatted_matchup_data(999)
+
+        assert result is None

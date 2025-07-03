@@ -7,7 +7,7 @@ from sqlalchemy import and_, desc, or_
 from sqlalchemy.orm import Session
 
 from app.data_access.crud import get_team_by_id
-from app.data_access.models import Game, Player, PlayerSeasonStats, ScheduledGame, TeamSeasonStats
+from app.data_access.models import Game, Player, PlayerSeasonStats, ScheduledGame, Season, TeamSeasonStats
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +68,126 @@ class MatchupService:
 
         return matchup_data
 
+    def get_formatted_matchup_data(self, scheduled_game_id: int) -> dict[str, Any] | None:
+        """
+        Get comprehensive matchup data formatted for display.
+
+        Args:
+            scheduled_game_id: The ID of the scheduled game
+
+        Returns:
+            Dictionary containing formatted matchup data or None if game not found
+        """
+        matchup_data = self.get_matchup_data(scheduled_game_id)
+        if not matchup_data:
+            return None
+
+        # Format the data for display
+        formatted_data = {
+            "scheduled_game": matchup_data["scheduled_game"],
+            "home_team": self._format_team_data(matchup_data["home_team"]),
+            "away_team": self._format_team_data(matchup_data["away_team"]),
+            "head_to_head": self._format_head_to_head_history(matchup_data["head_to_head"]),
+        }
+
+        return formatted_data
+
+    def _format_team_data(self, team_data: dict[str, Any]) -> dict[str, Any]:
+        """Format team data for display."""
+        formatted_team = {
+            "team": team_data["team"],
+            "top_players": self._format_players_for_display(team_data["top_players"]),
+        }
+
+        # Format season stats
+        season_stats = team_data["season_stats"]
+        if season_stats:
+            formatted_team.update(
+                {
+                    "ppg": round(season_stats["ppg"], 1),
+                    "opp_ppg": round(season_stats["opp_ppg"], 1),
+                    "record": self._format_team_record(season_stats["wins"], season_stats["losses"]),
+                    "win_pct": round(season_stats["win_percentage"] * 100, 1),
+                    "ft_pct": round(season_stats["ft_percentage"] * 100, 1),
+                    "fg2_pct": round(season_stats["fg2_percentage"] * 100, 1),
+                    "fg3_pct": round(season_stats["fg3_percentage"] * 100, 1),
+                }
+            )
+        else:
+            formatted_team.update(
+                {
+                    "ppg": 0,
+                    "opp_ppg": 0,
+                    "record": self._format_team_record(0, 0),
+                    "win_pct": 0,
+                    "ft_pct": 0,
+                    "fg2_pct": 0,
+                    "fg3_pct": 0,
+                }
+            )
+
+        return formatted_team
+
+    def _format_players_for_display(self, players_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format player stats for display."""
+        formatted_players = []
+        for player_data in players_data:
+            stats = player_data["raw_stats"]
+            player = player_data["player"]
+
+            # Calculate percentages
+            ft_pct = round((stats.total_ftm / stats.total_fta * 100) if stats.total_fta > 0 else 0, 1)
+            fg3_pct = round((stats.total_3pm / stats.total_3pa * 100) if stats.total_3pa > 0 else 0, 1)
+
+            # Calculate overall field goal percentage (2P + 3P combined)
+            total_fg_made = stats.total_2pm + stats.total_3pm
+            total_fg_attempted = stats.total_2pa + stats.total_3pa
+            fg_pct = round((total_fg_made / total_fg_attempted * 100) if total_fg_attempted > 0 else 0, 1)
+
+            formatted_players.append(
+                {
+                    "id": player.id,
+                    "name": player.name,
+                    "jersey_number": player.jersey_number,
+                    "position": player.position or "N/A",
+                    "ppg": round(player_data["ppg"], 1),
+                    "games_played": stats.games_played,
+                    "ft_pct": ft_pct,
+                    "fg_pct": fg_pct,
+                    "fg3_pct": fg3_pct,
+                }
+            )
+
+        return formatted_players
+
+    def _format_head_to_head_history(self, games: list[Game]) -> list[dict[str, Any]]:
+        """Format head-to-head history for display."""
+        formatted_h2h = []
+        for game in games:
+            # Determine winner and format score
+            if game.playing_team_score > game.opponent_team_score:
+                winner = game.playing_team.display_name or game.playing_team.name
+                score_display = (
+                    f"{game.playing_team.display_name or game.playing_team.name} {game.playing_team_score}, "
+                    f"{game.opponent_team.display_name or game.opponent_team.name} {game.opponent_team_score}"
+                )
+            else:
+                winner = game.opponent_team.display_name or game.opponent_team.name
+                score_display = (
+                    f"{game.opponent_team.display_name or game.opponent_team.name} {game.opponent_team_score}, "
+                    f"{game.playing_team.display_name or game.playing_team.name} {game.playing_team_score}"
+                )
+
+            formatted_h2h.append(
+                {
+                    "date": game.date.strftime("%m/%d/%Y") if game.date else "N/A",
+                    "score": score_display,
+                    "winner": winner,
+                }
+            )
+
+        return formatted_h2h
+
     def _get_season_string(self, season_id: int) -> str:
         """
         Get season string from season ID.
@@ -78,8 +198,6 @@ class MatchupService:
         Returns:
             Season string (e.g., "2024-2025")
         """
-        from app.data_access.models import Season
-
         season = self.db.query(Season).filter(Season.id == season_id).first()
         if season:
             return self._format_season_string(season)
@@ -93,8 +211,6 @@ class MatchupService:
             Current season string (e.g., "2024-2025")
         """
         from datetime import date
-
-        from app.data_access.models import Season
 
         # Try to get the active season first
         current_season = self.db.query(Season).filter(Season.is_active).first()
