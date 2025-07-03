@@ -281,6 +281,16 @@
             document.getElementById(`${teamType}-top-player-stats-${playerIndex}`).innerHTML =
                 `${player.points} PTS, ${fgMade}/${fgAttempted} FG (${player.fg_percentage.toFixed(1)}%)<br>` +
                 `${player.fg3m || 0}/${player.fg3a || 0} 3PT (${fg3Percentage}%)`;
+            
+            // Update player photo
+            const playerBox = document.getElementById(`${teamType}-player-${playerIndex}`);
+            if (playerBox) {
+                const photoPlaceholder = playerBox.querySelector('.player-photo-placeholder');
+                if (photoPlaceholder && player.thumbnail_image) {
+                    const portraitUrl = `/uploads/${player.thumbnail_image}`;
+                    photoPlaceholder.innerHTML = `<img src="${portraitUrl}" alt="${player.name}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;">`;
+                }
+            }
         }
 
         // Update away team players (top 2)
@@ -566,6 +576,24 @@
                 container.innerHTML = '<i class="fas fa-users"></i>';
             }
         });
+    }
+
+    // Helper function to get tiny player portrait HTML for box scores
+    function getPlayerPortraitTiny(player) {
+        // Construct portrait URL from thumbnail_image field
+        const portraitUrl = player.thumbnail_image ? `/uploads/${player.thumbnail_image}` : null;
+        
+        if (portraitUrl && portraitUrl !== 'None') {
+            return `<img class="rounded-circle"
+                         src="${portraitUrl}"
+                         alt="${player.name}"
+                         style="width: 32px; height: 32px; object-fit: cover;"
+                         onerror="this.onerror=null; this.outerHTML='<div class=\\'rounded-circle bg-light d-flex align-items-center justify-content-center\\' style=\\'width: 32px; height: 32px;\\'><i class=\\'fas fa-user text-muted\\' style=\\'font-size: 14px;\\'></i></div>';">`;                
+        } else {
+            return `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                        <i class="fas fa-user text-muted" style="font-size: 14px;"></i>
+                    </div>`;
+        }
     }
 </script>
 {% endblock %}

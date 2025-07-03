@@ -57,6 +57,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
         top_players_data.append(
             {
+                "id": player.id,  # Add player ID for template helper
                 "name": player.name,
                 "team_name": team.display_name or team.name,
                 "points": points,
@@ -75,6 +76,7 @@ def get_top_players_from_recent_week(session, limit=4):
                 "game_date": game.date,
                 "opponent": opponent_name,
                 "game_id": game.id,
+                "thumbnail_image": player.thumbnail_image,  # Add thumbnail_image field
             }
         )
 

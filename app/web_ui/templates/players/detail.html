@@ -49,11 +49,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="card-header" style="background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); color: white;">
                     <div class="row align-items-center">
                         <div class="col-auto">
-                            <div class="position-relative">
+                            <div class="position-relative" style="display: inline-block;">
                                 ${getPlayerPortrait(player)}
                                 {% if is_authenticated %}
-                                <button onclick="showUploadModal()" class="btn btn-sm btn-light position-absolute bottom-0 end-0 rounded-circle" 
-                                        style="width: 32px; height: 32px; padding: 0; margin: -8px -8px;" 
+                                <button onclick="showUploadModal()" class="btn btn-sm btn-light position-absolute rounded-circle" 
+                                        style="width: 32px; height: 32px; padding: 0; bottom: 0; right: 0; margin-bottom: -8px; margin-right: -8px;" 
                                         title="Upload Portrait">
                                     <i class="fas fa-camera"></i>
                                 </button>
@@ -357,17 +357,32 @@ function getPlayerPortrait(player) {
     // Construct portrait URL from thumbnail_image field
     const portraitUrl = player.thumbnail_image ? `/uploads/${player.thumbnail_image}` : null;
     
-    if (portraitUrl && portraitUrl !== 'None') {
+    if (portraitUrl && portraitUrl !== 'None' && portraitUrl !== '/uploads/None') {
         return `<img class="rounded-circle border border-3 border-white shadow"
                      src="${portraitUrl}"
                      alt="${player.name}"
                      style="width: 120px; height: 120px; object-fit: cover;"
-                     onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\"rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center\" style=\"width: 120px; height: 120px;\"><i class=\"fas fa-user fa-3x text-muted\"></i></div>';">`;                
+                     onerror="handlePortraitError(this)">`;
     } else {
         return `<div class="rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
                     <i class="fas fa-user fa-3x text-muted"></i>
                 </div>`;
     }
+}
+
+// Handle portrait image errors
+function handlePortraitError(img) {
+    img.onerror = null; // Prevent infinite loop
+    img.style.display = 'none';
+    
+    // Replace with fallback div
+    const fallbackDiv = document.createElement('div');
+    fallbackDiv.className = 'rounded-circle border border-3 border-white shadow bg-light d-flex align-items-center justify-content-center';
+    fallbackDiv.style.cssText = 'width: 120px; height: 120px;';
+    fallbackDiv.innerHTML = '<i class="fas fa-user fa-3x text-muted"></i>';
+    
+    img.parentNode.insertBefore(fallbackDiv, img);
+    img.remove();
 }
 
 // Image upload modal

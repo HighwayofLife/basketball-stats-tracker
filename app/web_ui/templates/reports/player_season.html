@@ -27,7 +27,12 @@
             <div class="row">
                 <div class="col-md-4 text-center">
                     <div class="player-avatar">
-                        <i class="fas fa-user-circle fa-5x text-muted"></i>
+                        {% set portrait_url = player_portrait_url(player) %}
+                        {% if portrait_url %}
+                            <img src="{{ portrait_url }}" alt="{{ player.name }}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <i class="fas fa-user-circle fa-5x text-muted"></i>
+                        {% endif %}
                     </div>
                     <h2 id="playerName">{{ player.name }}</h2>
                     <p class="text-muted">

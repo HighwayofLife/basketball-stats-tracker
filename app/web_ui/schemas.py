@@ -33,6 +33,7 @@ class PlayerStats(BaseModel):
     stats: dict[str, Any]
     jersey_number: str = ""
     position: str | None = None
+    thumbnail_image: str | None = None
 
 
 class TeamStats(BaseModel):
@@ -292,6 +293,7 @@ class PlayerResponse(BaseModel):
     year: str | None = None
     is_active: bool = True
     is_substitute: bool = False
+    thumbnail_image: str | None = None
 
 
 # Season Statistics Schemas
