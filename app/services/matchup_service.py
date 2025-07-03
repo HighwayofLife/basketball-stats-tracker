@@ -115,6 +115,10 @@ class MatchupService:
 
     def _format_season_string(self, season) -> str:
         """Format a Season object into a season string."""
+        # Prefer the season code if it exists, as that's what TeamSeasonStats uses
+        if season.code:
+            return season.code
+        # Fallback to parsing the name
         if "-" in season.name:
             return season.name
         # Otherwise create from dates

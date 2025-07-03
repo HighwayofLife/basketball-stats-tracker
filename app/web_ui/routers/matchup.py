@@ -2,11 +2,12 @@
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 
 from app.data_access.db_session import get_db_session
 from app.services.matchup_service import MatchupService
+from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
 
 logger = logging.getLogger(__name__)
@@ -14,7 +15,11 @@ router = APIRouter(prefix="/scheduled-games", tags=["matchup"])
 
 
 @router.get("/{scheduled_game_id}/matchup", response_class=HTMLResponse)
-async def view_matchup(request: Request, scheduled_game_id: int):
+async def view_matchup(
+    request: Request,
+    scheduled_game_id: int,
+    auth_context: dict = Depends(get_template_auth_context),
+):
     """
     Display matchup preview for a scheduled game.
 
@@ -35,7 +40,7 @@ async def view_matchup(request: Request, scheduled_game_id: int):
 
             # Format the data for the template
             context = {
-                "request": request,
+                **auth_context,  # Include authentication context
                 "scheduled_game": matchup_data["scheduled_game"],
                 "home_team": matchup_data["home_team"],
                 "away_team": matchup_data["away_team"],
@@ -91,20 +96,26 @@ async def view_matchup(request: Request, scheduled_game_id: int):
                 for player_data in context[team_key]["top_players"]:
                     stats = player_data["raw_stats"]
                     player = player_data["player"]
+
+                    # Calculate percentages
+                    ft_pct = round((stats.total_ftm / stats.total_fta * 100) if stats.total_fta > 0 else 0, 1)
+                    fg3_pct = round((stats.total_3pm / stats.total_3pa * 100) if stats.total_3pa > 0 else 0, 1)
+
+                    # Calculate overall field goal percentage (2P + 3P combined)
+                    total_fg_made = stats.total_2pm + stats.total_3pm
+                    total_fg_attempted = stats.total_2pa + stats.total_3pa
+                    fg_pct = round((total_fg_made / total_fg_attempted * 100) if total_fg_attempted > 0 else 0, 1)
                     formatted_players.append(
                         {
+                            "id": player.id,
                             "name": player.name,
                             "jersey_number": player.jersey_number,
                             "position": player.position or "N/A",
                             "ppg": round(player_data["ppg"], 1),
                             "games_played": stats.games_played,
-                            "ftm": stats.total_ftm,
-                            "fta": stats.total_fta,
-                            "ft_pct": round((stats.total_ftm / stats.total_fta * 100) if stats.total_fta > 0 else 0, 1),
-                            "fg2m": stats.total_2pm,
-                            "fg2a": stats.total_2pa,
-                            "fg3m": stats.total_3pm,
-                            "fg3a": stats.total_3pa,
+                            "ft_pct": ft_pct,
+                            "fg_pct": fg_pct,
+                            "fg3_pct": fg3_pct,
                         }
                     )
                 context[team_key]["top_players"] = formatted_players
