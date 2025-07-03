@@ -1,3 +1,24 @@
+v0.4.24
+-------
+
+### Features
+- **Matchup Page Team Logos**: Added team logos to the matchup header display
+  - 200x200px logos displayed beside team names for visual appeal
+  - Responsive design adjusts logo size to 120x120px on mobile devices
+  - Placeholder basketball icon shown when team logos not uploaded
+  - Maintains clean layout with logos, team names, and records
+- **Top Players Statistics Enhancement**: Improved player statistics display in matchup preview
+  - Replaced raw shot attempts with shooting percentages (FG%, 3P%, FT%)
+  - Moved jersey numbers to the left of player names for better readability
+  - Streamlined table layout for cleaner presentation
+  - Made player names clickable links to their individual profile pages (/players/{id})
+
+### Bug Fixes
+- **Matchup Page Authentication**: Fixed missing authentication context causing header to show logged out state
+- **Season Stats Lookup**: Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
+- **Zero Stats Display**: Resolved issue where team records and statistics showed as 0-0 despite having games in database
+- **Top Players Display**: Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
+
 v0.4.23
 -------
 
