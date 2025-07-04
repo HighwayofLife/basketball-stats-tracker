@@ -7,7 +7,6 @@ from typing import Literal
 from fastapi.templating import Jinja2Templates
 
 from app.config import VERSION_INFO
-from app.services.image_processing_service import ImageProcessingService
 
 
 class CustomTemplates(Jinja2Templates):
@@ -131,7 +130,6 @@ def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
         return f"{UPLOADS_URL_PREFIX}{relative_path}"
 
     return None
-
 
 
 def team_logo_url(team) -> str | None:
