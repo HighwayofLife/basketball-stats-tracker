@@ -49,7 +49,7 @@
                 </div>
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="homeTeam" class="form-label">Home Team</label>
                                 <select class="form-select" id="homeTeam" required>
@@ -57,7 +57,7 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="awayTeam" class="form-label">Away Team</label>
                                 <select class="form-select" id="awayTeam" required>
@@ -65,10 +65,19 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="mb-3">
                                 <label for="gameDate" class="form-label">Game Date</label>
                                 <input type="date" class="form-control" id="gameDate" required>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="season" class="form-label">Season</label>
+                                <select class="form-select" id="season">
+                                    <option value="">Auto-detect from date</option>
+                                </select>
+                                <div class="form-text">Leave blank to auto-assign based on game date</div>
                             </div>
                         </div>
                     </div>
@@ -331,6 +340,7 @@ let substitutePlayerNames = []; // List of known substitute player names
 document.addEventListener('DOMContentLoaded', async function() {
     setDefaultDate();
     await loadTeamsAndPlayers();
+    await loadSeasons();
     await loadSubstitutePlayerNames();
     
     // Check if we're in edit mode (game_id provided in URL)
@@ -413,6 +423,35 @@ async function loadSubstitutePlayerNames() {
         console.error('Error loading substitute player names:', error);
         substitutePlayerNames = [];
         window.substitutePlayerNames = [];
+    }
+}
+
+async function loadSeasons() {
+    try {
+        const response = await fetch('/v1/seasons/list');
+        if (!response.ok) {
+            throw new Error(`Failed to load seasons: ${response.status}`);
+        }
+        const seasons = await response.json();
+        
+        const seasonSelect = document.getElementById('season');
+        
+        // Clear existing options except the first one
+        seasonSelect.innerHTML = '<option value="">Auto-detect from date</option>';
+        
+        // Add seasons, with active season first
+        seasons.forEach(season => {
+            const option = new Option(season.name, season.id);
+            if (season.is_active) {
+                option.selected = true;
+                option.text = `${season.name} (Current)`;
+            }
+            seasonSelect.add(option);
+        });
+        
+    } catch (error) {
+        console.error('Error loading seasons:', error);
+        // Don't show an error alert for seasons since it's optional
     }
 }
 
@@ -926,6 +965,7 @@ async function saveGame() {
             away_team_id: parseInt(awayTeamId),
             location: document.getElementById('location').value || null,
             notes: document.getElementById('notes').value || null,
+            season_id: document.getElementById('season').value || null,
             player_stats: playerStats
         };
         

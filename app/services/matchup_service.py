@@ -222,12 +222,14 @@ class MatchupService:
         if recent_season:
             return self._format_season_string(recent_season)
 
-        # Final fallback to current year
+        # Final fallback to most recent season in the DB
+        most_recent_season = self.db.query(Season).order_by(Season.start_date.desc()).first()
+        if most_recent_season:
+            return self._format_season_string(most_recent_season)
+
+        # Absolute fallback if DB is empty
         current_year = date.today().year
-        if date.today().month >= 10:  # Basketball season starts in October
-            return f"{current_year}-{current_year + 1}"
-        else:
-            return f"{current_year - 1}-{current_year}"
+        return f"{current_year - 1}-{current_year}"
 
     def _format_season_string(self, season) -> str:
         """Format a Season object into a season string."""

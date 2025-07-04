@@ -13,6 +13,7 @@ from app.dependencies import get_db
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
 from app.services.schedule_service import schedule_service
+from app.services.season_service import SeasonService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 
@@ -1028,14 +1029,22 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
             # Create the game
             game_service = GameStateService(session)
 
-            # Determine season from game date
+            # Determine season from game date or use provided season_id
             from datetime import datetime
 
             from app.services.season_stats_service import SeasonStatsService
 
             game_date = datetime.strptime(scorebook_data["date"], "%Y-%m-%d").date()
-            season_service = SeasonStatsService(session)
-            season = season_service.get_or_create_season_from_date(game_date)
+            season_stats_service = SeasonStatsService(session)
+            
+            # Use provided season_id if available, otherwise auto-detect from date
+            season_id = scorebook_data.get("season_id")
+            if season_id:
+                season = session.query(models.Season).filter(models.Season.id == season_id).first()
+                if not season:
+                    raise HTTPException(status_code=400, detail="Selected season not found")
+            else:
+                season = season_stats_service.get_or_create_season_from_date(game_date)
 
             # Initialize scheduled game info
             scheduled_game_info = None
@@ -1271,3 +1280,16 @@ async def get_game_scorebook_format(
     except Exception as e:
         logger.error(f"Error getting game in scorebook format: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve game data") from e
+
+
+@router.get("/v1/seasons/list")
+async def list_seasons(current_user: User = Depends(get_current_user)):
+    """Get all seasons for use in dropdowns and selection."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+            seasons = season_service.list_seasons(include_inactive=True)
+            return seasons
+    except Exception as e:
+        logger.error(f"Error getting seasons: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get seasons") from e
