@@ -24,7 +24,7 @@ class TestPlayerPortraitTemplateHelpers:
             mock_get_data.return_value = "players/123/portrait.jpg"
 
             # Mock file existence check
-            with patch("app.web_ui.templates_config.Path.exists") as mock_exists:
+            with patch("app.web_ui.templates_config._check_file_exists") as mock_exists:
                 mock_exists.return_value = True
 
                 url = player_portrait_url(player)
@@ -41,7 +41,7 @@ class TestPlayerPortraitTemplateHelpers:
             mock_get_data.return_value = "players/456/portrait.png"
 
             # Mock file existence check
-            with patch("app.web_ui.templates_config.Path.exists") as mock_exists:
+            with patch("app.web_ui.templates_config._check_file_exists") as mock_exists:
                 mock_exists.return_value = True
 
                 url = player_portrait_url(player_dict)
@@ -75,7 +75,7 @@ class TestPlayerPortraitTemplateHelpers:
             mock_get_data.return_value = "players/123/portrait.jpg"
 
             # Mock file existence check to return False
-            with patch("app.web_ui.templates_config.Path.exists") as mock_exists:
+            with patch("app.web_ui.templates_config._check_file_exists") as mock_exists:
                 mock_exists.return_value = False
 
                 url = player_portrait_url(player)
@@ -110,7 +110,7 @@ class TestPlayerPortraitTemplateHelpers:
             mock_get_data.return_value = "uploads/players/123/portrait.jpg"
 
             # Mock file existence check
-            with patch("app.web_ui.templates_config.Path.exists") as mock_exists:
+            with patch("app.web_ui.templates_config._check_file_exists") as mock_exists:
                 mock_exists.return_value = True
 
                 url = player_portrait_url(player)
@@ -118,50 +118,40 @@ class TestPlayerPortraitTemplateHelpers:
                 # Should strip the duplicate "uploads/" prefix
                 assert url == "/uploads/players/123/portrait.jpg"
 
-    def test_player_portrait_url_fallback_to_image_service(self):
-        """Test player_portrait_url fallback to ImageProcessingService."""
+    def test_player_portrait_url_database_error_returns_none(self):
+        """Test player_portrait_url returns None when database lookup fails."""
         player = Mock(spec=Player)
         player.id = 123
         player.thumbnail_image = "players/123/portrait.jpg"
 
-        # Mock the cached database lookup and path operations to trigger exception path
+        # Mock the cached database lookup to fail
         with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
-            with patch("app.web_ui.templates_config.Path") as mock_path_class:
-                # Make the cached lookup fail to trigger exception path
-                mock_get_data.side_effect = KeyError("Database error")
+            # Make the cached lookup return None (no image data found)
+            mock_get_data.return_value = None
 
-                # Mock the ImageProcessingService fallback
-                with patch(
-                    "app.web_ui.templates_config.ImageProcessingService.get_player_portrait_url"
-                ) as mock_service:
-                    mock_service.return_value = "/uploads/players/123/portrait.jpg"
+            url = player_portrait_url(player)
 
-                    url = player_portrait_url(player)
+            assert url is None
+            mock_get_data.assert_called_once_with(123, "player")
 
-                    assert url == "/uploads/players/123/portrait.jpg"
-                    mock_service.assert_called_once_with(123)
-
-    def test_player_portrait_url_fallback_returns_none(self):
-        """Test player_portrait_url when all methods fail."""
+    def test_player_portrait_url_file_not_exists_returns_none(self):
+        """Test player_portrait_url returns None when file doesn't exist."""
         player = Mock(spec=Player)
         player.id = 123
         player.thumbnail_image = "players/123/portrait.jpg"
 
-        # Mock the cached database lookup and path operations to trigger exception path
+        # Mock the cached database lookup to return a filename
         with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_get_data:
-            with patch("app.web_ui.templates_config.Path") as mock_path_class:
-                # Make the cached lookup fail to trigger exception path
-                mock_get_data.side_effect = OSError("Database error")
+            mock_get_data.return_value = "players/123/portrait.jpg"
 
-                # Mock the ImageProcessingService fallback to also fail
-                with patch(
-                    "app.web_ui.templates_config.ImageProcessingService.get_player_portrait_url"
-                ) as mock_service:
-                    mock_service.side_effect = AttributeError("Service error")
+            # Mock file existence check to return False
+            with patch("app.web_ui.templates_config._check_file_exists") as mock_check:
+                mock_check.return_value = False
 
-                    url = player_portrait_url(player)
+                url = player_portrait_url(player)
 
-                    assert url is None
+                assert url is None
+                mock_check.assert_called_once()
 
     def test_clear_player_portrait_cache(self):
         """Test clearing player portrait cache."""

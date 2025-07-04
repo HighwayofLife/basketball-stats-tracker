@@ -50,6 +50,69 @@ def main():
 
             logger.info("Season statistics update completed!")
 
+            # Step 3: Update game scores for games that don't have scores populated
+            logger.info("Step 3: Updating missing game scores...")
+            games_updated = 0
+
+            # Find games with NULL or 0 scores but have player statistics
+            from sqlalchemy import and_, or_
+
+            from app.data_access.models import Game, PlayerGameStats
+
+            games_without_scores = (
+                session.query(Game)
+                .filter(
+                    or_(
+                        Game.playing_team_score.is_(None),
+                        Game.opponent_team_score.is_(None),
+                        and_(Game.playing_team_score == 0, Game.opponent_team_score == 0),
+                    )
+                )
+                .all()
+            )
+
+            # Get all player stats for games without scores in bulk to avoid N+1 queries
+            game_ids = [game.id for game in games_without_scores]
+            if game_ids:
+                all_player_stats = (
+                    session.query(PlayerGameStats)
+                    .join(PlayerGameStats.player)
+                    .filter(PlayerGameStats.game_id.in_(game_ids))
+                    .all()
+                )
+
+                # Group player stats by game_id for efficient lookup
+                stats_by_game = {}
+                for stat in all_player_stats:
+                    if stat.game_id not in stats_by_game:
+                        stats_by_game[stat.game_id] = []
+                    stats_by_game[stat.game_id].append(stat)
+
+                # Process each game with its player statistics
+                for game in games_without_scores:
+                    player_stats = stats_by_game.get(game.id, [])
+
+                    if player_stats:
+                        # Calculate scores from player statistics
+                        home_score = 0
+                        away_score = 0
+
+                        for stat in player_stats:
+                            player_points = stat.total_ftm + (stat.total_2pm * 2) + (stat.total_3pm * 3)
+
+                            if stat.player.team_id == game.playing_team_id:
+                                home_score += player_points
+                            elif stat.player.team_id == game.opponent_team_id:
+                                away_score += player_points
+
+                        # Update game scores
+                        game.playing_team_score = home_score
+                        game.opponent_team_score = away_score
+                        games_updated += 1
+
+            session.commit()
+            logger.info(f"Updated scores for {games_updated} games")
+
         logger.info("✅ Production season migration completed successfully!")
 
     except Exception as e:

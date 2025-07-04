@@ -1036,7 +1036,7 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
 
             game_date = datetime.strptime(scorebook_data["date"], "%Y-%m-%d").date()
             season_stats_service = SeasonStatsService(session)
-            
+
             # Use provided season_id if available, otherwise auto-detect from date
             season_id = scorebook_data.get("season_id")
             if season_id:
@@ -1181,6 +1181,10 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
 
                 except ValueError as ve:
                     raise HTTPException(status_code=400, detail=f"Invalid player data: {str(ve)}") from ve
+
+            # Update game scores after processing all player stats
+            game.playing_team_score = home_score
+            game.opponent_team_score = away_score
 
             session.commit()
 
