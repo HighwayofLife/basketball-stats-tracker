@@ -104,71 +104,34 @@ def _get_team_logo_data_uncached(team_id: int) -> str | None:
 
 
 def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
-    """Generic helper to get entity image URL.
-
-    Optimized with caching to reduce database queries and file system checks.
-
-    Args:
-        entity: Entity object with id attribute or dict with 'id' key
-        entity_type: Type of entity ("team" or "player")
-    """
+    """Generic helper to get entity image URL."""
     if not entity:
         return None
 
-    # Extract entity_id from object or dict
-    entity_id = None
-    if hasattr(entity, "id"):
-        entity_id = entity.id
-    elif isinstance(entity, dict) and "id" in entity:
-        entity_id = entity["id"]
-
+    entity_id = getattr(entity, "id", None) or (isinstance(entity, dict) and entity.get("id"))
     if not entity_id:
         return None
 
-    try:
-        config = ENTITY_CONFIG[entity_type]
+    config = ENTITY_CONFIG.get(entity_type)
+    if not config:
+        return None
 
-        # Use cached database lookup (for performance in production)
-        image_filename = _get_cached_entity_image_data(entity_id, entity_type)
-        if not image_filename:
-            # Check if entity has the image attribute directly (useful for tests)
-            if hasattr(entity, config["filename_attr"]):
-                image_filename = getattr(entity, config["filename_attr"])
-                if not image_filename:
-                    return None
-            else:
-                return None
+    image_filename = _get_cached_entity_image_data(entity_id, entity_type)
+    if not image_filename:
+        return None
 
-        from app.config import UPLOADS_URL_PREFIX, settings
+    from app.config import UPLOADS_URL_PREFIX, settings
 
-        # Handle both old and new image_filename formats
-        subdir = config["subdir"]
-        if image_filename.startswith("uploads/"):
-            # New format: uploads/teams/1/logo.png or uploads/players/1/portrait.png
-            file_path = Path(settings.UPLOAD_DIR) / image_filename.removeprefix("uploads/")
-        elif image_filename.startswith(f"{subdir}/"):
-            # Old format: teams/1/logo.png or players/1/portrait.png
-            file_path = Path(settings.UPLOAD_DIR) / image_filename
-        else:
-            # Assume it's a relative path from uploads directory
-            file_path = Path(settings.UPLOAD_DIR) / image_filename
+    # Ensure the path is relative to the UPLOAD_DIR
+    relative_path = image_filename.removeprefix("uploads/").replace("\\", "/")
+    file_path = Path(settings.UPLOAD_DIR) / relative_path
 
-        # Check if file exists (uses cached check for performance)
-        if _check_file_exists(str(file_path)):
-            # Return the URL using the stored filename
-            url_path = image_filename.replace("\\", "/").removeprefix("uploads/")
-            return f"{UPLOADS_URL_PREFIX}{url_path}"
-        else:
-            # File doesn't exist, return None
-            return None
+    # Use a cached file existence check
+    if _check_file_exists(str(file_path)):
+        return f"{UPLOADS_URL_PREFIX}{relative_path}"
 
-    except (KeyError, AttributeError, OSError, ValueError):
-        # If there's any error, fallback to filesystem check
-        try:
-            service_method = getattr(ImageProcessingService, config["service_method"])
-            return service_method(entity_id)
-        except (AttributeError, OSError):
-            return None
+    return None
+
 
 
 def team_logo_url(team) -> str | None:
