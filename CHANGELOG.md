@@ -97,12 +97,6 @@ v0.4.24
 v0.4.23
 -------
 
-### Features
-- Linked player names in Game Leaders and Players of the Week to player profile pages
-
-### Testing
-- Added integration test ensuring Players of the Week names link correctly
-
 - **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
   - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
   - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
