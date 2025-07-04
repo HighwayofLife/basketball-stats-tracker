@@ -1,3 +1,13 @@
+v0.4.27
+-------
+
+### Bug Fixes
+- **Head-to-Head History Display Issues**: Fixed 0-0 scores in production matchup history
+  - Fixed scorebook submission to save calculated scores to Game model fields
+  - Added game score population for existing games with missing score data
+  - Enhanced head-to-head history with "Box Score" links to game detail pages
+  - Improved game history display with actionable links for detailed game analysis
+
 v0.4.26
 -------
 
