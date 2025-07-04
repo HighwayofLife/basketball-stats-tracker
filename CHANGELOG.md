@@ -1,3 +1,10 @@
+v0.4.28
+-------
+
+### Bug Fixes
+- **Top Player Ranking**: Changed the metric for determining top players on the matchup screen from points-per-game to total points to provide a more accurate representation of player contribution.
+- **Team Logo Display**: Fixed an issue where team logos were not consistently displaying due to a logic error in the image URL generation.
+
 v0.4.27
 -------
 
@@ -628,14 +635,14 @@ v0.4.2
 * Fix integration test authentication setup to properly mock auth dependencies
 
 ### Authentication Fixes
-* Revert admin page authentication approach - HTML pages use client-side auth checking rather than server-side dependencies
-* Admin API endpoints still enforce proper role-based authentication
-* Update tests to reflect correct authentication behavior (client-side for HTML, server-side for API)
+- Revert admin page authentication approach - HTML pages use client-side auth checking rather than server-side dependencies
+- Admin API endpoints still enforce proper role-based authentication
+- Update tests to reflect correct authentication behavior (client-side for HTML, server-side for API)
 
 ### Test Improvements
-* Fix integration test authentication mocking for consistent test behavior
-* Skip problematic security integration tests pending team-based access control implementation
-* Update OAuth integration tests to handle proper dependency injection
+- Fix integration test authentication mocking for consistent test behavior
+- Skip problematic security integration tests pending team-based access control implementation
+- Update OAuth integration tests to handle proper dependency injection
 
 v0.4.1
 ------
