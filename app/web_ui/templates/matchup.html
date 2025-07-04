@@ -227,6 +227,7 @@
                             <th>Date</th>
                             <th>Result</th>
                             <th>Winner</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -235,6 +236,11 @@
                             <td>{{ game.date }}</td>
                             <td>{{ game.score }}</td>
                             <td>{{ game.winner }}</td>
+                            <td>
+                                <a href="/games/{{ game.game_id }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-chart-bar me-1"></i>Box Score
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
