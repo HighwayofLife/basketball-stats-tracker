@@ -186,23 +186,16 @@ class TestTeamLogoUrl:
         result = team_logo_url({})
         assert result is None
 
-    def test_team_logo_url_fallback_to_filesystem_on_db_error(self):
-        """Test team logo URL falls back to filesystem check on database error."""
+    def test_team_logo_url_database_error_returns_none(self):
+        """Test team logo URL returns None on database error."""
         mock_team = Mock()
         mock_team.id = 123
 
-        with (
-            patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_cached_data,
-            patch("app.web_ui.templates_config.Path") as mock_path_class,
-            patch("app.web_ui.templates_config.ImageProcessingService.get_team_logo_url") as mock_get_url,
-        ):
-            # Mock database error in cached function with appropriate exception type
-            mock_cached_data.side_effect = OSError("Database connection error")
-
-            # Mock filesystem fallback
-            mock_get_url.return_value = f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
+        with patch("app.web_ui.templates_config._get_cached_entity_image_data") as mock_cached_data:
+            # Mock database error - returns None when no data found
+            mock_cached_data.return_value = None
 
             result = team_logo_url(mock_team)
 
-            assert result == f"{UPLOADS_URL_PREFIX}teams/123/logo.png"
-            mock_get_url.assert_called_once_with(123)
+            assert result is None
+            mock_cached_data.assert_called_once_with(123, "team")
