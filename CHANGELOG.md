@@ -1,3 +1,16 @@
+v0.4.30
+-------
+
+### Features
+- **Clickable Player Names**: Enhanced user experience by making player names clickable throughout the application
+  - Game Leaders section in game detail pages now link to individual player profiles
+  - Players of the Week section on dashboard now links to player profiles
+  - Added player profile navigation from game statistics displays
+  - Improved discoverability of player information across the interface
+
+### Testing
+- Added integration test ensuring Players of the Week names link correctly
+
 v0.4.28
 -------
 
@@ -84,7 +97,6 @@ v0.4.24
 v0.4.23
 -------
 
-### Features
 - **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
   - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
   - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
