@@ -55,8 +55,9 @@ def main():
             games_updated = 0
 
             # Find games with NULL or 0 scores but have player statistics
+            from sqlalchemy import and_, or_
+
             from app.data_access.models import Game, PlayerGameStats
-            from sqlalchemy import or_, and_
 
             games_without_scores = (
                 session.query(Game)

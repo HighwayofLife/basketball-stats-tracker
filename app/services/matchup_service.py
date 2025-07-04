@@ -180,6 +180,7 @@ class MatchupService:
 
             formatted_h2h.append(
                 {
+                    "game_id": game.id,
                     "date": game.date.strftime("%m/%d/%Y") if game.date else "N/A",
                     "score": score_display,
                     "winner": winner,
@@ -291,7 +292,7 @@ class MatchupService:
 
     def _get_player_season_stats(self, team_id: int, season: str, limit: int = 5) -> list[dict[str, Any]]:
         """
-        Get top players' season statistics for a team.
+        Get top players' season statistics for a team, ranked by total points.
 
         Args:
             team_id: The team ID
@@ -329,8 +330,8 @@ class MatchupService:
                 }
             )
 
-        # Sort by PPG and limit
-        players_with_stats.sort(key=lambda x: x["ppg"], reverse=True)
+        # Sort by total points and limit
+        players_with_stats.sort(key=lambda x: x["total_points"], reverse=True)
         return players_with_stats[:limit]
 
     def _get_head_to_head_history(self, team1_id: int, team2_id: int, limit: int = 5) -> list[Game]:

@@ -154,9 +154,10 @@ def _get_entity_image_url(entity, entity_type: ImageEntityType) -> str | None:
             file_path = Path(settings.UPLOAD_DIR) / image_filename
 
         # Check if file exists (uses cached check for performance)
-        if file_path.exists():
+        if _check_file_exists(str(file_path)):
             # Return the URL using the stored filename
-            return f"{UPLOADS_URL_PREFIX}{image_filename.removeprefix('uploads/')}"
+            url_path = image_filename.replace("\\", "/").removeprefix("uploads/")
+            return f"{UPLOADS_URL_PREFIX}{url_path}"
         else:
             # File doesn't exist, return None
             return None
