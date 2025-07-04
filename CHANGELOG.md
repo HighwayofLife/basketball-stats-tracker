@@ -1,3 +1,28 @@
+v0.4.26
+-------
+
+### Features
+- **Season Management Enhancements**: Added comprehensive season selection and management capabilities
+  - Added season dropdown to scorebook entry form for manual season assignment
+  - Enhanced scorebook submission to accept optional season_id parameter
+  - Added `/v1/seasons/list` API endpoint for season selection dropdowns
+  - Auto-selects active season by default with fallback to date-based detection
+  - Improved season assignment logic to use provided season or auto-detect from game date
+
+### Bug Fixes
+- **Season Statistics Data Issues**: Fixed critical production issues with missing season statistics
+  - Resolved 0-0 team records showing on matchup pages instead of actual win-loss records
+  - Fixed missing player statistics and empty "top players" sections in matchup previews
+  - Added production season migration to assign existing games to correct seasons
+  - Enhanced season statistics calculation to ensure all games are properly categorized
+
+### Infrastructure
+- **One-time Season Migration**: Added automated production migration workflow
+  - Automatically runs once when merged to master to fix existing season assignment issues
+  - Self-disabling workflow prevents accidental re-runs after completion
+  - Migrates all unassigned games to appropriate seasons based on game dates
+  - Recalculates all season statistics after migration
+
 v0.4.25
 -------
 

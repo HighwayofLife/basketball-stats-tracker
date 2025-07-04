@@ -1,0 +1,139 @@
+name: Season Migration
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - '.github/workflows/season-migration.yml'  # Only run when this workflow is first added
+
+env:
+  PROJECT_ID: basketball-stats-461220
+  REGION: us-west1
+  REPOSITORY: basketball-stats
+  IMAGE: basketball-stats-app
+
+jobs:
+  season-migration:
+    name: Run Season Migration (One-time)
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write  # Need write permission to disable workflow
+      id-token: write
+
+    steps:
+    - name: Check if migration should run
+      id: should_run
+      run: |
+        echo "🔍 Checking if this is the first run of the season migration..."
+        echo "This workflow will run once and then disable itself."
+        echo "should_run=true" >> $GITHUB_OUTPUT
+
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        project_id: ${{ env.PROJECT_ID }}
+        workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+        service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v2
+
+    - name: Configure Docker for Artifact Registry
+      run: |
+        gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+    - name: Build Migration Image
+      run: |
+        docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:season-migration .
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:season-migration
+
+    - name: Update Migration Job for Season Migration
+      run: |
+        echo "🔄 Temporarily updating migration job for season migration..."
+        gcloud run jobs update basketball-stats-migrate \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:season-migration \
+          --args="python,scripts/migrate_seasons_production.py" \
+          --region ${{ env.REGION }}
+
+    - name: Execute Season Migration
+      run: |
+        echo "🚀 Starting season migration..."
+        EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
+        echo "📋 Migration execution: $EXECUTION_NAME"
+
+        # Wait for completion and monitor
+        for i in {1..60}; do
+          STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
+          
+          if [ "$STATUS" = "Completed" ]; then
+            echo "✅ Season migration completed successfully!"
+            break
+          elif [ "$STATUS" = "Failed" ]; then
+            echo "❌ Season migration failed!"
+            echo "📋 Recent logs:"
+            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" \
+              --limit=20 \
+              --format="table(timestamp,severity,textPayload)" \
+              --freshness=10m
+            exit 1
+          fi
+          
+          echo "⏳ Waiting for migration to complete... ($i/60)"
+          sleep 10
+        done
+
+        if [ "$STATUS" != "Completed" ]; then
+          echo "❌ Migration timed out"
+          exit 1
+        fi
+
+    - name: Restore Original Migration Job
+      if: always()  # Always run this step, even if migration fails
+      run: |
+        echo "🔧 Restoring original migration job configuration..."
+        gcloud run jobs update basketball-stats-migrate \
+          --image ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.IMAGE }}:latest \
+          --args="alembic,upgrade,heads" \
+          --region ${{ env.REGION }}
+
+    - name: Show Final Status
+      run: |
+        echo "🎉 Season migration process completed!"
+        echo "📊 Check your matchup page at https://league-stats.net/scheduled-games/1/matchup"
+        echo "Expected improvements:"
+        echo "  ✅ Team records should show actual wins/losses (not 0-0)"
+        echo "  ✅ Team statistics should show real percentages (not 0%)"
+        echo "  ✅ Top players should be listed with season stats"
+
+    - name: Disable this workflow (one-time migration complete)
+      if: always()  # Always run, even if migration failed
+      run: |
+        echo "🔒 Disabling this workflow to prevent future runs..."
+        
+        # Rename the workflow file to disable it
+        git config user.name "GitHub Actions"
+        git config user.email "actions@github.com"
+        
+        # Move the workflow to a disabled state
+        mv .github/workflows/season-migration.yml .github/workflows/season-migration.yml.disabled
+        
+        git add .github/workflows/season-migration.yml.disabled
+        git rm .github/workflows/season-migration.yml
+        
+        git commit -m "🔒 Disable season migration workflow after successful one-time execution
+
+        This workflow has completed its one-time season migration task:
+        - ✅ Assigned existing games to proper seasons
+        - ✅ Updated season statistics
+        - ✅ Fixed matchup page data display
+        
+        The workflow is now disabled to prevent accidental re-runs.
+        If you need to run season migration again, rename this file back to .yml"
+        
+        git push origin HEAD:${{ github.ref_name }}
+        
+        echo "✅ Workflow disabled successfully"
