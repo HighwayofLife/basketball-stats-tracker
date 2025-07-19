@@ -16,6 +16,7 @@ from app.services.schedule_service import schedule_service
 from app.services.season_service import SeasonService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
+from app.web_ui.cache import invalidate_cache_after
 
 from ..schemas import (
     ActivePlayer,
@@ -999,6 +1000,7 @@ async def restore_game(game_id: int, current_user: User = Depends(require_admin)
 
 
 @router.post("/scorebook")
+@invalidate_cache_after
 async def create_game_from_scorebook(scorebook_data: dict, current_user: User = Depends(get_current_user)):
     """Create or update a game from scorebook data entry."""
     try:

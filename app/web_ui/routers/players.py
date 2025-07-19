@@ -12,6 +12,7 @@ from app.data_access.db_session import get_db_session
 from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
+from app.web_ui.cache import invalidate_cache_after
 from app.web_ui.dependencies import get_db
 
 from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
@@ -54,6 +55,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True, pla
                     year=player.year,
                     is_active=player.is_active,
                     is_substitute=player.is_substitute,
+                    thumbnail_image=player.thumbnail_image,
                 )
                 for player, team in players_teams
             ]
@@ -65,6 +67,7 @@ async def list_players(team_id: int | None = None, active_only: bool = True, pla
 
 
 @router.post("/new", response_model=PlayerResponse)
+@invalidate_cache_after
 async def create_player(player_data: PlayerCreateRequest, current_user: User = Depends(get_current_user)):
     """Create a new player."""
     try:
@@ -563,6 +566,7 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
 
 
 @router.post("/{player_id}/portrait")
+@invalidate_cache_after
 async def upload_player_portrait(
     player_id: int,
     file: UploadFile = File(...),

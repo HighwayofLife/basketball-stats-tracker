@@ -12,6 +12,7 @@ from app.data_access.crud.crud_audit_log import get_recent_audit_logs
 from app.data_access.db_session import get_db_session
 from app.services.data_correction_service import DataCorrectionService
 from app.services.season_service import SeasonService
+from app.web_ui.cache import get_cache_stats, invalidate_all_cache
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1", tags=["admin"])
@@ -341,3 +342,27 @@ async def delete_season(season_id: int, current_user: User = Depends(require_adm
     except Exception as e:
         logger.error(f"Error deleting season: {e}")
         raise HTTPException(status_code=500, detail="Failed to delete season") from e
+
+
+# Cache Management Endpoints
+@router.get("/cache/stats")
+async def get_cache_statistics(current_user: User = Depends(require_admin)):
+    """Get cache statistics for monitoring."""
+    try:
+        stats = await get_cache_stats()
+        return {"success": True, "cache_stats": stats}
+    except Exception as e:
+        logger.error(f"Error getting cache stats: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get cache stats") from e
+
+
+@router.post("/cache/invalidate")
+async def invalidate_cache(current_user: User = Depends(require_admin)):
+    """Manually invalidate all cache entries."""
+    try:
+        await invalidate_all_cache()
+        logger.info(f"Cache manually invalidated by user {current_user.username}")
+        return {"success": True, "message": "Cache invalidated successfully"}
+    except Exception as e:
+        logger.error(f"Error invalidating cache: {e}")
+        raise HTTPException(status_code=500, detail="Failed to invalidate cache") from e
