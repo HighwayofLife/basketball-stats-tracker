@@ -11,6 +11,7 @@ from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.score_calculation_service import ScoreCalculationService
 from app.services.season_stats_service import SeasonStatsService
+from app.web_ui.cache import cached
 from app.web_ui.dependencies import get_template_auth_context
 from app.web_ui.templates_config import templates
 
@@ -86,6 +87,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
 
 @router.get("/", response_class=HTMLResponse)
+@cached(ttl_seconds=86400, key_prefix="homepage:")
 async def index(auth_context: dict = Depends(get_template_auth_context)):
     """Render the dashboard home page."""
     try:

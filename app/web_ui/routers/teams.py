@@ -12,6 +12,7 @@ from app.services.audit_log_service import AuditLogService
 from app.services.image_processing_service import ImageProcessingService
 from app.services.season_stats_service import SeasonStatsService
 from app.services.team_stats_service import TeamStatsService
+from app.web_ui.cache import invalidate_cache_after
 
 from ..dependencies import get_db, get_player_repository, get_team_repository
 from ..schemas import (
@@ -401,6 +402,7 @@ async def get_team_stats(
 
 
 @router.post("/new", response_model=TeamResponse)
+@invalidate_cache_after
 async def create_team(
     team_data: TeamCreateRequest,
     team_repo: TeamRepository = Depends(get_team_repository),  # noqa: B008
@@ -555,6 +557,7 @@ async def restore_team(
 
 
 @router.post("/{team_id}/logo")
+@invalidate_cache_after
 async def upload_team_logo(
     team_id: int, file: UploadFile = File(...), current_user: User = Depends(require_admin), db=Depends(get_db)
 ):

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block extra_head %}
+<script src="/static/js/modules/player-portraits.js"></script>
+{% endblock %}
+
 {% block content %}
 <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
     <h2>Player Management</h2>
@@ -638,12 +642,7 @@ function formatHeight(inches) {
     return `${feet}'${remainingInches}"`;
 }
 
-function getPlayerPortraitSmall(player) {
-    // For now, just return a placeholder - in production this would use the template helper
-    return `<div class="player-portrait-small">
-                <i class="fas fa-user"></i>
-            </div>`;
-}
+// Note: getPlayerPortraitSmall is now imported from player-portraits.js
 
 function showAddPlayerModal() {
     currentPlayerId = null;

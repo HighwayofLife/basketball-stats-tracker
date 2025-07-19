@@ -1,3 +1,12 @@
+v0.4.31
+-------
+
+### Bug Fixes
+- **Player Thumbnails**: Fixed player portrait images not displaying in several locations
+  - Added missing thumbnail_image field to players list API endpoint
+  - Fixed players list page to use shared player-portraits.js module
+  - Player portraits now correctly display on Dashboard, Game Leaders, and Players list
+
 v0.4.30
 -------
 
