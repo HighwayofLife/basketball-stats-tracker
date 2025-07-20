@@ -1,3 +1,11 @@
+v0.4.32
+-------
+
+### Bug Fixes
+  - Fixed dashboard "Players of the Week" by adding 'id' field to player data
+  - Fixed game detail box scores by removing function override that prevented portraits from showing
+  - Player portraits now correctly display on Dashboard, Game Leaders, Players list, and Box Scores
+
 v0.4.31
 -------
 
@@ -5,7 +13,6 @@ v0.4.31
 - **Player Thumbnails**: Fixed player portrait images not displaying in several locations
   - Added missing thumbnail_image field to players list API endpoint
   - Fixed players list page to use shared player-portraits.js module
-  - Player portraits now correctly display on Dashboard, Game Leaders, and Players list
 
 v0.4.30
 -------

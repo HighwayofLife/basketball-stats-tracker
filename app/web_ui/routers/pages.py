@@ -58,6 +58,7 @@ def get_top_players_from_recent_week(session, limit=4):
 
         top_players_data.append(
             {
+                "id": player.id,  # Add 'id' field for player_portrait_url() function
                 "player_id": player.id,
                 "name": player.name,
                 "team_name": team.display_name or team.name,
