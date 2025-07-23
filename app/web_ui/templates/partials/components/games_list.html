@@ -190,6 +190,9 @@ Game object structure (flexible):
                     {% endif %}
                 {% else %}
                     <a href="/scheduled-games/{{ game_id|abs }}/matchup" class="btn btn-sm">View Matchup</a>
+                    {% if is_authenticated %}
+                        <a href="/scheduled-games/{{ game_id|abs }}/edit" class="btn btn-sm btn-warning">Edit</a>
+                    {% endif %}
                 {% endif %}
             </td>
             {% endif %}

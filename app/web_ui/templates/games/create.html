@@ -10,7 +10,7 @@
         </div>
     </div>
 
-    <h2>Schedule Game</h2>
+    <h2>{% if is_edit %}Edit Scheduled Game{% else %}Schedule Game{% endif %}</h2>
 
     <form id="create-game-form">
         <div class="form-group">
@@ -55,7 +55,7 @@
             <textarea class="form-control" id="notes" rows="3"></textarea>
         </div>
 
-        <button type="submit" class="btn btn-primary">Schedule Game</button>
+        <button type="submit" class="btn btn-primary">{% if is_edit %}Update Game{% else %}Schedule Game{% endif %}</button>
         <a href="/games" class="btn btn-secondary">Cancel</a>
     </form>
 </div>
@@ -172,8 +172,22 @@ function hideBanner() {
 document.addEventListener('DOMContentLoaded', async () => {
     // Setup banner close functionality
     document.getElementById('banner-close').addEventListener('click', hideBanner);
-    // Set today's date as default
+    
+    // Check if we're in edit mode
+    const isEdit = {{ 'true' if is_edit else 'false' }};
+    let scheduledGameId = null;
+    
+    {% if is_edit and scheduled_game %}
+    // Pre-populate form fields for editing
+    scheduledGameId = {{ scheduled_game.id }};
+    document.getElementById('game-date').value = '{{ game_date }}';
+    document.getElementById('game-time').value = '{{ game_time }}';
+    document.getElementById('location').value = '{{ scheduled_game.location or "" }}';
+    document.getElementById('notes').value = '{{ scheduled_game.notes or "" }}';
+    {% else %}
+    // Set today's date as default for new games
     document.getElementById('game-date').valueAsDate = new Date();
+    {% endif %}
 
     // Load seasons
     try {
@@ -189,9 +203,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             seasons.forEach(season => {
                 const option = new Option(season.name, season.id);
+                {% if is_edit and scheduled_game %}
+                if (season.id === {{ scheduled_game.season_id }}) {
+                    option.selected = true; // Set scheduled game's season as selected
+                }
+                {% else %}
                 if (season.is_active) {
                     option.selected = true; // Set active season as default
                 }
+                {% endif %}
                 seasonSelect.add(option);
             });
 
@@ -224,6 +244,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         teams.forEach(team => {
             const option1 = new Option(team.name, team.id);
             const option2 = new Option(team.name, team.id);
+            {% if is_edit and scheduled_game %}
+            if (team.id === {{ scheduled_game.home_team_id }}) {
+                option1.selected = true;
+            }
+            if (team.id === {{ scheduled_game.away_team_id }}) {
+                option2.selected = true;
+            }
+            {% endif %}
             homeSelect.add(option1);
             awaySelect.add(option2);
         });
@@ -269,8 +297,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const response = await fetch('/v1/games/scheduled', {
-                method: 'POST',
+            const url = isEdit ? `/v1/games/scheduled/${scheduledGameId}` : '/v1/games/scheduled';
+            const method = isEdit ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
                 headers: headers,
                 credentials: 'include', // Include cookies for authentication
                 body: JSON.stringify(scheduleData)
@@ -279,16 +310,19 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (response.ok) {
                 const scheduledGame = await response.json();
                 // Store success message in sessionStorage for display on games page
-                sessionStorage.setItem('successMessage', 'Game scheduled successfully!');
+                const successMessage = isEdit ? 'Game updated successfully!' : 'Game scheduled successfully!';
+                sessionStorage.setItem('successMessage', successMessage);
                 // Redirect to games page
                 window.location.href = '/games';
             } else {
                 const error = await response.json();
-                showErrorBanner(`Error scheduling game: ${error.detail}`);
+                const action = isEdit ? 'updating' : 'scheduling';
+                showErrorBanner(`Error ${action} game: ${error.detail}`);
             }
         } catch (error) {
             console.error('Error scheduling game:', error);
-            showErrorBanner('Failed to schedule game');
+            const action = isEdit ? 'update' : 'schedule';
+            showErrorBanner(`Failed to ${action} game`);
         }
     });
 });
