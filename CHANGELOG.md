@@ -1,3 +1,26 @@
+v0.4.33
+-------
+
+### Features
+- **Scheduled Games**: Added the ability to edit scheduled games from the UI.
+
+### Bug Fixes
+- **Player Portraits**: Fixed an issue where player portraits were not showing in the game detail box scores.
+- **Dashboard**: Fixed "Players of the Week" component by including player IDs.
+
+### Internal
+- Added integration tests for the scheduled game edit functionality.
+- Cleaned up unused imports.
+
+
+v0.4.32
+-------
+
+### Bug Fixes
+  - Fixed dashboard "Players of the Week" by adding 'id' field to player data
+  - Fixed game detail box scores by removing function override that prevented portraits from showing
+  - Player portraits now correctly display on Dashboard, Game Leaders, Players list, and Box Scores
+
 v0.4.31
 -------
 
@@ -5,7 +28,6 @@ v0.4.31
 - **Player Thumbnails**: Fixed player portrait images not displaying in several locations
   - Added missing thumbnail_image field to players list API endpoint
   - Fixed players list page to use shared player-portraits.js module
-  - Player portraits now correctly display on Dashboard, Game Leaders, and Players list
 
 v0.4.30
 -------

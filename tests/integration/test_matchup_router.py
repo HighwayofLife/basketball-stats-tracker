@@ -308,3 +308,48 @@ class TestMatchupRouter:
         assert "Free Throw %" in response.text
         assert "2-Point FG%" in response.text
         assert "3-Point FG%" in response.text
+
+    def test_edit_scheduled_game_page(self, authenticated_client: TestClient, db_session):
+        """Test scheduled game edit page."""
+        # Create test data
+        season = Season(id=1, name="2023-24", code="2023-24", start_date=date(2023, 10, 1), end_date=date(2024, 5, 31))
+        home_team = Team(id=1, name="home_team", display_name="Home Team")
+        away_team = Team(id=2, name="away_team", display_name="Away Team")
+        db_session.add_all([season, home_team, away_team])
+
+        # Create scheduled game
+        scheduled_game = ScheduledGame(
+            id=1,
+            home_team_id=1,
+            away_team_id=2,
+            scheduled_date=date(2024, 3, 15),
+            scheduled_time=time(19, 0),
+            season_id=1,
+            location="Home Arena",
+            notes="Important game",
+            status=ScheduledGameStatus.SCHEDULED,
+        )
+        db_session.add(scheduled_game)
+        db_session.commit()
+
+        # Access edit page
+        response = authenticated_client.get("/scheduled-games/1/edit")
+        assert response.status_code == 200
+
+        html_content = response.text
+        # Check that it's the edit page
+        assert "Edit Scheduled Game" in html_content
+        assert "Update Game" in html_content
+
+        # Check that form fields exist and are structured for editing
+        assert 'id="game-date"' in html_content  # Date field exists
+        assert 'id="game-time"' in html_content  # Time field exists
+        assert 'id="location"' in html_content  # Location field exists
+        assert 'id="notes"' in html_content  # Notes field exists
+        # Verify this is the edit page
+        assert "Update Game" in html_content  # Should have update button
+
+    def test_edit_scheduled_game_not_found(self, authenticated_client: TestClient, db_session):
+        """Test edit page for non-existent scheduled game."""
+        response = authenticated_client.get("/scheduled-games/999/edit")
+        assert response.status_code == 404
