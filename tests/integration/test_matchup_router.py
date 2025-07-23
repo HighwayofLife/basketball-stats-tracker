@@ -343,7 +343,7 @@ class TestMatchupRouter:
 
         # Check that form fields exist and are structured for editing
         assert 'id="game-date"' in html_content  # Date field exists
-        assert 'id="game-time"' in html_content  # Time field exists  
+        assert 'id="game-time"' in html_content  # Time field exists
         assert 'id="location"' in html_content  # Location field exists
         assert 'id="notes"' in html_content  # Notes field exists
         # Verify this is the edit page

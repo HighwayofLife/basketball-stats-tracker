@@ -1,3 +1,18 @@
+v0.4.33
+-------
+
+### Features
+- **Scheduled Games**: Added the ability to edit scheduled games from the UI.
+
+### Bug Fixes
+- **Player Portraits**: Fixed an issue where player portraits were not showing in the game detail box scores.
+- **Dashboard**: Fixed "Players of the Week" component by including player IDs.
+
+### Internal
+- Added integration tests for the scheduled game edit functionality.
+- Cleaned up unused imports.
+
+
 v0.4.32
 -------
 

@@ -3,7 +3,6 @@
 from datetime import date, time
 
 from fastapi.testclient import TestClient
-from sqlalchemy import text
 
 from app.data_access.models import ScheduledGame, ScheduledGameStatus, Season, Team
 
@@ -15,10 +14,15 @@ class TestScheduledGameEditSimple:
         """Test that the edit route exists and returns the correct form."""
         # Create minimal test data with unique names to avoid conflicts
         import random
+
         unique_id = random.randint(10000, 99999)
-        
+
         season = Season(
-            name=f"Test Season {unique_id}", code=f"TEST{unique_id}", start_date=date(2025, 1, 1), end_date=date(2025, 12, 31), is_active=True
+            name=f"Test Season {unique_id}",
+            code=f"TEST{unique_id}",
+            start_date=date(2025, 1, 1),
+            end_date=date(2025, 12, 31),
+            is_active=True,
         )
         home_team = Team(name=f"home_team_{unique_id}", display_name=f"Home Team {unique_id}")
         away_team = Team(name=f"away_team_{unique_id}", display_name=f"Away Team {unique_id}")
@@ -47,18 +51,18 @@ class TestScheduledGameEditSimple:
         html_content = response.text
         print(f"DEBUG: Looking for location: '{scheduled_game.location}' and notes: '{scheduled_game.notes}'")
         print(f"DEBUG: Schedule game ID: {scheduled_game.id}")
-        
+
         # Check essential elements
         assert "Edit Scheduled Game" in html_content
         assert "Update Game" in html_content
-        
+
         # Check that form fields exist and edit functionality is accessible
         assert 'id="location"' in html_content  # Location field exists
-        assert 'id="notes"' in html_content  # Notes field exists  
+        assert 'id="notes"' in html_content  # Notes field exists
         assert 'id="game-date"' in html_content  # Date field exists
         assert 'id="game-time"' in html_content  # Time field exists
         # Check that it's in edit mode
-        assert 'Update Game' in html_content  # Update button instead of Schedule button
+        assert "Update Game" in html_content  # Update button instead of Schedule button
 
     def test_update_scheduled_game_api(self, authenticated_client: TestClient, db_session):
         """Test that the API endpoint for updating scheduled games works."""
@@ -99,7 +103,7 @@ class TestScheduledGameEditSimple:
         response = authenticated_client.put(f"/v1/games/scheduled/{scheduled_game.id}", json=update_data)
         assert response.status_code == 200
 
-        # Verify update via API response 
+        # Verify update via API response
         response_data = response.json()
         assert response_data["scheduled_date"] == "2025-12-20"
         assert response_data["scheduled_time"] == "20:00"
