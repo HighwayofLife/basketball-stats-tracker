@@ -15,12 +15,12 @@
     <form id="create-game-form">
         <div class="form-group">
             <label for="game-date">Game Date</label>
-            <input type="date" class="form-control" id="game-date" required>
+            <input type="date" class="form-control" id="game-date" required{% if is_edit and game_date %} value="{{ game_date }}"{% endif %}>
         </div>
 
         <div class="form-group">
             <label for="game-time">Game Time</label>
-            <input type="time" class="form-control" id="game-time">
+            <input type="time" class="form-control" id="game-time"{% if is_edit and game_time %} value="{{ game_time }}"{% endif %}>
         </div>
 
         <div class="form-group">
@@ -47,12 +47,12 @@
 
         <div class="form-group">
             <label for="location">Location</label>
-            <input type="text" class="form-control" id="location" placeholder="e.g., Main Gymnasium">
+            <input type="text" class="form-control" id="location" placeholder="e.g., Main Gymnasium"{% if is_edit and scheduled_game.location %} value="{{ scheduled_game.location }}"{% endif %}>
         </div>
 
         <div class="form-group">
             <label for="notes">Notes</label>
-            <textarea class="form-control" id="notes" rows="3"></textarea>
+            <textarea class="form-control" id="notes" rows="3">{% if is_edit and scheduled_game.notes %}{{ scheduled_game.notes }}{% endif %}</textarea>
         </div>
 
         <button type="submit" class="btn btn-primary">{% if is_edit %}Update Game{% else %}Schedule Game{% endif %}</button>
