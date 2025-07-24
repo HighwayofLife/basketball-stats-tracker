@@ -26,6 +26,7 @@ from .routers import (
     reports_router,
     teams_router,
 )
+from .routers.awards_config import router as awards_config_router
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -199,3 +200,4 @@ app.include_router(teams_router)
 app.include_router(players_router)
 app.include_router(admin_router)
 app.include_router(reports_router)
+app.include_router(awards_config_router)

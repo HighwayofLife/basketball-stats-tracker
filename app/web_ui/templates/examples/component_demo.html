@@ -114,7 +114,6 @@ function showExampleModal() {
 
 function savePlayer() {
     // Example save logic
-    console.log('Saving player...');
     const modal = bootstrap.Modal.getInstance(document.getElementById('example-modal'));
     modal.hide();
 }
@@ -159,13 +158,12 @@ function populatePlayersTable() {
 }
 
 function editPlayer(name) {
-    console.log('Editing player:', name);
     showExampleModal();
 }
 
 function deletePlayer(name) {
     if (confirm(`Are you sure you want to delete ${name}?`)) {
-        console.log('Deleting player:', name);
+        // Delete logic would go here
     }
 }
 </script>

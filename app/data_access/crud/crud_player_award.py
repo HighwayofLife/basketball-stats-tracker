@@ -254,79 +254,216 @@ def get_comprehensive_player_award_summary(session: Session, player_id: int) -> 
 
 def get_current_week_awards(session: Session) -> dict:
     """Get current week's award winners for dashboard display."""
+    import logging
     from datetime import datetime, timedelta
 
     from app.data_access.models import Player
 
-    # First try current week Monday
-    today = datetime.now().date()
-    days_since_monday = today.weekday()
-    current_week_monday = today - timedelta(days=days_since_monday)
+    logger = logging.getLogger(__name__)
 
-    # Get all weekly awards for the current week
-    current_week_awards = (
-        session.query(PlayerAward, Player)
-        .join(Player, PlayerAward.player_id == Player.id)
-        .filter(
-            PlayerAward.week_date == current_week_monday,
-            PlayerAward.week_date.is_not(None),  # Only weekly awards
-        )
-        .all()
-    )
+    try:
+        # First try current week Monday
+        today = datetime.now().date()
+        days_since_monday = today.weekday()
+        current_week_monday = today - timedelta(days=days_since_monday)
 
-    # If no awards for current week, get the most recent week with awards
-    if not current_week_awards:
-        most_recent_week = (
-            session.query(PlayerAward.week_date)
-            .filter(PlayerAward.week_date.is_not(None))
-            .order_by(PlayerAward.week_date.desc())
-            .first()
+        logger.info(f"get_current_week_awards: Today={today}, Current week Monday={current_week_monday}")
+
+        # Get all weekly awards for the current week
+        current_week_awards = (
+            session.query(PlayerAward, Player)
+            .join(Player, PlayerAward.player_id == Player.id)
+            .filter(
+                PlayerAward.week_date == current_week_monday,
+                PlayerAward.week_date.is_not(None),  # Only weekly awards
+            )
+            .all()
         )
 
-        if most_recent_week:
-            current_week_monday = most_recent_week[0]
-            current_week_awards = (
-                session.query(PlayerAward, Player)
-                .join(Player, PlayerAward.player_id == Player.id)
-                .filter(
-                    PlayerAward.week_date == current_week_monday,
-                    PlayerAward.week_date.is_not(None),
-                )
-                .all()
+        logger.info(f"get_current_week_awards: Found {len(current_week_awards)} awards for current week")
+
+        # If no awards for current week, get the most recent week with awards
+        if not current_week_awards:
+            logger.info("get_current_week_awards: No awards for current week, looking for most recent")
+            most_recent_week = (
+                session.query(PlayerAward.week_date)
+                .filter(PlayerAward.week_date.is_not(None))
+                .order_by(PlayerAward.week_date.desc())
+                .first()
             )
 
-    # Award display info
-    award_info = {
-        "player_of_the_week": {"name": "Player of the Week", "icon": "🏀"},
-        "quarterly_firepower": {"name": "Quarterly Firepower", "icon": "🔥"},
-        "weekly_ft_king": {"name": "Weekly FT King/Queen", "icon": "👑"},
-        "hot_hand_weekly": {"name": "Hot Hand Weekly", "icon": "🎯"},
-        "clutch_man": {"name": "Clutch-man", "icon": "⏰"},
-        "trigger_finger": {"name": "Trigger Finger", "icon": "🎪"},
-        "weekly_whiffer": {"name": "Weekly Whiffer", "icon": "😅"},
-    }
+            if most_recent_week:
+                current_week_monday = most_recent_week[0]
+                logger.info(f"get_current_week_awards: Most recent week with awards: {current_week_monday}")
+                current_week_awards = (
+                    session.query(PlayerAward, Player)
+                    .join(Player, PlayerAward.player_id == Player.id)
+                    .filter(
+                        PlayerAward.week_date == current_week_monday,
+                        PlayerAward.week_date.is_not(None),
+                    )
+                    .all()
+                )
+                logger.info(f"get_current_week_awards: Found {len(current_week_awards)} awards for most recent week")
+            else:
+                logger.warning("get_current_week_awards: No weekly awards found in database at all")
 
-    # Group by award type
-    awards_by_type = {}
-    for award, player in current_week_awards:
-        if award.award_type not in awards_by_type:
-            awards_by_type[award.award_type] = []
+        # Group by award type using centralized config
+        from app.config_data.awards import get_award_display_data
 
-        info = award_info.get(award.award_type, {"name": award.award_type, "icon": "🏆"})
-        awards_by_type[award.award_type].append(
-            {
-                "player_id": player.id,
-                "player_name": player.name,
-                "team_name": player.team.name if player.team else "Unknown",
-                "stat_value": award.stat_value,
-                "points_scored": award.points_scored,
-                "award_name": info["name"],
-                "award_icon": info["icon"],
-            }
+        awards_by_type = {}
+        for award, player in current_week_awards:
+            if award.award_type not in awards_by_type:
+                awards_by_type[award.award_type] = []
+
+            # Get display data from centralized config
+            display_data = get_award_display_data(
+                award.award_type, stat_value=award.stat_value, points_scored=award.points_scored
+            )
+
+            awards_by_type[award.award_type].append(
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "team_name": player.team.name if player.team else "Unknown",
+                    "stat_value": award.stat_value,
+                    "points_scored": award.points_scored,
+                    **display_data,  # Includes award_name, award_icon, award_desc, formatted_stat, show_points
+                }
+            )
+
+        result = {
+            "current_week": current_week_monday.isoformat(),
+            "awards": awards_by_type,
+            "total_awards": len(current_week_awards),
+        }
+
+        logger.info(
+            f"get_current_week_awards: Returning {result['total_awards']} total awards "
+            f"for week {result['current_week']}"
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"get_current_week_awards: Exception occurred: {e}", exc_info=True)
+        return {
+            "current_week": datetime.now().date().isoformat(),
+            "awards": {},
+            "total_awards": 0,
+        }
+
+
+def get_available_award_weeks(session: Session) -> list[dict]:
+    """Get all weeks that have weekly awards for the dropdown selector."""
+    import logging
+    from datetime import datetime, timedelta
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Get all distinct weeks with awards, ordered by most recent first
+        weeks_with_awards = (
+            session.query(PlayerAward.week_date)
+            .filter(PlayerAward.week_date.is_not(None))
+            .distinct()
+            .order_by(PlayerAward.week_date.desc())
+            .all()
         )
 
-    return {
-        "current_week": current_week_monday.isoformat(),
-        "awards": awards_by_type,
-        "total_awards": len(current_week_awards),
-    }
+        weeks_list = []
+        today = datetime.now().date()
+
+        for week_tuple in weeks_with_awards:
+            week_date = week_tuple[0]
+
+            # Count awards for this week
+            award_count = session.query(PlayerAward).filter(PlayerAward.week_date == week_date).count()
+
+            # Determine if this is the current week
+            days_since_monday = today.weekday()
+            current_week_monday = today - timedelta(days=days_since_monday)
+            is_current_week = week_date == current_week_monday
+
+            # Format the display label
+            week_label = f"Week of {week_date.strftime('%B %d, %Y')}"
+            if is_current_week:
+                week_label += " (Current Week)"
+
+            weeks_list.append(
+                {
+                    "week_date": week_date.isoformat(),
+                    "week_label": week_label,
+                    "award_count": award_count,
+                    "is_current": is_current_week,
+                }
+            )
+
+        logger.info(f"get_available_award_weeks: Found {len(weeks_list)} weeks with awards")
+        return weeks_list
+
+    except Exception as e:
+        logger.error(f"get_available_award_weeks: Exception occurred: {e}", exc_info=True)
+        return []
+
+
+def get_week_awards_by_date(session: Session, week_date_str: str) -> dict:
+    """Get awards for a specific week date."""
+    import logging
+    from datetime import datetime
+
+    from app.data_access.models import Player
+
+    logger = logging.getLogger(__name__)
+
+    try:
+        # Parse the week date
+        week_date = datetime.strptime(week_date_str, "%Y-%m-%d").date()
+
+        # Get all weekly awards for the specified week
+        week_awards = (
+            session.query(PlayerAward, Player)
+            .join(Player, PlayerAward.player_id == Player.id)
+            .filter(
+                PlayerAward.week_date == week_date,
+                PlayerAward.week_date.is_not(None),
+            )
+            .all()
+        )
+
+        # Group by award type using centralized config
+        from app.config_data.awards import get_award_display_data
+
+        awards_by_type = {}
+        for award, player in week_awards:
+            if award.award_type not in awards_by_type:
+                awards_by_type[award.award_type] = []
+
+            # Get display data from centralized config
+            display_data = get_award_display_data(
+                award.award_type, stat_value=award.stat_value, points_scored=award.points_scored
+            )
+
+            awards_by_type[award.award_type].append(
+                {
+                    "player_id": player.id,
+                    "player_name": player.name,
+                    "team_name": player.team.name if player.team else "Unknown",
+                    "stat_value": award.stat_value,
+                    "points_scored": award.points_scored,
+                    **display_data,  # Includes award_name, award_icon, award_desc, formatted_stat, show_points
+                }
+            )
+
+        return {
+            "current_week": week_date.isoformat(),
+            "awards": awards_by_type,
+            "total_awards": len(week_awards),
+        }
+
+    except Exception as e:
+        logger.error(f"get_week_awards_by_date: Exception occurred: {e}", exc_info=True)
+        return {
+            "current_week": week_date_str,
+            "awards": {},
+            "total_awards": 0,
+        }

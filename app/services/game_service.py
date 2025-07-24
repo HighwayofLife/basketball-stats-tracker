@@ -60,7 +60,6 @@ class GameService:
         )
 
         if existing_game:
-            print(f"Game already exists: {playing_team.name} vs {opponent_team.name} on {date}")
             return existing_game
 
         # Create the game - date string will be converted to date object in create_game

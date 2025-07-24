@@ -1,6 +1,7 @@
 """HTML pages router for Basketball Stats Tracker."""
 
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
@@ -24,10 +25,29 @@ def get_current_week_awards(session):
     try:
         from app.data_access.crud.crud_player_award import get_current_week_awards as get_week_awards
 
-        return get_week_awards(session)
+        result = get_week_awards(session)
+        logger.info(f"Dashboard get_current_week_awards: Retrieved {result.get('total_awards', 0)} awards")
+        return result
     except Exception as e:
-        logger.warning(f"Error getting current week awards: {e}")
-        return {}
+        logger.error(f"Error getting current week awards: {e}", exc_info=True)
+        return {
+            "current_week": datetime.now().date().isoformat(),
+            "awards": {},
+            "total_awards": 0,
+        }
+
+
+def get_available_award_weeks(session):
+    """Get all available weeks with awards for dropdown."""
+    try:
+        from app.data_access.crud.crud_player_award import get_available_award_weeks as get_weeks
+
+        result = get_weeks(session)
+        logger.info(f"Dashboard get_available_award_weeks: Retrieved {len(result)} weeks")
+        return result
+    except Exception as e:
+        logger.error(f"Error getting available weeks: {e}", exc_info=True)
+        return []
 
 
 def get_top_players_from_recent_week(session, limit=4):
@@ -195,12 +215,16 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
             # Get current week's award winners
             current_week_awards = get_current_week_awards(session)
 
+            # Get available weeks for dropdown
+            available_weeks = get_available_award_weeks(session)
+
             context = {
                 **auth_context,
                 "title": "Basketball Stats Dashboard",
                 "recent_games": recent_games_data,
                 "top_players": top_players,
                 "weekly_awards": current_week_awards,
+                "available_weeks": available_weeks,
             }
 
             return templates.TemplateResponse("index.html", context)
@@ -604,3 +628,17 @@ Expires: 2025-12-31T23:59:59.000Z
 Preferred-Languages: en
 Canonical: https://league-stats.net/.well-known/security.txt"""
     return PlainTextResponse(content=content, media_type="text/plain")
+
+
+@router.get("/api/weekly-awards/{week_date}")
+async def get_weekly_awards_api(week_date: str):
+    """API endpoint to get weekly awards for a specific week."""
+    try:
+        from app.data_access.crud.crud_player_award import get_week_awards_by_date
+
+        with get_db_session() as session:
+            result = get_week_awards_by_date(session, week_date)
+            return result
+    except Exception as e:
+        logger.error(f"Error getting weekly awards for {week_date}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error retrieving weekly awards") from e
