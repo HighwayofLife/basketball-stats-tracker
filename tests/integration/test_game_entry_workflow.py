@@ -132,8 +132,6 @@ class TestGameEntryWorkflow:
         }
 
         game_response = client.post("/v1/games", json=game_data)
-        if game_response.status_code != 200:
-            print(f"Error creating game: {game_response.json()}")
         assert game_response.status_code == 200
         game_data_response = game_response.json()
         game_id = game_data_response["id"]
@@ -165,14 +163,8 @@ class TestGameEntryWorkflow:
 
         # Verify game state was updated by fetching live state again
         live_state_response = client.get(f"/v1/games/{game_id}/live")
-        if live_state_response.status_code != 200:
-            print(f"Error getting live state after start: {live_state_response.status_code}")
-            print(f"Response: {live_state_response.json()}")
-            # Try to get the game itself to see if it still exists
-            game_check = client.get(f"/v1/games/{game_id}")
-            print(f"Game check status: {game_check.status_code}")
-            if game_check.status_code == 200:
-                print(f"Game data: {game_check.json()}")
+        # Try to get the game itself to see if it still exists
+        game_check = client.get(f"/v1/games/{game_id}")
         assert live_state_response.status_code == 200
         live_state = live_state_response.json()
         assert live_state["game_state"]["is_live"] is True
@@ -483,8 +475,6 @@ class TestGameEntryWorkflow:
 
         unique_suffix = str(uuid.uuid4())[:8]
         team_response = client.post("/v1/teams/new", json={"name": f"Test Team {unique_suffix}"})
-        if team_response.status_code != 200:
-            print(f"Failed to create team: {team_response.json()}")
         assert team_response.status_code == 200
         team_id = team_response.json()["id"]
 

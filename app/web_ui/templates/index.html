@@ -33,14 +33,26 @@
         </div>
 
         <!-- Weekly Awards Section - moved to main content area -->
-        {% if weekly_awards and weekly_awards.total_awards > 0 %}
-        <div class="dashboard-section">
+        {% if (weekly_awards and weekly_awards.total_awards > 0) or available_weeks %}
+        <div class="dashboard-section weekly-awards-section">
             <h2>Weekly Awards</h2>
             <div class="card">
                 <div class="card-header">
                     <div class="d-flex justify-content-between align-items-center">
-                        <h3 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>Latest Weekly Award Winners</h3>
-                        <small class="text-muted">Week of {{ weekly_awards.current_week }}</small>
+                        <h3 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>Weekly Award Winners</h3>
+                        <div class="d-flex align-items-center">
+                            {% if available_weeks %}
+                            <select id="week-selector" class="form-select form-select-sm me-3" style="width: auto;">
+                                <option value="">Select Week...</option>
+                                {% for week in available_weeks %}
+                                <option value="{{ week.week_date }}" 
+                                        {% if weekly_awards and weekly_awards.current_week == week.week_date %}selected{% endif %}>
+                                    {{ week.week_label }} ({{ week.award_count }} awards)
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 <div class="card-body">
@@ -52,20 +64,25 @@
                                     <div class="d-flex align-items-center">
                                         <span class="me-3" style="font-size: 2em;">{{ winner.award_icon }}</span>
                                         <div class="flex-grow-1">
-                                            <div class="fw-bold mb-1">{{ winner.award_name }}</div>
+                                            <div class="d-flex align-items-center mb-1">
+                                                <span class="fw-bold">{{ winner.award_name }}</span>
+                                                <i class="fas fa-info-circle ms-2 text-muted" 
+                                                   data-bs-toggle="tooltip" 
+                                                   title="{{ winner.award_desc }}"
+                                                   style="font-size: 0.8em; cursor: help;"></i>
+                                            </div>
                                             <div class="text-primary mb-1">
                                                 <a href="/players/{{ winner.player_id }}" class="text-decoration-none fw-semibold">
                                                     {{ winner.player_name }}
                                                 </a>
                                             </div>
                                             <small class="text-muted d-block">{{ winner.team_name }}</small>
-                                            {% if winner.stat_value %}
+                                            {% if winner.formatted_stat %}
                                             <div class="small text-success mt-1">
-                                                <strong>{{ winner.stat_value }}</strong>
-                                                {% if winner.award_name == "Hot Hand Weekly" %}%{% endif %}
+                                                <strong>{{ winner.formatted_stat }}</strong>
                                             </div>
                                             {% endif %}
-                                            {% if winner.points_scored %}
+                                            {% if winner.show_points %}
                                             <div class="small text-info mt-1">
                                                 <strong>{{ winner.points_scored }} pts</strong>
                                             </div>
@@ -92,3 +109,114 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const weekSelector = document.getElementById('week-selector');
+    
+    if (weekSelector) {
+        weekSelector.addEventListener('change', function() {
+            const selectedWeek = this.value;
+            
+            if (!selectedWeek) {
+                return;
+            }
+            
+            // Show loading state
+            const cardBody = document.querySelector('.weekly-awards-section .card-body .row');
+            if (cardBody) {
+                cardBody.innerHTML = '<div class="col-12 text-center p-4"><i class="fas fa-spinner fa-spin"></i> Loading awards...</div>';
+            }
+            
+            // Fetch awards for selected week
+            fetch(`/api/weekly-awards/${selectedWeek}`)
+                .then(response => response.json())
+                .then(data => {
+                    updateAwardsDisplay(data);
+                })
+                .catch(error => {
+                    console.error('Error loading weekly awards:', error);
+                    const cardBody = document.querySelector('.weekly-awards-section .card-body .row');
+                    if (cardBody) {
+                        cardBody.innerHTML = '<div class="col-12 text-center p-4 text-danger">Error loading awards for this week.</div>';
+                    }
+                });
+        });
+    }
+    
+    function updateAwardsDisplay(data) {
+        const rowElement = document.querySelector('.weekly-awards-section .card-body .row');
+        if (!rowElement) return;
+        
+        if (!data.awards || Object.keys(data.awards).length === 0) {
+            rowElement.innerHTML = '<div class="col-12 text-center p-4 text-muted">No awards found for this week.</div>';
+            return;
+        }
+        
+        let html = '';
+        
+        for (const [awardType, winners] of Object.entries(data.awards)) {
+            for (const winner of winners) {
+                html += `
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="award-winner h-100 p-3 border rounded shadow-sm">
+                            <div class="d-flex align-items-center">
+                                <span class="me-3" style="font-size: 2em;">${winner.award_icon}</span>
+                                <div class="flex-grow-1">
+                                    <div class="d-flex align-items-center mb-1">
+                                        <span class="fw-bold">${winner.award_name}</span>
+                                        <i class="fas fa-info-circle ms-2 text-muted" 
+                                           data-bs-toggle="tooltip" 
+                                           title="${winner.award_desc}"
+                                           style="font-size: 0.8em; cursor: help;"></i>
+                                    </div>
+                                    <div class="text-primary mb-1">
+                                        <a href="/players/${winner.player_id}" class="text-decoration-none fw-semibold">
+                                            ${winner.player_name}
+                                        </a>
+                                    </div>
+                                    <small class="text-muted d-block">${winner.team_name}</small>`;
+                                    
+                if (winner.formatted_stat) {
+                    html += `
+                                    <div class="small text-success mt-1">
+                                        <strong>${winner.formatted_stat}</strong>
+                                    </div>`;
+                }
+                
+                if (winner.show_points) {
+                    html += `
+                                    <div class="small text-info mt-1">
+                                        <strong>${winner.points_scored} pts</strong>
+                                    </div>`;
+                }
+                
+                html += `
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+        }
+        
+        rowElement.innerHTML = html;
+        
+        // Initialize Bootstrap tooltips for the new elements
+        initializeTooltips();
+    }
+    
+    // Initialize tooltips for both initial load and dynamic content
+    function initializeTooltips() {
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('.weekly-awards-section [data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    }
+    
+    // Initialize tooltips on page load for initial content
+    initializeTooltips();
+});
+</script>
+{% endblock %}
+

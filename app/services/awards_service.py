@@ -26,6 +26,7 @@ WEEKLY_AWARD_TYPES = {
     "clutch_man": "clutch_man",
     "trigger_finger": "trigger_finger",
     "weekly_whiffer": "weekly_whiffer",
+    "human_howitzer": "human_howitzer",
 }
 
 
@@ -105,17 +106,23 @@ def _calculate_week_winners(
 ) -> list[int]:
     """
     Calculate the winner(s) for a specific week and create PlayerAward records.
+    In case of ties, uses FG% as tie-breaker.
 
     Returns:
         List of player IDs who won awards
     """
     player_scores = defaultdict(int)
+    player_stats_totals = defaultdict(lambda: {"fgm": 0, "fga": 0})
 
-    # Calculate total points for each player in the week
+    # Calculate total points and shooting stats for each player in the week
     for game in weekly_games:
         for stat in game.player_game_stats:
             total_points = (stat.total_2pm * 2) + (stat.total_3pm * 3) + stat.total_ftm
             player_scores[stat.player_id] += total_points
+
+            # Track shooting stats for tie-breaker
+            player_stats_totals[stat.player_id]["fgm"] += stat.total_2pm + stat.total_3pm
+            player_stats_totals[stat.player_id]["fga"] += stat.total_2pa + stat.total_3pa
 
     if not player_scores:
         logger.debug(f"No player stats found for week starting {week_start}")
@@ -124,6 +131,28 @@ def _calculate_week_winners(
     # Find player(s) with highest score
     max_points = max(player_scores.values())
     top_players = [pid for pid, points in player_scores.items() if points == max_points]
+
+    # Apply FG% tie-breaker if there are multiple players with the same score
+    if len(top_players) > 1:
+        logger.info(
+            f"Tie for week {week_start}: {len(top_players)} players with {max_points} points - applying FG% tie-breaker"
+        )
+
+        # Calculate FG% for tied players and find the best
+        player_fg_percentages = {}
+        for player_id in top_players:
+            stats = player_stats_totals[player_id]
+            if stats["fga"] > 0:
+                fg_percentage = stats["fgm"] / stats["fga"]
+                player_fg_percentages[player_id] = fg_percentage
+            else:
+                player_fg_percentages[player_id] = 0.0  # No shots attempted
+
+        # Find player(s) with highest FG%
+        if player_fg_percentages:
+            max_fg_percentage = max(player_fg_percentages.values())
+            top_players = [pid for pid, fg_pct in player_fg_percentages.items() if fg_pct == max_fg_percentage]
+            logger.info(f"After FG% tie-breaker: {len(top_players)} player(s) with {max_fg_percentage:.1%} FG%")
 
     # Handle recalculation by deleting existing awards first
     if recalculate:
@@ -149,11 +178,9 @@ def _calculate_week_winners(
             if award:
                 winners.append(player_id)
                 logger.debug(
-                    f"Awarded POTW to {player.name} (ID: {player_id}) for {max_points} points in week {week_start}"
+                    f"Awarded Player of the Week to {player.name} (ID: {player_id}) "
+                    f"for {max_points} points in week {week_start}"
                 )
-
-    if len(top_players) > 1:
-        logger.info(f"Tie for week {week_start}: {len(top_players)} players with {max_points} points")
 
     session.flush()  # Ensure records are created
     return winners
@@ -218,6 +245,7 @@ def calculate_all_weekly_awards(
     results["clutch_man"] = calculate_clutch_man(session, season, recalculate)
     results["trigger_finger"] = calculate_trigger_finger(session, season, recalculate)
     results["weekly_whiffer"] = calculate_weekly_whiffer(session, season, recalculate)
+    results["human_howitzer"] = calculate_human_howitzer(session, season, recalculate)
 
     return results
 
@@ -367,6 +395,14 @@ def calculate_weekly_whiffer(session: Session, season: str | None = None, recalc
         + (stats.total_fta - stats.total_ftm),
         "missed shots",
     )
+
+
+def calculate_human_howitzer(session: Session, season: str | None = None, recalculate: bool = False) -> dict[str, int]:
+    """
+    Calculate Human Howitzer awards - most 3-point shots made for the week.
+    """
+    award_type = WEEKLY_AWARD_TYPES["human_howitzer"]
+    return _calculate_weekly_stat_award(session, award_type, season, recalculate, lambda stats: stats.total_3pm, "3PM")
 
 
 # Helper functions for weekly awards

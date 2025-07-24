@@ -47,12 +47,6 @@ class TestContainerStartup:
             with TestClient(app) as client:
                 # Verify the app is ready to serve traffic
                 response = client.get("/health")
-                if response.status_code != 200:
-                    # Print debugging info when test fails
-                    print(f"Response status: {response.status_code}")
-                    print(f"Response content: {response.content}")
-                    print(f"Response headers: {dict(response.headers)}")
-                    print(f"App dependency overrides: {dict(app.dependency_overrides)}")
                 assert response.status_code == 200
 
                 data = response.json()

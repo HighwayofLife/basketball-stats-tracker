@@ -1,3 +1,30 @@
+v0.5.1
+------
+
+### Bug Fixes
+- **Weekly Awards Dashboard Issue**: Enhanced logging and debugging for production weekly awards display
+  - Added comprehensive logging to `get_current_week_awards()` function to diagnose why awards aren't showing in production
+  - Enhanced error handling with detailed stack traces and step-by-step execution logging
+  - Added debug script (`debug_awards.py`) for manual production troubleshooting
+
+### Features
+- **Week Selector Dropdown**: Added interactive week selector for viewing historical weekly awards
+  - New dropdown in weekly awards section showing all available weeks with award counts
+  - JavaScript functionality to dynamically load awards for selected weeks via AJAX
+  - New API endpoint `/api/weekly-awards/{week_date}` for fetching week-specific awards
+  - Enhanced dashboard template with loading states and error handling
+  - New helper functions: `get_available_award_weeks()` and `get_week_awards_by_date()`
+
+### Improvements
+- **Award Name Update**: Changed "Weekly FT King/Queen" to "Freethrow Merchant" for better branding
+- **Template Organization**: Added CSS class `weekly-awards-section` for better JavaScript targeting
+- **Enhanced Template Context**: Dashboard now includes `available_weeks` data for dropdown population
+
+### Technical Enhancements
+- **Error Handling**: Improved exception handling in weekly awards retrieval with proper logging
+- **Code Organization**: Better separation of concerns between template logic and API endpoints
+- **Responsive Design**: Week selector dropdown maintains mobile-friendly design
+
 v0.5.0
 ------
 

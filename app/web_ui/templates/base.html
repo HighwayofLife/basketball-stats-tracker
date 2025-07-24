@@ -121,7 +121,6 @@
             // Replace the current URL without reloading the page
             window.history.replaceState({}, document.title, newUrl.endsWith('?') ? newUrl.slice(0, -1) : newUrl);
             
-            console.debug('OAuth tokens stored successfully');
             return true;
         }
         return false;
@@ -136,18 +135,15 @@
         const adminNavItem = document.getElementById('admin-nav-item');
         const manageNavItem = document.getElementById('manage-nav-item');
         
-        console.debug('Auth check - Token present:', !!token);
         
         if (token) {
             try {
-                console.debug('Making request to /auth/me with token');
                 const response = await fetch('/auth/me', {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
                 });
                 
-                console.debug('Auth response status:', response.status);
                 
                 if (response.ok) {
                     const userData = await response.json();
@@ -168,7 +164,6 @@
                     }
                 } else {
                     // Token is invalid, clear it
-                    console.debug('Auth failed, clearing token. Response:', response.status, response.statusText);
                     localStorage.removeItem('access_token');
                     localStorage.removeItem('token_type');
                     showLoggedOutUI();
@@ -178,7 +173,6 @@
                 showLoggedOutUI();
             }
         } else {
-            console.debug('No token found, showing logged out UI');
             showLoggedOutUI();
         }
     }
@@ -256,7 +250,6 @@
             mobileMenuBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('Mobile menu button clicked'); // Debug
                 mainNav.classList.toggle('active');
                 document.body.classList.toggle('mobile-menu-active'); // Optional: for body scroll lock
                 

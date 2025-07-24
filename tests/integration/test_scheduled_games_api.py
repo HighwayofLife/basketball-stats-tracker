@@ -169,8 +169,6 @@ class TestScheduledGamesAPI:
         response = test_client.get("/v1/games/scheduled")
 
         # Assert
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
         assert len(data) >= 2
