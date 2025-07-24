@@ -469,9 +469,7 @@ def calculate_potw(
     recalculate: bool = typer.Option(
         False, "--recalculate", help="Reset existing awards and recalculate from scratch."
     ),
-    use_v2: bool = typer.Option(
-        False, "--v2", help="Use new PlayerAward table system (recommended for new setups)."
-    ),
+    use_v2: bool = typer.Option(False, "--v2", help="Use new PlayerAward table system (recommended for new setups)."),
 ):
     """
     Calculate Player of the Week awards for games.
@@ -494,10 +492,12 @@ def calculate_potw(
 
         if use_v2:
             from app.services.awards_service_v2 import calculate_player_of_the_week_v2, get_current_season
+
             typer.echo("🆕 Using new PlayerAward table system")
             calculate_func = calculate_player_of_the_week_v2
         else:
             from app.services.awards_service import calculate_player_of_the_week, get_current_season
+
             typer.echo("📊 Using legacy integer column system")
             calculate_func = calculate_player_of_the_week
 
@@ -531,7 +531,7 @@ def calculate_potw(
 def migrate_potw():
     """
     Migrate existing player_of_the_week_awards to PlayerAward table.
-    
+
     This is a one-time migration command that converts the legacy integer
     column data to detailed PlayerAward records.
     """
@@ -543,7 +543,7 @@ def migrate_potw():
     try:
         typer.echo("🔄 Starting migration of legacy awards to PlayerAward table...")
         typer.echo("⚠️  This will create placeholder records for existing award counts.")
-        
+
         confirm = typer.confirm("Continue with migration?")
         if not confirm:
             typer.echo("Migration cancelled.")
@@ -552,13 +552,13 @@ def migrate_potw():
         stats = migrate_legacy_awards_to_v2(db_session)
 
         typer.echo("✅ Migration completed!")
-        typer.echo(f"\n📊 Migration Statistics:")
+        typer.echo("\n📊 Migration Statistics:")
         typer.echo(f"   Players processed: {stats['players_processed']}")
         typer.echo(f"   Legacy awards found: {stats['legacy_awards_found']}")
         typer.echo(f"   New records created: {stats['records_created']}")
         typer.echo(f"   Errors: {stats['errors']}")
 
-        if stats['errors'] > 0:
+        if stats["errors"] > 0:
             typer.echo("\n⚠️  Some errors occurred during migration. Check logs for details.")
 
     except Exception as e:

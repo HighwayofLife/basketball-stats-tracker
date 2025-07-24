@@ -9,9 +9,9 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
+from app.services.awards_service_v2 import get_player_potw_summary
 from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
-from app.services.awards_service_v2 import get_player_potw_summary
 from app.utils import stats_calculator
 from app.web_ui.cache import invalidate_cache_after
 from app.web_ui.dependencies import get_db
@@ -29,12 +29,7 @@ def _get_potw_summary(session, player_id: int) -> dict:
     except Exception as e:
         logger.error(f"Error getting POTW summary for player {player_id}: {e}")
         # Return fallback data structure
-        return {
-            "current_season_count": 0,
-            "total_count": 0,
-            "awards_by_season": {},
-            "recent_awards": []
-        }
+        return {"current_season_count": 0, "total_count": 0, "awards_by_season": {}, "recent_awards": []}
 
 
 @router.get("/list", response_model=list[PlayerResponse])
