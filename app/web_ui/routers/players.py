@@ -9,7 +9,7 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
-from app.services.awards_service_v2 import get_player_potw_summary
+from app.services.awards_service import get_player_potw_summary
 from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator

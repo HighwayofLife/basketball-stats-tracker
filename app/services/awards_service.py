@@ -7,6 +7,13 @@ from datetime import date, timedelta
 from sqlalchemy.orm import Session
 
 from app.data_access.crud import crud_game, crud_player
+from app.data_access.crud.crud_player_award import (
+    create_player_award,
+    delete_all_awards_by_type,
+    get_awards_by_week,
+    get_player_award_counts_by_season,
+    get_player_awards_by_type,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -28,12 +35,12 @@ def calculate_player_of_the_week(
     session: Session, season: str | None = None, recalculate: bool = False
 ) -> dict[str, int]:
     """
-    Calculate Player of the Week awards for games.
+    Calculate Player of the Week awards using PlayerAward table.
 
     Args:
         session: Database session
         season: Specific season to calculate (e.g., "2024"). If None, calculates all seasons.
-        recalculate: If True, reset existing awards before calculation
+        recalculate: If True, delete existing awards before calculation
 
     Returns:
         Dict with season -> awards_given count
@@ -42,10 +49,9 @@ def calculate_player_of_the_week(
 
     # Reset awards if recalculating
     if recalculate:
-        logger.info("Resetting all player awards for recalculation")
-        from app.data_access.models import Player
-
-        session.query(Player).update({"player_of_the_week_awards": 0})
+        logger.info("Deleting existing POTW awards for recalculation")
+        deleted_count = delete_all_awards_by_type(session, "player_of_the_week")
+        logger.info(f"Deleted {deleted_count} existing awards")
         session.commit()
 
     # Get all games, optionally filtered by season
@@ -71,21 +77,29 @@ def calculate_player_of_the_week(
         logger.info(f"Processing season {season_key} with {len(weeks)} weeks")
 
         for week_start, weekly_games in weeks.items():
-            winner_id = _calculate_week_winner(session, weekly_games, week_start)
-            if winner_id:
-                awards_given[season_key] += 1
+            # Check if awards already exist for this week (unless recalculating)
+            if not recalculate:
+                existing_awards = get_awards_by_week(session, "player_of_the_week", week_start, season_key)
+                if existing_awards:
+                    logger.debug(f"Awards already exist for week {week_start} in season {season_key}, skipping")
+                    awards_given[season_key] += len(existing_awards)
+                    continue
+
+            # Calculate winner(s) for this week
+            winners = _calculate_week_winners(session, weekly_games, week_start, season_key)
+            awards_given[season_key] += len(winners)
 
     session.commit()
     logger.info(f"POTW calculation completed. Awards given by season: {dict(awards_given)}")
     return dict(awards_given)
 
 
-def _calculate_week_winner(session: Session, weekly_games: list, week_start: date) -> int | None:
+def _calculate_week_winners(session: Session, weekly_games: list, week_start: date, season: str) -> list[int]:
     """
-    Calculate the winner for a specific week of games.
+    Calculate the winner(s) for a specific week and create PlayerAward records.
 
     Returns:
-        Player ID of the winner, or None if no games/stats
+        List of player IDs who won awards
     """
     player_scores = defaultdict(int)
 
@@ -97,26 +111,71 @@ def _calculate_week_winner(session: Session, weekly_games: list, week_start: dat
 
     if not player_scores:
         logger.debug(f"No player stats found for week starting {week_start}")
-        return None
+        return []
 
     # Find player(s) with highest score
     max_points = max(player_scores.values())
     top_players = [pid for pid, points in player_scores.items() if points == max_points]
 
+    # Create PlayerAward records for winner(s)
+    winners = []
+    for player_id in top_players:
+        player = crud_player.get_player_by_id(session, player_id)
+        if player:
+            # Create detailed award record
+            create_player_award(
+                session=session,
+                player_id=player_id,
+                season=season,
+                award_type="player_of_the_week",
+                week_date=week_start,
+                points_scored=max_points,
+            )
+
+            winners.append(player_id)
+            logger.debug(
+                f"Awarded POTW to {player.name} (ID: {player_id}) for {max_points} points in week {week_start}"
+            )
+
     if len(top_players) > 1:
         logger.info(f"Tie for week {week_start}: {len(top_players)} players with {max_points} points")
-        # For ties, award to all tied players (could implement tiebreaker logic here)
-        for player_id in top_players:
-            player = crud_player.get_player_by_id(session, player_id)
-            if player:
-                player.player_of_the_week_awards += 1
-                logger.debug(f"Awarded POTW to {player.name} (ID: {player_id}) for {max_points} points")
-        return top_players[0]  # Return first for logging purposes
-    else:
-        # Single winner
-        winner_id = top_players[0]
-        player = crud_player.get_player_by_id(session, winner_id)
-        if player:
-            player.player_of_the_week_awards += 1
-            logger.debug(f"Awarded POTW to {player.name} (ID: {winner_id}) for {max_points} points")
-        return winner_id
+
+    session.flush()  # Ensure records are created
+    return winners
+
+
+def get_player_potw_summary(session: Session, player_id: int) -> dict:
+    """
+    Get comprehensive POTW summary for a player.
+
+    Returns:
+        Dict with current_season_count, total_count, awards_by_season, recent_awards
+    """
+    current_season = get_current_season()
+
+    # Get awards by season
+    awards_by_season = get_player_award_counts_by_season(session, player_id)
+
+    # Get current season count
+    current_season_count = awards_by_season.get(current_season, 0)
+
+    # Get total count
+    total_count = sum(awards_by_season.values())
+
+    # Get recent awards (last 5)
+    recent_awards = get_player_awards_by_type(session, player_id, "player_of_the_week")[:5]
+
+    return {
+        "current_season_count": current_season_count,
+        "total_count": total_count,
+        "awards_by_season": awards_by_season,
+        "recent_awards": [
+            {
+                "season": award.season,
+                "week_date": award.week_date.isoformat(),
+                "points_scored": award.points_scored,
+                "created_at": award.created_at.isoformat() if award.created_at else None,
+            }
+            for award in recent_awards
+        ],
+    }
