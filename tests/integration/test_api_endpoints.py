@@ -780,8 +780,6 @@ class TestAPIEndpoints:
         response = client.get("/v1/players/list?active_only=false")
 
         # Assertions
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
 
@@ -789,13 +787,6 @@ class TestAPIEndpoints:
         # Instead, let's find our players by their unique names
         expected_names = {p.name for p in sample_players}
         our_players = [p for p in data if p["name"] in expected_names]
-
-        # Debug: print what we found vs what we expected
-        if len(our_players) != 2:
-            print(f"Expected player names: {expected_names}")
-            print(f"Fixture players: {[(p.id, p.name, p.team_id) for p in sample_players]}")
-            print(f"All players in response: {[(p['id'], p['name'], p['team_id']) for p in data[:10]]}")  # First 10
-            print(f"Our players found: {our_players}")
 
         # In a shared database, we might not find our exact players if they weren't created properly
         # Let's at least verify the API is working
@@ -826,8 +817,6 @@ class TestAPIEndpoints:
         response = client.get(f"/v1/players/list?team_id={sample_team.id}&active_only=false")
 
         # Assertions
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
 
@@ -875,8 +864,6 @@ class TestAPIEndpoints:
         response = client.post("/v1/players/new", json=player_data)
 
         # Assertions
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == f"NewPlayer_{unique_suffix}"
@@ -1003,8 +990,6 @@ class TestAPIEndpoints:
         response = client.put(f"/v1/players/{player_to_update.id}", json=update_data)
 
         # Assertions
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == updated_name
@@ -1548,8 +1533,6 @@ class TestAPIEndpoints:
         response = client.get("/v1/players/list?active_only=false")
 
         # Assertions
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
         assert response.status_code == 200
         data = response.json()
         substitute_players = [p for p in data if p["is_substitute"]]

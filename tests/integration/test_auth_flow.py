@@ -182,9 +182,6 @@ class TestScheduledGameCreation:
         }
 
         response = authenticated_client.post("/v1/games/scheduled", json=game_data)
-        if response.status_code != 200:
-            print(f"Error response: {response.json()}")
-            print(f"Game data sent: {game_data}")
         assert response.status_code == 200
 
         data = response.json()
@@ -218,19 +215,14 @@ class TestScheduledGameCreation:
 
         # Create first game
         response = authenticated_client.post("/v1/games/scheduled", json=game_data)
-        if response.status_code != 200:
-            print(f"Error creating first game: {response.json()}")
-            print(f"Game data sent: {game_data}")
-            # If the game already exists, that's OK for this test - we just want to test the duplicate behavior
-            if response.status_code == 400 and "already exists between these teams" in response.json()["detail"]:
-                # The duplicate already exists, so let's skip this test
-                return
+        # If the game already exists, that's OK for this test - we just want to test the duplicate behavior
+        if response.status_code == 400 and "already exists between these teams" in response.json()["detail"]:
+            # The duplicate already exists, so let's skip this test
+            return
         assert response.status_code == 200
 
         # Try to create duplicate - should return 400 Bad Request
         response = authenticated_client.post("/v1/games/scheduled", json=game_data)
-        if response.status_code != 400:
-            print(f"Unexpected response: {response.status_code} - {response.json()}")
         assert response.status_code == 400
         assert "already exists between these teams" in response.json()["detail"]
 
