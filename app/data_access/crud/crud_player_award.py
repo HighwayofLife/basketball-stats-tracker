@@ -19,6 +19,46 @@ def create_player_award(
     return award
 
 
+def create_player_award_safe(
+    session: Session, player_id: int, season: str, award_type: str, week_date: date, points_scored: int | None = None
+) -> PlayerAward | None:
+    """Create a new player award record, or return existing one if it already exists."""
+    # First check if an award already exists for this week/season
+    existing_award = (
+        session.query(PlayerAward)
+        .filter(
+            PlayerAward.award_type == award_type,
+            PlayerAward.week_date == week_date,
+            PlayerAward.season == season
+        )
+        .first()
+    )
+    
+    if existing_award:
+        # Award already exists, return it
+        return existing_award
+    
+    # No existing award, create a new one
+    try:
+        return create_player_award(session, player_id, season, award_type, week_date, points_scored)
+    except Exception as e:
+        # If we still get a conflict (race condition), rollback and try to get existing
+        session.rollback()
+        if "unique_weekly_award" in str(e):
+            existing_award = (
+                session.query(PlayerAward)
+                .filter(
+                    PlayerAward.award_type == award_type,
+                    PlayerAward.week_date == week_date,
+                    PlayerAward.season == season
+                )
+                .first()
+            )
+            return existing_award
+        else:
+            raise
+
+
 def get_player_awards_by_season(session: Session, player_id: int, season: str) -> list[PlayerAward]:
     """Get all awards for a player in a specific season."""
     return (

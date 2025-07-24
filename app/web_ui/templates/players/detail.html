@@ -32,6 +32,87 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         });
 
+    function renderPlayerAwardsSection(player) {
+        const potw = player.potw_summary;
+        if (!potw || potw.total_count === 0) {
+            return ''; // Don't show section if no awards
+        }
+
+        return `
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-trophy text-warning me-2"></i>Awards
+                    </h5>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="mb-1 text-warning">${potw.current_season_count}</h3>
+                                <small class="text-muted">Current Season POTW</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="mb-1 text-warning">${potw.total_count}</h3>
+                                <small class="text-muted">Career POTW Awards</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="text-center p-3 bg-light rounded">
+                                <h3 class="mb-1 text-warning">${Object.keys(potw.awards_by_season).length}</h3>
+                                <small class="text-muted">Seasons with Awards</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${Object.keys(potw.awards_by_season).length > 0 ? `
+                        <hr>
+                        <h6 class="mb-3">Awards by Season</h6>
+                        <div class="row">
+                            ${Object.entries(potw.awards_by_season)
+                                .sort(([a], [b]) => b.localeCompare(a)) // Sort seasons descending
+                                .map(([season, count]) => `
+                                    <div class="col-sm-6 col-md-4 col-lg-3 mb-2">
+                                        <div class="d-flex justify-content-between align-items-center p-2 border rounded">
+                                            <span><strong>${season}:</strong></span>
+                                            <span class="badge bg-warning text-dark">${count}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                        </div>
+                    ` : ''}
+                    
+                    ${potw.recent_awards.length > 0 ? `
+                        <hr>
+                        <h6 class="mb-3">Recent Awards</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Week Date</th>
+                                        <th>Season</th>
+                                        <th>Points Scored</th>
+                                        <th>Award Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${potw.recent_awards.slice(0, 5).map(award => `
+                                        <tr>
+                                            <td>${new Date(award.week_date).toLocaleDateString()}</td>
+                                            <td><span class="badge bg-secondary">${award.season}</span></td>
+                                            <td><strong>${award.points_scored || 'N/A'}</strong></td>
+                                            <td class="text-muted small">${award.created_at ? new Date(award.created_at).toLocaleDateString() : 'N/A'}</td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
     function renderPlayerAwards(player) {
         const potw = player.potw_summary;
         if (!potw || potw.total_count === 0) {
@@ -117,7 +198,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${player.height ? `Height: ${heightStr}` : ''}
                                 ${player.weight ? ` • Weight: ${player.weight} lbs` : ''}
                                 ${player.year ? ` • Year: ${player.year}` : ''}
-                                ${renderPlayerAwards(player)}
                             </div>
                         </div>
                         {% if is_authenticated %}
@@ -249,6 +329,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
             </div>
+
+            <!-- Awards Section -->
+            ${renderPlayerAwardsSection(player)}
 
             <!-- Recent Games -->
             <div class="card">

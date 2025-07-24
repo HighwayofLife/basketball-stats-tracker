@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.data_access.crud import crud_game, crud_player
 from app.data_access.crud.crud_player_award import (
     create_player_award,
+    create_player_award_safe,
     delete_all_awards_by_type,
     get_awards_by_week,
     get_player_award_counts_by_season,
@@ -77,24 +78,19 @@ def calculate_player_of_the_week(
         logger.info(f"Processing season {season_key} with {len(weeks)} weeks")
 
         for week_start, weekly_games in weeks.items():
-            # Check if awards already exist for this week (unless recalculating)
-            if not recalculate:
-                existing_awards = get_awards_by_week(session, "player_of_the_week", week_start, season_key)
-                if existing_awards:
-                    logger.debug(f"Awards already exist for week {week_start} in season {season_key}, skipping")
-                    awards_given[season_key] += len(existing_awards)
-                    continue
-
-            # Calculate winner(s) for this week
-            winners = _calculate_week_winners(session, weekly_games, week_start, season_key)
-            awards_given[season_key] += len(winners)
+            # Calculate winner(s) for this week (safe function handles existing awards)
+            winners = _calculate_week_winners(session, weekly_games, week_start, season_key, recalculate)
+            
+            # Count awards (both new and existing)
+            week_awards = get_awards_by_week(session, "player_of_the_week", week_start, season_key)
+            awards_given[season_key] += len(week_awards)
 
     session.commit()
     logger.info(f"POTW calculation completed. Awards given by season: {dict(awards_given)}")
     return dict(awards_given)
 
 
-def _calculate_week_winners(session: Session, weekly_games: list, week_start: date, season: str) -> list[int]:
+def _calculate_week_winners(session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False) -> list[int]:
     """
     Calculate the winner(s) for a specific week and create PlayerAward records.
 
@@ -117,13 +113,18 @@ def _calculate_week_winners(session: Session, weekly_games: list, week_start: da
     max_points = max(player_scores.values())
     top_players = [pid for pid, points in player_scores.items() if points == max_points]
 
+    # Handle recalculation by deleting existing awards first
+    if recalculate:
+        from app.data_access.crud.crud_player_award import delete_awards_for_week
+        delete_awards_for_week(session, "player_of_the_week", week_start, season)
+
     # Create PlayerAward records for winner(s)
     winners = []
     for player_id in top_players:
         player = crud_player.get_player_by_id(session, player_id)
         if player:
-            # Create detailed award record
-            create_player_award(
+            # Create detailed award record (safe version handles conflicts)
+            award = create_player_award_safe(
                 session=session,
                 player_id=player_id,
                 season=season,
@@ -132,10 +133,11 @@ def _calculate_week_winners(session: Session, weekly_games: list, week_start: da
                 points_scored=max_points,
             )
 
-            winners.append(player_id)
-            logger.debug(
-                f"Awarded POTW to {player.name} (ID: {player_id}) for {max_points} points in week {week_start}"
-            )
+            if award:
+                winners.append(player_id)
+                logger.debug(
+                    f"Awarded POTW to {player.name} (ID: {player_id}) for {max_points} points in week {week_start}"
+                )
 
     if len(top_players) > 1:
         logger.info(f"Tie for week {week_start}: {len(top_players)} players with {max_points} points")

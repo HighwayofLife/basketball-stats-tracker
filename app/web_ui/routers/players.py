@@ -25,9 +25,11 @@ router = APIRouter(prefix="/v1/players", tags=["players"])
 def _get_potw_summary(session, player_id: int) -> dict:
     """Get Player of the Week summary using the new PlayerAward table."""
     try:
-        return get_player_potw_summary(session, player_id)
+        result = get_player_potw_summary(session, player_id)
+        logger.info(f"POTW summary for player {player_id}: {result}")
+        return result
     except Exception as e:
-        logger.error(f"Error getting POTW summary for player {player_id}: {e}")
+        logger.error(f"Error getting POTW summary for player {player_id}: {e}", exc_info=True)
         # Return fallback data structure
         return {"current_season_count": 0, "total_count": 0, "awards_by_season": {}, "recent_awards": []}
 
@@ -817,3 +819,44 @@ async def restore_player(player_id: int, current_user: User = Depends(require_ad
     except Exception as e:
         logger.error(f"Error restoring player: {e}")
         raise HTTPException(status_code=500, detail="Failed to restore player") from e
+
+
+@router.post("/calculate-awards")
+async def calculate_player_awards(
+    season: str | None = None,
+    recalculate: bool = False,
+    current_user: User = Depends(require_admin),
+):
+    """Calculate Player of the Week awards for all players (admin only)."""
+    try:
+        from app.services.awards_service import calculate_player_of_the_week, get_current_season
+
+        with get_db_session() as session:
+            # Determine season parameter
+            if season == "current":
+                season = get_current_season()
+            elif season == "all":
+                season = None
+            
+            # Calculate awards
+            results = calculate_player_of_the_week(session, season=season, recalculate=recalculate)
+            
+            # Get summary statistics
+            total_awards = sum(results.values())
+            seasons_processed = list(results.keys())
+            
+            return {
+                "success": True,
+                "message": f"Successfully calculated {total_awards} awards across {len(seasons_processed)} seasons",
+                "results": results,
+                "total_awards": total_awards,
+                "seasons_processed": seasons_processed,
+                "recalculated": recalculate
+            }
+            
+    except Exception as e:
+        logger.error(f"Error calculating awards: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Failed to calculate awards: {str(e)}"
+        ) from e
