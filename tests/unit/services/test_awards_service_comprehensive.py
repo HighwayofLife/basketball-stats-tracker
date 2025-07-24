@@ -18,14 +18,14 @@ class TestWeeklyAwardsAttributeAccess:
 
         # Create mock PlayerQuarterStats with correct attributes
         mock_quarter_stat1 = Mock()
-        mock_quarter_stat1.q_2pm = 3
-        mock_quarter_stat1.q_3pm = 2
-        mock_quarter_stat1.q_ftm = 4
+        mock_quarter_stat1.fg2m = 3  # Correct attribute name
+        mock_quarter_stat1.fg3m = 2  # Correct attribute name
+        mock_quarter_stat1.ftm = 4  # Correct attribute name
 
         mock_quarter_stat2 = Mock()
-        mock_quarter_stat2.q_2pm = 1
-        mock_quarter_stat2.q_3pm = 1
-        mock_quarter_stat2.q_ftm = 2
+        mock_quarter_stat2.fg2m = 1  # Correct attribute name
+        mock_quarter_stat2.fg3m = 1  # Correct attribute name
+        mock_quarter_stat2.ftm = 2  # Correct attribute name
 
         # Create mock PlayerGameStats with correct relationship name
         mock_game_stat = Mock()
@@ -59,16 +59,16 @@ class TestWeeklyAwardsAttributeAccess:
 
         # Create mock PlayerQuarterStats for Q4
         mock_q4_stat = Mock()
-        mock_q4_stat.quarter = 4  # Q4
-        mock_q4_stat.q_2pm = 2
-        mock_q4_stat.q_3pm = 1
-        mock_q4_stat.q_ftm = 3
+        mock_q4_stat.quarter_number = 4  # Q4 - correct attribute name
+        mock_q4_stat.fg2m = 2  # Correct attribute name
+        mock_q4_stat.fg3m = 1  # Correct attribute name
+        mock_q4_stat.ftm = 3  # Correct attribute name
 
         mock_other_quarter = Mock()
-        mock_other_quarter.quarter = 1  # Q1 (should be ignored)
-        mock_other_quarter.q_2pm = 5
-        mock_other_quarter.q_3pm = 2
-        mock_other_quarter.q_ftm = 1
+        mock_other_quarter.quarter_number = 1  # Q1 (should be ignored) - correct attribute name
+        mock_other_quarter.fg2m = 5  # Correct attribute name
+        mock_other_quarter.fg3m = 2  # Correct attribute name
+        mock_other_quarter.ftm = 1  # Correct attribute name
 
         # Create mock PlayerGameStats with correct relationship name
         mock_game_stat = Mock()

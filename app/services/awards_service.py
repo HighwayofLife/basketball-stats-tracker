@@ -528,8 +528,8 @@ def _calculate_clutch_man_winners(
         for stat in game.player_game_stats:
             # Find Q4 stats
             for quarter_stat in stat.quarter_stats:
-                if quarter_stat.quarter == 4:  # Q4
-                    q4_makes = quarter_stat.q_2pm + quarter_stat.q_3pm + quarter_stat.q_ftm
+                if quarter_stat.quarter_number == 4:  # Q4
+                    q4_makes = quarter_stat.fg2m + quarter_stat.fg3m + quarter_stat.ftm
                     player_q4_makes[stat.player_id] += q4_makes
 
     if not player_q4_makes:
