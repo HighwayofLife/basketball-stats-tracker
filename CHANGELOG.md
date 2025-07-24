@@ -2,71 +2,96 @@ v0.5.0
 ------
 
 ### Features
-- **Player of the Week Awards**: Added comprehensive Player of the Week (POTW) award tracking system
-  - New `player_of_the_week_awards` field in Player model to track cumulative awards (legacy)
-  - **PlayerAward Table**: Detailed award tracking with individual records per award
-    - Stores season, award type, week date, points scored, and creation timestamp
-    - Enables historical tracking and season-by-season analysis
-    - Supports future award types beyond Player of the Week
-  - Smart week-based calculation using Monday-Sunday week boundaries
-  - Season-aware calculation logic with calendar year seasons (January-December = "YYYY")
-  - Automatic tie handling - awards given to all tied players with highest weekly points
-  - Awards based on total weekly points: (2PM×2) + (3PM×3) + FTM
-  - **Enhanced Player Detail Pages**: Expandable awards section with season breakdown
-    - Simple display for single season data
-    - Collapsible expandable section for multi-season awards history
-    - Shows recent awards with dates and points scored
-  - Award count included in player stats API responses with detailed summary
-  - Dual system support: legacy integer counter + new detailed tracking
+- **Comprehensive Awards System**: Introduced a robust system for tracking and displaying both weekly and season-long player awards.
+  - **Player of the Week (POTW) Awards**:
+    - New `player_of_the_week_awards` field in Player model for legacy cumulative tracking.
+    - **PlayerAward Table**: Detailed award tracking with individual records per award, storing season, award type, week date, points scored, and creation timestamp.
+    - Smart week-based calculation using Monday-Sunday boundaries.
+    - Season-aware calculation logic (calendar year seasons).
+    - Automatic tie handling for multiple winners.
+    - Awards based on total weekly points: (2PM×2) + (3PM×3) + FTM.
+  - **New Weekly Award Types**:
+    - `Quarterly Firepower`: Highest point total in any single quarter for the week.
+    - `Weekly FT King/Queen`: Most free throws made for the week.
+    - `Hot Hand Weekly`: Highest FG% with minimum 10 shot attempts for the week.
+    - `Clutch-man`: Most shots made in 4th quarter for the week.
+    - `Trigger Finger`: Most total shot attempts (2pt + 3pt) for the week.
+    - `Weekly Whiffer`: Most missed shots for the week.
+  - **New Season Award Types**:
+    - `Top Scorer`: Most total points scored in the season.
+    - `Sharpshooter`: Highest 3-point percentage meeting dynamic minimum threshold.
+    - `Efficiency Expert`: Highest overall FG percentage meeting dynamic minimum threshold.
+    - `Charity Stripe Regular`: Most free throw attempts in the season.
+    - `Human Highlight Reel`: Most combined made shots (2pt + 3pt + FT) in the season.
+    - `Defensive Tackle`: Most fouls committed in the season.
+    - `Air Ball Artist`: Most 3-point misses in the season.
+    - `Air Assault`: Most total shot attempts (2pt + 3pt) in the season.
 
 ### CLI Enhancements
-- **Enhanced `calculate-potw` Command**: Comprehensive CLI tool for award calculation
-  - `--season YYYY` parameter to calculate awards for specific season only
-  - `--recalculate` flag to reset existing awards and recalculate from scratch
-  - **`--v2` flag**: Use new PlayerAward table system for detailed tracking
-  - Detailed progress output with emoji indicators and season breakdown
-  - Input validation for season format (4-digit year required)
-  - Error handling with descriptive messages and proper exit codes
-  - Example: `basketball-stats calculate-potw --season 2024 --v2 --recalculate`
-- **`migrate-potw` Command**: Migrate existing legacy awards to PlayerAward table
-  - One-time migration from integer counters to detailed records
-  - Creates placeholder records for historical awards
-  - Migration statistics and error reporting
+- **Enhanced `calculate-potw` Command**: Comprehensive CLI tool for Player of the Week award calculation.
+  - `--season YYYY` parameter for specific season calculation.
+  - `--recalculate` flag to reset and recalculate awards.
+- **New CLI Commands for Awards**:
+  - `calculate-season-awards`: Calculate all season awards for a given season.
+  - `calculate-weekly-awards`: Calculate all weekly awards (POTW, Quarterly Firepower, etc.).
+  - `calculate-all-awards`: Calculate both weekly and season awards.
+  - `finalize-season`: Mark all season awards as finalized for a given season.
+- Updated `CLAUDE.md` with new CLI commands.
 
 ### Database Schema
-- **Migration**: Added `player_of_the_week_awards` integer column to players table (legacy)
-  - Non-nullable with default value of 0 for existing players
-  - SQLite-compatible migration using batch_alter_table
-  - Proper rollback support in migration
-- **Migration**: Added `player_awards` table for detailed award tracking
-  - Stores individual award records with full metadata
-  - Foreign key relationship to players table
-  - Unique constraint on award_type, week_date, season
-  - Supports multiple award types for future extensibility
+- **Migration**: Added `player_awards` table for detailed award tracking.
+  - Stores individual award records with full metadata.
+  - Foreign key relationship to players table.
+  - Unique constraint on `player_id`, `award_type`, `season`, `week_date`.
+- **Migration**: Refactored `player_awards` table for comprehensive awards support.
+  - `week_date` column made nullable to support season awards (where `week_date` is `NULL`).
+  - Added `award_date` (date award was finalized), `stat_value` (primary stat for award), and `is_finalized` (boolean) columns.
+- Updated `Player` model with `awards` relationship to `PlayerAward`.
 
 ### API Improvements
-- **Player Stats Endpoint**: Enhanced `/v1/players/{id}/stats` with detailed award data
-  - `player_of_the_week_awards` field (legacy counter for backward compatibility)
-  - **`potw_summary` field**: Comprehensive award breakdown
-    - Current season count, total count, awards by season
-    - Recent awards with dates and points scored
+- **Player Stats Endpoint**: Enhanced `/v1/players/{id}/stats` with detailed award data.
+  - Includes `awards_summary` for comprehensive award breakdown (weekly and season).
+  - Includes `potw_summary` and `player_of_the_week_awards` for backward compatibility.
+- **New API Endpoint**: `POST /v1/players/calculate-awards` for triggering all award calculations via the UI (admin only).
+- `PlayerResponse` schema updated to include `player_of_the_week_awards`.
 
 ### Services & Architecture
-- **Awards Service v2**: New service layer using PlayerAward table
-  - Season-aware calculation with detailed record creation
-  - Migration utilities for legacy data conversion
-  - Comprehensive CRUD operations for PlayerAward management
+- **New Awards Service (`app/services/awards_service.py`)**: Implements business logic for all weekly award calculations and overall weekly award management.
+- **New Season Awards Service (`app/services/season_awards_service.py`)**: Implements business logic for all season award calculations.
+- Centralized award creation and management via `crud_player_award.py`.
+
+### UI/UX Improvements
+- **Dashboard (`index.html`)**: Added a "Weekly Awards Section" to display the latest weekly award winners.
+- **Player Detail Page (`players/detail.html`)**:
+  - Added a new "Awards & Achievements" section.
+  - Displays summary stats for weekly and season awards.
+  - Expandable sections for detailed weekly and season award history.
+  - JavaScript functions (`renderPlayerAwardsSection`, `renderPlayerAwards`) to dynamically render award data.
+  - Integrated Bootstrap tooltips for award information.
+- **Players List Page (`players/index.html`)**:
+  - Added an "Admin Awards Management" section (visible to authenticated users).
+  - Provides buttons to "Calculate Current Season", "Calculate All Seasons", and "Recalculate (Reset All)" awards.
+  - Includes a progress bar and status messages for award calculation.
+
+### Infrastructure
+- **Deployment Workflow**: Added a step in `deploy.yml` to calculate player awards after database migrations, ensuring awards are up-to-date post-deployment.
 
 ### Testing
-- Added unit tests for PlayerAward CRUD operations
-- Enhanced awards service testing with season awareness
-- Updated functional tests for expandable UI components
-- Comprehensive test coverage for awards functionality
-  - **Unit Tests**: 15 tests covering season helpers, week calculation, and tie handling
-  - **Integration Tests**: 8 tests for full workflow, CLI commands, and data persistence
-  - **UI Tests**: 9 tests for display functionality, API responses, and data integrity
-  - **Edge Case Coverage**: No games, no stats, ties, multiple seasons, recalculation
-  - All existing tests continue to pass (936 total tests)
+- **Extensive New Test Suites**: Added numerous new test files and tests covering the new awards system:
+  - `tests/functional/test_awards_ui.py`: Functional tests for awards UI display.
+  - `tests/integration/test_admin_calculate_awards.py`: Integration tests for admin awards calculation endpoint.
+  - `tests/integration/test_awards_calculation_e2e.py`: End-to-end integration tests for awards calculation.
+  - `tests/integration/test_awards_integration_simple.py`: Simple integration tests for awards functionality.
+  - `tests/unit/data_access/crud/test_crud_player_award.py`: Unit tests for `PlayerAward` CRUD operations.
+  - `tests/unit/services/test_awards_service.py`: Unit tests for weekly awards service logic.
+  - `tests/unit/services/test_awards_service_comprehensive.py`: Unit tests for comprehensive weekly awards service.
+  - `tests/unit/services/test_individual_season_awards.py`: Unit tests for individual season award calculation functions.
+  - `tests/unit/services/test_season_awards_service.py`: Unit tests for season awards service logic.
+- Updated `README.md` with new test counts and version.
+
+### Internal
+- Updated `Makefile` to use `ruff check --fix .` for linting.
+- Minor type change in `seed.py` for `jersey_number`.
 
 
 
