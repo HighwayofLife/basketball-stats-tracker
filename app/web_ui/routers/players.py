@@ -11,6 +11,7 @@ from app.data_access import models
 from app.data_access.db_session import get_db_session
 from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
+from app.services.awards_service_v2 import get_player_potw_summary
 from app.utils import stats_calculator
 from app.web_ui.cache import invalidate_cache_after
 from app.web_ui.dependencies import get_db
@@ -19,6 +20,21 @@ from ..schemas import PlayerCreateRequest, PlayerResponse, PlayerUpdateRequest
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/players", tags=["players"])
+
+
+def _get_potw_summary(session, player_id: int) -> dict:
+    """Get Player of the Week summary using the new PlayerAward table."""
+    try:
+        return get_player_potw_summary(session, player_id)
+    except Exception as e:
+        logger.error(f"Error getting POTW summary for player {player_id}: {e}")
+        # Return fallback data structure
+        return {
+            "current_season_count": 0,
+            "total_count": 0,
+            "awards_by_season": {},
+            "recent_awards": []
+        }
 
 
 @router.get("/list", response_model=list[PlayerResponse])
@@ -553,7 +569,8 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
                 "year": player.year,
                 "team_name": player.team.name,
                 "thumbnail_image": player.thumbnail_image,
-                "player_of_the_week_awards": player.player_of_the_week_awards,
+                "player_of_the_week_awards": player.player_of_the_week_awards,  # Legacy counter for backward compatibility
+                "potw_summary": _get_potw_summary(session, player.id),
             },
             "career_stats": career_stats,
             "season_stats": season_stats,

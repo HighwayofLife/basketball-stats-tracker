@@ -32,6 +32,52 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         });
 
+    function renderPlayerAwards(player) {
+        const potw = player.potw_summary;
+        if (!potw || potw.total_count === 0) {
+            return '';
+        }
+
+        const currentSeasonText = potw.current_season_count > 0 
+            ? ` (${potw.current_season_count} this season)`
+            : '';
+        
+        // For simple display when there's only current season or legacy data
+        if (Object.keys(potw.awards_by_season).length <= 1 && potw.recent_awards.length === 0) {
+            return ` • <i class="fas fa-star text-warning"></i> Player of the Week: ${potw.total_count}${currentSeasonText}`;
+        }
+
+        // Advanced expandable display for multiple seasons
+        const expandableId = `awards-${player.id}`;
+        const seasons = Object.entries(potw.awards_by_season)
+            .sort(([a], [b]) => b.localeCompare(a)) // Sort seasons descending
+            .map(([season, count]) => `<div class="small"><strong>${season}:</strong> ${count} award${count !== 1 ? 's' : ''}</div>`)
+            .join('');
+
+        return `
+            • <i class="fas fa-star text-warning"></i> 
+            <a href="#" class="text-white text-decoration-none" data-bs-toggle="collapse" data-bs-target="#${expandableId}" aria-expanded="false">
+                Player of the Week: ${potw.total_count}${currentSeasonText}
+                <i class="fas fa-chevron-down ms-1 small"></i>
+            </a>
+            <div class="collapse mt-2" id="${expandableId}">
+                <div class="card card-body bg-dark border-secondary small">
+                    <div class="fw-bold mb-2">Awards by Season:</div>
+                    ${seasons}
+                    ${potw.recent_awards.length > 0 ? `
+                        <div class="fw-bold mt-2 mb-1">Recent Awards:</div>
+                        ${potw.recent_awards.slice(0, 3).map(award => `
+                            <div class="small text-muted">
+                                ${award.week_date} (${award.season})
+                                ${award.points_scored ? ` - ${award.points_scored} pts` : ''}
+                            </div>
+                        `).join('')}
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }
+
     function renderPlayerData(data) {
         const player = data.player;
         const careerStats = data.career_stats;
@@ -71,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${player.height ? `Height: ${heightStr}` : ''}
                                 ${player.weight ? ` • Weight: ${player.weight} lbs` : ''}
                                 ${player.year ? ` • Year: ${player.year}` : ''}
-                                ${player.player_of_the_week_awards > 0 ? ` • <i class="fas fa-star text-warning"></i> Player of the Week: ${player.player_of_the_week_awards}` : ''}
+                                ${renderPlayerAwards(player)}
                             </div>
                         </div>
                         {% if is_authenticated %}

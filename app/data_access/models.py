@@ -117,6 +117,9 @@ class Player(Base, SoftDeleteMixin):
     active_rosters: Mapped[list[ActiveRoster]] = relationship(
         "ActiveRoster", back_populates="player", cascade="all, delete-orphan"
     )
+    awards: Mapped[list["PlayerAward"]] = relationship(
+        "PlayerAward", back_populates="player", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("team_id", "jersey_number", name="uq_player_team_jersey"),
@@ -494,3 +497,28 @@ class AuditLog(Base):
             f"entity_id={self.entity_id}, action='{self.action}', "
             f"timestamp='{self.timestamp}')>"
         )
+
+
+class PlayerAward(Base):
+    """Model for tracking player awards by season and type."""
+    
+    __tablename__ = "player_awards"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), nullable=False)
+    season: Mapped[str] = mapped_column(String(10), nullable=False)  # e.g., "2024"
+    award_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "player_of_the_week"
+    week_date: Mapped[dt.date] = mapped_column(Date, nullable=False)  # Week start date
+    points_scored: Mapped[int | None] = mapped_column(Integer, nullable=True)  # For reference
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    player: Mapped[Player] = relationship("Player", back_populates="awards")
+    
+    # Unique constraint to prevent duplicate awards for same week
+    __table_args__ = (
+        UniqueConstraint('award_type', 'week_date', 'season', name='unique_weekly_award'),
+    )
+    
+    def __repr__(self) -> str:
+        return f"<PlayerAward(player_id={self.player_id}, type='{self.award_type}', season='{self.season}', week='{self.week_date}')>"
