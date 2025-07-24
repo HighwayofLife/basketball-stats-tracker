@@ -178,7 +178,8 @@ def _calculate_week_winners(
             if award:
                 winners.append(player_id)
                 logger.debug(
-                    f"Awarded Offensive Onslaught to {player.name} (ID: {player_id}) for {max_points} points in week {week_start}"
+                    f"Awarded Player of the Week to {player.name} (ID: {player_id}) "
+                    f"for {max_points} points in week {week_start}"
                 )
 
     session.flush()  # Ensure records are created
