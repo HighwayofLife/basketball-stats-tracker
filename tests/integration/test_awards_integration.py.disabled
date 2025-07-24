@@ -1,6 +1,7 @@
 # tests/integration/test_awards_integration.py
 
 from datetime import date
+from unittest.mock import Mock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -11,38 +12,15 @@ from app.services.awards_service import calculate_player_of_the_week
 
 def create_test_data(session):
     """Create basic test data for awards tests."""
-    from app.data_access.crud.crud_season import create_season
     from app.data_access.crud.crud_team import create_team
 
     # Create teams
     team1 = create_team(session, {"name": "Test Team 1"})
     team2 = create_team(session, {"name": "Test Team 2"})
 
-    # Create seasons
-    season1 = create_season(
-        session,
-        {
-            "name": "2024 Season",
-            "code": "2024",
-            "start_date": date(2024, 1, 1),
-            "end_date": date(2024, 12, 31),
-            "is_active": True,
-        },
-    )
-    season2 = create_season(
-        session,
-        {
-            "name": "2025 Season",
-            "code": "2025",
-            "start_date": date(2025, 1, 1),
-            "end_date": date(2025, 12, 31),
-            "is_active": False,
-        },
-    )
-
     session.commit()
 
-    return {"teams": [team1, team2], "seasons": [season1, season2]}
+    return {"teams": [team1, team2]}
 
 
 class TestAwardsIntegration:
@@ -70,47 +48,36 @@ class TestAwardsIntegration:
             session, {"name": "Average Player", "team_id": team1.id, "jersey_number": "12", "position": "SF"}
         )
 
-        # Create games in different weeks and seasons
+        # Create games in different weeks
         from app.data_access.crud.crud_game import create_game
 
-        # Week 1 - 2024 season
+        # Week 1 - 2024
         game1 = create_game(
             session,
             {
                 "date": date(2024, 1, 15),  # Monday
-                "home_team_id": team1.id,
-                "away_team_id": team2.id,
-                "home_score": 100,
-                "away_score": 95,
-                "season_id": test_data["seasons"][0].id,
+                "playing_team_id": team1.id,
+                "opponent_team_id": team2.id,
             },
         )
 
-        # Week 2 - 2024 season
+        # Week 2 - 2024  
         game2 = create_game(
             session,
             {
                 "date": date(2024, 1, 22),  # Following Monday
-                "home_team_id": team2.id,
-                "away_team_id": team1.id,
-                "home_score": 88,
-                "away_score": 92,
-                "season_id": test_data["seasons"][0].id,
+                "playing_team_id": team2.id,
+                "opponent_team_id": team1.id,
             },
         )
 
-        # Week 1 - 2025 season
+        # Week 1 - 2025
         game3 = create_game(
             session,
             {
                 "date": date(2025, 1, 13),  # Monday in 2025
-                "home_team_id": team1.id,
-                "away_team_id": team2.id,
-                "home_score": 105,
-                "away_score": 98,
-                "season_id": test_data["seasons"][1].id
-                if len(test_data["seasons"]) > 1
-                else test_data["seasons"][0].id,
+                "playing_team_id": team1.id,
+                "opponent_team_id": team2.id,
             },
         )
 
@@ -129,7 +96,7 @@ class TestAwardsIntegration:
                 "total_3pa": 8,
                 "total_ftm": 6,  # 6 points
                 "total_fta": 8,
-                "total_fouls": 2,
+                "fouls": 2,
             },
         )
 
@@ -144,7 +111,7 @@ class TestAwardsIntegration:
                 "total_3pa": 6,
                 "total_ftm": 4,  # 4 points
                 "total_fta": 5,
-                "total_fouls": 3,
+                "fouls": 3,
             },
         )
 
@@ -160,7 +127,7 @@ class TestAwardsIntegration:
                 "total_3pa": 10,
                 "total_ftm": 8,  # 8 points
                 "total_fta": 10,
-                "total_fouls": 1,
+                "fouls": 1,
             },
         )
 
@@ -175,7 +142,7 @@ class TestAwardsIntegration:
                 "total_3pa": 7,
                 "total_ftm": 5,  # 5 points
                 "total_fta": 6,
-                "total_fouls": 4,
+                "fouls": 4,
             },
         )
 
@@ -191,7 +158,7 @@ class TestAwardsIntegration:
                 "total_3pa": 12,
                 "total_ftm": 10,  # 10 points
                 "total_fta": 12,
-                "total_fouls": 2,
+                "fouls": 2,
             },
         )
 
@@ -242,11 +209,8 @@ class TestAwardsIntegration:
             session,
             {
                 "date": date(2024, 3, 15),
-                "home_team_id": team1.id,
-                "away_team_id": team2.id,
-                "home_score": 100,
-                "away_score": 95,
-                "season_id": test_data["seasons"][0].id,
+                "playing_team_id": team1.id,
+                "opponent_team_id": team2.id,
             },
         )
 
@@ -255,13 +219,8 @@ class TestAwardsIntegration:
             session,
             {
                 "date": date(2025, 3, 15),
-                "home_team_id": team1.id,
-                "away_team_id": team2.id,
-                "home_score": 88,
-                "away_score": 92,
-                "season_id": test_data["seasons"][1].id
-                if len(test_data["seasons"]) > 1
-                else test_data["seasons"][0].id,
+                "playing_team_id": team1.id,
+                "opponent_team_id": team2.id,
             },
         )
 
@@ -279,7 +238,7 @@ class TestAwardsIntegration:
                 "total_3pa": 5,
                 "total_ftm": 3,
                 "total_fta": 4,
-                "total_fouls": 1,
+                "fouls": 1,
             },
         )
 
@@ -294,7 +253,7 @@ class TestAwardsIntegration:
                 "total_3pa": 5,
                 "total_ftm": 3,
                 "total_fta": 4,
-                "total_fouls": 1,
+                "fouls": 1,
             },
         )
 
@@ -345,10 +304,10 @@ class TestAwardsCLIIntegration:
 
         # Mock the dependencies to avoid database requirements
         with (
-            pytest.mock.patch("app.cli.get_db") as mock_get_db,
-            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+            patch("app.cli.get_db") as mock_get_db,
+            patch("app.cli.calculate_player_of_the_week") as mock_calc,
         ):
-            mock_session = pytest.mock.Mock()
+            mock_session = Mock()
             mock_get_db.return_value = iter([mock_session])
             mock_calc.return_value = {"2024": 3}
 
@@ -365,10 +324,10 @@ class TestAwardsCLIIntegration:
         runner = CliRunner()
 
         with (
-            pytest.mock.patch("app.cli.get_db") as mock_get_db,
-            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+            patch("app.cli.get_db") as mock_get_db,
+            patch("app.cli.calculate_player_of_the_week") as mock_calc,
         ):
-            mock_session = pytest.mock.Mock()
+            mock_session = Mock()
             mock_get_db.return_value = iter([mock_session])
             mock_calc.return_value = {"2024": 2}
 
@@ -383,10 +342,10 @@ class TestAwardsCLIIntegration:
         runner = CliRunner()
 
         with (
-            pytest.mock.patch("app.cli.get_db") as mock_get_db,
-            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+            patch("app.cli.get_db") as mock_get_db,
+            patch("app.cli.calculate_player_of_the_week") as mock_calc,
         ):
-            mock_session = pytest.mock.Mock()
+            mock_session = Mock()
             mock_get_db.return_value = iter([mock_session])
             mock_calc.return_value = {"2024": 1}
 
@@ -410,10 +369,10 @@ class TestAwardsCLIIntegration:
         runner = CliRunner()
 
         with (
-            pytest.mock.patch("app.cli.get_db") as mock_get_db,
-            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+            patch("app.cli.get_db") as mock_get_db,
+            patch("app.cli.calculate_player_of_the_week") as mock_calc,
         ):
-            mock_session = pytest.mock.Mock()
+            mock_session = Mock()
             mock_get_db.return_value = iter([mock_session])
             mock_calc.return_value = {}
 
@@ -427,10 +386,10 @@ class TestAwardsCLIIntegration:
         runner = CliRunner()
 
         with (
-            pytest.mock.patch("app.cli.get_db") as mock_get_db,
-            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+            patch("app.cli.get_db") as mock_get_db,
+            patch("app.cli.calculate_player_of_the_week") as mock_calc,
         ):
-            mock_session = pytest.mock.Mock()
+            mock_session = Mock()
             mock_get_db.return_value = iter([mock_session])
             mock_calc.side_effect = Exception("Database error")
 

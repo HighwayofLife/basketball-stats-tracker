@@ -8,7 +8,6 @@ from sqlalchemy.orm import Session
 
 from app.data_access.crud import crud_game, crud_player
 from app.data_access.crud.crud_player_award import (
-    create_player_award,
     create_player_award_safe,
     delete_all_awards_by_type,
     get_awards_by_week,
@@ -90,7 +89,7 @@ def calculate_player_of_the_week(
 
         for week_start, weekly_games in weeks.items():
             # Calculate winner(s) for this week (safe function handles existing awards)
-            winners = _calculate_week_winners(session, weekly_games, week_start, season_key, recalculate)
+            _ = _calculate_week_winners(session, weekly_games, week_start, season_key, recalculate)
 
             # Count awards (both new and existing)
             week_awards = get_awards_by_week(session, "player_of_the_week", week_start, season_key)
@@ -253,7 +252,7 @@ def calculate_quarterly_firepower(
     # Process each season and week
     for season_key, weeks in games_by_season_week.items():
         for week_start, weekly_games in weeks.items():
-            winners = _calculate_quarterly_firepower_winners(session, weekly_games, week_start, season_key, recalculate)
+            _ = _calculate_quarterly_firepower_winners(session, weekly_games, week_start, season_key, recalculate)
             week_awards = get_awards_by_week(session, award_type, week_start, season_key)
             awards_given[season_key] += len(week_awards)
 
@@ -299,7 +298,7 @@ def calculate_hot_hand_weekly(session: Session, season: str | None = None, recal
     # Process each season and week
     for season_key, weeks in games_by_season_week.items():
         for week_start, weekly_games in weeks.items():
-            winners = _calculate_hot_hand_winners(session, weekly_games, week_start, season_key, recalculate)
+            _ = _calculate_hot_hand_winners(session, weekly_games, week_start, season_key, recalculate)
             week_awards = get_awards_by_week(session, award_type, week_start, season_key)
             awards_given[season_key] += len(week_awards)
 
@@ -335,7 +334,7 @@ def calculate_clutch_man(session: Session, season: str | None = None, recalculat
     # Process each season and week
     for season_key, weeks in games_by_season_week.items():
         for week_start, weekly_games in weeks.items():
-            winners = _calculate_clutch_man_winners(session, weekly_games, week_start, season_key, recalculate)
+            _ = _calculate_clutch_man_winners(session, weekly_games, week_start, season_key, recalculate)
             week_awards = get_awards_by_week(session, award_type, week_start, season_key)
             awards_given[season_key] += len(week_awards)
 
@@ -445,9 +444,9 @@ def _calculate_quarterly_firepower_winners(
     # Find max quarter points for each player in the week
     for game in weekly_games:
         for stat in game.player_game_stats:
-            # Check each quarter's stats via player_quarter_stats
-            for quarter_stat in stat.player_quarter_stats:
-                quarter_points = (quarter_stat.q_2pm * 2) + (quarter_stat.q_3pm * 3) + quarter_stat.q_ftm
+            # Check each quarter's stats via quarter_stats
+            for quarter_stat in stat.quarter_stats:
+                quarter_points = (quarter_stat.fg2m * 2) + (quarter_stat.fg3m * 3) + quarter_stat.ftm
                 if quarter_points > player_max_quarter_points[stat.player_id]:
                     player_max_quarter_points[stat.player_id] = quarter_points
 
@@ -528,7 +527,7 @@ def _calculate_clutch_man_winners(
     for game in weekly_games:
         for stat in game.player_game_stats:
             # Find Q4 stats
-            for quarter_stat in stat.player_quarter_stats:
+            for quarter_stat in stat.quarter_stats:
                 if quarter_stat.quarter == 4:  # Q4
                     q4_makes = quarter_stat.q_2pm + quarter_stat.q_3pm + quarter_stat.q_ftm
                     player_q4_makes[stat.player_id] += q4_makes

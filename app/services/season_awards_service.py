@@ -3,18 +3,14 @@
 import logging
 from collections import defaultdict
 from datetime import date
-from typing import Dict, List, Tuple
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.data_access.crud import crud_game, crud_player
+from app.data_access.crud import crud_game
 from app.data_access.crud.crud_player_award import (
     create_player_award_safe,
-    delete_all_awards_by_type,
     get_player_awards_by_type,
 )
-from app.data_access.models import PlayerGameStats
 from app.services.awards_service import get_current_season, get_season_from_date
 
 logger = logging.getLogger(__name__)
@@ -32,7 +28,7 @@ SEASON_AWARD_TYPES = {
 }
 
 
-def calculate_season_awards(session: Session, season: str | None = None, recalculate: bool = False) -> Dict[str, int]:
+def calculate_season_awards(session: Session, season: str | None = None, recalculate: bool = False) -> dict[str, int]:
     """
     Calculate all season awards for a given season.
 
@@ -153,7 +149,7 @@ def calculate_sharpshooter(session: Session, season: str, recalculate: bool = Fa
     best_percentage_in_top10 = 0.0
     threshold_attempts = 0
 
-    for player_id, stats in top_10_by_made:
+    for _player_id, stats in top_10_by_made:
         percentage = stats["total_3pm"] / stats["total_3pa"]
         if percentage > best_percentage_in_top10:
             best_percentage_in_top10 = percentage
@@ -190,7 +186,8 @@ def calculate_sharpshooter(session: Session, season: str, recalculate: bool = Fa
 
     session.flush()
     logger.info(
-        f"Awarded {award_type} to {awards_given} players with {max_percentage:.3f} 3pt% (min {threshold_attempts} attempts)"
+        f"Awarded {award_type} to {awards_given} players with {max_percentage:.3f} 3pt% "
+        f"(min {threshold_attempts} attempts)"
     )
     return awards_given
 
@@ -235,7 +232,7 @@ def calculate_efficiency_expert(session: Session, season: str, recalculate: bool
     best_percentage_in_top10 = 0.0
     threshold_attempts = 0
 
-    for player_id, stats in top_10_by_made:
+    for _player_id, stats in top_10_by_made:
         if stats["percentage"] > best_percentage_in_top10:
             best_percentage_in_top10 = stats["percentage"]
             threshold_attempts = stats["fga"]
@@ -269,7 +266,8 @@ def calculate_efficiency_expert(session: Session, season: str, recalculate: bool
 
     session.flush()
     logger.info(
-        f"Awarded {award_type} to {awards_given} players with {max_percentage:.3f} FG% (min {threshold_attempts} attempts)"
+        f"Awarded {award_type} to {awards_given} players with {max_percentage:.3f} FG% "
+        f"(min {threshold_attempts} attempts)"
     )
     return awards_given
 
@@ -409,7 +407,7 @@ def finalize_season_awards(session: Session, season: str) -> int:
 # Helper functions
 
 
-def _get_season_player_stats(session: Session, season: str) -> Dict[int, Dict[str, int]]:
+def _get_season_player_stats(session: Session, season: str) -> dict[int, dict[str, int]]:
     """Get aggregated player stats for a season."""
     games = crud_game.get_all_games(session)
     season_games = [g for g in games if get_season_from_date(g.date) == season]
@@ -439,7 +437,7 @@ def _get_season_player_stats(session: Session, season: str) -> Dict[int, Dict[st
             player_stats[pid]["total_3pa"] += stat.total_3pa
             player_stats[pid]["total_ftm"] += stat.total_ftm
             player_stats[pid]["total_fta"] += stat.total_fta
-            player_stats[pid]["total_fouls"] += stat.total_fouls
+            player_stats[pid]["total_fouls"] += stat.fouls
 
     return dict(player_stats)
 
@@ -462,7 +460,7 @@ def _clear_season_awards(session: Session, award_type: str, season: str) -> None
         logger.debug(f"Cleared {len(existing_awards)} existing {award_type} awards for season {season}")
 
 
-def _create_season_awards(session: Session, winners: List[int], season: str, award_type: str, stat_value: float) -> int:
+def _create_season_awards(session: Session, winners: list[int], season: str, award_type: str, stat_value: float) -> int:
     """Helper to create season awards for winners."""
     awards_given = 0
     for player_id in winners:

@@ -33,79 +33,137 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
     function renderPlayerAwardsSection(player) {
-        const potw = player.potw_summary;
-        if (!potw || potw.total_count === 0) {
-            return ''; // Don't show section if no awards
-        }
+        const awards = player.awards_summary;
+        if (!awards) return '';
+
+        // Count total awards
+        const weeklyTotal = Object.values(awards.weekly_awards || {}).reduce((sum, award) => sum + (award.total_count || 0), 0);
+        const seasonTotal = Object.values(awards.season_awards || {}).reduce((sum, seasons) => sum + Object.keys(seasons).length, 0);
+        const totalAwards = weeklyTotal + seasonTotal;
+
+        if (totalAwards === 0) return '';
+
+        // Award display names and descriptions
+        const awardInfo = {
+            // Weekly Awards
+            'player_of_the_week': { name: 'Player of the Week', icon: '🏀', desc: 'Top performers each week based on points scored' },
+            'quarterly_firepower': { name: 'Quarterly Firepower', icon: '🔥', desc: 'Highest points in any single quarter during the week' },
+            'weekly_ft_king': { name: 'Weekly FT King/Queen', icon: '👑', desc: 'Most free throws made during the week' },
+            'hot_hand_weekly': { name: 'Hot Hand Weekly', icon: '🎯', desc: 'Highest field goal percentage with minimum 10 attempts' },
+            'clutch_man': { name: 'Clutch-man', icon: '⏰', desc: 'Most shots made in 4th quarter during the week' },
+            'trigger_finger': { name: 'Trigger Finger', icon: '🎪', desc: 'Most shot attempts during the week' },
+            'weekly_whiffer': { name: 'Weekly Whiffer', icon: '😅', desc: 'Most missed shots during the week' },
+            
+            // Season Awards
+            'top_scorer': { name: 'Top Scorer', icon: '🥇', desc: 'Most total points scored in the season' },
+            'sharpshooter': { name: 'Sharpshooter', icon: '🎯', desc: 'Highest 3-point percentage with dynamic minimum attempts' },
+            'efficiency_expert': { name: 'Efficiency Expert', icon: '📈', desc: 'Highest field goal percentage with dynamic minimum attempts' },
+            'charity_stripe_regular': { name: 'Charity Stripe Regular', icon: '🎰', desc: 'Most free throw attempts in the season' },
+            'human_highlight_reel': { name: 'Human Highlight Reel', icon: '🎬', desc: 'Most combined made shots (2pt + 3pt + FT) in the season' },
+            'defensive_tackle': { name: 'Defensive Tackle', icon: '🛡️', desc: 'Most fouls committed in the season' },
+            'air_ball_artist': { name: 'Air Ball Artist', icon: '🎨', desc: 'Most 3-point misses in the season' },
+            'air_assault': { name: 'Air Assault', icon: '⚔️', desc: 'Most total shot attempts in the season' }
+        };
 
         return `
             <div class="card mb-4">
                 <div class="card-body">
                     <h5 class="card-title">
-                        <i class="fas fa-trophy text-warning me-2"></i>Awards
+                        <i class="fas fa-trophy text-warning me-2"></i>Awards & Achievements
                     </h5>
-                    <div class="row">
+                    
+                    <!-- Summary Stats -->
+                    <div class="row mb-4">
                         <div class="col-md-4 mb-3">
                             <div class="text-center p-3 bg-light rounded">
-                                <h3 class="mb-1 text-warning">${potw.current_season_count}</h3>
-                                <small class="text-muted">Current Season POTW</small>
+                                <h3 class="mb-1 text-warning">${weeklyTotal}</h3>
+                                <small class="text-muted">Weekly Awards</small>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="text-center p-3 bg-light rounded">
-                                <h3 class="mb-1 text-warning">${potw.total_count}</h3>
-                                <small class="text-muted">Career POTW Awards</small>
+                                <h3 class="mb-1 text-warning">${seasonTotal}</h3>
+                                <small class="text-muted">Season Awards</small>
                             </div>
                         </div>
                         <div class="col-md-4 mb-3">
                             <div class="text-center p-3 bg-light rounded">
-                                <h3 class="mb-1 text-warning">${Object.keys(potw.awards_by_season).length}</h3>
-                                <small class="text-muted">Seasons with Awards</small>
+                                <h3 class="mb-1 text-warning">${totalAwards}</h3>
+                                <small class="text-muted">Total Awards</small>
                             </div>
                         </div>
                     </div>
-                    
-                    ${Object.keys(potw.awards_by_season).length > 0 ? `
-                        <hr>
-                        <h6 class="mb-3">Awards by Season</h6>
-                        <div class="row">
-                            ${Object.entries(potw.awards_by_season)
-                                .sort(([a], [b]) => b.localeCompare(a)) // Sort seasons descending
-                                .map(([season, count]) => `
-                                    <div class="col-sm-6 col-md-4 col-lg-3 mb-2">
-                                        <div class="d-flex justify-content-between align-items-center p-2 border rounded">
-                                            <span><strong>${season}:</strong></span>
-                                            <span class="badge bg-warning text-dark">${count}</span>
+
+                    <!-- Weekly Awards Section -->
+                    ${weeklyTotal > 0 ? `
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="fas fa-calendar-week me-2"></i>Weekly Awards
+                                <button class="btn btn-sm btn-outline-secondary ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#weeklyAwards-${player.id}" aria-expanded="false">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </h6>
+                            <div class="collapse" id="weeklyAwards-${player.id}">
+                                <div class="row">
+                                    ${Object.entries(awards.weekly_awards || {}).map(([awardType, awardData]) => {
+                                        if (!awardData || awardData.total_count === 0) return '';
+                                        const info = awardInfo[awardType] || { name: awardType, icon: '🏆', desc: 'Award description' };
+                                        return `
+                                            <div class="col-sm-6 col-lg-4 mb-3">
+                                                <div class="border rounded p-3 h-100">
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        <span class="me-2" style="font-size: 1.2em;">${info.icon}</span>
+                                                        <strong class="small">${info.name}</strong>
+                                                        <i class="fas fa-info-circle ms-auto text-muted" 
+                                                           data-bs-toggle="tooltip" 
+                                                           title="${info.desc}"></i>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <h4 class="mb-1 text-primary">${awardData.total_count}</h4>
+                                                        <small class="text-muted">Total Won</small>
+                                                        ${awardData.current_season_count > 0 ? `<br><small class="text-success">${awardData.current_season_count} this season</small>` : ''}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
+
+                    <!-- Season Awards Section -->
+                    ${seasonTotal > 0 ? `
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="fas fa-crown me-2"></i>Season Awards
+                                <button class="btn btn-sm btn-outline-secondary ms-2" type="button" data-bs-toggle="collapse" data-bs-target="#seasonAwards-${player.id}" aria-expanded="false">
+                                    <i class="fas fa-chevron-down"></i>
+                                </button>
+                            </h6>
+                            <div class="collapse" id="seasonAwards-${player.id}">
+                                ${Object.entries(awards.season_awards || {}).map(([season, awardTypes]) => `
+                                    <div class="mb-3">
+                                        <h6 class="text-muted">${season} Season</h6>
+                                        <div class="row">
+                                            ${awardTypes.map(awardType => {
+                                                const info = awardInfo[awardType] || { name: awardType, icon: '🏆', desc: 'Season award' };
+                                                return `
+                                                    <div class="col-sm-6 col-lg-4 mb-2">
+                                                        <div class="d-flex align-items-center p-2 border rounded bg-light">
+                                                            <span class="me-2">${info.icon}</span>
+                                                            <span class="small flex-grow-1">${info.name}</span>
+                                                            <i class="fas fa-info-circle text-muted" 
+                                                               data-bs-toggle="tooltip" 
+                                                               title="${info.desc}"></i>
+                                                        </div>
+                                                    </div>
+                                                `;
+                                            }).join('')}
                                         </div>
                                     </div>
                                 `).join('')}
-                        </div>
-                    ` : ''}
-                    
-                    ${potw.recent_awards.length > 0 ? `
-                        <hr>
-                        <h6 class="mb-3">Recent Awards</h6>
-                        <div class="table-responsive">
-                            <table class="table table-sm">
-                                <thead>
-                                    <tr>
-                                        <th>Week Date</th>
-                                        <th>Season</th>
-                                        <th>Points Scored</th>
-                                        <th>Award Date</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    ${potw.recent_awards.slice(0, 5).map(award => `
-                                        <tr>
-                                            <td>${new Date(award.week_date).toLocaleDateString()}</td>
-                                            <td><span class="badge bg-secondary">${award.season}</span></td>
-                                            <td><strong>${award.points_scored || 'N/A'}</strong></td>
-                                            <td class="text-muted small">${award.created_at ? new Date(award.created_at).toLocaleDateString() : 'N/A'}</td>
-                                        </tr>
-                                    `).join('')}
-                                </tbody>
-                            </table>
+                            </div>
                         </div>
                     ` : ''}
                 </div>
@@ -351,6 +409,12 @@ document.addEventListener('DOMContentLoaded', function() {
             const gamesHtml = createPlayerGamesHtml(recentGames, player.team_name);
             document.getElementById('recent-games-container').innerHTML = gamesHtml;
         }
+
+        // Initialize Bootstrap tooltips for award info icons
+        const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
     }
 
     function createPlayerGamesHtml(games, teamName) {

@@ -9,7 +9,6 @@ from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
 from app.data_access import models
 from app.data_access.db_session import get_db_session
-from app.services.awards_service import get_player_potw_summary
 from app.services.player_stats_service import PlayerStatsService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
@@ -25,7 +24,7 @@ router = APIRouter(prefix="/v1/players", tags=["players"])
 def _get_comprehensive_awards_summary(session, player_id: int) -> dict:
     """Get comprehensive awards summary for all award types."""
     from app.data_access.crud.crud_player_award import get_comprehensive_player_award_summary
-    
+
     try:
         result = get_comprehensive_player_award_summary(session, player_id)
         logger.info(f"Comprehensive awards summary for player {player_id}: {result}")
@@ -39,14 +38,12 @@ def _get_comprehensive_awards_summary(session, player_id: int) -> dict:
 def _get_potw_summary(session, player_id: int) -> dict:
     """Get Player of the Week summary using the new PlayerAward table (legacy compatibility)."""
     comprehensive = _get_comprehensive_awards_summary(session, player_id)
-    
+
     # Extract POTW data for backward compatibility
-    potw_data = comprehensive["weekly_awards"].get("player_of_the_week", {
-        "current_season_count": 0,
-        "total_count": 0,
-        "recent_awards": []
-    })
-    
+    potw_data = comprehensive["weekly_awards"].get(
+        "player_of_the_week", {"current_season_count": 0, "total_count": 0, "recent_awards": []}
+    )
+
     # Convert to legacy format
     awards_by_season = {}
     for award in potw_data.get("recent_awards", []):
@@ -54,12 +51,12 @@ def _get_potw_summary(session, player_id: int) -> dict:
         if season not in awards_by_season:
             awards_by_season[season] = 0
         awards_by_season[season] += 1
-    
+
     return {
         "current_season_count": potw_data["current_season_count"],
         "total_count": potw_data["total_count"],
         "awards_by_season": awards_by_season,
-        "recent_awards": potw_data["recent_awards"]
+        "recent_awards": potw_data["recent_awards"],
     }
 
 
@@ -857,33 +854,55 @@ async def calculate_player_awards(
     recalculate: bool = False,
     current_user: User = Depends(require_admin),
 ):
-    """Calculate Player of the Week awards for all players (admin only)."""
+    """Calculate all awards (weekly and season) for all players (admin only)."""
     try:
-        from app.services.awards_service import calculate_player_of_the_week, get_current_season
+        from app.services.awards_service import calculate_all_weekly_awards, get_current_season
+        from app.services.season_awards_service import calculate_season_awards
 
         with get_db_session() as session:
-            # Determine season parameter
+            current_season = get_current_season()
+
+            # Determine season parameters
             if season == "current":
-                season = get_current_season()
+                season_target = current_season
+                weekly_target = current_season
             elif season == "all":
-                season = None
+                season_target = current_season  # Season awards only for current
+                weekly_target = None  # Weekly awards for all seasons
+            else:
+                # Specific season provided
+                season_target = season or current_season
+                weekly_target = season
 
-            # Calculate awards
-            results = calculate_player_of_the_week(session, season=season, recalculate=recalculate)
+            # Calculate season awards
+            season_results = calculate_season_awards(session, season=season_target, recalculate=recalculate)
 
-            # Get summary statistics
-            total_awards = sum(results.values())
-            seasons_processed = list(results.keys())
+            # Calculate weekly awards
+            weekly_results = calculate_all_weekly_awards(session, season=weekly_target, recalculate=recalculate)
+
+            # Compile summary statistics
+            season_total = sum(season_results.values()) if season_results else 0
+            weekly_total = sum(sum(s.values()) for s in weekly_results.values()) if weekly_results else 0
+            total_awards = season_total + weekly_total
+
+            # Format results for frontend
+            award_breakdown = {
+                "season_awards": {"total": season_total, "season": season_target, "awards": season_results or {}},
+                "weekly_awards": {"total": weekly_total, "awards": weekly_results or {}},
+            }
 
             return {
                 "success": True,
-                "message": f"Successfully calculated {total_awards} awards across {len(seasons_processed)} seasons",
-                "results": results,
+                "message": f"Successfully calculated {total_awards} total awards "
+                f"({season_total} season, {weekly_total} weekly)",
+                "results": award_breakdown,
                 "total_awards": total_awards,
-                "seasons_processed": seasons_processed,
+                "season_awards": season_total,
+                "weekly_awards": weekly_total,
+                "current_season": current_season,
                 "recalculated": recalculate,
             }
 
     except Exception as e:
-        logger.error(f"Error calculating awards: {e}", exc_info=True)
+        logger.error(f"Error calculating all awards: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to calculate awards: {str(e)}") from e

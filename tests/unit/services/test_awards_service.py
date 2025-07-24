@@ -49,8 +49,15 @@ class TestCalculatePlayerOfTheWeek:
         game3.date = date(2025, 2, 10)  # Different season
 
         mock_get_games.return_value = [game1, game2, game3]
-        mock_get_awards.return_value = []  # No existing awards
-        mock_week_winners.side_effect = [[1], [2], [3]]  # Winners for each week (returns lists)
+        # Mock get_awards_by_week to return the awards for counting
+        # Each call corresponds to a week being processed
+        mock_awards_week1 = [Mock(), Mock()]  # 2 awards for week 1 of 2024
+        mock_awards_week2 = []  # 0 awards for week 2 of 2024
+        mock_awards_week3 = [Mock()]  # 1 award for week 1 of 2025
+        mock_get_awards.side_effect = [mock_awards_week1, mock_awards_week2, mock_awards_week3]
+
+        # _calculate_week_winners returns list of player IDs (not used in counting)
+        mock_week_winners.side_effect = [[1, 2], [], [3]]  # Player IDs for each week
 
         results = calculate_player_of_the_week(session, season=None, recalculate=False)
 
@@ -73,8 +80,9 @@ class TestCalculatePlayerOfTheWeek:
         game2.date = date(2025, 1, 15)  # Different season - should be filtered out
 
         mock_get_games.return_value = [game1, game2]
-        mock_get_awards.return_value = []  # No existing awards
-        mock_week_winners.return_value = [1]
+        # Mock get_awards_by_week to return 1 award for the single 2024 week
+        mock_get_awards.return_value = [Mock()]  # 1 award in the database
+        mock_week_winners.return_value = [1]  # Player ID who won
 
         results = calculate_player_of_the_week(session, season="2024", recalculate=False)
 

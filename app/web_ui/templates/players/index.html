@@ -50,7 +50,7 @@
             <h6 class="card-title">
                 <i class="fas fa-trophy text-warning me-2"></i>Awards Management
             </h6>
-            <p class="card-text small text-muted mb-3">Calculate Player of the Week awards for all players based on their game performance.</p>
+            <p class="card-text small text-muted mb-3">Calculate all awards (weekly and season) for players based on their game performance. Includes Player of the Week, seasonal achievements, and weekly honors.</p>
             <div class="d-flex gap-2 flex-wrap">
                 <button class="btn btn-warning btn-sm" onclick="calculateAwards('current')" id="calculate-current-btn">
                     <i class="fas fa-calculator me-1"></i>Calculate Current Season
@@ -1066,9 +1066,11 @@ async function calculateAwards(type) {
         progressBar.style.width = '100%';
         
         // Show success message
+        const seasonInfo = result.seasons_processed ? result.seasons_processed.join(', ') : result.current_season;
         statusText.innerHTML = `
             <strong>✅ Success!</strong> ${result.message}<br>
-            <small>Processed seasons: ${result.seasons_processed.join(', ')}</small>
+            <small>Current season: ${result.current_season || 'Unknown'}</small>
+            ${result.season_awards ? `<br><small>Season awards: ${result.season_awards}, Weekly awards: ${result.weekly_awards}</small>` : ''}
         `;
         
         // Add success styling

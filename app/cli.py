@@ -554,7 +554,7 @@ def calculate_season_awards(
         if recalculate:
             typer.echo("⚠️  Recalculating season awards (this will reset existing awards)")
 
-        current_season = get_current_season()  
+        current_season = get_current_season()
         target_season = season or current_season
         typer.echo(f"🏆 Calculating season awards for {target_season}...")
 
@@ -566,10 +566,10 @@ def calculate_season_awards(
         if results:
             typer.echo("✅ Season awards calculated successfully!")
             typer.echo(f"\n📊 Awards given for season {target_season}:")
-            
+
             award_names = {
                 "top_scorer": "🥇 Top Scorer",
-                "sharpshooter": "🎯 Sharpshooter", 
+                "sharpshooter": "🎯 Sharpshooter",
                 "efficiency_expert": "📈 Efficiency Expert",
                 "charity_stripe_regular": "🎰 Charity Stripe Regular",
                 "human_highlight_reel": "🎬 Human Highlight Reel",
@@ -577,7 +577,7 @@ def calculate_season_awards(
                 "air_ball_artist": "🎨 Air Ball Artist",
                 "air_assault": "⚔️  Air Assault",
             }
-            
+
             for award_key, count in results.items():
                 display_name = award_names.get(award_key, award_key)
                 typer.echo(f"   {display_name}: {count} awards")
@@ -604,7 +604,7 @@ def calculate_weekly_awards(
     ),
     award_type: str = typer.Option(
         None,
-        "--type", 
+        "--type",
         help="Calculate specific award type only (e.g., 'quarterly_firepower')",
     ),
 ):
@@ -643,7 +643,7 @@ def calculate_weekly_awards(
 
         if results:
             typer.echo("✅ Weekly awards calculated successfully!")
-            
+
             award_names = {
                 "player_of_the_week": "🏀 Player of the Week",
                 "quarterly_firepower": "🔥 Quarterly Firepower",
@@ -653,14 +653,14 @@ def calculate_weekly_awards(
                 "trigger_finger": "🎯 Trigger Finger",
                 "weekly_whiffer": "😅 Weekly Whiffer",
             }
-            
+
             for award_key, season_results in results.items():
                 if award_type and award_key != award_type:
                     continue
-                    
+
                 display_name = award_names.get(award_key, award_key)
                 typer.echo(f"\n📊 {display_name}:")
-                
+
                 for season_key, count in sorted(season_results.items()):
                     typer.echo(f"   {season_key}: {count} awards")
 
@@ -684,7 +684,8 @@ def calculate_all_awards(
     season: str = typer.Option(
         None,
         "--season",
-        help="Calculate for specific season (e.g., '2024'). If not provided, calculates current season for season awards, all seasons for weekly awards.",
+        help="Calculates and awards weekly and season awards. If --recalculate is used, "
+        "recalculates current season for season awards, all seasons for weekly awards.",
     ),
     recalculate: bool = typer.Option(
         False, "--recalculate", help="Reset existing awards and recalculate from scratch."
@@ -714,7 +715,7 @@ def calculate_all_awards(
             typer.echo("⚠️  Recalculating ALL awards (this will reset existing awards)")
 
         current_season = get_current_season()
-        typer.echo(f"🎯 Calculating all awards...")
+        typer.echo("🎯 Calculating all awards...")
         typer.echo(f"📅 Current season: {current_season}")
 
         # Calculate season awards
@@ -722,19 +723,19 @@ def calculate_all_awards(
         typer.echo(f"\n🏆 Calculating season awards for {season_target}...")
         season_results = calculate_season_awards(db_session, season=season_target, recalculate=recalculate)
 
-        # Calculate weekly awards  
+        # Calculate weekly awards
         weekly_target = season  # None means all seasons for weekly
         typer.echo(f"\n📅 Calculating weekly awards for {weekly_target or 'all seasons'}...")
         weekly_results = calculate_all_weekly_awards(db_session, season=weekly_target, recalculate=recalculate)
 
         # Display results
         typer.echo("\n✅ All awards calculated successfully!")
-        
+
         if season_results:
             typer.echo(f"\n🏆 Season awards for {season_target}:")
             season_total = sum(season_results.values())
             typer.echo(f"   Total: {season_total} season awards")
-            
+
         if weekly_results:
             typer.echo(f"\n📅 Weekly awards for {weekly_target or 'all seasons'}:")
             weekly_total = sum(sum(season_data.values()) for season_data in weekly_results.values())
@@ -764,7 +765,7 @@ def finalize_season(
     db_session = next(get_db())
 
     try:
-        # Validate season format 
+        # Validate season format
         if not season.isdigit():
             typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
             raise typer.Exit(1)

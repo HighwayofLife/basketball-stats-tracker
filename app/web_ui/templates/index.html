@@ -31,6 +31,56 @@
                 </div>
             </div>
         </div>
+
+        <!-- Weekly Awards Section - moved to main content area -->
+        {% if weekly_awards and weekly_awards.total_awards > 0 %}
+        <div class="dashboard-section">
+            <h2>Weekly Awards</h2>
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0"><i class="fas fa-trophy text-warning me-2"></i>Latest Weekly Award Winners</h3>
+                        <small class="text-muted">Week of {{ weekly_awards.current_week }}</small>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        {% for award_type, winners in weekly_awards.awards.items() %}
+                            {% for winner in winners %}
+                            <div class="col-md-6 col-lg-4 mb-3">
+                                <div class="award-winner h-100 p-3 border rounded shadow-sm">
+                                    <div class="d-flex align-items-center">
+                                        <span class="me-3" style="font-size: 2em;">{{ winner.award_icon }}</span>
+                                        <div class="flex-grow-1">
+                                            <div class="fw-bold mb-1">{{ winner.award_name }}</div>
+                                            <div class="text-primary mb-1">
+                                                <a href="/players/{{ winner.player_id }}" class="text-decoration-none fw-semibold">
+                                                    {{ winner.player_name }}
+                                                </a>
+                                            </div>
+                                            <small class="text-muted d-block">{{ winner.team_name }}</small>
+                                            {% if winner.stat_value %}
+                                            <div class="small text-success mt-1">
+                                                <strong>{{ winner.stat_value }}</strong>
+                                                {% if winner.award_name == "Hot Hand Weekly" %}%{% endif %}
+                                            </div>
+                                            {% endif %}
+                                            {% if winner.points_scored %}
+                                            <div class="small text-info mt-1">
+                                                <strong>{{ winner.points_scored }} pts</strong>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 
     <div class="sidebar">

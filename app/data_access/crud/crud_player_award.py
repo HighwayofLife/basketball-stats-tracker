@@ -250,3 +250,83 @@ def get_comprehensive_player_award_summary(session: Session, player_id: int) -> 
         "season_awards": season_by_year,
         "current_season": current_season,
     }
+
+
+def get_current_week_awards(session: Session) -> dict:
+    """Get current week's award winners for dashboard display."""
+    from datetime import datetime, timedelta
+
+    from app.data_access.models import Player
+
+    # First try current week Monday
+    today = datetime.now().date()
+    days_since_monday = today.weekday()
+    current_week_monday = today - timedelta(days=days_since_monday)
+
+    # Get all weekly awards for the current week
+    current_week_awards = (
+        session.query(PlayerAward, Player)
+        .join(Player, PlayerAward.player_id == Player.id)
+        .filter(
+            PlayerAward.week_date == current_week_monday,
+            PlayerAward.week_date.is_not(None),  # Only weekly awards
+        )
+        .all()
+    )
+
+    # If no awards for current week, get the most recent week with awards
+    if not current_week_awards:
+        most_recent_week = (
+            session.query(PlayerAward.week_date)
+            .filter(PlayerAward.week_date.is_not(None))
+            .order_by(PlayerAward.week_date.desc())
+            .first()
+        )
+
+        if most_recent_week:
+            current_week_monday = most_recent_week[0]
+            current_week_awards = (
+                session.query(PlayerAward, Player)
+                .join(Player, PlayerAward.player_id == Player.id)
+                .filter(
+                    PlayerAward.week_date == current_week_monday,
+                    PlayerAward.week_date.is_not(None),
+                )
+                .all()
+            )
+
+    # Award display info
+    award_info = {
+        "player_of_the_week": {"name": "Player of the Week", "icon": "🏀"},
+        "quarterly_firepower": {"name": "Quarterly Firepower", "icon": "🔥"},
+        "weekly_ft_king": {"name": "Weekly FT King/Queen", "icon": "👑"},
+        "hot_hand_weekly": {"name": "Hot Hand Weekly", "icon": "🎯"},
+        "clutch_man": {"name": "Clutch-man", "icon": "⏰"},
+        "trigger_finger": {"name": "Trigger Finger", "icon": "🎪"},
+        "weekly_whiffer": {"name": "Weekly Whiffer", "icon": "😅"},
+    }
+
+    # Group by award type
+    awards_by_type = {}
+    for award, player in current_week_awards:
+        if award.award_type not in awards_by_type:
+            awards_by_type[award.award_type] = []
+
+        info = award_info.get(award.award_type, {"name": award.award_type, "icon": "🏆"})
+        awards_by_type[award.award_type].append(
+            {
+                "player_id": player.id,
+                "player_name": player.name,
+                "team_name": player.team.name if player.team else "Unknown",
+                "stat_value": award.stat_value,
+                "points_scored": award.points_scored,
+                "award_name": info["name"],
+                "award_icon": info["icon"],
+            }
+        )
+
+    return {
+        "current_week": current_week_monday.isoformat(),
+        "awards": awards_by_type,
+        "total_awards": len(current_week_awards),
+    }
