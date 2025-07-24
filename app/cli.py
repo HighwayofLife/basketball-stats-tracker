@@ -16,7 +16,6 @@ from app.services.cli_commands import (
     ServerCommands,
     StatsCommands,
 )
-
 cli = typer.Typer(help="Basketball Stats Tracker CLI")
 
 
@@ -457,6 +456,19 @@ def migrate_seasons(
         basketball-stats season-migrate --force
     """
     SeasonCommands.migrate_seasons(force=force)
+
+
+@cli.command("calculate-potw")
+def calculate_potw():
+    """
+    Calculate Player of the Week awards for all games.
+    """
+    from app.services.awards_service import calculate_player_of_the_week
+    from app.dependencies import get_db
+    
+    db_session = next(get_db())
+    calculate_player_of_the_week(db_session)
+    print("Player of the Week awards calculated successfully.")
 
 
 if __name__ == "__main__":

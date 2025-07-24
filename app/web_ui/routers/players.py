@@ -553,6 +553,7 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
                 "year": player.year,
                 "team_name": player.team.name,
                 "thumbnail_image": player.thumbnail_image,
+                "player_of_the_week_awards": player.player_of_the_week_awards,
             },
             "career_stats": career_stats,
             "season_stats": season_stats,

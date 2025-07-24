@@ -71,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${player.height ? `Height: ${heightStr}` : ''}
                                 ${player.weight ? ` • Weight: ${player.weight} lbs` : ''}
                                 ${player.year ? ` • Year: ${player.year}` : ''}
+                                ${player.player_of_the_week_awards > 0 ? ` • <i class="fas fa-star text-warning"></i> Player of the Week: ${player.player_of_the_week_awards}` : ''}
                             </div>
                         </div>
                         {% if is_authenticated %}

@@ -294,6 +294,7 @@ class PlayerResponse(BaseModel):
     is_active: bool = True
     is_substitute: bool = False
     thumbnail_image: str | None = None
+    player_of_the_week_awards: int = 0
 
 
 # Season Statistics Schemas

@@ -105,6 +105,7 @@ class Player(Base, SoftDeleteMixin):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     thumbnail_image: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to player thumbnail image
     is_substitute: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)  # Flag for substitute players
+    player_of_the_week_awards: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
     team: Mapped[Team] = relationship("Team", back_populates="players")
     game_stats: Mapped[list[PlayerGameStats]] = relationship(
