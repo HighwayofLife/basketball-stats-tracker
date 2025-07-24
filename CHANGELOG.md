@@ -1,3 +1,75 @@
+v0.5.0
+------
+
+### Features
+- **Player of the Week Awards**: Added comprehensive Player of the Week (POTW) award tracking system
+  - New `player_of_the_week_awards` field in Player model to track cumulative awards (legacy)
+  - **PlayerAward Table**: Detailed award tracking with individual records per award
+    - Stores season, award type, week date, points scored, and creation timestamp
+    - Enables historical tracking and season-by-season analysis
+    - Supports future award types beyond Player of the Week
+  - Smart week-based calculation using Monday-Sunday week boundaries
+  - Season-aware calculation logic with calendar year seasons (January-December = "YYYY")
+  - Automatic tie handling - awards given to all tied players with highest weekly points
+  - Awards based on total weekly points: (2PM×2) + (3PM×3) + FTM
+  - **Enhanced Player Detail Pages**: Expandable awards section with season breakdown
+    - Simple display for single season data
+    - Collapsible expandable section for multi-season awards history
+    - Shows recent awards with dates and points scored
+  - Award count included in player stats API responses with detailed summary
+  - Dual system support: legacy integer counter + new detailed tracking
+
+### CLI Enhancements
+- **Enhanced `calculate-potw` Command**: Comprehensive CLI tool for award calculation
+  - `--season YYYY` parameter to calculate awards for specific season only
+  - `--recalculate` flag to reset existing awards and recalculate from scratch
+  - **`--v2` flag**: Use new PlayerAward table system for detailed tracking
+  - Detailed progress output with emoji indicators and season breakdown
+  - Input validation for season format (4-digit year required)
+  - Error handling with descriptive messages and proper exit codes
+  - Example: `basketball-stats calculate-potw --season 2024 --v2 --recalculate`
+- **`migrate-potw` Command**: Migrate existing legacy awards to PlayerAward table
+  - One-time migration from integer counters to detailed records
+  - Creates placeholder records for historical awards
+  - Migration statistics and error reporting
+
+### Database Schema
+- **Migration**: Added `player_of_the_week_awards` integer column to players table (legacy)
+  - Non-nullable with default value of 0 for existing players
+  - SQLite-compatible migration using batch_alter_table
+  - Proper rollback support in migration
+- **Migration**: Added `player_awards` table for detailed award tracking
+  - Stores individual award records with full metadata
+  - Foreign key relationship to players table
+  - Unique constraint on award_type, week_date, season
+  - Supports multiple award types for future extensibility
+
+### API Improvements
+- **Player Stats Endpoint**: Enhanced `/v1/players/{id}/stats` with detailed award data
+  - `player_of_the_week_awards` field (legacy counter for backward compatibility)
+  - **`potw_summary` field**: Comprehensive award breakdown
+    - Current season count, total count, awards by season
+    - Recent awards with dates and points scored
+
+### Services & Architecture
+- **Awards Service v2**: New service layer using PlayerAward table
+  - Season-aware calculation with detailed record creation
+  - Migration utilities for legacy data conversion
+  - Comprehensive CRUD operations for PlayerAward management
+
+### Testing
+- Added unit tests for PlayerAward CRUD operations
+- Enhanced awards service testing with season awareness
+- Updated functional tests for expandable UI components
+- Comprehensive test coverage for awards functionality
+  - **Unit Tests**: 15 tests covering season helpers, week calculation, and tie handling
+  - **Integration Tests**: 8 tests for full workflow, CLI commands, and data persistence
+  - **UI Tests**: 9 tests for display functionality, API responses, and data integrity
+  - **Edge Case Coverage**: No games, no stats, ties, multiple seasons, recalculation
+  - All existing tests continue to pass (936 total tests)
+
+
+
 v0.4.33
 -------
 

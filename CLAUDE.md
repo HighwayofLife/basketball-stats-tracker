@@ -58,6 +58,11 @@ basketball-stats import-game <csv_file>
 basketball-stats report game <game_id> [--format console|csv]
 basketball-stats report player-season <player_id> [--format console|csv]
 
+# Player of the Week awards
+basketball-stats calculate-potw                    # Calculate for all seasons
+basketball-stats calculate-potw --season 2024     # Calculate for specific season
+basketball-stats calculate-potw --recalculate     # Reset and recalculate all awards
+
 # Database management
 basketball-stats init-db
 basketball-stats seed-db
