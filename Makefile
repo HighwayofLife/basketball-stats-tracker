@@ -119,12 +119,12 @@ coverage: ensure-running ## Run tests with coverage reporting inside the contain
 .PHONY: lint
 lint: ensure-running ## Run Ruff linter inside the container
 	@echo "${CYAN}Running linter (Ruff)...${NC}"
-	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check .
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check --fix .
 
 .PHONY: lint-github
 lint-github: ensure-running ## Run Ruff linter with GitHub output format
 	@echo "${CYAN}Running linter (Ruff) with GitHub format...${NC}"
-	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check . --output-format=github
+	@$(COMPOSE_CMD) exec $(APP_SERVICE_NAME) ruff check --fix . --output-format=github
 
 .PHONY: format
 format: ensure-running ## Run Ruff formatter inside the container
@@ -205,7 +205,7 @@ test-data: ensure-running ## Load realistic test data from import/ directory int
 .PHONY: populate-test-data
 populate-test-data: test-data ## Alias for test-data - Load realistic test data into containerized PostgreSQL
 
-.PHONY: test-db-data 
+.PHONY: test-db-data
 test-db-data: test-data ## Alias for test-data - Load realistic test data into containerized PostgreSQL
 
 .PHONY: fresh-test-data

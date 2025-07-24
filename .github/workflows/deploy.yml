@@ -193,6 +193,40 @@ jobs:
           sleep 10
         done
 
+    - name: Calculate Player Awards
+      if: needs.changes.outputs.needs_migration == 'true'
+      run: |
+        echo "Running Player of the Week awards calculation after migration..."
+        
+        # Temporarily update the migration job to run awards calculation
+        gcloud run jobs update basketball-stats-migrate \
+          --args="basketball-stats,calculate-potw,--recalculate" \
+          --region ${{ env.REGION }}
+        
+        # Execute the awards calculation
+        EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
+        echo "Awards calculation execution: $EXECUTION_NAME"
+        
+        # Wait for completion and check status
+        for i in {1..20}; do
+          STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
+          if [ "$STATUS" = "Completed" ]; then
+            echo "✅ Awards calculation completed successfully"
+            break
+          elif [ "$STATUS" = "Failed" ]; then
+            echo "⚠️  Awards calculation failed - continuing with deployment"
+            gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" --limit=10 --format="table(timestamp,severity,textPayload)" --freshness=5m
+            break  # Don't fail deployment if awards calculation fails
+          fi
+          echo "Waiting for awards calculation to complete... ($i/20)"
+          sleep 10
+        done
+        
+        # Restore the migration job to its original configuration
+        gcloud run jobs update basketball-stats-migrate \
+          --args="alembic,upgrade,heads" \
+          --region ${{ env.REGION }}
+
     - name: Update Cloud Run Image
       run: |
         echo "Updating Cloud Run service with new image (preserving Terraform-managed configuration)..."
