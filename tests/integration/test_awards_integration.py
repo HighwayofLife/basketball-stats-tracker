@@ -1,0 +1,440 @@
+# tests/integration/test_awards_integration.py
+
+from datetime import date
+
+import pytest
+from typer.testing import CliRunner
+
+from app.cli import cli
+from app.services.awards_service import calculate_player_of_the_week
+
+
+def create_test_data(session):
+    """Create basic test data for awards tests."""
+    from app.data_access.crud.crud_season import create_season
+    from app.data_access.crud.crud_team import create_team
+
+    # Create teams
+    team1 = create_team(session, {"name": "Test Team 1"})
+    team2 = create_team(session, {"name": "Test Team 2"})
+
+    # Create seasons
+    season1 = create_season(
+        session,
+        {
+            "name": "2024 Season",
+            "code": "2024",
+            "start_date": date(2024, 1, 1),
+            "end_date": date(2024, 12, 31),
+            "is_active": True,
+        },
+    )
+    season2 = create_season(
+        session,
+        {
+            "name": "2025 Season",
+            "code": "2025",
+            "start_date": date(2025, 1, 1),
+            "end_date": date(2025, 12, 31),
+            "is_active": False,
+        },
+    )
+
+    session.commit()
+
+    return {"teams": [team1, team2], "seasons": [season1, season2]}
+
+
+class TestAwardsIntegration:
+    """Integration tests for Player of the Week awards functionality."""
+
+    def test_calculate_potw_full_workflow(self, integration_db_session):
+        """Test complete POTW calculation workflow with real data."""
+        session = integration_db_session
+
+        # Create test data
+        test_data = create_test_data(session)
+        team1 = test_data["teams"][0]
+        team2 = test_data["teams"][1]
+
+        # Create players
+        from app.data_access.crud.crud_player import create_player
+
+        player1 = create_player(
+            session, {"name": "Star Player", "team_id": team1.id, "jersey_number": "10", "position": "PG"}
+        )
+        player2 = create_player(
+            session, {"name": "Good Player", "team_id": team2.id, "jersey_number": "11", "position": "SG"}
+        )
+        player3 = create_player(
+            session, {"name": "Average Player", "team_id": team1.id, "jersey_number": "12", "position": "SF"}
+        )
+
+        # Create games in different weeks and seasons
+        from app.data_access.crud.crud_game import create_game
+
+        # Week 1 - 2024 season
+        game1 = create_game(
+            session,
+            {
+                "date": date(2024, 1, 15),  # Monday
+                "home_team_id": team1.id,
+                "away_team_id": team2.id,
+                "home_score": 100,
+                "away_score": 95,
+                "season_id": test_data["seasons"][0].id,
+            },
+        )
+
+        # Week 2 - 2024 season
+        game2 = create_game(
+            session,
+            {
+                "date": date(2024, 1, 22),  # Following Monday
+                "home_team_id": team2.id,
+                "away_team_id": team1.id,
+                "home_score": 88,
+                "away_score": 92,
+                "season_id": test_data["seasons"][0].id,
+            },
+        )
+
+        # Week 1 - 2025 season
+        game3 = create_game(
+            session,
+            {
+                "date": date(2025, 1, 13),  # Monday in 2025
+                "home_team_id": team1.id,
+                "away_team_id": team2.id,
+                "home_score": 105,
+                "away_score": 98,
+                "season_id": test_data["seasons"][1].id
+                if len(test_data["seasons"]) > 1
+                else test_data["seasons"][0].id,
+            },
+        )
+
+        # Create player game stats
+        from app.data_access.crud.crud_player_game_stats import create_player_game_stats
+
+        # Game 1 stats - Player 1 has high score (should win week 1)
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player1.id,
+                "game_id": game1.id,
+                "total_2pm": 8,  # 16 points
+                "total_2pa": 12,
+                "total_3pm": 4,  # 12 points
+                "total_3pa": 8,
+                "total_ftm": 6,  # 6 points
+                "total_fta": 8,
+                "total_fouls": 2,
+            },
+        )
+
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player2.id,
+                "game_id": game1.id,
+                "total_2pm": 5,  # 10 points
+                "total_2pa": 10,
+                "total_3pm": 2,  # 6 points
+                "total_3pa": 6,
+                "total_ftm": 4,  # 4 points
+                "total_fta": 5,
+                "total_fouls": 3,
+            },
+        )
+
+        # Game 2 stats - Player 2 has high score (should win week 2)
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player2.id,
+                "game_id": game2.id,
+                "total_2pm": 10,  # 20 points
+                "total_2pa": 15,
+                "total_3pm": 5,  # 15 points
+                "total_3pa": 10,
+                "total_ftm": 8,  # 8 points
+                "total_fta": 10,
+                "total_fouls": 1,
+            },
+        )
+
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player1.id,
+                "game_id": game2.id,
+                "total_2pm": 6,  # 12 points
+                "total_2pa": 12,
+                "total_3pm": 3,  # 9 points
+                "total_3pa": 7,
+                "total_ftm": 5,  # 5 points
+                "total_fta": 6,
+                "total_fouls": 4,
+            },
+        )
+
+        # Game 3 stats - Player 3 wins in 2025
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player3.id,
+                "game_id": game3.id,
+                "total_2pm": 12,  # 24 points
+                "total_2pa": 18,
+                "total_3pm": 6,  # 18 points
+                "total_3pa": 12,
+                "total_ftm": 10,  # 10 points
+                "total_fta": 12,
+                "total_fouls": 2,
+            },
+        )
+
+        session.commit()
+
+        # Verify initial state
+        assert player1.player_of_the_week_awards == 0
+        assert player2.player_of_the_week_awards == 0
+        assert player3.player_of_the_week_awards == 0
+
+        # Calculate POTW awards for all seasons
+        results = calculate_player_of_the_week(session, season=None, recalculate=False)
+
+        # Verify results
+        session.refresh(player1)
+        session.refresh(player2)
+        session.refresh(player3)
+
+        # Player 1 should win week 1 of 2024 (34 points vs 20 points)
+        # Player 2 should win week 2 of 2024 (43 points vs 26 points)
+        # Player 3 should win week 1 of 2025 (52 points, only player in that week)
+        assert player1.player_of_the_week_awards == 1
+        assert player2.player_of_the_week_awards == 1
+        assert player3.player_of_the_week_awards == 1
+
+        # Check results summary
+        assert results == {"2024": 2, "2025": 1}
+
+    def test_calculate_potw_specific_season(self, integration_db_session):
+        """Test POTW calculation for specific season only."""
+        session = integration_db_session
+
+        # Create test data (reuse setup from previous test)
+        test_data = create_test_data(session)
+        team1 = test_data["teams"][0]
+        team2 = test_data["teams"][1]
+
+        from app.data_access.crud.crud_player import create_player
+
+        player1 = create_player(
+            session, {"name": "2024 Star", "team_id": team1.id, "jersey_number": "20", "position": "PG"}
+        )
+
+        from app.data_access.crud.crud_game import create_game
+
+        # Game in 2024
+        game1 = create_game(
+            session,
+            {
+                "date": date(2024, 3, 15),
+                "home_team_id": team1.id,
+                "away_team_id": team2.id,
+                "home_score": 100,
+                "away_score": 95,
+                "season_id": test_data["seasons"][0].id,
+            },
+        )
+
+        # Game in 2025
+        game2 = create_game(
+            session,
+            {
+                "date": date(2025, 3, 15),
+                "home_team_id": team1.id,
+                "away_team_id": team2.id,
+                "home_score": 88,
+                "away_score": 92,
+                "season_id": test_data["seasons"][1].id
+                if len(test_data["seasons"]) > 1
+                else test_data["seasons"][0].id,
+            },
+        )
+
+        from app.data_access.crud.crud_player_game_stats import create_player_game_stats
+
+        # Add stats for both games
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player1.id,
+                "game_id": game1.id,
+                "total_2pm": 5,
+                "total_2pa": 10,
+                "total_3pm": 2,
+                "total_3pa": 5,
+                "total_ftm": 3,
+                "total_fta": 4,
+                "total_fouls": 1,
+            },
+        )
+
+        create_player_game_stats(
+            session,
+            {
+                "player_id": player1.id,
+                "game_id": game2.id,
+                "total_2pm": 5,
+                "total_2pa": 10,
+                "total_3pm": 2,
+                "total_3pa": 5,
+                "total_ftm": 3,
+                "total_fta": 4,
+                "total_fouls": 1,
+            },
+        )
+
+        session.commit()
+
+        # Calculate only for 2024
+        results = calculate_player_of_the_week(session, season="2024", recalculate=False)
+
+        session.refresh(player1)
+
+        # Should only get award for 2024 game
+        assert player1.player_of_the_week_awards == 1
+        assert results == {"2024": 1}
+
+    def test_calculate_potw_with_recalculate(self, integration_db_session):
+        """Test recalculate flag resets and recalculates awards."""
+        session = integration_db_session
+
+        # Create minimal test data
+        test_data = create_test_data(session)
+        team1 = test_data["teams"][0]
+        team2 = test_data["teams"][1]
+
+        from app.data_access.crud.crud_player import create_player
+
+        player1 = create_player(
+            session, {"name": "Test Player", "team_id": team1.id, "jersey_number": "30", "position": "C"}
+        )
+
+        # Manually set some awards to test reset
+        player1.player_of_the_week_awards = 5
+        session.commit()
+
+        # Run with recalculate (no games, so should reset to 0)
+        results = calculate_player_of_the_week(session, season=None, recalculate=True)
+
+        session.refresh(player1)
+        assert player1.player_of_the_week_awards == 0
+        assert results == {}
+
+
+class TestAwardsCLIIntegration:
+    """Integration tests for CLI commands."""
+
+    def test_cli_calculate_potw_basic(self):
+        """Test basic CLI command execution."""
+        runner = CliRunner()
+
+        # Mock the dependencies to avoid database requirements
+        with (
+            pytest.mock.patch("app.cli.get_db") as mock_get_db,
+            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+        ):
+            mock_session = pytest.mock.Mock()
+            mock_get_db.return_value = iter([mock_session])
+            mock_calc.return_value = {"2024": 3}
+
+            result = runner.invoke(cli, ["calculate-potw"])
+
+            assert result.exit_code == 0
+            assert "Awards calculated successfully!" in result.output
+            assert "2024: 3 awards" in result.output
+            assert "Total awards given: 3" in result.output
+            mock_calc.assert_called_once_with(mock_session, season=None, recalculate=False)
+
+    def test_cli_calculate_potw_with_season(self):
+        """Test CLI command with season parameter."""
+        runner = CliRunner()
+
+        with (
+            pytest.mock.patch("app.cli.get_db") as mock_get_db,
+            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+        ):
+            mock_session = pytest.mock.Mock()
+            mock_get_db.return_value = iter([mock_session])
+            mock_calc.return_value = {"2024": 2}
+
+            result = runner.invoke(cli, ["calculate-potw", "--season", "2024"])
+
+            assert result.exit_code == 0
+            assert "2024: 2 awards" in result.output
+            mock_calc.assert_called_once_with(mock_session, season="2024", recalculate=False)
+
+    def test_cli_calculate_potw_with_recalculate(self):
+        """Test CLI command with recalculate flag."""
+        runner = CliRunner()
+
+        with (
+            pytest.mock.patch("app.cli.get_db") as mock_get_db,
+            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+        ):
+            mock_session = pytest.mock.Mock()
+            mock_get_db.return_value = iter([mock_session])
+            mock_calc.return_value = {"2024": 1}
+
+            result = runner.invoke(cli, ["calculate-potw", "--recalculate"])
+
+            assert result.exit_code == 0
+            assert "Recalculating all Player of the Week awards" in result.output
+            mock_calc.assert_called_once_with(mock_session, season=None, recalculate=True)
+
+    def test_cli_calculate_potw_invalid_season(self):
+        """Test CLI command with invalid season format."""
+        runner = CliRunner()
+
+        result = runner.invoke(cli, ["calculate-potw", "--season", "invalid"])
+
+        assert result.exit_code == 1
+        assert "Season must be a 4-digit year" in result.output
+
+    def test_cli_calculate_potw_no_results(self):
+        """Test CLI command when no awards are given."""
+        runner = CliRunner()
+
+        with (
+            pytest.mock.patch("app.cli.get_db") as mock_get_db,
+            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+        ):
+            mock_session = pytest.mock.Mock()
+            mock_get_db.return_value = iter([mock_session])
+            mock_calc.return_value = {}
+
+            result = runner.invoke(cli, ["calculate-potw"])
+
+            assert result.exit_code == 0
+            assert "No awards were given" in result.output
+
+    def test_cli_calculate_potw_error_handling(self):
+        """Test CLI command error handling."""
+        runner = CliRunner()
+
+        with (
+            pytest.mock.patch("app.cli.get_db") as mock_get_db,
+            pytest.mock.patch("app.cli.calculate_player_of_the_week") as mock_calc,
+        ):
+            mock_session = pytest.mock.Mock()
+            mock_get_db.return_value = iter([mock_session])
+            mock_calc.side_effect = Exception("Database error")
+
+            result = runner.invoke(cli, ["calculate-potw"])
+
+            assert result.exit_code == 1
+            assert "Error calculating awards: Database error" in result.output
