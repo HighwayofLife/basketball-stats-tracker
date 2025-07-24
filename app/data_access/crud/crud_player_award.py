@@ -8,7 +8,12 @@ from app.data_access.models import PlayerAward
 
 
 def create_player_award(
-    session: Session, player_id: int, season: str, award_type: str, week_date: date, points_scored: int | None = None
+    session: Session,
+    player_id: int,
+    season: str,
+    award_type: str,
+    week_date: date | None,
+    points_scored: int | None = None,
 ) -> PlayerAward:
     """Create a new player award record."""
     award = PlayerAward(
@@ -20,24 +25,25 @@ def create_player_award(
 
 
 def create_player_award_safe(
-    session: Session, player_id: int, season: str, award_type: str, week_date: date, points_scored: int | None = None
+    session: Session,
+    player_id: int,
+    season: str,
+    award_type: str,
+    week_date: date | None,
+    points_scored: int | None = None,
 ) -> PlayerAward | None:
     """Create a new player award record, or return existing one if it already exists."""
     # First check if an award already exists for this week/season
     existing_award = (
         session.query(PlayerAward)
-        .filter(
-            PlayerAward.award_type == award_type,
-            PlayerAward.week_date == week_date,
-            PlayerAward.season == season
-        )
+        .filter(PlayerAward.award_type == award_type, PlayerAward.week_date == week_date, PlayerAward.season == season)
         .first()
     )
-    
+
     if existing_award:
         # Award already exists, return it
         return existing_award
-    
+
     # No existing award, create a new one
     try:
         return create_player_award(session, player_id, season, award_type, week_date, points_scored)
@@ -50,7 +56,7 @@ def create_player_award_safe(
                 .filter(
                     PlayerAward.award_type == award_type,
                     PlayerAward.week_date == week_date,
-                    PlayerAward.season == season
+                    PlayerAward.season == season,
                 )
                 .first()
             )
@@ -103,7 +109,7 @@ def get_all_awards_for_player(session: Session, player_id: int) -> list[PlayerAw
     )
 
 
-def delete_awards_for_week(session: Session, award_type: str, week_date: date, season: str) -> int:
+def delete_awards_for_week(session: Session, award_type: str, week_date: date | None, season: str) -> int:
     """Delete all awards for a specific week (used for recalculation)."""
     deleted_count = (
         session.query(PlayerAward)
@@ -119,7 +125,7 @@ def delete_all_awards_by_type(session: Session, award_type: str) -> int:
     return deleted_count
 
 
-def get_awards_by_week(session: Session, award_type: str, week_date: date, season: str) -> list[PlayerAward]:
+def get_awards_by_week(session: Session, award_type: str, week_date: date | None, season: str) -> list[PlayerAward]:
     """Get all awards for a specific week (useful for checking existing awards)."""
     return (
         session.query(PlayerAward)
@@ -147,3 +153,100 @@ def count_awards_for_player(session: Session, player_id: int, award_type: str | 
         query = query.filter(PlayerAward.award_type == award_type)
 
     return query.count()
+
+
+def get_season_awards(session: Session, season: str, award_type: str | None = None) -> list[PlayerAward]:
+    """Get all season awards (week_date=NULL) for a specific season."""
+    query = session.query(PlayerAward).filter(PlayerAward.season == season, PlayerAward.week_date.is_(None))
+
+    if award_type:
+        query = query.filter(PlayerAward.award_type == award_type)
+
+    return query.order_by(PlayerAward.award_type, PlayerAward.created_at.desc()).all()
+
+
+def get_weekly_awards(session: Session, season: str, award_type: str | None = None) -> list[PlayerAward]:
+    """Get all weekly awards (week_date!=NULL) for a specific season."""
+    query = session.query(PlayerAward).filter(PlayerAward.season == season, PlayerAward.week_date.isnot(None))
+
+    if award_type:
+        query = query.filter(PlayerAward.award_type == award_type)
+
+    return query.order_by(PlayerAward.week_date.desc(), PlayerAward.award_type).all()
+
+
+def delete_season_awards(session: Session, season: str, award_type: str | None = None) -> int:
+    """Delete season awards for a specific season and optionally specific type."""
+    query = session.query(PlayerAward).filter(PlayerAward.season == season, PlayerAward.week_date.is_(None))
+
+    if award_type:
+        query = query.filter(PlayerAward.award_type == award_type)
+
+    deleted_count = query.delete()
+    return deleted_count
+
+
+def finalize_season_award(session: Session, award_id: int) -> PlayerAward | None:
+    """Mark a season award as finalized."""
+    award = session.query(PlayerAward).filter(PlayerAward.id == award_id).first()
+    if award and not award.is_finalized:
+        award.is_finalized = True
+        award.award_date = date.today()
+        session.flush()
+    return award
+
+
+def get_comprehensive_player_award_summary(session: Session, player_id: int) -> dict:
+    """Get comprehensive award summary for a player including both weekly and season awards."""
+    from app.services.awards_service import get_current_season
+
+    current_season = get_current_season()
+
+    # Get all awards for the player
+    all_awards = get_all_awards_for_player(session, player_id)
+
+    # Separate by type
+    weekly_awards = [a for a in all_awards if a.week_date is not None]
+    season_awards = [a for a in all_awards if a.week_date is None]
+
+    # Group weekly awards by type
+    weekly_by_type = {}
+    for award in weekly_awards:
+        if award.award_type not in weekly_by_type:
+            weekly_by_type[award.award_type] = []
+        weekly_by_type[award.award_type].append(award)
+
+    # Group season awards by season and type
+    season_by_year = {}
+    for award in season_awards:
+        if award.season not in season_by_year:
+            season_by_year[award.season] = []
+        season_by_year[award.season].append(award.award_type)
+
+    # Calculate current season counts for weekly awards
+    weekly_summary = {}
+    for award_type, awards in weekly_by_type.items():
+        current_season_count = len([a for a in awards if a.season == current_season])
+        total_count = len(awards)
+        recent_awards = sorted(awards, key=lambda x: x.created_at, reverse=True)[:5]
+
+        weekly_summary[award_type] = {
+            "current_season_count": current_season_count,
+            "total_count": total_count,
+            "recent_awards": [
+                {
+                    "season": a.season,
+                    "week_date": a.week_date.isoformat() if a.week_date else None,
+                    "points_scored": a.points_scored,
+                    "stat_value": a.stat_value,
+                    "created_at": a.created_at.isoformat() if a.created_at else None,
+                }
+                for a in recent_awards
+            ],
+        }
+
+    return {
+        "weekly_awards": weekly_summary,
+        "season_awards": season_by_year,
+        "current_season": current_season,
+    }

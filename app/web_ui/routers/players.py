@@ -22,16 +22,45 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/players", tags=["players"])
 
 
-def _get_potw_summary(session, player_id: int) -> dict:
-    """Get Player of the Week summary using the new PlayerAward table."""
+def _get_comprehensive_awards_summary(session, player_id: int) -> dict:
+    """Get comprehensive awards summary for all award types."""
+    from app.data_access.crud.crud_player_award import get_comprehensive_player_award_summary
+    
     try:
-        result = get_player_potw_summary(session, player_id)
-        logger.info(f"POTW summary for player {player_id}: {result}")
+        result = get_comprehensive_player_award_summary(session, player_id)
+        logger.info(f"Comprehensive awards summary for player {player_id}: {result}")
         return result
     except Exception as e:
-        logger.error(f"Error getting POTW summary for player {player_id}: {e}", exc_info=True)
+        logger.error(f"Error getting awards summary for player {player_id}: {e}", exc_info=True)
         # Return fallback data structure
-        return {"current_season_count": 0, "total_count": 0, "awards_by_season": {}, "recent_awards": []}
+        return {"weekly_awards": {}, "season_awards": {}, "current_season": "2025"}
+
+
+def _get_potw_summary(session, player_id: int) -> dict:
+    """Get Player of the Week summary using the new PlayerAward table (legacy compatibility)."""
+    comprehensive = _get_comprehensive_awards_summary(session, player_id)
+    
+    # Extract POTW data for backward compatibility
+    potw_data = comprehensive["weekly_awards"].get("player_of_the_week", {
+        "current_season_count": 0,
+        "total_count": 0,
+        "recent_awards": []
+    })
+    
+    # Convert to legacy format
+    awards_by_season = {}
+    for award in potw_data.get("recent_awards", []):
+        season = award["season"]
+        if season not in awards_by_season:
+            awards_by_season[season] = 0
+        awards_by_season[season] += 1
+    
+    return {
+        "current_season_count": potw_data["current_season_count"],
+        "total_count": potw_data["total_count"],
+        "awards_by_season": awards_by_season,
+        "recent_awards": potw_data["recent_awards"]
+    }
 
 
 @router.get("/list", response_model=list[PlayerResponse])
@@ -566,7 +595,8 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
                 "year": player.year,
                 "team_name": player.team.name,
                 "thumbnail_image": player.thumbnail_image,
-                "potw_summary": _get_potw_summary(session, player.id),
+                "awards_summary": _get_comprehensive_awards_summary(session, player.id),
+                "potw_summary": _get_potw_summary(session, player.id),  # Legacy compatibility
                 "player_of_the_week_awards": _get_potw_summary(session, player.id).get(
                     "total_count", 0
                 ),  # Legacy counter
@@ -837,26 +867,23 @@ async def calculate_player_awards(
                 season = get_current_season()
             elif season == "all":
                 season = None
-            
+
             # Calculate awards
             results = calculate_player_of_the_week(session, season=season, recalculate=recalculate)
-            
+
             # Get summary statistics
             total_awards = sum(results.values())
             seasons_processed = list(results.keys())
-            
+
             return {
                 "success": True,
                 "message": f"Successfully calculated {total_awards} awards across {len(seasons_processed)} seasons",
                 "results": results,
                 "total_awards": total_awards,
                 "seasons_processed": seasons_processed,
-                "recalculated": recalculate
+                "recalculated": recalculate,
             }
-            
+
     except Exception as e:
         logger.error(f"Error calculating awards: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Failed to calculate awards: {str(e)}"
-        ) from e
+        raise HTTPException(status_code=500, detail=f"Failed to calculate awards: {str(e)}") from e

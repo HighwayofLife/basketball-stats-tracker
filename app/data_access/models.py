@@ -18,6 +18,7 @@ from sqlalchemy import (
     Date,
     DateTime,
     Enum,
+    Float,
     ForeignKey,
     Index,
     Integer,
@@ -499,26 +500,34 @@ class AuditLog(Base):
 
 
 class PlayerAward(Base):
-    """Model for tracking player awards by season and type."""
+    """Model for tracking player awards by season and type.
+
+    Supports both weekly awards (with week_date) and season awards (week_date=NULL).
+    """
 
     __tablename__ = "player_awards"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     player_id: Mapped[int] = mapped_column(Integer, ForeignKey("players.id"), nullable=False)
     season: Mapped[str] = mapped_column(String(10), nullable=False)  # e.g., "2024"
-    award_type: Mapped[str] = mapped_column(String(50), nullable=False)  # "player_of_the_week"
-    week_date: Mapped[dt.date] = mapped_column(Date, nullable=False)  # Week start date
-    points_scored: Mapped[int | None] = mapped_column(Integer, nullable=True)  # For reference
+    award_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., "player_of_the_week", "top_scorer"
+    week_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)  # Week start date (NULL for season awards)
+    award_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)  # Date award was finalized
+    points_scored: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Points for weekly awards
+    stat_value: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # Primary stat for award (percentage, count, etc.)
+    is_finalized: Mapped[bool] = mapped_column(Boolean, default=False)  # True for season awards at season end
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relationships
     player: Mapped[Player] = relationship("Player", back_populates="awards")
 
-    # Unique constraint to prevent duplicate awards for same week
-    __table_args__ = (UniqueConstraint("award_type", "week_date", "season", name="unique_weekly_award"),)
+    # Unique constraint allowing multiple award types per player per season
+    __table_args__ = (UniqueConstraint("player_id", "award_type", "season", "week_date", name="unique_player_award"),)
 
     def __repr__(self) -> str:
+        week_info = f"week={self.week_date}" if self.week_date else "season"
         return (
-            f"<PlayerAward(player_id={self.player_id}, type='{self.award_type}', "
-            f"season='{self.season}', week='{self.week_date}')>"
+            f"<PlayerAward(player_id={self.player_id}, type='{self.award_type}', season='{self.season}', {week_info})>"
         )
