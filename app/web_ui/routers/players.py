@@ -21,6 +21,45 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/v1/players", tags=["players"])
 
 
+def _get_comprehensive_awards_summary(session, player_id: int) -> dict:
+    """Get comprehensive awards summary for all award types."""
+    from app.data_access.crud.crud_player_award import get_comprehensive_player_award_summary
+
+    try:
+        result = get_comprehensive_player_award_summary(session, player_id)
+        logger.info(f"Comprehensive awards summary for player {player_id}: {result}")
+        return result
+    except Exception as e:
+        logger.error(f"Error getting awards summary for player {player_id}: {e}", exc_info=True)
+        # Return fallback data structure
+        return {"weekly_awards": {}, "season_awards": {}, "current_season": "2025"}
+
+
+def _get_potw_summary(session, player_id: int) -> dict:
+    """Get Player of the Week summary using the new PlayerAward table (legacy compatibility)."""
+    comprehensive = _get_comprehensive_awards_summary(session, player_id)
+
+    # Extract POTW data for backward compatibility
+    potw_data = comprehensive["weekly_awards"].get(
+        "player_of_the_week", {"current_season_count": 0, "total_count": 0, "recent_awards": []}
+    )
+
+    # Convert to legacy format
+    awards_by_season = {}
+    for award in potw_data.get("recent_awards", []):
+        season = award["season"]
+        if season not in awards_by_season:
+            awards_by_season[season] = 0
+        awards_by_season[season] += 1
+
+    return {
+        "current_season_count": potw_data["current_season_count"],
+        "total_count": potw_data["total_count"],
+        "awards_by_season": awards_by_season,
+        "recent_awards": potw_data["recent_awards"],
+    }
+
+
 @router.get("/list", response_model=list[PlayerResponse])
 async def list_players(team_id: int | None = None, active_only: bool = True, player_type: str | None = None):
     """Get a list of players with optional team filtering."""
@@ -553,6 +592,11 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
                 "year": player.year,
                 "team_name": player.team.name,
                 "thumbnail_image": player.thumbnail_image,
+                "awards_summary": _get_comprehensive_awards_summary(session, player.id),
+                "potw_summary": _get_potw_summary(session, player.id),  # Legacy compatibility
+                "player_of_the_week_awards": _get_potw_summary(session, player.id).get(
+                    "total_count", 0
+                ),  # Legacy counter
             },
             "career_stats": career_stats,
             "season_stats": season_stats,
@@ -802,3 +846,63 @@ async def restore_player(player_id: int, current_user: User = Depends(require_ad
     except Exception as e:
         logger.error(f"Error restoring player: {e}")
         raise HTTPException(status_code=500, detail="Failed to restore player") from e
+
+
+@router.post("/calculate-awards")
+async def calculate_player_awards(
+    season: str | None = None,
+    recalculate: bool = False,
+    current_user: User = Depends(require_admin),
+):
+    """Calculate all awards (weekly and season) for all players (admin only)."""
+    try:
+        from app.services.awards_service import calculate_all_weekly_awards, get_current_season
+        from app.services.season_awards_service import calculate_season_awards
+
+        with get_db_session() as session:
+            current_season = get_current_season()
+
+            # Determine season parameters
+            if season == "current":
+                season_target = current_season
+                weekly_target = current_season
+            elif season == "all":
+                season_target = current_season  # Season awards only for current
+                weekly_target = None  # Weekly awards for all seasons
+            else:
+                # Specific season provided
+                season_target = season or current_season
+                weekly_target = season
+
+            # Calculate season awards
+            season_results = calculate_season_awards(session, season=season_target, recalculate=recalculate)
+
+            # Calculate weekly awards
+            weekly_results = calculate_all_weekly_awards(session, season=weekly_target, recalculate=recalculate)
+
+            # Compile summary statistics
+            season_total = sum(season_results.values()) if season_results else 0
+            weekly_total = sum(sum(s.values()) for s in weekly_results.values()) if weekly_results else 0
+            total_awards = season_total + weekly_total
+
+            # Format results for frontend
+            award_breakdown = {
+                "season_awards": {"total": season_total, "season": season_target, "awards": season_results or {}},
+                "weekly_awards": {"total": weekly_total, "awards": weekly_results or {}},
+            }
+
+            return {
+                "success": True,
+                "message": f"Successfully calculated {total_awards} total awards "
+                f"({season_total} season, {weekly_total} weekly)",
+                "results": award_breakdown,
+                "total_awards": total_awards,
+                "season_awards": season_total,
+                "weekly_awards": weekly_total,
+                "current_season": current_season,
+                "recalculated": recalculate,
+            }
+
+    except Exception as e:
+        logger.error(f"Error calculating all awards: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Failed to calculate awards: {str(e)}") from e

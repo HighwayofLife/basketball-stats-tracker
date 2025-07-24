@@ -52,7 +52,7 @@ def seed_players(db: Session):
     # Create 5 players for each team
     for team in teams_in_db:
         for i in range(1, 6):
-            jersey_number = i * 10  # 10, 20, 30, 40, 50
+            jersey_number = str(i * 10)  # "10", "20", "30", "40", "50"
             name = f"Player {jersey_number} ({team.name})"
 
             existing = db.query(Player).filter(Player.team_id == team.id, Player.jersey_number == jersey_number).first()

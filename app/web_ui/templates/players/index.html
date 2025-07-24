@@ -43,6 +43,35 @@
         </div>
     </div>
 
+    <!-- Admin Awards Management (only visible to authenticated users) -->
+    {% if is_authenticated %}
+    <div class="card mb-4" style="background-color: #f8f9fa; border-left: 4px solid #007bff;">
+        <div class="card-body">
+            <h6 class="card-title">
+                <i class="fas fa-trophy text-warning me-2"></i>Awards Management
+            </h6>
+            <p class="card-text small text-muted mb-3">Calculate all awards (weekly and season) for players based on their game performance. Includes Player of the Week, seasonal achievements, and weekly honors.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                <button class="btn btn-warning btn-sm" onclick="calculateAwards('current')" id="calculate-current-btn">
+                    <i class="fas fa-calculator me-1"></i>Calculate Current Season
+                </button>
+                <button class="btn btn-outline-warning btn-sm" onclick="calculateAwards('all')" id="calculate-all-btn">
+                    <i class="fas fa-history me-1"></i>Calculate All Seasons
+                </button>
+                <button class="btn btn-outline-danger btn-sm" onclick="calculateAwards('recalculate')" id="recalculate-btn">
+                    <i class="fas fa-redo me-1"></i>Recalculate (Reset All)
+                </button>
+            </div>
+            <div id="awards-calculation-status" class="mt-2" style="display: none;">
+                <div class="progress" style="height: 20px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small class="text-muted mt-1" id="awards-status-text">Initializing...</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Players Table -->
     <div class="card">
         <table class="data-table mobile-table-view">
@@ -978,6 +1007,104 @@ function initializeSortableTables() {
             });
         });
     });
+}
+
+// Awards calculation functions
+async function calculateAwards(type) {
+    const statusDiv = document.getElementById('awards-calculation-status');
+    const statusText = document.getElementById('awards-status-text');
+    const progressBar = statusDiv.querySelector('.progress-bar');
+    
+    // Show progress and disable buttons
+    statusDiv.style.display = 'block';
+    document.getElementById('calculate-current-btn').disabled = true;
+    document.getElementById('calculate-all-btn').disabled = true;
+    document.getElementById('recalculate-btn').disabled = true;
+    
+    try {
+        // Set initial status
+        statusText.textContent = 'Starting awards calculation...';
+        progressBar.style.width = '20%';
+        
+        // Determine parameters
+        let season = null;
+        let recalculate = false;
+        
+        if (type === 'current') {
+            season = 'current';
+            statusText.textContent = 'Calculating current season awards...';
+        } else if (type === 'all') {
+            season = 'all';
+            statusText.textContent = 'Calculating awards for all seasons...';
+        } else if (type === 'recalculate') {
+            recalculate = true;
+            statusText.textContent = 'Recalculating all awards (this may take longer)...';
+        }
+        
+        progressBar.style.width = '50%';
+        
+        // Make API call
+        const response = await fetch('/v1/players/calculate-awards', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                season: season,
+                recalculate: recalculate
+            })
+        });
+        
+        progressBar.style.width = '80%';
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Failed to calculate awards');
+        }
+        
+        const result = await response.json();
+        progressBar.style.width = '100%';
+        
+        // Show success message
+        const seasonInfo = result.seasons_processed ? result.seasons_processed.join(', ') : result.current_season;
+        statusText.innerHTML = `
+            <strong>✅ Success!</strong> ${result.message}<br>
+            <small>Current season: ${result.current_season || 'Unknown'}</small>
+            ${result.season_awards ? `<br><small>Season awards: ${result.season_awards}, Weekly awards: ${result.weekly_awards}</small>` : ''}
+        `;
+        
+        // Add success styling
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-success');
+        
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.remove('bg-success');
+            progressBar.style.width = '0%';
+        }, 4000);
+        
+    } catch (error) {
+        console.error('Awards calculation error:', error);
+        
+        // Show error message
+        statusText.innerHTML = `<strong>❌ Error:</strong> ${error.message}`;
+        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.add('bg-danger');
+        
+        setTimeout(() => {
+            statusDiv.style.display = 'none';
+            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+            progressBar.classList.remove('bg-danger');
+            progressBar.style.width = '0%';
+        }, 6000);
+        
+    } finally {
+        // Re-enable buttons
+        document.getElementById('calculate-current-btn').disabled = false;
+        document.getElementById('calculate-all-btn').disabled = false;
+        document.getElementById('recalculate-btn').disabled = false;
+    }
 }
 
 // Close modals when clicking outside

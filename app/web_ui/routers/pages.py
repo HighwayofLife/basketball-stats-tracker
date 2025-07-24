@@ -19,6 +19,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["pages"])
 
 
+def get_current_week_awards(session):
+    """Get current week's award winners for dashboard display."""
+    try:
+        from app.data_access.crud.crud_player_award import get_current_week_awards as get_week_awards
+
+        return get_week_awards(session)
+    except Exception as e:
+        logger.warning(f"Error getting current week awards: {e}")
+        return {}
+
+
 def get_top_players_from_recent_week(session, limit=4):
     """Get top players from the most recent week when games were played."""
     # Find the most recent game date
@@ -181,11 +192,15 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
             # Get top players from recent games
             top_players = get_top_players_from_recent_week(session, limit=4)
 
+            # Get current week's award winners
+            current_week_awards = get_current_week_awards(session)
+
             context = {
                 **auth_context,
                 "title": "Basketball Stats Dashboard",
                 "recent_games": recent_games_data,
                 "top_players": top_players,
+                "weekly_awards": current_week_awards,
             }
 
             return templates.TemplateResponse("index.html", context)
@@ -197,6 +212,7 @@ async def index(auth_context: dict = Depends(get_template_auth_context)):
             "title": "Basketball Stats Dashboard",
             "recent_games": [],
             "top_players": [],
+            "weekly_awards": {},
         }
         return templates.TemplateResponse("index.html", context)
 

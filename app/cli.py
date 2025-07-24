@@ -459,5 +459,330 @@ def migrate_seasons(
     SeasonCommands.migrate_seasons(force=force)
 
 
+@cli.command("calculate-potw")
+def calculate_potw(
+    season: str = typer.Option(
+        None,
+        "--season",
+        help="Calculate for specific season (e.g., '2024'). If not provided, calculates for all seasons.",
+    ),
+    recalculate: bool = typer.Option(
+        False, "--recalculate", help="Reset existing awards and recalculate from scratch."
+    ),
+):
+    """
+    Calculate Player of the Week awards for games.
+
+    Examples:
+        basketball-stats calculate-potw                    # Calculate for all seasons
+        basketball-stats calculate-potw --season 2024      # Calculate for 2024 season
+        basketball-stats calculate-potw --recalculate      # Reset and recalculate all awards
+    """
+    from app.dependencies import get_db
+    from app.services.awards_service import calculate_player_of_the_week, get_current_season
+
+    db_session = next(get_db())
+
+    try:
+        # Validate season format if provided
+        if season and not season.isdigit():
+            typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
+            raise typer.Exit(1)
+
+        if recalculate:
+            typer.echo("⚠️  Recalculating all Player of the Week awards (this will reset existing awards)")
+
+        current_season = get_current_season()
+        season_display = season or "all seasons"
+        typer.echo(f"🏀 Calculating Player of the Week awards for {season_display}...")
+        typer.echo(f"📅 Current season: {current_season}")
+
+        results = calculate_player_of_the_week(db_session, season=season, recalculate=recalculate)
+
+        if results:
+            typer.echo("✅ Awards calculated successfully!")
+            typer.echo("\n📊 Awards given by season:")
+            for season_key, count in sorted(results.items()):
+                typer.echo(f"   {season_key}: {count} awards")
+
+            total_awards = sum(results.values())
+            typer.echo(f"\n🏆 Total awards given: {total_awards}")
+        else:
+            typer.echo("ℹ️  No awards were given (no games found or no player stats)")
+
+    except Exception as e:
+        typer.echo(f"❌ Error calculating awards: {str(e)}", err=True)
+        raise typer.Exit(1) from e
+
+
+@cli.command("calculate-season-awards")
+def calculate_season_awards(
+    season: str = typer.Option(
+        None,
+        "--season",
+        help="Calculate for specific season (e.g., '2024'). If not provided, calculates current season.",
+    ),
+    recalculate: bool = typer.Option(
+        False, "--recalculate", help="Reset existing awards and recalculate from scratch."
+    ),
+    award_type: str = typer.Option(
+        None,
+        "--type",
+        help="Calculate specific award type only (e.g., 'top_scorer')",
+    ),
+):
+    """
+    Calculate season awards (Top Scorer, Sharpshooter, etc.).
+
+    Examples:
+        basketball-stats calculate-season-awards                        # Calculate current season
+        basketball-stats calculate-season-awards --season 2024         # Calculate 2024 season
+        basketball-stats calculate-season-awards --type top_scorer     # Calculate only Top Scorer
+        basketball-stats calculate-season-awards --recalculate         # Reset and recalculate
+    """
+    from app.dependencies import get_db
+    from app.services.season_awards_service import calculate_season_awards, get_current_season
+
+    db_session = next(get_db())
+
+    try:
+        # Validate season format if provided
+        if season and not season.isdigit():
+            typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
+            raise typer.Exit(1)
+
+        if recalculate:
+            typer.echo("⚠️  Recalculating season awards (this will reset existing awards)")
+
+        current_season = get_current_season()
+        target_season = season or current_season
+        typer.echo(f"🏆 Calculating season awards for {target_season}...")
+
+        if award_type:
+            typer.echo(f"🎯 Calculating only: {award_type}")
+
+        results = calculate_season_awards(db_session, season=target_season, recalculate=recalculate)
+
+        if results:
+            typer.echo("✅ Season awards calculated successfully!")
+            typer.echo(f"\n📊 Awards given for season {target_season}:")
+
+            award_names = {
+                "top_scorer": "🥇 Top Scorer",
+                "sharpshooter": "🎯 Sharpshooter",
+                "efficiency_expert": "📈 Efficiency Expert",
+                "charity_stripe_regular": "🎰 Charity Stripe Regular",
+                "human_highlight_reel": "🎬 Human Highlight Reel",
+                "defensive_tackle": "🛡️  Defensive Tackle",
+                "air_ball_artist": "🎨 Air Ball Artist",
+                "air_assault": "⚔️  Air Assault",
+            }
+
+            for award_key, count in results.items():
+                display_name = award_names.get(award_key, award_key)
+                typer.echo(f"   {display_name}: {count} awards")
+
+            total_awards = sum(results.values())
+            typer.echo(f"\n🏆 Total season awards given: {total_awards}")
+        else:
+            typer.echo("ℹ️  No awards were given (no games found or no player stats)")
+
+    except Exception as e:
+        typer.echo(f"❌ Error calculating season awards: {str(e)}", err=True)
+        raise typer.Exit(1) from e
+
+
+@cli.command("calculate-weekly-awards")
+def calculate_weekly_awards(
+    season: str = typer.Option(
+        None,
+        "--season",
+        help="Calculate for specific season (e.g., '2024'). If not provided, calculates for all seasons.",
+    ),
+    recalculate: bool = typer.Option(
+        False, "--recalculate", help="Reset existing awards and recalculate from scratch."
+    ),
+    award_type: str = typer.Option(
+        None,
+        "--type",
+        help="Calculate specific award type only (e.g., 'quarterly_firepower')",
+    ),
+):
+    """
+    Calculate all weekly awards (POTW, Quarterly Firepower, Hot Hand, etc.).
+
+    Examples:
+        basketball-stats calculate-weekly-awards                           # Calculate all seasons
+        basketball-stats calculate-weekly-awards --season 2024            # Calculate 2024 season
+        basketball-stats calculate-weekly-awards --type hot_hand_weekly   # Calculate only Hot Hand
+        basketball-stats calculate-weekly-awards --recalculate            # Reset and recalculate
+    """
+    from app.dependencies import get_db
+    from app.services.awards_service import calculate_all_weekly_awards, get_current_season
+
+    db_session = next(get_db())
+
+    try:
+        # Validate season format if provided
+        if season and not season.isdigit():
+            typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
+            raise typer.Exit(1)
+
+        if recalculate:
+            typer.echo("⚠️  Recalculating weekly awards (this will reset existing awards)")
+
+        current_season = get_current_season()
+        season_display = season or "all seasons"
+        typer.echo(f"📅 Calculating weekly awards for {season_display}...")
+        typer.echo(f"📅 Current season: {current_season}")
+
+        if award_type:
+            typer.echo(f"🎯 Calculating only: {award_type}")
+
+        results = calculate_all_weekly_awards(db_session, season=season, recalculate=recalculate)
+
+        if results:
+            typer.echo("✅ Weekly awards calculated successfully!")
+
+            award_names = {
+                "player_of_the_week": "🏀 Player of the Week",
+                "quarterly_firepower": "🔥 Quarterly Firepower",
+                "weekly_ft_king": "👑 Weekly FT King/Queen",
+                "hot_hand_weekly": "🔥 Hot Hand Weekly",
+                "clutch_man": "⏰ Clutch-man",
+                "trigger_finger": "🎯 Trigger Finger",
+                "weekly_whiffer": "😅 Weekly Whiffer",
+            }
+
+            for award_key, season_results in results.items():
+                if award_type and award_key != award_type:
+                    continue
+
+                display_name = award_names.get(award_key, award_key)
+                typer.echo(f"\n📊 {display_name}:")
+
+                for season_key, count in sorted(season_results.items()):
+                    typer.echo(f"   {season_key}: {count} awards")
+
+            # Calculate totals
+            if award_type:
+                total_awards = sum(results.get(award_type, {}).values())
+                typer.echo(f"\n🏆 Total {award_names.get(award_type, award_type)} awards: {total_awards}")
+            else:
+                total_awards = sum(sum(season_results.values()) for season_results in results.values())
+                typer.echo(f"\n🏆 Total weekly awards given: {total_awards}")
+        else:
+            typer.echo("ℹ️  No awards were given (no games found or no player stats)")
+
+    except Exception as e:
+        typer.echo(f"❌ Error calculating weekly awards: {str(e)}", err=True)
+        raise typer.Exit(1) from e
+
+
+@cli.command("calculate-all-awards")
+def calculate_all_awards(
+    season: str = typer.Option(
+        None,
+        "--season",
+        help="Calculates and awards weekly and season awards. If --recalculate is used, "
+        "recalculates current season for season awards, all seasons for weekly awards.",
+    ),
+    recalculate: bool = typer.Option(
+        False, "--recalculate", help="Reset existing awards and recalculate from scratch."
+    ),
+):
+    """
+    Calculate all awards - both weekly and season awards.
+
+    Examples:
+        basketball-stats calculate-all-awards                    # Calculate all awards
+        basketball-stats calculate-all-awards --season 2024     # Calculate all awards for 2024
+        basketball-stats calculate-all-awards --recalculate     # Reset and recalculate all
+    """
+    from app.dependencies import get_db
+    from app.services.awards_service import calculate_all_weekly_awards, get_current_season
+    from app.services.season_awards_service import calculate_season_awards
+
+    db_session = next(get_db())
+
+    try:
+        # Validate season format if provided
+        if season and not season.isdigit():
+            typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
+            raise typer.Exit(1)
+
+        if recalculate:
+            typer.echo("⚠️  Recalculating ALL awards (this will reset existing awards)")
+
+        current_season = get_current_season()
+        typer.echo("🎯 Calculating all awards...")
+        typer.echo(f"📅 Current season: {current_season}")
+
+        # Calculate season awards
+        season_target = season or current_season
+        typer.echo(f"\n🏆 Calculating season awards for {season_target}...")
+        season_results = calculate_season_awards(db_session, season=season_target, recalculate=recalculate)
+
+        # Calculate weekly awards
+        weekly_target = season  # None means all seasons for weekly
+        typer.echo(f"\n📅 Calculating weekly awards for {weekly_target or 'all seasons'}...")
+        weekly_results = calculate_all_weekly_awards(db_session, season=weekly_target, recalculate=recalculate)
+
+        # Display results
+        typer.echo("\n✅ All awards calculated successfully!")
+
+        if season_results:
+            typer.echo(f"\n🏆 Season awards for {season_target}:")
+            season_total = sum(season_results.values())
+            typer.echo(f"   Total: {season_total} season awards")
+
+        if weekly_results:
+            typer.echo(f"\n📅 Weekly awards for {weekly_target or 'all seasons'}:")
+            weekly_total = sum(sum(season_data.values()) for season_data in weekly_results.values())
+            typer.echo(f"   Total: {weekly_total} weekly awards")
+
+        grand_total = sum(season_results.values()) + sum(sum(s.values()) for s in weekly_results.values())
+        typer.echo(f"\n🎉 Grand total: {grand_total} awards given!")
+
+    except Exception as e:
+        typer.echo(f"❌ Error calculating all awards: {str(e)}", err=True)
+        raise typer.Exit(1) from e
+
+
+@cli.command("finalize-season")
+def finalize_season(
+    season: str = typer.Argument(..., help="Season to finalize (e.g., '2024')"),
+):
+    """
+    Mark all season awards as finalized for a given season.
+
+    Examples:
+        basketball-stats finalize-season 2024     # Finalize 2024 season awards
+    """
+    from app.dependencies import get_db
+    from app.services.season_awards_service import finalize_season_awards
+
+    db_session = next(get_db())
+
+    try:
+        # Validate season format
+        if not season.isdigit():
+            typer.echo(f"Error: Season must be a 4-digit year (e.g., '2024'), got: {season}", err=True)
+            raise typer.Exit(1)
+
+        typer.echo(f"🏁 Finalizing season awards for {season}...")
+
+        finalized_count = finalize_season_awards(db_session, season)
+
+        if finalized_count > 0:
+            typer.echo(f"✅ Finalized {finalized_count} season awards for {season}")
+        else:
+            typer.echo(f"ℹ️  No season awards to finalize for {season}")
+
+    except Exception as e:
+        typer.echo(f"❌ Error finalizing season: {str(e)}", err=True)
+        raise typer.Exit(1) from e
+
+
 if __name__ == "__main__":
     cli()

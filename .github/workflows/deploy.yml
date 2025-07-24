@@ -193,6 +193,70 @@ jobs:
           sleep 10
         done
 
+    - name: Calculate All Awards (Comprehensive)
+      if: needs.changes.outputs.needs_migration == 'true'
+      run: |
+        echo "Running comprehensive awards calculation after migration..."
+        
+        # Get current season for targeted calculation
+        CURRENT_SEASON=$(date +%Y)
+        echo "Current season: $CURRENT_SEASON"
+        
+        # Function to run awards calculation with error handling
+        run_awards_calculation() {
+          local ARGS="$1"
+          local DESCRIPTION="$2"
+          
+          echo "Running: $DESCRIPTION"
+          
+          # Temporarily update the migration job
+          gcloud run jobs update basketball-stats-migrate \
+            --args="$ARGS" \
+            --region ${{ env.REGION }}
+          
+          # Execute the calculation
+          EXECUTION_NAME=$(gcloud run jobs execute basketball-stats-migrate --region=${{ env.REGION }} --format="get(metadata.name)")
+          echo "Execution: $EXECUTION_NAME"
+          
+          # Wait for completion and check status
+          for i in {1..30}; do
+            STATUS=$(gcloud run jobs executions describe $EXECUTION_NAME --region=${{ env.REGION }} --format="get(status.conditions[0].type)")
+            if [ "$STATUS" = "Completed" ]; then
+              echo "✅ $DESCRIPTION completed successfully"
+              return 0
+            elif [ "$STATUS" = "Failed" ]; then
+              echo "❌ $DESCRIPTION failed"
+              gcloud logging read "resource.type=cloud_run_job AND resource.labels.job_name=basketball-stats-migrate" --limit=10 --format="table(timestamp,severity,textPayload)" --freshness=5m
+              return 1
+            fi
+            echo "Waiting for completion... ($i/30)"
+            sleep 10
+          done
+          
+          echo "⚠️  $DESCRIPTION timed out"
+          return 1
+        }
+        
+        # Calculate all awards comprehensively
+        # This uses the calculate-all-awards command which handles both weekly and season awards
+        if run_awards_calculation "basketball-stats,calculate-all-awards,--season,$CURRENT_SEASON,--recalculate" "All Awards Calculation (Season $CURRENT_SEASON)"; then
+          echo "✅ All awards calculated successfully for current season"
+        else
+          echo "⚠️  Awards calculation failed for current season, trying without recalculate..."
+          if run_awards_calculation "basketball-stats,calculate-all-awards,--season,$CURRENT_SEASON" "All Awards Calculation (Season $CURRENT_SEASON - No Recalculate)"; then
+            echo "✅ Awards calculation completed without recalculate"
+          else
+            echo "❌ Awards calculation failed completely - continuing with deployment"
+          fi
+        fi
+        
+        # Restore the migration job to its original configuration
+        gcloud run jobs update basketball-stats-migrate \
+          --args="alembic,upgrade,heads" \
+          --region ${{ env.REGION }}
+        
+        echo "Awards calculation phase completed"
+
     - name: Update Cloud Run Image
       run: |
         echo "Updating Cloud Run service with new image (preserving Terraform-managed configuration)..."
