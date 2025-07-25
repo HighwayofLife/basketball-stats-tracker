@@ -16,9 +16,27 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const playerId = {{ player_id }};
+    
+    // Global variable to store award configuration
+    let awardConfig = {};
 
-    // Fetch player data
-    fetch(`/v1/players/${playerId}/stats`)
+    // Fetch award configuration first
+    fetch('/api/awards/config')
+        .then(response => response.json())
+        .then(data => {
+            // Transform the data to match the expected format
+            awardConfig = {};
+            Object.entries(data.all_awards).forEach(([key, value]) => {
+                awardConfig[key] = {
+                    name: value.name || value.display_name,
+                    icon: value.icon,
+                    desc: value.desc || value.description
+                };
+            });
+            
+            // Now fetch player data
+            return fetch(`/v1/players/${playerId}/stats`);
+        })
         .then(response => response.json())
         .then(data => {
             renderPlayerData(data);
@@ -43,28 +61,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (totalAwards === 0) return '';
 
-        // Award display names and descriptions
-        const awardInfo = {
-            // Weekly Awards
-            'player_of_the_week': { name: 'The Offensive Onslaught', icon: '🏀', desc: 'Most points scored in a week (FG% tie-breaker)' },
-            'quarterly_firepower': { name: 'Quarter Pounder', icon: '🔥', desc: 'Highest points in any single quarter during the week' },
-            'weekly_ft_king': { name: 'Freethrow Merchant', icon: '👑', desc: 'Most free throws made during the week' },
-            'hot_hand_weekly': { name: 'The Human Cheat Code', icon: '🎯', desc: 'Highest field goal percentage with minimum 10 attempts' },
-            'clutch_man': { name: 'The Final Boss', icon: '⏰', desc: 'Most shots made in 4th quarter during the week' },
-            'trigger_finger': { name: 'Trigger Finger', icon: '🎪', desc: 'Most shot attempts during the week' },
-            'weekly_whiffer': { name: 'Weekly Whiffer', icon: '😅', desc: 'Most missed shots during the week' },
-            'human_howitzer': { name: 'Human Howitzer', icon: '🚀', desc: 'Most 3-point shots made during the week' },
-            
-            // Season Awards
-            'top_scorer': { name: 'Top Scorer', icon: '🥇', desc: 'Most total points scored in the season' },
-            'sharpshooter': { name: 'Sharpshooter', icon: '🎯', desc: 'Highest 3-point percentage with dynamic minimum attempts' },
-            'efficiency_expert': { name: 'Efficiency Expert', icon: '📈', desc: 'Highest field goal percentage with dynamic minimum attempts' },
-            'charity_stripe_regular': { name: 'Charity Stripe Regular', icon: '🎰', desc: 'Most free throw attempts in the season' },
-            'human_highlight_reel': { name: 'Human Highlight Reel', icon: '🎬', desc: 'Most combined made shots (2pt + 3pt + FT) in the season' },
-            'defensive_tackle': { name: 'Defensive Tackle', icon: '🛡️', desc: 'Most fouls committed in the season' },
-            'air_ball_artist': { name: 'Air Ball Artist', icon: '🎨', desc: 'Most 3-point misses in the season' },
-            'air_assault': { name: 'Air Assault', icon: '⚔️', desc: 'Most total shot attempts in the season' }
-        };
+        // Use the global awardConfig loaded from API
+        const awardInfo = awardConfig;
 
         return `
             <div class="card mb-4">

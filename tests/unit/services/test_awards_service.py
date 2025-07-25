@@ -309,3 +309,137 @@ def create_test_data(session):
         "stats3": stats3,
         "stats4": stats4,
     }
+
+
+class TestCalculateDubClub:
+    """Test Dub Club award calculation."""
+
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.get_awards_by_week")
+    def test_calculate_dub_club_basic(self, mock_get_awards, mock_create_award, mock_get_games):
+        """Test basic Dub Club calculation - players scoring 20+ points."""
+        session = Mock()
+
+        # Create mock games with stats
+        game1 = Mock()
+        game1.date = date(2024, 1, 15)  # Monday
+        game1.id = 1
+
+        # Player 1 scores 25 points (10 2PM + 1 3PM + 2 FTM = 25)
+        stat1 = Mock()
+        stat1.player_id = 1
+        stat1.total_2pm = 10
+        stat1.total_3pm = 1
+        stat1.total_ftm = 2
+        stat1.game_id = 1
+
+        # Player 2 scores exactly 20 points (8 2PM + 0 3PM + 4 FTM = 20)
+        stat2 = Mock()
+        stat2.player_id = 2
+        stat2.total_2pm = 8
+        stat2.total_3pm = 0
+        stat2.total_ftm = 4
+        stat2.game_id = 1
+
+        # Player 3 scores 19 points (should not get award)
+        stat3 = Mock()
+        stat3.player_id = 3
+        stat3.total_2pm = 7
+        stat3.total_3pm = 1
+        stat3.total_ftm = 2
+        stat3.game_id = 1
+
+        game1.player_game_stats = [stat1, stat2, stat3]
+        mock_get_games.return_value = [game1]
+
+        # Mock awards created
+        mock_award1 = Mock()
+        mock_award2 = Mock()
+        mock_create_award.side_effect = [mock_award1, mock_award2]
+        mock_get_awards.return_value = [mock_award1, mock_award2]
+
+        from app.services.awards_service import calculate_dub_club
+
+        results = calculate_dub_club(session, season=None, recalculate=False)
+
+        # Should create awards for players 1 and 2
+        assert mock_create_award.call_count == 2
+
+        # Check first award call (player 1 with 25 points)
+        call1_args = mock_create_award.call_args_list[0]
+        assert call1_args.kwargs["player_id"] == 1
+        assert call1_args.kwargs["points_scored"] == 25
+        assert call1_args.kwargs["award_type"] == "dub_club"
+
+        # Check second award call (player 2 with 20 points)
+        call2_args = mock_create_award.call_args_list[1]
+        assert call2_args.kwargs["player_id"] == 2
+        assert call2_args.kwargs["points_scored"] == 20
+
+        assert results == {"2024": 2}
+
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.get_awards_by_week")
+    def test_dub_club_multiple_games_same_week(self, mock_get_awards, mock_create_award, mock_get_games):
+        """Test Dub Club when player scores 20+ in multiple games same week."""
+        session = Mock()
+
+        # Two games in same week
+        game1 = Mock()
+        game1.date = date(2024, 1, 15)  # Monday
+        game1.id = 1
+
+        game2 = Mock()
+        game2.date = date(2024, 1, 17)  # Wednesday
+        game2.id = 2
+
+        # Player 1 scores 22 points in game 1
+        stat1 = Mock()
+        stat1.player_id = 1
+        stat1.total_2pm = 10
+        stat1.total_3pm = 0
+        stat1.total_ftm = 2
+        stat1.game_id = 1
+
+        # Player 1 scores 30 points in game 2 (higher score)
+        stat2 = Mock()
+        stat2.player_id = 1
+        stat2.total_2pm = 12
+        stat2.total_3pm = 2
+        stat2.total_ftm = 0
+        stat2.game_id = 2
+
+        game1.player_game_stats = [stat1]
+        game2.player_game_stats = [stat2]
+        mock_get_games.return_value = [game1, game2]
+
+        mock_award = Mock()
+        mock_create_award.return_value = mock_award
+        mock_get_awards.return_value = [mock_award]
+
+        from app.services.awards_service import calculate_dub_club
+
+        results = calculate_dub_club(session, season=None, recalculate=False)
+
+        # Should only create one award with highest score
+        assert mock_create_award.call_count == 1
+        assert mock_create_award.call_args.kwargs["player_id"] == 1
+        assert mock_create_award.call_args.kwargs["points_scored"] == 30
+        assert results == {"2024": 1}
+
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.delete_all_awards_by_type")
+    def test_dub_club_recalculate(self, mock_delete, mock_get_games):
+        """Test Dub Club recalculation deletes existing awards."""
+        session = Mock()
+        mock_get_games.return_value = []
+        mock_delete.return_value = 3
+
+        from app.services.awards_service import calculate_dub_club
+
+        calculate_dub_club(session, season=None, recalculate=True)
+
+        mock_delete.assert_called_once_with(session, "dub_club")
+        session.commit.assert_called()

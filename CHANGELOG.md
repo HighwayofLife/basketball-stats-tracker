@@ -1,3 +1,27 @@
+v0.5.2
+------
+
+### Features
+- **New "Dub Club" Weekly Award**: Added award for players scoring 20+ points in a single game
+  - Multiple players can earn this award in the same week
+  - Tracks highest single-game score if player scores 20+ multiple times in a week
+  - Displays with 🎖️ icon on dashboard and player profiles
+- **Per-Game Award Logic**: Fixed all weekly awards to be based on best single-game performance
+  - **Player of the Week**: Now awards best single-game scoring performance (not weekly total)
+  - **Freethrow Merchant**: Most FTs made in a single game (not weekly total)
+  - **The Human Cheat Code**: Highest FG% in a single game with 10+ attempts
+  - **The Final Boss**: Most Q4 makes in a single game (not weekly total)
+  - **Trigger Finger**: Most shot attempts in a single game (not weekly total)
+  - **Weekly Whiffer**: Most missed shots in a single game (not weekly total)
+  - **Human Howitzer**: Most 3PM in a single game (not weekly total)
+  - Prevents unfair advantage for players who play multiple games per week
+- **Centralized Award Configuration**: Moved award names, icons, and descriptions to backend
+  - Added `/api/awards/config` endpoint for frontend to fetch award configuration
+  - Player detail page now dynamically loads award info from API
+  - Eliminates duplicate award definitions between frontend and backend
+
+### Bug Fixes
+
 v0.5.1
 ------
 
