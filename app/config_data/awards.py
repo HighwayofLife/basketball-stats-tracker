@@ -139,6 +139,13 @@ SEASON_AWARDS = {
         "icon": "⚔️",
         "desc": "Most total shot attempts in the season",
     },
+    "rick_barry_award": {
+        "name": "The Rick Barry Award",
+        "icon": "⭐",
+        "desc": "Highest free-throw percentage in a season (minimum 10 free throw attempts)",
+        "format_stat": "percentage",
+        "format_points": False,
+    },
 }
 
 # Combined awards dictionary for convenience

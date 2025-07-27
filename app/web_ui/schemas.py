@@ -11,7 +11,7 @@ from app.auth.models import UserRole
 
 class AwardCalculationRequest(BaseModel):
     """Request model for award calculation endpoint."""
-    
+
     season: str | None = None
     recalculate: bool = False
 

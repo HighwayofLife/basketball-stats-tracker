@@ -2,10 +2,8 @@
 
 import logging
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import Integer, func
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.auth.models import User
@@ -37,28 +35,31 @@ award_calculation_status = {
 def update_status(progress: int, message: str, results=None, error=None):
     """Update the calculation status."""
     from datetime import datetime
-    award_calculation_status.update({
-        "progress": progress,
-        "message": message,
-        "last_updated": datetime.now().isoformat(),
-        "results": results,
-        "error": error,
-    })
+
+    award_calculation_status.update(
+        {
+            "progress": progress,
+            "message": message,
+            "last_updated": datetime.now().isoformat(),
+            "results": results,
+            "error": error,
+        }
+    )
     logger.info(f"📊 Status: {progress}% - {message}")
 
 
 def run_award_calculation_sync(season: str, recalculate: bool):
     """Run award calculation synchronously in a separate thread."""
-    from app.services.awards_service import calculate_all_weekly_awards, get_current_season
     from app.data_access.database_manager import db_manager
-    
+    from app.services.awards_service import calculate_all_weekly_awards, get_current_season
+
     try:
         # Mark as started
         award_calculation_status["is_running"] = True
         update_status(0, f"Starting calculation for season: {season}")
-        
+
         logger.info(f"🚀 Background weekly awards calculation started - season: {season}, recalculate: {recalculate}")
-        
+
         with db_manager.get_db_session() as session:
             current_season = get_current_season()
 
@@ -72,20 +73,20 @@ def run_award_calculation_sync(season: str, recalculate: bool):
                 weekly_target = season
 
             update_status(25, f"Calculating weekly awards for {weekly_target or 'all seasons'}")
-            
+
             # Calculate weekly awards only (removing problematic season awards)
             logger.info(f"Calculating weekly awards for {weekly_target}")
             weekly_results = calculate_all_weekly_awards(session, season=weekly_target, recalculate=recalculate)
             logger.info(f"Weekly awards calculated: {weekly_results}")
 
             update_status(90, "Compiling results...")
-            
+
             # Compile summary statistics
             weekly_total = sum(sum(s.values()) for s in weekly_results.values()) if weekly_results else 0
             total_awards = weekly_total
 
             logger.info(f"✅ Award calculation completed! Total awards: {total_awards} (weekly only)")
-            
+
             result = {
                 "success": True,
                 "message": f"Successfully calculated {total_awards} weekly awards",
@@ -94,17 +95,18 @@ def run_award_calculation_sync(season: str, recalculate: bool):
                 "current_season": current_season,
                 "recalculated": recalculate,
             }
-            
+
             # Mark as completed
             award_calculation_status["is_running"] = False
             update_status(100, f"✅ Completed! {total_awards} total awards calculated", results=result)
             return result
-            
+
     except Exception as e:
         logger.error(f"❌ Error in background award calculation: {e}", exc_info=True)
         import traceback
+
         logger.error(f"Full traceback: {traceback.format_exc()}")
-        
+
         # Mark as failed
         award_calculation_status["is_running"] = False
         update_status(0, f"❌ Error: {str(e)}", error=str(e))
@@ -938,9 +940,6 @@ async def restore_player(player_id: int, current_user: User = Depends(require_ad
         raise HTTPException(status_code=500, detail="Failed to restore player") from e
 
 
-
-
-
 @router.get("/calculate-awards/status")
 async def get_calculation_status():
     """Get the current status of award calculation."""
@@ -953,15 +952,17 @@ async def calculate_player_awards(
     current_user: User = Depends(get_current_user),
 ):
     """Calculate all awards (weekly and season) for all players (admin only) - fire and forget."""
-    logger.info(f"=== AWARD CALCULATION ENDPOINT CALLED ===")
+    logger.info("=== AWARD CALCULATION ENDPOINT CALLED ===")
     logger.info(f"Request object: {request}")
     logger.info(f"Current user: {current_user.username if current_user else 'None'}")
-    
+
     # Check admin manually for now
     if not current_user or current_user.role != "admin":
-        logger.warning(f"Non-admin user attempted award calculation: {current_user.username if current_user else 'None'}")
+        logger.warning(
+            f"Non-admin user attempted award calculation: {current_user.username if current_user else 'None'}"
+        )
         raise HTTPException(status_code=403, detail="Admin access required")
-    
+
     # Check if already running
     if award_calculation_status["is_running"]:
         return {
@@ -969,31 +970,34 @@ async def calculate_player_awards(
             "message": "Award calculation is already running. Check status endpoint for progress.",
             "status": "already_running",
         }
-    
+
     # Extract parameters from request body
     season = request.season
     recalculate = request.recalculate
-    
-    logger.info(f"Starting fire-and-forget award calculation - season: {season}, recalculate: {recalculate}, user: {current_user.username}")
-    
+
+    logger.info(
+        f"Starting fire-and-forget award calculation - "
+        f"season: {season}, recalculate: {recalculate}, user: {current_user.username}"
+    )
+
     # Record who started this
     award_calculation_status["started_by"] = current_user.username
-    
+
     # Start the calculation in a completely separate thread (fire and forget)
     import threading
-    
+
     logger.info(f"Starting background award calculation thread - season: {season}, recalculate: {recalculate}")
-    
+
     thread = threading.Thread(
         target=run_award_calculation_sync,
         args=(season, recalculate),
         daemon=True,  # Dies when main process dies
-        name="award-calculation-thread"
+        name="award-calculation-thread",
     )
-    
+
     thread.start()
-    logger.info(f"Award calculation thread started successfully")
-    
+    logger.info("Award calculation thread started successfully")
+
     # Return immediately
     return {
         "success": True,

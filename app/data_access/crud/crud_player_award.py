@@ -186,6 +186,14 @@ def delete_season_awards(session: Session, season: str, award_type: str | None =
     return deleted_count
 
 
+def delete_awards_by_season_and_type(session: Session, award_type: str, season: str) -> int:
+    """Delete all awards of a specific type for a specific season."""
+    deleted_count = (
+        session.query(PlayerAward).filter(PlayerAward.award_type == award_type, PlayerAward.season == season).delete()
+    )
+    return deleted_count
+
+
 def finalize_season_award(session: Session, award_id: int) -> PlayerAward | None:
     """Mark a season award as finalized."""
     award = session.query(PlayerAward).filter(PlayerAward.id == award_id).first()
