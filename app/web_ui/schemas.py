@@ -9,6 +9,13 @@ from pydantic import BaseModel, Field
 from app.auth.models import UserRole
 
 
+class AwardCalculationRequest(BaseModel):
+    """Request model for award calculation endpoint."""
+    
+    season: str | None = None
+    recalculate: bool = False
+
+
 class GameSummary(BaseModel):
     """Basic information about a basketball game."""
 

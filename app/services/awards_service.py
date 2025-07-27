@@ -31,6 +31,9 @@ WEEKLY_AWARD_TYPES = {
     "weekly_whiffer": "weekly_whiffer",
     "human_howitzer": "human_howitzer",
     "dub_club": "dub_club",
+    "marksman_award": "marksman_award",
+    "perfect_performance": "perfect_performance",
+    "breakout_performance": "breakout_performance",
 }
 
 
@@ -75,7 +78,7 @@ def calculate_player_of_the_week(
     if season:
         games = [g for g in games if get_season_from_date(g.date) == season]
 
-    logger.info(f"Processing {len(games)} games for POTW calculation")
+    logger.info(f"📅 Processing {len(games)} games for POTW calculation")
 
     # Group games by season and week
     games_by_season_week = defaultdict(lambda: defaultdict(list))
@@ -86,19 +89,25 @@ def calculate_player_of_the_week(
         week_start = game.date - timedelta(days=game.date.weekday())
         games_by_season_week[game_season][week_start].append(game)
 
+    # Count total weeks to process
+    total_weeks = sum(len(weeks) for weeks in games_by_season_week.values())
+    logger.info(f"📊 Found {total_weeks} total weeks across {len(games_by_season_week)} seasons")
+
     awards_given = defaultdict(int)
 
     # Process each season and week
     for season_key, weeks in games_by_season_week.items():
-        logger.info(f"Processing season {season_key} with {len(weeks)} weeks")
+        logger.info(f"📅 Processing season {season_key} with {len(weeks)} weeks")
 
         for week_start, weekly_games in weeks.items():
+            logger.info(f"  🗓️  Processing week {week_start} with {len(weekly_games)} games")
             # Calculate winner(s) for this week (safe function handles existing awards)
             _ = _calculate_week_winners(session, weekly_games, week_start, season_key, recalculate)
 
             # Count awards (both new and existing)
             week_awards = get_awards_by_week(session, "player_of_the_week", week_start, season_key)
             awards_given[season_key] += len(week_awards)
+            logger.info(f"    ✅ Week {week_start} completed, {len(week_awards)} awards")
 
     session.commit()
     logger.info(f"POTW calculation completed. Awards given by season: {dict(awards_given)}")
@@ -238,17 +247,46 @@ def calculate_all_weekly_awards(
     Returns:
         Dict with award_type -> season -> awards_given count
     """
+    logger.info(f"🏆 Starting calculation of ALL weekly awards for season: {season}, recalculate: {recalculate}")
     results = {}
+
+    logger.info("📊 Calculating Player of the Week...")
     results["player_of_the_week"] = calculate_player_of_the_week(session, season, recalculate)
+
+    logger.info("🔥 Calculating Quarterly Firepower...")
     results["quarterly_firepower"] = calculate_quarterly_firepower(session, season, recalculate)
+
+    logger.info("🎯 Calculating Weekly FT King...")
     results["weekly_ft_king"] = calculate_weekly_ft_king(session, season, recalculate)
+
+    logger.info("🏀 Calculating Hot Hand Weekly...")
     results["hot_hand_weekly"] = calculate_hot_hand_weekly(session, season, recalculate)
+
+    logger.info("⏰ Calculating Clutch-man...")
     results["clutch_man"] = calculate_clutch_man(session, season, recalculate)
+
+    logger.info("🎪 Calculating Trigger Finger...")
     results["trigger_finger"] = calculate_trigger_finger(session, season, recalculate)
+
+    logger.info("😅 Calculating Weekly Whiffer...")
     results["weekly_whiffer"] = calculate_weekly_whiffer(session, season, recalculate)
+
+    logger.info("🚀 Calculating Human Howitzer...")
     results["human_howitzer"] = calculate_human_howitzer(session, season, recalculate)
+
+    logger.info("🎖️ Calculating Dub Club...")
     results["dub_club"] = calculate_dub_club(session, season, recalculate)
 
+    logger.info("🎯 Calculating Marksman Award...")
+    results["marksman_award"] = calculate_marksman_award(session, season, recalculate)
+
+    logger.info("💯 Calculating Perfect Performance...")
+    results["perfect_performance"] = calculate_perfect_performance(session, season, recalculate)
+
+    logger.info("🚀 Calculating Breakout Performance...")
+    results["breakout_performance"] = calculate_breakout_performance(session, season, recalculate)
+
+    logger.info("✅ ALL weekly awards calculation completed!")
     return results
 
 
@@ -758,6 +796,334 @@ def _calculate_dub_club_winners(
             award.game_id = data["game_id"]
             winners.append(player_id)
             logger.debug(f"Awarded Dub Club to player {player_id} for {data['points']} points in week {week_start}")
+
+    session.flush()
+    return winners
+
+
+def calculate_marksman_award(session: Session, season: str | None = None, recalculate: bool = False) -> dict[str, int]:
+    """
+    Calculate Marksman Award - most efficient shooter with 4-8 field goal attempts in a single game.
+    """
+    award_type = WEEKLY_AWARD_TYPES["marksman_award"]
+    logger.info(f"Starting {award_type} calculation for season: {season}, recalculate: {recalculate}")
+
+    if recalculate:
+        delete_all_awards_by_type(session, award_type)
+        session.commit()
+
+    # Get all games, optionally filtered by season
+    games = crud_game.get_all_games(session)
+    if season:
+        games = [g for g in games if get_season_from_date(g.date) == season]
+
+    # Group games by season and week
+    games_by_season_week = defaultdict(lambda: defaultdict(list))
+    for game in games:
+        game_season = get_season_from_date(game.date)
+        week_start = game.date - timedelta(days=game.date.weekday())
+        games_by_season_week[game_season][week_start].append(game)
+
+    awards_given = defaultdict(int)
+
+    # Process each season and week
+    for season_key, weeks in games_by_season_week.items():
+        for week_start, weekly_games in weeks.items():
+            _ = _calculate_marksman_winners(session, weekly_games, week_start, season_key, recalculate)
+            week_awards = get_awards_by_week(session, award_type, week_start, season_key)
+            awards_given[season_key] += len(week_awards)
+
+    session.commit()
+    return dict(awards_given)
+
+
+def calculate_perfect_performance(
+    session: Session, season: str | None = None, recalculate: bool = False
+) -> dict[str, int]:
+    """
+    Calculate Perfect Performance Award - made 100% of shots (minimum 3 makes) in a single game.
+    """
+    award_type = WEEKLY_AWARD_TYPES["perfect_performance"]
+    logger.info(f"Starting {award_type} calculation for season: {season}, recalculate: {recalculate}")
+
+    if recalculate:
+        delete_all_awards_by_type(session, award_type)
+        session.commit()
+
+    # Get all games, optionally filtered by season
+    games = crud_game.get_all_games(session)
+    if season:
+        games = [g for g in games if get_season_from_date(g.date) == season]
+
+    # Group games by season and week
+    games_by_season_week = defaultdict(lambda: defaultdict(list))
+    for game in games:
+        game_season = get_season_from_date(game.date)
+        week_start = game.date - timedelta(days=game.date.weekday())
+        games_by_season_week[game_season][week_start].append(game)
+
+    awards_given = defaultdict(int)
+
+    # Process each season and week
+    for season_key, weeks in games_by_season_week.items():
+        for week_start, weekly_games in weeks.items():
+            _ = _calculate_perfect_performance_winners(session, weekly_games, week_start, season_key, recalculate)
+            week_awards = get_awards_by_week(session, award_type, week_start, season_key)
+            awards_given[season_key] += len(week_awards)
+
+    session.commit()
+    return dict(awards_given)
+
+
+def calculate_breakout_performance(
+    session: Session, season: str | None = None, recalculate: bool = False
+) -> dict[str, int]:
+    """
+    Calculate Breakout Performance Award - biggest scoring improvement over season average in a single game.
+    """
+    award_type = WEEKLY_AWARD_TYPES["breakout_performance"]
+    logger.info(f"Starting {award_type} calculation for season: {season}, recalculate: {recalculate}")
+
+    if recalculate:
+        delete_all_awards_by_type(session, award_type)
+        session.commit()
+
+    # Get all games, optionally filtered by season
+    games = crud_game.get_all_games(session)
+    if season:
+        games = [g for g in games if get_season_from_date(g.date) == season]
+
+    # Group games by season and week
+    games_by_season_week = defaultdict(lambda: defaultdict(list))
+    for game in games:
+        game_season = get_season_from_date(game.date)
+        week_start = game.date - timedelta(days=game.date.weekday())
+        games_by_season_week[game_season][week_start].append(game)
+
+    awards_given = defaultdict(int)
+
+    # Process each season and week
+    for season_key, weeks in games_by_season_week.items():
+        # Skip seasons we're not interested in
+        if season and season_key != season:
+            continue
+            
+        for week_start, weekly_games in weeks.items():
+            logger.info(f"  🗓️  Processing breakout performance for week {week_start}")
+            _ = _calculate_breakout_performance_winners(session, weekly_games, week_start, season_key, recalculate)
+            week_awards = get_awards_by_week(session, award_type, week_start, season_key)
+            awards_given[season_key] += len(week_awards)
+            logger.info(f"    ✅ Week {week_start} completed, {len(week_awards)} awards")
+
+    session.commit()
+    return dict(awards_given)
+
+
+def _calculate_marksman_winners(
+    session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False
+) -> list[int]:
+    """Calculate winners for Marksman Award (most efficient shooter with 4-8 FGA in single game)."""
+    # Track best single-game FG% for each player with 4-8 attempts
+    player_best_fg_pct = {}
+
+    # Check each game for qualifying performances
+    for game in weekly_games:
+        for stat in game.player_game_stats:
+            fgm = stat.total_2pm + stat.total_3pm
+            fga = stat.total_2pa + stat.total_3pa
+
+            # Only consider games with 4-8 attempts (inclusive)
+            if 4 <= fga <= 8:
+                fg_pct = fgm / fga if fga > 0 else 0.0
+                player_id = stat.player_id
+
+                # Track the best single-game FG% for each player
+                if player_id not in player_best_fg_pct or fg_pct > player_best_fg_pct[player_id]["percentage"]:
+                    player_best_fg_pct[player_id] = {
+                        "percentage": fg_pct,
+                        "game_id": game.id,
+                    }
+
+    if not player_best_fg_pct:
+        logger.info(f"No players qualified for Marksman Award (4-8 attempts in single game) in week {week_start}")
+        return []
+
+    # Find winner(s) - players with the highest single-game FG%
+    max_percentage = max(data["percentage"] for data in player_best_fg_pct.values())
+    winners = [pid for pid, data in player_best_fg_pct.items() if data["percentage"] == max_percentage]
+
+    # Create awards
+    for player_id in winners:
+        award = create_player_award_safe(
+            session=session,
+            player_id=player_id,
+            season=season,
+            award_type=WEEKLY_AWARD_TYPES["marksman_award"],
+            week_date=week_start,
+            points_scored=None,
+        )
+        if award:
+            award.stat_value = max_percentage
+            award.game_id = player_best_fg_pct[player_id]["game_id"]
+            logger.debug(f"Awarded Marksman to player {player_id} with {max_percentage:.1%} FG% in single game")
+
+    session.flush()
+    return winners
+
+
+def _calculate_perfect_performance_winners(
+    session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False
+) -> list[int]:
+    """Calculate winners for Perfect Performance Award (100% shooting with minimum 3 makes)."""
+    winners = []
+
+    # Check each game for perfect performances
+    for game in weekly_games:
+        for stat in game.player_game_stats:
+            total_makes = stat.total_2pm + stat.total_3pm + stat.total_ftm
+
+            # Must have at least 3 makes
+            if total_makes >= 3:
+                # Check if player missed any shots
+                perfect_2pt = stat.total_2pa == stat.total_2pm
+                perfect_3pt = stat.total_3pa == stat.total_3pm
+                perfect_ft = stat.total_fta == stat.total_ftm
+
+                if perfect_2pt and perfect_3pt and perfect_ft:
+                    player_id = stat.player_id
+
+                    # Create award (can have multiple winners in same week)
+                    award = create_player_award_safe(
+                        session=session,
+                        player_id=player_id,
+                        season=season,
+                        award_type=WEEKLY_AWARD_TYPES["perfect_performance"],
+                        week_date=week_start,
+                        points_scored=None,
+                    )
+                    if award:
+                        award.stat_value = float(total_makes)
+                        award.game_id = game.id
+                        winners.append(player_id)
+                        logger.debug(
+                            f"Awarded Perfect Performance to player {player_id} with {total_makes} perfect makes"
+                        )
+
+    session.flush()
+    return winners
+
+
+def _get_player_season_averages_before_week(session: Session, season: str, week_start: date) -> dict:
+    """Get season averages for all players before a specific week (optimized single query)."""
+    from sqlalchemy import extract, func
+
+    from app.data_access.models import Game, PlayerGameStats
+
+    logger.info(f"    🔍 Querying season averages for season {season} before week {week_start}")
+
+    # Single query to get all player averages before the specified week
+    try:
+        query = (
+            session.query(
+                PlayerGameStats.player_id,
+                func.count(PlayerGameStats.id).label("games_played"),
+                func.sum(
+                    (PlayerGameStats.total_2pm * 2) + (PlayerGameStats.total_3pm * 3) + PlayerGameStats.total_ftm
+                ).label("total_points"),
+            )
+            .join(Game)
+            .filter(Game.date < week_start, extract("year", Game.date) == int(season))
+            .group_by(PlayerGameStats.player_id)
+            .having(func.count(PlayerGameStats.id) >= 3)  # Min 3 games
+            .all()
+        )
+    except Exception as e:
+        logger.error(f"    ❌ Error in season averages query: {e}")
+        return {}
+
+    logger.info(f"    📊 Query returned {len(query)} player records")
+
+    player_averages = {}
+    for player_id, games_played, total_points in query:
+        avg_ppg = total_points / games_played if games_played > 0 else 0.0
+        if avg_ppg > 2.0:  # Filter low scorers
+            player_averages[player_id] = {
+                "games_played": games_played,
+                "avg_points": avg_ppg,
+                "total_points": total_points,
+            }
+
+    logger.info(f"    ✅ Filtered to {len(player_averages)} qualified players (>2.0 PPG)")
+    return player_averages
+
+
+def _calculate_breakout_performance_winners(
+    session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False
+) -> list[int]:
+    """Calculate winners for Breakout Performance Award (optimized version)."""
+
+    # Pre-compute all player season averages before this week (single efficient query)
+    player_averages = _get_player_season_averages_before_week(session, season, week_start)
+
+    if not player_averages:
+        logger.info(f"No qualified players for Breakout Performance Award in week {week_start}")
+        return []
+
+    player_improvement_scores = {}
+
+    # Check each game for breakout performances
+    for game in weekly_games:
+        for stat in game.player_game_stats:
+            player_id = stat.player_id
+
+            # Skip if player doesn't have qualifying season average
+            if player_id not in player_averages:
+                continue
+
+            current_game_points = (stat.total_2pm * 2) + (stat.total_3pm * 3) + stat.total_ftm
+            avg_ppg = player_averages[player_id]["avg_points"]
+
+            # Calculate improvement score
+            improvement_score = (current_game_points - avg_ppg) / avg_ppg
+
+            # Track the highest improvement score for each player
+            if (
+                player_id not in player_improvement_scores
+                or improvement_score > player_improvement_scores[player_id]["score"]
+            ):
+                player_improvement_scores[player_id] = {
+                    "score": improvement_score,
+                    "game_points": current_game_points,
+                    "avg_ppg": avg_ppg,
+                    "game_id": game.id,
+                }
+
+    if not player_improvement_scores:
+        logger.info(f"No players qualified for Breakout Performance Award in week {week_start}")
+        return []
+
+    # Find winner(s) - players with the highest improvement score
+    max_improvement = max(data["score"] for data in player_improvement_scores.values())
+    winners = [pid for pid, data in player_improvement_scores.items() if data["score"] == max_improvement]
+
+    # Create awards
+    for player_id in winners:
+        data = player_improvement_scores[player_id]
+        award = create_player_award_safe(
+            session=session,
+            player_id=player_id,
+            season=season,
+            award_type=WEEKLY_AWARD_TYPES["breakout_performance"],
+            week_date=week_start,
+            points_scored=data["game_points"],
+        )
+        if award:
+            award.stat_value = data["score"]
+            award.game_id = data["game_id"]
+            logger.debug(
+                f"Awarded Breakout Performance to player {player_id} - "
+                f"{data['game_points']} pts vs {data['avg_ppg']:.1f} avg ({data['score']:.1%} improvement)"
+            )
 
     session.flush()
     return winners

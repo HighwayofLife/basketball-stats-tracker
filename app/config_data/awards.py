@@ -74,6 +74,27 @@ WEEKLY_AWARDS = {
         "format_stat": None,
         "format_points": True,
     },
+    "marksman_award": {
+        "name": "The Marksman",
+        "icon": "🎯",
+        "desc": "Most efficient shooter with 4-8 field goal attempts in a single game",
+        "format_stat": "percentage",
+        "format_points": False,
+    },
+    "perfect_performance": {
+        "name": "Perfect Performance",
+        "icon": "💯",
+        "desc": "Made 100% of shots (minimum 3 makes) in a single game",
+        "format_stat": "makes",
+        "format_points": False,
+    },
+    "breakout_performance": {
+        "name": "Breakout Performance",
+        "icon": "🚀",
+        "desc": "Biggest scoring improvement over season average in a single game",
+        "format_stat": "percentage",
+        "format_points": True,
+    },
 }
 
 # Season Award Configuration
@@ -174,7 +195,12 @@ def format_award_stat(award_type: str, stat_value: float) -> str:
         return ""
 
     if info["format_stat"] == "percentage":
-        return f"{stat_value * 100:.1f}% FG"
+        if award_type == "breakout_performance":
+            return f"{stat_value * 100:.0f}% improvement"
+        else:
+            return f"{stat_value * 100:.1f}% FG"
+    elif info["format_stat"] == "makes":
+        return f"{int(stat_value)} makes"
     else:
         # Format as integer for counts (shots made, points, attempts, etc.)
         return f"{int(stat_value)} {info['format_stat']}"

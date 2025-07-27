@@ -1010,6 +1010,80 @@ function initializeSortableTables() {
 }
 
 // Awards calculation functions
+async function pollCalculationStatus(statusText, progressBar, statusDiv) {
+    const maxPolls = 120; // 2 minutes max (120 * 1 second)
+    let pollCount = 0;
+    
+    const poll = async () => {
+        try {
+            const response = await fetch('/v1/players/calculate-awards/status', {
+                credentials: 'include'
+            });
+            
+            if (!response.ok) {
+                throw new Error('Failed to get status');
+            }
+            
+            const status = await response.json();
+            
+            // Update progress bar
+            progressBar.style.width = `${status.progress}%`;
+            statusText.textContent = status.message;
+            
+            if (!status.is_running) {
+                // Calculation finished
+                if (status.error) {
+                    // Error case
+                    statusText.innerHTML = `<strong>❌ Error:</strong> ${status.error}`;
+                    progressBar.classList.add('bg-danger');
+                } else if (status.results) {
+                    // Success case
+                    showCompletionMessage(status.results, statusText, progressBar, statusDiv);
+                    return; // Stop polling
+                }
+            }
+            
+            pollCount++;
+            if (pollCount < maxPolls && status.is_running) {
+                setTimeout(poll, 1000); // Poll every second
+            } else if (pollCount >= maxPolls) {
+                statusText.innerHTML = '<strong>⏱️ Timeout:</strong> Calculation is taking longer than expected';
+                progressBar.classList.add('bg-warning');
+            }
+            
+        } catch (error) {
+            console.error('Status polling error:', error);
+            statusText.innerHTML = '<strong>❌ Error:</strong> Failed to check calculation status';
+            progressBar.classList.add('bg-danger');
+        }
+    };
+    
+    // Start polling
+    poll();
+}
+
+function showCompletionMessage(result, statusText, progressBar, statusDiv) {
+    progressBar.style.width = '100%';
+    
+    // Show success message
+    statusText.innerHTML = `
+        <strong>✅ Success!</strong> ${result.message}<br>
+        <small>Current season: ${result.current_season || 'Unknown'}</small>
+        ${result.season_awards ? `<br><small>Season awards: ${result.season_awards}, Weekly awards: ${result.weekly_awards}</small>` : ''}
+    `;
+    
+    // Add success styling
+    progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+    progressBar.classList.add('bg-success');
+    
+    setTimeout(() => {
+        statusDiv.style.display = 'none';
+        progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
+        progressBar.classList.remove('bg-success', 'bg-danger', 'bg-warning');
+        progressBar.style.width = '0%';
+    }, 6000);
+}
+
 async function calculateAwards(type) {
     const statusDiv = document.getElementById('awards-calculation-status');
     const statusText = document.getElementById('awards-status-text');
@@ -1049,6 +1123,7 @@ async function calculateAwards(type) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include', // Include cookies for authentication
             body: JSON.stringify({
                 season: season,
                 recalculate: recalculate
@@ -1063,26 +1138,19 @@ async function calculateAwards(type) {
         }
         
         const result = await response.json();
-        progressBar.style.width = '100%';
         
-        // Show success message
-        const seasonInfo = result.seasons_processed ? result.seasons_processed.join(', ') : result.current_season;
-        statusText.innerHTML = `
-            <strong>✅ Success!</strong> ${result.message}<br>
-            <small>Current season: ${result.current_season || 'Unknown'}</small>
-            ${result.season_awards ? `<br><small>Season awards: ${result.season_awards}, Weekly awards: ${result.weekly_awards}</small>` : ''}
-        `;
-        
-        // Add success styling
-        progressBar.classList.remove('progress-bar-striped', 'progress-bar-animated');
-        progressBar.classList.add('bg-success');
-        
-        setTimeout(() => {
-            statusDiv.style.display = 'none';
-            progressBar.classList.add('progress-bar-striped', 'progress-bar-animated');
-            progressBar.classList.remove('bg-success');
-            progressBar.style.width = '0%';
-        }, 4000);
+        if (result.status === 'started') {
+            // Start polling for progress
+            statusText.textContent = 'Award calculation started. Checking progress...';
+            await pollCalculationStatus(statusText, progressBar, statusDiv);
+        } else if (result.status === 'already_running') {
+            statusText.textContent = 'Award calculation already in progress. Checking status...';
+            await pollCalculationStatus(statusText, progressBar, statusDiv);
+        } else {
+            // Immediate result (shouldn't happen with background task)
+            progressBar.style.width = '100%';
+            showCompletionMessage(result, statusText, progressBar, statusDiv);
+        }
         
     } catch (error) {
         console.error('Awards calculation error:', error);
