@@ -28,6 +28,13 @@ v0.5.2
   - Player detail page now dynamically loads award info from API
   - Eliminates duplicate award definitions between frontend and backend
 
+- **New Season Award**: Added "The Rick Barry Award" for highest free-throw percentage in a season (⭐)
+  - Requires a minimum of 10 free throw attempts to qualify.
+
+### CLI Enhancements
+- **Updated `calculate-season-awards` command**: Now uses the new season award calculation logic, including "The Rick Barry Award".
+- **Updated `calculate-all-awards` command**: Includes the calculation of all season awards.
+
 ### Bug Fixes
 
 v0.5.1

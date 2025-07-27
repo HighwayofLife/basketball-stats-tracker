@@ -129,7 +129,10 @@ class TestAdminCalculateAwards:
 
             # Should complete without AttributeError
             assert isinstance(result, dict)
-            assert len(result) == 12  # All 12 weekly awards
+            # Import the actual weekly awards configuration to avoid magic numbers
+            from app.services.awards_service import WEEKLY_AWARD_TYPES
+
+            assert len(result) == len(WEEKLY_AWARD_TYPES)  # All weekly awards
 
             # Verify all expected weekly awards are calculated
             expected_weekly_awards = [

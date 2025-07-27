@@ -37,6 +37,19 @@ WEEKLY_AWARD_TYPES = {
     "breakout_performance": "breakout_performance",
 }
 
+# Season award type constants
+SEASON_AWARD_TYPES = [
+    "rick_barry_award",
+    "top_scorer",
+    "sharpshooter",
+    "efficiency_expert",
+    "human_highlight_reel",
+    "charity_stripe_regular",
+    "defensive_tackle",
+    "air_ball_artist",
+    "air_assault",
+]
+
 
 def get_season_from_date(game_date: date) -> str:
     """
@@ -284,7 +297,7 @@ def calculate_all_weekly_awards(
     logger.info("💯 Calculating Perfect Performance...")
     results["perfect_performance"] = calculate_perfect_performance(session, season, recalculate)
 
-    logger.info("🚀 Calculating Breakout Performance...")
+    logger.info("⬆️ Calculating Breakout Performance...")
     results["breakout_performance"] = calculate_breakout_performance(session, season, recalculate)
 
     logger.info("✅ ALL weekly awards calculation completed!")
@@ -399,7 +412,7 @@ def calculate_all_season_awards(
     airball_count = calculate_air_ball_artist(session, season, recalculate)
     results["air_ball_artist"] = {season: airball_count} if season else {}
 
-    logger.info("🚀 Calculating Air Assault...")
+    logger.info("✈️ Calculating Air Assault...")
     assault_count = calculate_air_assault(session, season, recalculate)
     results["air_assault"] = {season: assault_count} if season else {}
 
@@ -1162,8 +1175,13 @@ def _get_player_season_averages_before_week(session: Session, season: str, week_
     logger.info(f"    📊 Query returned {query_len} player records")
 
     player_averages = {}
-    # Handle case where query is mocked in tests
-    query_items = query if hasattr(query, "__iter__") and not hasattr(query, "_mock_name") else []
+    # Process query results - handle both real results and mocked objects
+    try:
+        query_items = list(query) if query else []
+    except (TypeError, AttributeError):
+        # Handle cases where query cannot be iterated (e.g., mocked objects)
+        query_items = []
+
     for player_id, games_played, total_points in query_items:
         avg_ppg = total_points / games_played if games_played > 0 else 0.0
         if avg_ppg > 2.0:  # Filter low scorers

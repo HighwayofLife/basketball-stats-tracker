@@ -205,18 +205,11 @@ class TestAwardsCalculationEndToEnd:
             # Test the full integration
             result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
-            # Verify all 9 season awards were calculated
-            expected_awards = [
-                "rick_barry_award",
-                "top_scorer",
-                "sharpshooter",
-                "efficiency_expert",
-                "charity_stripe_regular",
-                "human_highlight_reel",
-                "defensive_tackle",
-                "air_ball_artist",
-                "air_assault",
-            ]
+            # Import the actual season awards configuration to avoid magic numbers
+            from app.services.awards_service import SEASON_AWARD_TYPES
+
+            # Verify all season awards were calculated
+            expected_awards = SEASON_AWARD_TYPES
 
             assert isinstance(result, dict)
             for award_type in expected_awards:
