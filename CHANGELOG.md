@@ -114,27 +114,23 @@ v0.4.32
 -------
 
 ### Bug Fixes
-  - Fixed dashboard "Players of the Week" by adding 'id' field to player data
-  - Fixed game detail box scores by removing function override that prevented portraits from showing
-  - Player portraits now correctly display on Dashboard, Game Leaders, Players list, and Box Scores
+- Fixed dashboard "Players of the Week" by adding 'id' field to player data
+- Fixed game detail box scores by removing function override that prevented portraits from showing
+- Fixed player portraits display on Dashboard, Game Leaders, Players list, and Box Scores
 
 v0.4.31
 -------
 
 ### Bug Fixes
-- **Player Thumbnails**: Fixed player portrait images not displaying in several locations
-  - Added missing thumbnail_image field to players list API endpoint
-  - Fixed players list page to use shared player-portraits.js module
+- Fixed player portrait images not displaying in several locations
+- Added missing thumbnail_image field to players list API endpoint
+- Fixed players list page to use shared player-portraits.js module
 
 v0.4.30
 -------
 
 ### Features
-- **Clickable Player Names**: Enhanced user experience by making player names clickable throughout the application
-  - Game Leaders section in game detail pages now link to individual player profiles
-  - Players of the Week section on dashboard now links to player profiles
-  - Added player profile navigation from game statistics displays
-  - Improved discoverability of player information across the interface
+- Enhanced user experience by making player names clickable throughout the application
 
 ### Testing
 - Added integration test ensuring Players of the Week names link correctly
@@ -143,139 +139,95 @@ v0.4.28
 -------
 
 ### Bug Fixes
-- **Top Player Ranking**: Changed the metric for determining top players on the matchup screen from points-per-game to total points to provide a more accurate representation of player contribution.
-- **Team Logo Display**: Fixed an issue where team logos were not consistently displaying due to a logic error in the image URL generation.
+- Changed metric for determining top players on matchup screen from points-per-game to total points
+- Fixed team logos not consistently displaying due to logic error in image URL generation
 
 v0.4.27
 -------
 
 ### Bug Fixes
-- **Head-to-Head History Display Issues**: Fixed 0-0 scores in production matchup history
-  - Fixed scorebook submission to save calculated scores to Game model fields
-  - Added game score population for existing games with missing score data
-  - Enhanced head-to-head history with "Box Score" links to game detail pages
-  - Improved game history display with actionable links for detailed game analysis
+- Fixed 0-0 scores in production matchup history
+- Fixed scorebook submission to save calculated scores to Game model fields
+- Enhanced head-to-head history with "Box Score" links to game detail pages
 
 v0.4.26
 -------
 
 ### Features
-- **Season Management Enhancements**: Added comprehensive season selection and management capabilities
-  - Added season dropdown to scorebook entry form for manual season assignment
-  - Enhanced scorebook submission to accept optional season_id parameter
-  - Added `/v1/seasons/list` API endpoint for season selection dropdowns
-  - Auto-selects active season by default with fallback to date-based detection
-  - Improved season assignment logic to use provided season or auto-detect from game date
+- Added comprehensive season selection and management capabilities
+- Added season dropdown to scorebook entry form for manual season assignment
+- Added `/v1/seasons/list` API endpoint for season selection dropdowns
 
 ### Bug Fixes
-- **Season Statistics Data Issues**: Fixed critical production issues with missing season statistics
-  - Resolved 0-0 team records showing on matchup pages instead of actual win-loss records
-  - Fixed missing player statistics and empty "top players" sections in matchup previews
-  - Added production season migration to assign existing games to correct seasons
-  - Enhanced season statistics calculation to ensure all games are properly categorized
+- Fixed critical production issues with missing season statistics
+- Resolved 0-0 team records showing on matchup pages
+- Fixed missing player statistics in matchup previews
 
 ### Infrastructure
-- **One-time Season Migration**: Added automated production migration workflow
-  - Automatically runs once when merged to master to fix existing season assignment issues
-  - Self-disabling workflow prevents accidental re-runs after completion
-  - Migrates all unassigned games to appropriate seasons based on game dates
-  - Recalculates all season statistics after migration
+- Added automated production migration workflow
 
 v0.4.25
 -------
 
 ### Features
-- **Player Portrait Display**: Added player portrait/headshot display across multiple UI pages
-  - Team detail page roster now shows 40x40px player portraits next to names
-  - Game detail box scores display 32x32px portraits in player rows
-  - Player season report shows 120x120px portrait in header
-  - Box score report includes portraits in player statistics tables
-  - Dashboard "Players of the Week" section shows 50x50px portraits
-  - Fallback to user icon when no portrait uploaded
+- Added player portrait/headshot display across multiple UI pages
 
 ### Bug Fixes
-- **Player Portrait Display Issues**: Fixed multiple issues with player portrait rendering
-  - Resolved malformed HTML and rogue quote sequences on player detail page after upload
-  - Fixed camera button positioning to stay in bottom-right corner of portrait
-  - Added `thumbnail_image` field to box score API responses for proper portrait display
-  - Updated PlayerResponse schema to include thumbnail_image for team roster display
-  - Enhanced player stats card component to use actual portraits instead of placeholder icons
+- Fixed multiple issues with player portrait rendering
+- Resolved malformed HTML and rogue quote sequences on player detail page after upload
+- Fixed camera button positioning to stay in bottom-right corner of portrait
+- Added `thumbnail_image` field to box score API responses for proper portrait display
+- Updated PlayerResponse schema to include thumbnail_image for team roster display
 
 v0.4.24
 -------
 
 ### Features
-- **Matchup Page Team Logos**: Added team logos to the matchup header display
-  - 200x200px logos displayed beside team names for visual appeal
-  - Responsive design adjusts logo size to 120x120px on mobile devices
-  - Placeholder basketball icon shown when team logos not uploaded
-  - Maintains clean layout with logos, team names, and records
-- **Top Players Statistics Enhancement**: Improved player statistics display in matchup preview
-  - Replaced raw shot attempts with shooting percentages (FG%, 3P%, FT%)
-  - Moved jersey numbers to the left of player names for better readability
-  - Streamlined table layout for cleaner presentation
-  - Made player names clickable links to their individual profile pages (/players/{id})
+- Added team logos to the matchup header display
+- Improved player statistics display in matchup preview
 
 ### Bug Fixes
-- **Matchup Page Authentication**: Fixed missing authentication context causing header to show logged out state
-- **Season Stats Lookup**: Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
-- **Zero Stats Display**: Resolved issue where team records and statistics showed as 0-0 despite having games in database
-- **Top Players Display**: Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
+- Fixed missing authentication context causing header to show logged out state
+- Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
+- Resolved issue where team records and statistics showed as 0-0 despite having games in database
+- Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
 
 v0.4.23
 -------
 
-- **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
-  - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
-  - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
-  - **Key Players Section**: Top 5 players from each team with season averages (PPG, shooting stats, games played)
-  - **Head-to-Head History**: Previous matchups between teams with dates, scores, and winners
-  - **Game Details**: Scheduled date, time, location displayed prominently
-  - **Responsive Design**: Optimized for both desktop and mobile viewing
-  - **Smart UI Integration**: Games list automatically shows "View Matchup" button for scheduled games vs "View Game" for completed games
+### Features
+- Added comprehensive pre-game matchup analysis for scheduled games
+- Added `/scheduled-games/{id}/matchup` endpoint displaying detailed preview for upcoming games
 
 ### API Enhancements
-- **GameSummary Schema**: Added `status` field to distinguish between completed and scheduled games
-- **Games List Endpoint**: Updated to properly set status values for completed vs scheduled games
-- **Matchup Router**: New dedicated router for matchup preview functionality with comprehensive error handling
+- Added `status` field to GameSummary schema to distinguish between completed and scheduled games
+- Updated games list endpoint to properly set status values
+- Added new dedicated matchup router with comprehensive error handling
 
 ### Services & Architecture
-- **MatchupService**: New service layer for matchup data aggregation
-  - Fetches and calculates team season statistics with computed fields (PPG, win percentage, shooting percentages)
-  - Retrieves top players by points per game with proper season filtering
-  - Compiles head-to-head game history between competing teams
-  - **Smart Season Handling**: Automatically determines current/active season instead of hardcoded fallbacks
-  - **Consistent Record Formatting**: Centralized team record formatting for maintainability
-  - Handles missing data gracefully with appropriate defaults
-- **Database Integration**: Leverages existing models (ScheduledGame, TeamSeasonStats, PlayerSeasonStats) without schema changes
+- Added MatchupService for matchup data aggregation
+- Added smart season handling and consistent record formatting
+- Leveraged existing models without schema changes
 
 ### UI/UX Improvements
-- **Games List Enhancement**: Updated games list component to show appropriate action buttons based on game status
-- **Template System**: New comprehensive matchup.html template with structured sections for all data types
-- **Data Formatting**: Proper rounding and percentage display for all statistical comparisons
+- Updated games list component to show appropriate action buttons based on game status
+- Added comprehensive matchup.html template
+- Added proper rounding and percentage display for statistical comparisons
 
 ### Testing
-- **Comprehensive Test Coverage**: Full unit and integration test suites for matchup functionality
-  - Unit tests for MatchupService covering all methods and edge cases
-  - Integration tests for matchup router endpoint with various data scenarios
-  - Tests handle missing data, formatting validation, and error conditions
+- Added full unit and integration test suites for matchup functionality
 
-v0.1.22
+v0.4.22
 -------
 
 ### Features
-- **Player Statistics Sorting Improvements**: Enhanced player statistics table sorting behavior
-  - **Smart Default Sort Order**: Percentage columns (FG%, 2P%, 3P%, FT%, eFG%, TS%) now default to descending sort on first click
-  - **Minimum Points Filter**: When sorting by percentage columns, only players with 20+ total points are shown to eliminate misleading high percentages from players with minimal playing time
-  - Non-percentage columns (Player, Team, GP, PPG) maintain ascending default sort behavior
-  - Improved user experience by showing most relevant statistical leaders first
+- Enhanced player statistics table sorting behavior
+- Added smart default sort order for percentage columns
+- Added minimum points filter for percentage columns
 
 ### Code Quality
-- **Enhanced Maintainability**: Replaced hard-coded column index ranges with semantic `data-is-percentage` attributes for better flexibility
-- **Comprehensive Test Coverage**: Added integration tests for player statistics sorting functionality
-  - Tests verify proper HTML data attributes for percentage columns
-  - Tests validate JavaScript filtering logic and minimum points threshold
-  - Ensures sorting enhancements work correctly in real browser environment
+- Replaced hard-coded column index ranges with semantic `data-is-percentage` attributes
+- Added integration tests for player statistics sorting functionality
 
 v0.4.21
 -------
@@ -519,165 +471,120 @@ v0.4.7
 v0.4.5
 ------
 
+### Features
+- Added comprehensive game schedule feature with CRUD operations
+- Implemented ScheduledGame model with status tracking
+
 ### Bug Fixes
-* Fixed team standings showing 0-0 in production game detail pages by reusing the team detail page approach for getting season stats
-* Fix JavaScript errors on game creation page - added null checks for DOM elements
-* Fix scheduled games table missing locally - migrations not applied
-* Fix scheduled game creation API error - wrong method signature for find_matching_game
-* Add proper Bearer token authorization to scheduled game creation request
-* Fix scheduled games not appearing in games list - modified /v1/games endpoint to include scheduled games
-* Fix 404 error when clicking View on scheduled games - removed View button since there's no detail page for scheduled games
-* Fix failing unit test for ScheduleService.test_create_scheduled_game - corrected mocked method name from find_matching_game to find_matching_game_by_ids
-* Confirmed all integration tests pass (64/78 passed, 14 skipped) - no outstanding test failures
+- Fixed team standings showing 0-0 in production game detail pages
+- Fixed JavaScript errors on game creation page
+- Fixed scheduled games table and API issues
+- Fixed failing unit tests
 
 ### UI Improvements
-* Replace browser alert dialogs with HTML banners for game scheduling success/error messages
-* Add auto-dismissing success banners that redirect to games page after scheduling
-* Improve user experience with inline error messages using styled HTML banners
-* Show scheduled games in main games list with "Scheduled" status instead of scores
-* Use negative IDs for scheduled games to distinguish them from completed games
-* Update game list UI to properly handle and display scheduled games
-
-### Features
-* Add comprehensive game schedule feature with CRUD operations
-* Implement ScheduledGame model with status tracking (scheduled, completed, cancelled, postponed)
-* Add schedule management API endpoints at /v1/games/scheduled/*
-* Automatic matching of CSV imports with scheduled games
-* CSV import integration that links completed games to their scheduled entries
-* Database migration for scheduled_games table with proper indexing
-* ScheduleService for business logic and intelligent game matching
-* Update "Schedule Game" functionality to use existing create game page instead of modal
-* Simplify UI by removing redundant "Create New Game" button and modal interface
-* Create game page now creates scheduled games instead of regular games with 0-0 scores
-* Authentication-protected UI elements that only show for logged-in users
-
-### Fixes
-* Fix integration test environment setup for JWT_SECRET_KEY configuration
-* Add find_matching_game_by_ids method to handle team ID based matching
+- Replaced browser alert dialogs with HTML banners
+- Added auto-dismissing success banners
+- Updated game list UI to handle scheduled games
 
 ### Tests
-* Add comprehensive unit tests for ScheduleService (13 tests)
-* Add unit tests for CRUDScheduledGame operations (9 tests)
-* Add integration tests for scheduled games API endpoints (9 tests)
-* Add UI tests for create game page functionality (9 tests) - moved to test_ui_validation.py
-* Fix time conversion issues in CRUD operations (string to time object conversion)
-* Fix integration test database session management for proper test isolation
-* Fix API route ordering issue - moved /scheduled routes before /{game_id} to prevent route conflicts
-* Add integration tests for authentication flow and authenticated endpoints (10 tests)
-* Move create game UI tests to proper UI test suite location in test_ui_validation.py
+- Added comprehensive unit and integration tests for scheduling functionality
 
 v0.4.4
 ------
 
 ### Authentication Improvements
-* Fix login authentication not persisting - added HTTP-only secure cookies to /auth/token endpoint
-* Update authentication dependencies to support both Bearer tokens and cookies
-* Fix logout to properly clear authentication cookies
-* Add comprehensive integration tests for cookie-based authentication
-* Fix admin role check in template context to use proper enum comparison
+- Fixed login authentication not persisting
+- Updated authentication dependencies to support both Bearer tokens and cookies
+- Fixed logout to properly clear authentication cookies
+- Added comprehensive integration tests for cookie-based authentication
 
 v0.4.3
 ------
 
 ### Features
-* Add mobile-friendly hamburger menu for navigation on small screens
-* Enhanced smartphone portrait mode (≤480px) with comprehensive mobile menu implementation
-* Added aria-expanded attributes for better accessibility
-* Implemented body scroll lock when mobile menu is open
-* Improved touch targets and mobile-specific styling
-* Add responsive table design for mobile devices with data-label attributes
-* Implement compact game card layout for mobile devices showing scores and teams
-* Display team win-loss records on game detail page instead of home/away labels
-* Add responsive mobile layout for game detail scoreboard with centered scores and team info
+- Added mobile-friendly hamburger menu for navigation
+- Enhanced smartphone portrait mode with comprehensive mobile menu implementation
+- Added responsive table design for mobile devices
+- Implemented compact game card layout for mobile devices
 
 ### Fixes
-* Fix issue with user authentication not being properly checked in templates
-* Fix hamburger button styling to look like standard mobile menu icon with proper positioning
-* Fix menu toggle functionality by removing conflicting 767px media query rules
-* Add hamburger menu support to smartphone landscape mode (481-767px)
-* Ensure mobile menu button only shows on mobile devices (≤767px)
-* Fix hamburger button alignment - now properly centered vertically with header
-* Fix games tables to display properly on mobile portrait view using card-based layout
-* Replace responsive table design with compact game cards for better mobile UX
-* Fix Players of the Week layout on mobile portrait to stack cards vertically instead of cramming horizontally
+- Fixed user authentication checking in templates
+- Fixed hamburger button styling and alignment
+- Fixed menu toggle functionality
+- Fixed games tables display on mobile
+- Fixed Players of the Week layout on mobile
 
 v0.4.2
 ------
 
 ### Code Quality Improvements
-* Fix all ruff lint validation errors and warnings across the app folder
-* Add B008 to ruff ignore list for valid FastAPI Depends() patterns
-* Fix B904 errors - add proper exception chaining with 'from e' or 'from None'
-* Fix E712 errors - replace `== True` comparisons with direct boolean checks
-* Fix line length violations and simplify code patterns
+- Fixed all ruff lint validation errors and warnings
+- Added proper exception chaining
+- Fixed boolean comparison patterns
 
 ### Bug Fixes
-* Fix player stats API endpoint to return season_stats when no active season exists
-* Update player stats endpoint to fall back to most recent season stats if no active season
-* Fix missing `get_db_session` import in web UI dependencies module causing test failures
-* Fix integration test authentication setup to properly mock auth dependencies
+- Fixed player stats API endpoint to return season_stats when no active season exists
+- Fixed missing `get_db_session` import causing test failures
+- Fixed integration test authentication setup
 
 ### Authentication Fixes
-- Revert admin page authentication approach - HTML pages use client-side auth checking rather than server-side dependencies
-- Admin API endpoints still enforce proper role-based authentication
-- Update tests to reflect correct authentication behavior (client-side for HTML, server-side for API)
+- Reverted admin page authentication approach to client-side checking
+- Updated tests to reflect correct authentication behavior
 
 ### Test Improvements
-- Fix integration test authentication mocking for consistent test behavior
-- Skip problematic security integration tests pending team-based access control implementation
-- Update OAuth integration tests to handle proper dependency injection
+- Fixed integration test authentication mocking
+- Updated OAuth integration tests
 
 v0.4.1
 ------
 
 ### Fixes
-* Logging out now actually logs out the user
-* Fix player season stats endpoint to use active season instead of hardcoded "2024-2025"
-* Fix inconsistency between player and team season stats - both now use SeasonStatsService with proper season lookup
-* Fix SeasonStatsService to use actual Season table date ranges instead of hardcoded date calculations
-* Fix linting issues in tests and main app
+- Fixed logout functionality
+- Fixed player season stats endpoint to use active season
+- Fixed inconsistency between player and team season stats
+- Fixed SeasonStatsService to use actual Season table date ranges
+- Fixed linting issues
 
 v0.4.0
 ------
 ### Features
-* Add team statistics and team season statistics
+- Added team statistics and team season statistics
 
 ### API Improvements
-* Replace generic dict[str, Any] response models with explicit Pydantic schemas in teams router for better type safety and API documentation
-* Add TeamBasicResponse, RosterPlayer, TeamWithRosterResponse, and DeletedTeamResponse schemas
+- Replaced generic dict response models with explicit Pydantic schemas
+- Added TeamBasicResponse, RosterPlayer, TeamWithRosterResponse, and DeletedTeamResponse schemas
 
 ### Security Fixes
-* Fix missing authentication on admin pages - added require_admin dependency to /admin/users and /admin/seasons endpoints
+- Fixed missing authentication on admin pages
 
 ### Test Infrastructure Improvements
-* Fix circular import issues and resolve 18 failing unit tests
-* Improve test pass rate from 96% to 100% (516 passed, 5 skipped)
+- Fixed circular import issues and resolved 18 failing unit tests
+- Improved test pass rate from 96% to 100%
 
 
 v0.3.0
 ------
 
 ### Features
-* Introduce user authentication and authorization with JWT tokens
-* Add Google OAuth 2.0 integration for user login
-* Implement role-based access control (Admin, User)
-* Add team-based data access restrictions
-* Create user management and account pages
-* Create a default admin using a secure password from env
+- Introduced user authentication and authorization with JWT tokens
+- Added Google OAuth 2.0 integration for user login
+- Implemented role-based access control (Admin, User)
+- Added team-based data access restrictions
+- Created user management and account pages
 
 ### Changes
-* Enhance security with mandatory JWT secret key validation
-* Add OAuth provider fields to user model
-* Implement comprehensive authentication middleware
-* Github action now just uploads and reloads the app/image, no longer overrides terraform configs
+- Enhanced security with mandatory JWT secret key validation
+- Added OAuth provider fields to user model
+- Implemented comprehensive authentication middleware
+- Github action now just uploads and reloads the app/image
 
 ### Fixes
-* Fix test command to fail fast instead of continuing on errors
+- Fixed test command to fail fast instead of continuing on errors
 
 ### Documentation / Tests
-* Add comprehensive authentication test suite
-* Create security integration tests
-* Add FastAPI startup validation tests
+- Added comprehensive authentication test suite
+- Created security integration tests
+- Added FastAPI startup validation tests
 
 v0.2.0
 ------
