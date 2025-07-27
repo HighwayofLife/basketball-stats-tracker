@@ -2,10 +2,18 @@ v0.5.2
 ------
 
 ### Features
-- **New "Dub Club" Weekly Award**: Added award for players scoring 20+ points in a single game
-  - Multiple players can earn this award in the same week
-  - Tracks highest single-game score if player scores 20+ multiple times in a week
-  - Displays with 🎖️ icon on dashboard and player profiles
+- **New Awards System**: Added four new per-game awards
+  - **"Dub Club" Award**: Players scoring 20+ points in a single game (🎖️)
+  - **"The Marksman" Award**: Most efficient shooter with 4-7 field goal attempts (🎯)
+  - **"Perfect Performance" Award**: 100% shooting with minimum 3 makes (💯)
+  - **"Breakout Performance" Award**: Biggest scoring improvement over season average (🚀)
+  - All awards automatically display on dashboard and player profiles
+
+### Performance Improvements
+- **Optimized Award Calculations**: Fixed performance issue causing calculation hangs
+  - Breakout Performance Award now uses single optimized database query instead of O(n²) queries
+  - Reduced calculation time from minutes/hanging to sub-second completion
+  - Improved from O(n³) to O(n) complexity for season average calculations
 - **Per-Game Award Logic**: Fixed all weekly awards to be based on best single-game performance
   - **Player of the Week**: Now awards best single-game scoring performance (not weekly total)
   - **Freethrow Merchant**: Most FTs made in a single game (not weekly total)
