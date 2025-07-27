@@ -503,6 +503,7 @@ class PlayerAward(Base):
     """Model for tracking player awards by season and type.
 
     Supports both weekly awards (with week_date) and season awards (week_date=NULL).
+    For game-specific awards (like dub_club), game_id should be set to track per-game awards.
     """
 
     __tablename__ = "player_awards"
@@ -512,6 +513,9 @@ class PlayerAward(Base):
     season: Mapped[str] = mapped_column(String(10), nullable=False)  # e.g., "2024"
     award_type: Mapped[str] = mapped_column(String(50), nullable=False)  # e.g., "player_of_the_week", "top_scorer"
     week_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)  # Week start date (NULL for season awards)
+    game_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("games.id"), nullable=True
+    )  # Specific game for per-game awards
     award_date: Mapped[dt.date | None] = mapped_column(Date, nullable=True)  # Date award was finalized
     points_scored: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Points for weekly awards
     stat_value: Mapped[float | None] = mapped_column(
@@ -522,9 +526,12 @@ class PlayerAward(Base):
 
     # Relationships
     player: Mapped[Player] = relationship("Player", back_populates="awards")
+    game: Mapped[Game | None] = relationship("Game", foreign_keys=[game_id])
 
-    # Unique constraint allowing multiple award types per player per season
-    __table_args__ = (UniqueConstraint("player_id", "award_type", "season", "week_date", name="unique_player_award"),)
+    # Unique constraint preventing duplicate awards (same player, award type, season, week, and game)
+    __table_args__ = (
+        UniqueConstraint("player_id", "award_type", "season", "week_date", "game_id", name="unique_player_award"),
+    )
 
     def __repr__(self) -> str:
         week_info = f"week={self.week_date}" if self.week_date else "season"

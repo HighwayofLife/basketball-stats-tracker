@@ -947,6 +947,7 @@ async def get_calculation_status():
 
 
 @router.post("/calculate-awards")
+@invalidate_cache_after
 async def calculate_player_awards(
     request: AwardCalculationRequest,
     current_user: User = Depends(get_current_user),

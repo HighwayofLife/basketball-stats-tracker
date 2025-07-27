@@ -890,8 +890,8 @@ def _calculate_dub_club_winners(
     session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False
 ) -> list[int]:
     """Calculate winners for Dub Club award (20+ points in a single game)."""
-    # Track highest score per player for the week
-    player_high_scores = {}
+    # Track all qualifying games for award creation
+    qualifying_performances = []
 
     # Check each game for 20+ point performances
     for game in weekly_games:
@@ -899,33 +899,36 @@ def _calculate_dub_club_winners(
             total_points = (stat.total_2pm * 2) + (stat.total_3pm * 3) + stat.total_ftm
 
             if total_points >= DUB_CLUB_POINT_THRESHOLD:
-                player_id = stat.player_id
-                # Track the highest score for each player in the week
-                if player_id not in player_high_scores or total_points > player_high_scores[player_id]["points"]:
-                    player_high_scores[player_id] = {
+                qualifying_performances.append(
+                    {
+                        "player_id": stat.player_id,
                         "points": total_points,
                         "game_id": game.id,
                     }
+                )
 
-    if not player_high_scores:
+    if not qualifying_performances:
         return []
 
-    # Create awards for all qualifying players
+    # Create awards for all qualifying performances
     winners = []
-    for player_id, data in player_high_scores.items():
+    for performance in qualifying_performances:
         award = create_player_award_safe(
             session=session,
-            player_id=player_id,
+            player_id=performance["player_id"],
             season=season,
             award_type=WEEKLY_AWARD_TYPES["dub_club"],
             week_date=week_start,
-            points_scored=data["points"],
+            points_scored=performance["points"],
+            game_id=performance["game_id"],
         )
         if award:
-            # Store the game_id for reference
-            award.game_id = data["game_id"]
-            winners.append(player_id)
-            logger.debug(f"Awarded Dub Club to player {player_id} for {data['points']} points in week {week_start}")
+            winners.append(performance["player_id"])
+            logger.debug(
+                f"Awarded Dub Club to player {performance['player_id']} "
+                + f"for {performance['points']} points in game {performance['game_id']} "
+                + f"in week {week_start}"
+            )
 
     session.flush()
     return winners

@@ -425,11 +425,23 @@ class TestCalculateDubClub:
 
         results = calculate_dub_club(session, season=None, recalculate=False)
 
-        # Should only create one award with highest score
-        assert mock_create_award.call_count == 1
-        assert mock_create_award.call_args.kwargs["player_id"] == 1
-        assert mock_create_award.call_args.kwargs["points_scored"] == 30
-        assert results == {"2024": 1}
+        # Should create two awards - one for each qualifying game (20+ points)
+        assert mock_create_award.call_count == 2
+
+        # Verify both awards are for the same player
+        all_calls = mock_create_award.call_args_list
+        assert all_calls[0].kwargs["player_id"] == 1
+        assert all_calls[1].kwargs["player_id"] == 1
+
+        # Verify correct points for each game
+        points_awarded = {call.kwargs["points_scored"] for call in all_calls}
+        assert points_awarded == {22, 30}  # Both qualifying scores
+
+        # Verify correct game_ids are passed
+        game_ids_awarded = {call.kwargs["game_id"] for call in all_calls}
+        assert game_ids_awarded == {1, 2}  # Both games
+
+        assert results == {"2024": 1}  # Still reports as 1 week with awards
 
     @patch("app.services.awards_service.crud_game.get_all_games")
     @patch("app.services.awards_service.delete_all_awards_by_type")
