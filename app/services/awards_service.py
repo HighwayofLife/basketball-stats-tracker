@@ -911,7 +911,7 @@ def _calculate_dub_club_winners(
         return []
 
     # Create awards for all qualifying performances
-    winners = []
+    winners = set()
     for performance in qualifying_performances:
         award = create_player_award_safe(
             session=session,
@@ -923,7 +923,7 @@ def _calculate_dub_club_winners(
             game_id=performance["game_id"],
         )
         if award:
-            winners.append(performance["player_id"])
+            winners.add(performance["player_id"])
             logger.debug(
                 f"Awarded Dub Club to player {performance['player_id']} "
                 + f"for {performance['points']} points in game {performance['game_id']} "
@@ -931,7 +931,7 @@ def _calculate_dub_club_winners(
             )
 
     session.flush()
-    return winners
+    return list(winners)
 
 
 def calculate_marksman_award(session: Session, season: str | None = None, recalculate: bool = False) -> dict[str, int]:
