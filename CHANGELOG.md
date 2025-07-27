@@ -1,3 +1,18 @@
+v0.5.3
+------
+
+### UI Enhancements
+- **Enhanced Player Profile Recent Games**: Expanded Recent Games section with comprehensive player statistics
+  - Added new statistics columns: Points (Pts), FG, FG%, 3PT, 3PT%, FT, FT%, eFG%
+  - Column order now: Date, Opponent, Score, Result, Pts, FG, FG%, 3PT, 3PT%, FT, FT%, eFG%, Actions
+  - FG, 3PT, and FT columns display made/attempts format (e.g., "4/8")
+  - All percentages rounded to whole numbers for better readability
+  - Added horizontal scrolling support for table when screen width is insufficient
+  - Enhanced mobile view with organized statistics grid layout
+  - Improved game-by-game performance analysis for players
+
+
+
 v0.5.2
 ------
 
