@@ -14,10 +14,16 @@ def create_player_award(
     award_type: str,
     week_date: date | None,
     points_scored: int | None = None,
+    game_id: int | None = None,
 ) -> PlayerAward:
     """Create a new player award record."""
     award = PlayerAward(
-        player_id=player_id, season=season, award_type=award_type, week_date=week_date, points_scored=points_scored
+        player_id=player_id,
+        season=season,
+        award_type=award_type,
+        week_date=week_date,
+        points_scored=points_scored,
+        game_id=game_id,
     )
     session.add(award)
     session.flush()  # To get the ID
@@ -31,12 +37,19 @@ def create_player_award_safe(
     award_type: str,
     week_date: date | None,
     points_scored: int | None = None,
+    game_id: int | None = None,
 ) -> PlayerAward | None:
     """Create a new player award record, or return existing one if it already exists."""
-    # First check if an award already exists for this week/season
+    # First check if an award already exists for this specific player/week/season/type/game
     existing_award = (
         session.query(PlayerAward)
-        .filter(PlayerAward.award_type == award_type, PlayerAward.week_date == week_date, PlayerAward.season == season)
+        .filter(
+            PlayerAward.player_id == player_id,
+            PlayerAward.award_type == award_type,
+            PlayerAward.week_date == week_date,
+            PlayerAward.season == season,
+            PlayerAward.game_id == game_id,
+        )
         .first()
     )
 
@@ -46,17 +59,19 @@ def create_player_award_safe(
 
     # No existing award, create a new one
     try:
-        return create_player_award(session, player_id, season, award_type, week_date, points_scored)
+        return create_player_award(session, player_id, season, award_type, week_date, points_scored, game_id)
     except Exception as e:
         # If we still get a conflict (race condition), rollback and try to get existing
         session.rollback()
-        if "unique_weekly_award" in str(e):
+        if "unique_player_award" in str(e):
             existing_award = (
                 session.query(PlayerAward)
                 .filter(
+                    PlayerAward.player_id == player_id,
                     PlayerAward.award_type == award_type,
                     PlayerAward.week_date == week_date,
                     PlayerAward.season == season,
+                    PlayerAward.game_id == game_id,
                 )
                 .first()
             )

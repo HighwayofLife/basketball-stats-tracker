@@ -1,3 +1,29 @@
+v0.5.4
+------
+
+### Bug Fixes
+- **Critical Dub Club Award Fix**: Fixed Dub Club award only being given to one player per week instead of all qualifying players
+  - **Root Issue**: Unique constraint prevented multiple players from receiving the same award type in the same week
+  - **Solution**: Added `game_id` field to PlayerAward model to track per-game awards
+  - **Database Changes**: Updated unique constraint to include `game_id`, allowing multiple awards per player per week for different games
+  - **Behavior Fix**: Now correctly awards EVERY player who scores 20+ points in ANY game (previously only the first player processed per week)
+  - **Impact**: Players who score 20+ in multiple games during the same week now receive multiple Dub Club awards as intended
+- **Dashboard Awards Caching Issue**: Fixed player awards on dashboard always showing old results after recalculation
+  - Added `@invalidate_cache_after` decorator to `/calculate-awards` endpoint
+  - Dashboard cache (24-hour TTL) now properly invalidates when awards are recalculated
+  - Users will see updated award results immediately instead of waiting up to 24 hours for cache expiration
+- **Code Quality Improvement**: Eliminated code duplication in player detail template
+  - Extracted percentage calculation logic into reusable `calculatePercentages(game)` helper function
+  - Removed duplicate calculation blocks between desktop and mobile views
+  - Follows DRY principle for better maintainability and consistency
+
+### Database Changes
+- **PlayerAward Schema Enhancement**: Added `game_id` field for proper per-game award tracking
+  - Migration: `302e946efab0_add_game_id_field_to_playeraward_for_.py`
+  - Updated unique constraint from `(player_id, award_type, season, week_date)` to `(player_id, award_type, season, week_date, game_id)`
+  - Enables proper tracking of multiple awards per player per week for different games
+
+
 v0.5.3
 ------
 
