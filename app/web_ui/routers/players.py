@@ -523,6 +523,9 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
             team_id = player.team_id
             opponent_team_id = game.opponent_team_id if game.playing_team_id == team_id else game.playing_team_id
 
+            # Determine the opponent team based on which team the player is on
+            opponent_team = game.opponent_team if team_id == game.playing_team_id else game.playing_team
+
             # Get team stats for this game
             team_stats_query = (
                 session.query(
@@ -569,7 +572,7 @@ async def get_player_stats(player_id: int, session=Depends(get_db)):
                 {
                     "game_id": game.id,
                     "date": game.date.isoformat(),
-                    "opponent": game.opponent_team.name,
+                    "opponent": opponent_team.name if opponent_team else "Unknown",
                     "points": points,  # Player's points
                     "team_score": team_score,  # Team's total points
                     "opponent_score": opponent_score,  # Opponent's total points

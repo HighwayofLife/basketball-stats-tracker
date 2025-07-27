@@ -1,41 +1,27 @@
+v0.5.5
+------
+
+### Bug Fixes
+- Fixed incorrect opponent display in player profile game stats
+
+
 v0.5.4
 ------
 
 ### Bug Fixes
-- **Critical Dub Club Award Fix**: Fixed Dub Club award only being given to one player per week instead of all qualifying players
-  - **Root Issue**: Unique constraint prevented multiple players from receiving the same award type in the same week
-  - **Solution**: Added `game_id` field to PlayerAward model to track per-game awards
-  - **Database Changes**: Updated unique constraint to include `game_id`, allowing multiple awards per player per week for different games
-  - **Behavior Fix**: Now correctly awards EVERY player who scores 20+ points in ANY game (previously only the first player processed per week)
-  - **Impact**: Players who score 20+ in multiple games during the same week now receive multiple Dub Club awards as intended
-- **Dashboard Awards Caching Issue**: Fixed player awards on dashboard always showing old results after recalculation
-  - Added `@invalidate_cache_after` decorator to `/calculate-awards` endpoint
-  - Dashboard cache (24-hour TTL) now properly invalidates when awards are recalculated
-  - Users will see updated award results immediately instead of waiting up to 24 hours for cache expiration
-- **Code Quality Improvement**: Eliminated code duplication in player detail template
-  - Extracted percentage calculation logic into reusable `calculatePercentages(game)` helper function
-  - Removed duplicate calculation blocks between desktop and mobile views
-  - Follows DRY principle for better maintainability and consistency
+- Fixed Dub Club award only being given to one player per week instead of all qualifying players
+- Fixed dashboard awards caching issue showing old results after recalculation
+- Eliminated code duplication in player detail template
 
 ### Database Changes
-- **PlayerAward Schema Enhancement**: Added `game_id` field for proper per-game award tracking
-  - Migration: `302e946efab0_add_game_id_field_to_playeraward_for_.py`
-  - Updated unique constraint from `(player_id, award_type, season, week_date)` to `(player_id, award_type, season, week_date, game_id)`
-  - Enables proper tracking of multiple awards per player per week for different games
+- Added `game_id` field to PlayerAward model for proper per-game award tracking
 
 
 v0.5.3
 ------
 
 ### UI Enhancements
-- **Enhanced Player Profile Recent Games**: Expanded Recent Games section with comprehensive player statistics
-  - Added new statistics columns: Points (Pts), FG, FG%, 3PT, 3PT%, FT, FT%, eFG%
-  - Column order now: Date, Opponent, Score, Result, Pts, FG, FG%, 3PT, 3PT%, FT, FT%, eFG%, Actions
-  - FG, 3PT, and FT columns display made/attempts format (e.g., "4/8")
-  - All percentages rounded to whole numbers for better readability
-  - Added horizontal scrolling support for table when screen width is insufficient
-  - Enhanced mobile view with organized statistics grid layout
-  - Improved game-by-game performance analysis for players
+- Enhanced Player Profile Recent Games section with comprehensive player statistics
 
 
 
@@ -43,162 +29,69 @@ v0.5.2
 ------
 
 ### Features
-- **New Awards System**: Added four new per-game awards
-  - **"Dub Club" Award**: Players scoring 20+ points in a single game (🎖️)
-  - **"The Marksman" Award**: Most efficient shooter with 4-7 field goal attempts (🎯)
-  - **"Perfect Performance" Award**: 100% shooting with minimum 3 makes (💯)
-  - **"Breakout Performance" Award**: Biggest scoring improvement over season average (🚀)
-  - All awards automatically display on dashboard and player profiles
+- Added four new per-game awards: Dub Club, The Marksman, Perfect Performance, Breakout Performance
+- Added "The Rick Barry Award" for highest season free-throw percentage
 
 ### Performance Improvements
-- **Optimized Award Calculations**: Fixed performance issue causing calculation hangs
-  - Breakout Performance Award now uses single optimized database query instead of O(n²) queries
-  - Reduced calculation time from minutes/hanging to sub-second completion
-  - Improved from O(n³) to O(n) complexity for season average calculations
-- **Per-Game Award Logic**: Fixed all weekly awards to be based on best single-game performance
-  - **Player of the Week**: Now awards best single-game scoring performance (not weekly total)
-  - **Freethrow Merchant**: Most FTs made in a single game (not weekly total)
-  - **The Human Cheat Code**: Highest FG% in a single game with 10+ attempts
-  - **The Final Boss**: Most Q4 makes in a single game (not weekly total)
-  - **Trigger Finger**: Most shot attempts in a single game (not weekly total)
-  - **Weekly Whiffer**: Most missed shots in a single game (not weekly total)
-  - **Human Howitzer**: Most 3PM in a single game (not weekly total)
-  - Prevents unfair advantage for players who play multiple games per week
-- **Centralized Award Configuration**: Moved award names, icons, and descriptions to backend
-  - Added `/api/awards/config` endpoint for frontend to fetch award configuration
-  - Player detail page now dynamically loads award info from API
-  - Eliminates duplicate award definitions between frontend and backend
-
-- **New Season Award**: Added "The Rick Barry Award" for highest free-throw percentage in a season (⭐)
-  - Requires a minimum of 10 free throw attempts to qualify.
+- Optimized award calculations to fix performance hangs
+- Fixed all weekly awards to be based on best single-game performance instead of weekly totals
+- Centralized award configuration in backend
 
 ### CLI Enhancements
-- **Updated `calculate-season-awards` command**: Now uses the new season award calculation logic, including "The Rick Barry Award".
-- **Updated `calculate-all-awards` command**: Includes the calculation of all season awards.
+- Updated `calculate-season-awards` and `calculate-all-awards` commands
 
 ### Bug Fixes
 
 v0.5.1
 ------
 
-### Bug Fixes
-- **Weekly Awards Dashboard Issue**: Enhanced logging and debugging for production weekly awards display
-  - Added comprehensive logging to `get_current_week_awards()` function to diagnose why awards aren't showing in production
-  - Enhanced error handling with detailed stack traces and step-by-step execution logging
-  - Added debug script (`debug_awards.py`) for manual production troubleshooting
-
 ### Features
-- **Week Selector Dropdown**: Added interactive week selector for viewing historical weekly awards
-  - New dropdown in weekly awards section showing all available weeks with award counts
-  - JavaScript functionality to dynamically load awards for selected weeks via AJAX
-  - New API endpoint `/api/weekly-awards/{week_date}` for fetching week-specific awards
-  - Enhanced dashboard template with loading states and error handling
-  - New helper functions: `get_available_award_weeks()` and `get_week_awards_by_date()`
+- Added interactive week selector dropdown for viewing historical weekly awards
+- Added API endpoint `/api/weekly-awards/{week_date}` for fetching week-specific awards
+
+### Bug Fixes
+- Enhanced logging and debugging for production weekly awards display
 
 ### Improvements
-- **Award Name Update**: Changed "Weekly FT King/Queen" to "Freethrow Merchant" for better branding
-- **Template Organization**: Added CSS class `weekly-awards-section` for better JavaScript targeting
-- **Enhanced Template Context**: Dashboard now includes `available_weeks` data for dropdown population
-
-### Technical Enhancements
-- **Error Handling**: Improved exception handling in weekly awards retrieval with proper logging
-- **Code Organization**: Better separation of concerns between template logic and API endpoints
-- **Responsive Design**: Week selector dropdown maintains mobile-friendly design
+- Changed "Weekly FT King/Queen" to "Freethrow Merchant"
+- Improved error handling in weekly awards retrieval
+- Better separation of template logic and API endpoints
 
 v0.5.0
 ------
 
 ### Features
-- **Comprehensive Awards System**: Introduced a robust system for tracking and displaying both weekly and season-long player awards.
-  - **Player of the Week (POTW) Awards**:
-    - New `player_of_the_week_awards` field in Player model for legacy cumulative tracking.
-    - **PlayerAward Table**: Detailed award tracking with individual records per award, storing season, award type, week date, points scored, and creation timestamp.
-    - Smart week-based calculation using Monday-Sunday boundaries.
-    - Season-aware calculation logic (calendar year seasons).
-    - Automatic tie handling for multiple winners.
-    - Awards based on total weekly points: (2PM×2) + (3PM×3) + FTM.
-  - **New Weekly Award Types**:
-    - `Quarterly Firepower`: Highest point total in any single quarter for the week.
-    - `Weekly FT King/Queen`: Most free throws made for the week.
-    - `Hot Hand Weekly`: Highest FG% with minimum 10 shot attempts for the week.
-    - `Clutch-man`: Most shots made in 4th quarter for the week.
-    - `Trigger Finger`: Most total shot attempts (2pt + 3pt) for the week.
-    - `Weekly Whiffer`: Most missed shots for the week.
-  - **New Season Award Types**:
-    - `Top Scorer`: Most total points scored in the season.
-    - `Sharpshooter`: Highest 3-point percentage meeting dynamic minimum threshold.
-    - `Efficiency Expert`: Highest overall FG percentage meeting dynamic minimum threshold.
-    - `Charity Stripe Regular`: Most free throw attempts in the season.
-    - `Human Highlight Reel`: Most combined made shots (2pt + 3pt + FT) in the season.
-    - `Defensive Tackle`: Most fouls committed in the season.
-    - `Air Ball Artist`: Most 3-point misses in the season.
-    - `Air Assault`: Most total shot attempts (2pt + 3pt) in the season.
+- Added comprehensive awards system for tracking weekly and season-long player awards
+- Added Player of the Week (POTW) awards with PlayerAward table
+- Added 6 new weekly award types (Quarterly Firepower, Weekly FT King/Queen, Hot Hand Weekly, etc.)
+- Added 8 new season award types (Top Scorer, Sharpshooter, Efficiency Expert, etc.)
 
 ### CLI Enhancements
-- **Enhanced `calculate-potw` Command**: Comprehensive CLI tool for Player of the Week award calculation.
-  - `--season YYYY` parameter for specific season calculation.
-  - `--recalculate` flag to reset and recalculate awards.
-- **New CLI Commands for Awards**:
-  - `calculate-season-awards`: Calculate all season awards for a given season.
-  - `calculate-weekly-awards`: Calculate all weekly awards (POTW, Quarterly Firepower, etc.).
-  - `calculate-all-awards`: Calculate both weekly and season awards.
-  - `finalize-season`: Mark all season awards as finalized for a given season.
-- Updated `CLAUDE.md` with new CLI commands.
+- Enhanced `calculate-potw` command with season and recalculate options
+- Added new CLI commands: `calculate-season-awards`, `calculate-weekly-awards`, `calculate-all-awards`, `finalize-season`
 
 ### Database Schema
-- **Migration**: Added `player_awards` table for detailed award tracking.
-  - Stores individual award records with full metadata.
-  - Foreign key relationship to players table.
-  - Unique constraint on `player_id`, `award_type`, `season`, `week_date`.
-- **Migration**: Refactored `player_awards` table for comprehensive awards support.
-  - `week_date` column made nullable to support season awards (where `week_date` is `NULL`).
-  - Added `award_date` (date award was finalized), `stat_value` (primary stat for award), and `is_finalized` (boolean) columns.
-- Updated `Player` model with `awards` relationship to `PlayerAward`.
+- Added `player_awards` table for detailed award tracking
+- Refactored table for comprehensive awards support with nullable week_date for season awards
 
 ### API Improvements
-- **Player Stats Endpoint**: Enhanced `/v1/players/{id}/stats` with detailed award data.
-  - Includes `awards_summary` for comprehensive award breakdown (weekly and season).
-  - Includes `potw_summary` and `player_of_the_week_awards` for backward compatibility.
-- **New API Endpoint**: `POST /v1/players/calculate-awards` for triggering all award calculations via the UI (admin only).
-- `PlayerResponse` schema updated to include `player_of_the_week_awards`.
+- Enhanced `/v1/players/{id}/stats` endpoint with detailed award data
+- Added `POST /v1/players/calculate-awards` endpoint for triggering award calculations
 
 ### Services & Architecture
-- **New Awards Service (`app/services/awards_service.py`)**: Implements business logic for all weekly award calculations and overall weekly award management.
-- **New Season Awards Service (`app/services/season_awards_service.py`)**: Implements business logic for all season award calculations.
-- Centralized award creation and management via `crud_player_award.py`.
+- Added Awards Service and Season Awards Service
+- Centralized award creation and management
 
 ### UI/UX Improvements
-- **Dashboard (`index.html`)**: Added a "Weekly Awards Section" to display the latest weekly award winners.
-- **Player Detail Page (`players/detail.html`)**:
-  - Added a new "Awards & Achievements" section.
-  - Displays summary stats for weekly and season awards.
-  - Expandable sections for detailed weekly and season award history.
-  - JavaScript functions (`renderPlayerAwardsSection`, `renderPlayerAwards`) to dynamically render award data.
-  - Integrated Bootstrap tooltips for award information.
-- **Players List Page (`players/index.html`)**:
-  - Added an "Admin Awards Management" section (visible to authenticated users).
-  - Provides buttons to "Calculate Current Season", "Calculate All Seasons", and "Recalculate (Reset All)" awards.
-  - Includes a progress bar and status messages for award calculation.
+- Added Weekly Awards Section to dashboard
+- Added Awards & Achievements section to player detail pages
+- Added Admin Awards Management section to players list page
 
 ### Infrastructure
-- **Deployment Workflow**: Added a step in `deploy.yml` to calculate player awards after database migrations, ensuring awards are up-to-date post-deployment.
+- Added award calculation step to deployment workflow
 
 ### Testing
-- **Extensive New Test Suites**: Added numerous new test files and tests covering the new awards system:
-  - `tests/functional/test_awards_ui.py`: Functional tests for awards UI display.
-  - `tests/integration/test_admin_calculate_awards.py`: Integration tests for admin awards calculation endpoint.
-  - `tests/integration/test_awards_calculation_e2e.py`: End-to-end integration tests for awards calculation.
-  - `tests/integration/test_awards_integration_simple.py`: Simple integration tests for awards functionality.
-  - `tests/unit/data_access/crud/test_crud_player_award.py`: Unit tests for `PlayerAward` CRUD operations.
-  - `tests/unit/services/test_awards_service.py`: Unit tests for weekly awards service logic.
-  - `tests/unit/services/test_awards_service_comprehensive.py`: Unit tests for comprehensive weekly awards service.
-  - `tests/unit/services/test_individual_season_awards.py`: Unit tests for individual season award calculation functions.
-  - `tests/unit/services/test_season_awards_service.py`: Unit tests for season awards service logic.
-- Updated `README.md` with new test counts and version.
-
-### Internal
-- Updated `Makefile` to use `ruff check --fix .` for linting.
-- Minor type change in `seed.py` for `jersey_number`.
+- Added extensive test suites covering the new awards system
 
 
 
@@ -221,27 +114,23 @@ v0.4.32
 -------
 
 ### Bug Fixes
-  - Fixed dashboard "Players of the Week" by adding 'id' field to player data
-  - Fixed game detail box scores by removing function override that prevented portraits from showing
-  - Player portraits now correctly display on Dashboard, Game Leaders, Players list, and Box Scores
+- Fixed dashboard "Players of the Week" by adding 'id' field to player data
+- Fixed game detail box scores by removing function override that prevented portraits from showing
+- Fixed player portraits display on Dashboard, Game Leaders, Players list, and Box Scores
 
 v0.4.31
 -------
 
 ### Bug Fixes
-- **Player Thumbnails**: Fixed player portrait images not displaying in several locations
-  - Added missing thumbnail_image field to players list API endpoint
-  - Fixed players list page to use shared player-portraits.js module
+- Fixed player portrait images not displaying in several locations
+- Added missing thumbnail_image field to players list API endpoint
+- Fixed players list page to use shared player-portraits.js module
 
 v0.4.30
 -------
 
 ### Features
-- **Clickable Player Names**: Enhanced user experience by making player names clickable throughout the application
-  - Game Leaders section in game detail pages now link to individual player profiles
-  - Players of the Week section on dashboard now links to player profiles
-  - Added player profile navigation from game statistics displays
-  - Improved discoverability of player information across the interface
+- Enhanced user experience by making player names clickable throughout the application
 
 ### Testing
 - Added integration test ensuring Players of the Week names link correctly
@@ -250,420 +139,234 @@ v0.4.28
 -------
 
 ### Bug Fixes
-- **Top Player Ranking**: Changed the metric for determining top players on the matchup screen from points-per-game to total points to provide a more accurate representation of player contribution.
-- **Team Logo Display**: Fixed an issue where team logos were not consistently displaying due to a logic error in the image URL generation.
+- Changed metric for determining top players on matchup screen from points-per-game to total points
+- Fixed team logos not consistently displaying due to logic error in image URL generation
 
 v0.4.27
 -------
 
 ### Bug Fixes
-- **Head-to-Head History Display Issues**: Fixed 0-0 scores in production matchup history
-  - Fixed scorebook submission to save calculated scores to Game model fields
-  - Added game score population for existing games with missing score data
-  - Enhanced head-to-head history with "Box Score" links to game detail pages
-  - Improved game history display with actionable links for detailed game analysis
+- Fixed 0-0 scores in production matchup history
+- Fixed scorebook submission to save calculated scores to Game model fields
+- Enhanced head-to-head history with "Box Score" links to game detail pages
 
 v0.4.26
 -------
 
 ### Features
-- **Season Management Enhancements**: Added comprehensive season selection and management capabilities
-  - Added season dropdown to scorebook entry form for manual season assignment
-  - Enhanced scorebook submission to accept optional season_id parameter
-  - Added `/v1/seasons/list` API endpoint for season selection dropdowns
-  - Auto-selects active season by default with fallback to date-based detection
-  - Improved season assignment logic to use provided season or auto-detect from game date
+- Added comprehensive season selection and management capabilities
+- Added season dropdown to scorebook entry form for manual season assignment
+- Added `/v1/seasons/list` API endpoint for season selection dropdowns
 
 ### Bug Fixes
-- **Season Statistics Data Issues**: Fixed critical production issues with missing season statistics
-  - Resolved 0-0 team records showing on matchup pages instead of actual win-loss records
-  - Fixed missing player statistics and empty "top players" sections in matchup previews
-  - Added production season migration to assign existing games to correct seasons
-  - Enhanced season statistics calculation to ensure all games are properly categorized
+- Fixed critical production issues with missing season statistics
+- Resolved 0-0 team records showing on matchup pages
+- Fixed missing player statistics in matchup previews
 
 ### Infrastructure
-- **One-time Season Migration**: Added automated production migration workflow
-  - Automatically runs once when merged to master to fix existing season assignment issues
-  - Self-disabling workflow prevents accidental re-runs after completion
-  - Migrates all unassigned games to appropriate seasons based on game dates
-  - Recalculates all season statistics after migration
+- Added automated production migration workflow
 
 v0.4.25
 -------
 
 ### Features
-- **Player Portrait Display**: Added player portrait/headshot display across multiple UI pages
-  - Team detail page roster now shows 40x40px player portraits next to names
-  - Game detail box scores display 32x32px portraits in player rows
-  - Player season report shows 120x120px portrait in header
-  - Box score report includes portraits in player statistics tables
-  - Dashboard "Players of the Week" section shows 50x50px portraits
-  - Fallback to user icon when no portrait uploaded
+- Added player portrait/headshot display across multiple UI pages
 
 ### Bug Fixes
-- **Player Portrait Display Issues**: Fixed multiple issues with player portrait rendering
-  - Resolved malformed HTML and rogue quote sequences on player detail page after upload
-  - Fixed camera button positioning to stay in bottom-right corner of portrait
-  - Added `thumbnail_image` field to box score API responses for proper portrait display
-  - Updated PlayerResponse schema to include thumbnail_image for team roster display
-  - Enhanced player stats card component to use actual portraits instead of placeholder icons
+- Fixed multiple issues with player portrait rendering
+- Resolved malformed HTML and rogue quote sequences on player detail page after upload
+- Fixed camera button positioning to stay in bottom-right corner of portrait
+- Added `thumbnail_image` field to box score API responses for proper portrait display
+- Updated PlayerResponse schema to include thumbnail_image for team roster display
 
 v0.4.24
 -------
 
 ### Features
-- **Matchup Page Team Logos**: Added team logos to the matchup header display
-  - 200x200px logos displayed beside team names for visual appeal
-  - Responsive design adjusts logo size to 120x120px on mobile devices
-  - Placeholder basketball icon shown when team logos not uploaded
-  - Maintains clean layout with logos, team names, and records
-- **Top Players Statistics Enhancement**: Improved player statistics display in matchup preview
-  - Replaced raw shot attempts with shooting percentages (FG%, 3P%, FT%)
-  - Moved jersey numbers to the left of player names for better readability
-  - Streamlined table layout for cleaner presentation
-  - Made player names clickable links to their individual profile pages (/players/{id})
+- Added team logos to the matchup header display
+- Improved player statistics display in matchup preview
 
 ### Bug Fixes
-- **Matchup Page Authentication**: Fixed missing authentication context causing header to show logged out state
-- **Season Stats Lookup**: Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
-- **Zero Stats Display**: Resolved issue where team records and statistics showed as 0-0 despite having games in database
-- **Top Players Display**: Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
+- Fixed missing authentication context causing header to show logged out state
+- Fixed season string mismatch by using season code instead of name for TeamSeasonStats queries
+- Resolved issue where team records and statistics showed as 0-0 despite having games in database
+- Fixed empty player lists by ensuring proper season filtering in PlayerSeasonStats queries
 
 v0.4.23
 -------
 
-- **Game Matchup Preview**: Added comprehensive pre-game matchup analysis for scheduled games
-  - **Matchup Page**: New `/scheduled-games/{id}/matchup` endpoint displays detailed preview for upcoming games
-  - **Team Comparison**: Side-by-side statistics including season records, PPG, opponent PPG, and shooting percentages (2P%, 3P%, FT%)
-  - **Key Players Section**: Top 5 players from each team with season averages (PPG, shooting stats, games played)
-  - **Head-to-Head History**: Previous matchups between teams with dates, scores, and winners
-  - **Game Details**: Scheduled date, time, location displayed prominently
-  - **Responsive Design**: Optimized for both desktop and mobile viewing
-  - **Smart UI Integration**: Games list automatically shows "View Matchup" button for scheduled games vs "View Game" for completed games
+### Features
+- Added comprehensive pre-game matchup analysis for scheduled games
+- Added `/scheduled-games/{id}/matchup` endpoint displaying detailed preview for upcoming games
 
 ### API Enhancements
-- **GameSummary Schema**: Added `status` field to distinguish between completed and scheduled games
-- **Games List Endpoint**: Updated to properly set status values for completed vs scheduled games
-- **Matchup Router**: New dedicated router for matchup preview functionality with comprehensive error handling
+- Added `status` field to GameSummary schema to distinguish between completed and scheduled games
+- Updated games list endpoint to properly set status values
+- Added new dedicated matchup router with comprehensive error handling
 
 ### Services & Architecture
-- **MatchupService**: New service layer for matchup data aggregation
-  - Fetches and calculates team season statistics with computed fields (PPG, win percentage, shooting percentages)
-  - Retrieves top players by points per game with proper season filtering
-  - Compiles head-to-head game history between competing teams
-  - **Smart Season Handling**: Automatically determines current/active season instead of hardcoded fallbacks
-  - **Consistent Record Formatting**: Centralized team record formatting for maintainability
-  - Handles missing data gracefully with appropriate defaults
-- **Database Integration**: Leverages existing models (ScheduledGame, TeamSeasonStats, PlayerSeasonStats) without schema changes
+- Added MatchupService for matchup data aggregation
+- Added smart season handling and consistent record formatting
+- Leveraged existing models without schema changes
 
 ### UI/UX Improvements
-- **Games List Enhancement**: Updated games list component to show appropriate action buttons based on game status
-- **Template System**: New comprehensive matchup.html template with structured sections for all data types
-- **Data Formatting**: Proper rounding and percentage display for all statistical comparisons
+- Updated games list component to show appropriate action buttons based on game status
+- Added comprehensive matchup.html template
+- Added proper rounding and percentage display for statistical comparisons
 
 ### Testing
-- **Comprehensive Test Coverage**: Full unit and integration test suites for matchup functionality
-  - Unit tests for MatchupService covering all methods and edge cases
-  - Integration tests for matchup router endpoint with various data scenarios
-  - Tests handle missing data, formatting validation, and error conditions
+- Added full unit and integration test suites for matchup functionality
 
-v0.1.22
+v0.4.22
 -------
 
 ### Features
-- **Player Statistics Sorting Improvements**: Enhanced player statistics table sorting behavior
-  - **Smart Default Sort Order**: Percentage columns (FG%, 2P%, 3P%, FT%, eFG%, TS%) now default to descending sort on first click
-  - **Minimum Points Filter**: When sorting by percentage columns, only players with 20+ total points are shown to eliminate misleading high percentages from players with minimal playing time
-  - Non-percentage columns (Player, Team, GP, PPG) maintain ascending default sort behavior
-  - Improved user experience by showing most relevant statistical leaders first
+- Enhanced player statistics table sorting behavior
+- Added smart default sort order for percentage columns
+- Added minimum points filter for percentage columns
 
 ### Code Quality
-- **Enhanced Maintainability**: Replaced hard-coded column index ranges with semantic `data-is-percentage` attributes for better flexibility
-- **Comprehensive Test Coverage**: Added integration tests for player statistics sorting functionality
-  - Tests verify proper HTML data attributes for percentage columns
-  - Tests validate JavaScript filtering logic and minimum points threshold
-  - Ensures sorting enhancements work correctly in real browser environment
+- Replaced hard-coded column index ranges with semantic `data-is-percentage` attributes
+- Added integration tests for player statistics sorting functionality
 
 v0.4.21
 -------
 
 ### Features
-- **Player Statistics Dashboard**: Added comprehensive player statistics and performance metrics
-  - New "Player Statistics" tab on `/players` page with detailed player performance data
-  - **Basic Statistics**: Games played, total points, points per game, fouls per game
-  - **Shooting Statistics**: Field goal %, 2-point %, 3-point %, free throw %
-  - **Advanced Metrics**: Effective field goal % (eFG%) and true shooting % (TS%) for better shooting evaluation
-  - **Team Filtering**: Dropdown filter to view statistics for specific teams only
-  - **Sortable Interface**: Click any column header to sort statistics with visual indicators
-  - **Responsive Design**: Table adapts to mobile devices with proper data labels
-  - Jersey number column positioned next to player name for better readability
-
-- **Teams Page URL Parameters**: Added comprehensive URL parameter support for tab navigation
-  - Teams page now accepts `?tab=rankings` parameter to automatically open Team Rankings tab
-  - URL parameter `?tab=teams` opens default Teams tab (or no parameter for default)
-  - JavaScript automatically loads rankings data when accessing via URL parameter
-  - **Dynamic URL Updates**: Tab switches update browser URL without page reload
-  - **Browser History Support**: Users can navigate between tabs using back/forward buttons
-  - **Input Validation**: Invalid tab parameters gracefully default to teams tab
-  - Improved user experience for sharing direct links to specific tabs and bookmark support
+- Added comprehensive player statistics dashboard with advanced metrics
+- Added teams page URL parameters for tab navigation with browser history support
 
 ### API Enhancements
-- **Player Statistics Endpoint**: New `GET /v1/players/stats` API endpoint
-  - Returns comprehensive player statistics for all players
-  - Optional `team_id` query parameter for filtering by team
-  - Calculates advanced shooting metrics and per-game averages
-  - Proper routing order to avoid conflicts with existing endpoints
+- Added `GET /v1/players/stats` endpoint with team filtering
 
 ### Services & Architecture
-- **PlayerStatsService**: New service layer for player statistics calculations
-  - Aggregates data from PlayerGameStats across all games
-  - Calculates shooting percentages, advanced metrics, and averages
-  - Handles edge cases like zero attempts and missing data
-  - Team filtering support with efficient database queries
+- Added PlayerStatsService for player statistics calculations
 
 ### Testing
-- **Player Statistics Tests**: Added comprehensive unit test suite
-  - 11 test cases covering all calculation methods and edge cases
-  - Tests for effective field goal % and true shooting % formulas
-  - Integration tests with mocked database dependencies
-  - Team filtering and error handling validation
-  - All 623 existing tests continue to pass
-
-- **Integration Tests**: Added comprehensive test suite for teams page tab functionality
-  - Tests for URL parameter parsing and tab activation
-  - Validation of correct tab content display based on URL parameters
-  - Testing of JavaScript URL update and browser history functionality
-  - Edge case testing for invalid parameters and authentication states
-  - 10 new test cases covering tab navigation functionality
+- Added comprehensive unit test suite for player statistics
+- Added integration tests for teams page tab functionality
 
 v0.4.20
 -------
 
 ### Features
-- **Team Rankings Dashboard**: Added comprehensive team statistics and rankings functionality
-  - New `/teams` page tab showing offensive and defensive team metrics
-  - Offensive metrics: average PPG, field goal percentage, offensive rating (0-100 scale)
-  - Defensive metrics: opponent PPG, opponent FG%, defensive rating (0-100 scale)
-  - Point differential tracking for each team
-  - Client-side sortable table with visual sort indicators
-  - Responsive tab-based interface for easy navigation
+- Added team rankings dashboard with offensive and defensive team metrics
 
 ### Backend Enhancements
-- **Team Stats Service**: New `TeamStatsService` for calculating team-level statistics
-  - Aggregates player game stats to compute team offensive/defensive performance
-  - Composite rating algorithms combining scoring and shooting efficiency
-  - Support for teams with varying numbers of games played
-- **CRUD Enhancement**: Added `get_player_game_stats_for_game_and_team()` function
-  - Efficient retrieval of all player stats for a specific team in a game
-  - Enables team-level statistical aggregation
-- **API Endpoint**: New `/v1/teams/rankings` endpoint for team statistics data
+- Added TeamStatsService for calculating team-level statistics
+- Added `get_player_game_stats_for_game_and_team()` function
+- Added `/v1/teams/rankings` API endpoint
 
 ### Frontend Improvements
-- **Teams Page UI**: Enhanced with tabbed interface and rankings table
-  - Tab navigation between team management and team rankings
-  - 9-column sortable table with comprehensive team metrics
-  - Color-coded point differential (green/red for positive/negative)
-  - Font Awesome icons for sort direction indicators
-  - Mobile-responsive design with proper table scaling
+- Enhanced teams page with tabbed interface and sortable rankings table
 
 ### Testing
-- **Unit Tests**: Added comprehensive test suite for `TeamStatsService`
-  - Tests for score calculation, field goal statistics, and rating algorithms
-  - Edge case handling for teams with no games or perfect/poor performance
-  - 11 new test cases with full coverage of service methods
+- Added comprehensive test suite for TeamStatsService
 
 v0.4.18
 -------
 
 ### Features
-- **Enhanced Fuzzy Name Matching**: Added comprehensive fuzzy matching for player name variations
-  - New `fuzzy_matching.py` utility module with advanced name comparison algorithms
-  - Support for common abbreviations, nicknames, and minor typos in player names
-  - Intelligent matching for first name + last initial, middle initials, and name component variations
-  - Replaced simple string matching with enhanced matching using Levenshtein distance and similarity ratios
-
-### Overtime Support Enhancements
-- **Scorebook Entry UI**: Added OT1 and OT2 columns to scorebook entry form
-  - Extended player entry table with overtime quarter columns
-  - Updated CSV import to handle overtime data (OT1, OT2 headers)
-  - Enhanced JavaScript scoring calculation to include overtime periods
-- **Shot Notation Service**: Improved overtime quarter handling
-  - Fixed quarter mapping for overtime periods (Q5→OT1, Q6→OT2)
-  - Proper initialization of all quarter fields including overtime
-- **Scorebook Parser**: Extended to support overtime quarters in entry parsing
-  - Added quarter mappings for OT1 and OT2 (quarters 5 and 6)
+- Added enhanced fuzzy name matching for player name variations
+- Added OT1 and OT2 columns to scorebook entry form
+- Enhanced CSV import to handle overtime data
 
 ### Bug Fixes
-- **Game Query Filtering**: Fixed game queries to use `is_deleted` instead of deprecated `deleted_at` column
-  - Updated scorebook creation and retrieval endpoints
-  - Ensures proper filtering of soft-deleted games
-- **Test Data Conflicts**: Resolved jersey number conflicts in integration tests
-  - Updated jersey number ranges to prevent collisions between test cases
-  - Improved test isolation and data uniqueness
+- Fixed game queries to use `is_deleted` instead of deprecated `deleted_at` column
+- Resolved jersey number conflicts in integration tests
 
 ### Code Quality Improvements
-- **Refactoring**: Extracted name matching logic from import processor to dedicated utility module
-  - Removed 50+ lines of duplicated name matching code
-  - Improved maintainability and testability of name matching algorithms
-- **Version Bump**: Updated project version to 0.4.18 across all configuration files
+- Extracted name matching logic to dedicated utility module
+- Updated project version to 0.4.18
 
 v0.4.17
 -------
 
 ### Features
-- **Overtime Support**: Added comprehensive overtime functionality for basketball games
-  - Support for up to 2 overtime periods (OT1, OT2) with automatic tie detection
-  - Smart game state progression: regulation tie → OT1, OT1 tie → OT2, OT2 → final
-  - Extended CSV import format with `OT1Shots` and `OT2Shots` columns
-  - Dynamic UI display for overtime quarters in game detail and box score pages
-  - Database schema extended to support quarters 1-6 (regulation + 2 overtime periods)
+- Added comprehensive overtime support for up to 2 overtime periods (OT1, OT2)
 
 ### Database Improvements
-- **Schema Migration**: Added overtime support migration (`e31c9e352add_add_overtime_support.py`)
-  - Extended quarter constraints from 4 to 6 quarters in `game_states` and `player_quarter_stats` tables
-  - Maintains backward compatibility with existing 4-quarter games
+- Added overtime support migration extending quarter constraints from 4 to 6 quarters
 
 ### Service Layer Enhancements
-- **Game State Service**: Enhanced with intelligent overtime logic and performance optimizations
-  - Added `joinedload` optimization for game relationship queries
-  - Automatic overtime advancement when games are tied after regulation or OT1
-- **Report Generator**: Updated to handle dynamic quarter counts instead of hardcoded 4 quarters
-  - Dynamic quarter initialization supporting variable quarter counts
-  - Improved cumulative scoring and point differential calculations for overtime games
+- Enhanced Game State Service with intelligent overtime logic
+- Updated Report Generator to handle dynamic quarter counts
 
 ### UI/UX Improvements
-- **Dynamic Quarter Display**: Web interface automatically adapts to show overtime columns
-  - JavaScript-driven dynamic quarter headers (Q1, Q2, Q3, Q4, OT1, OT2) based on actual game data
-  - Responsive design maintained for overtime games
-  - Box score templates updated for variable quarter display
+- Added dynamic quarter display that adapts to show overtime columns
 
 ### Testing
-- **Comprehensive Test Coverage**: Added 17 new tests (837 → 854 total tests)
-  - 4 new unit tests for overtime game state logic scenarios
-  - Complete integration test suite (271 lines) covering overtime database storage, CSV import, and UI display
-  - Functional tests for overtime UI display validation
-  - Maintained 66% code coverage with expanded codebase
+- Added 17 new tests covering overtime functionality
 
 ### Development Infrastructure
-- **Makefile Enhancements**: Added test data loading targets for development workflow
-- **Code Quality**: Lint cleanup and code formatting improvements
+- Added test data loading targets to Makefile
+- Lint cleanup and code formatting improvements
 
 v0.4.16
 -------
 
 ### Code Architecture Improvements
-- **Report Service Refactoring**: Consolidated business logic into dedicated service layer
-  - Created `report_service.py` to handle all report generation business logic
-  - Refactored `ReportCommands` to delegate to `ReportService` instead of containing business logic
-  - Improved separation of concerns following SOLID principles
-  - Maintained backward compatibility for all report generation features
+- Consolidated report generation business logic into dedicated service layer
 
 v0.4.15
 -------
 
 ### Test Infrastructure Improvements
-- **Test Fixture Consolidation**: Major refactoring to eliminate fixture duplication (~30% performance improvement)
-  - Created unified database fixtures (`unit_db_session`, `integration_db_session`) in main conftest.py
-  - Introduced test data factory pattern for consistent test data across all tests
-  - Consolidated authentication fixtures (`mock_admin_user`, `authenticated_client`, `unauthenticated_client`)
-  - Removed 15+ duplicate database session fixtures across test files
-  - Updated `test_api.py` to use shared fixtures (1,378-line file needs further refactoring)
-  - Deprecated legacy fixtures in integration conftest.py in favor of shared ones
-- **Test Suite Stability**: Achieved 100% pass rate across all test types (unit, integration, UI validation)
-  - Fixed shared PostgreSQL database conflicts using environment-aware testing patterns
-  - Implemented UUID-based unique naming for test data to prevent collisions
-  - Resolved jersey number conflicts with hash-based numeric generation
-  - Fixed game creation API endpoint issues in UI validation tests
-- **Performance Optimization**: Reduced season stats processing overhead by 95%
-  - Modified stats service to only process teams with games (vs checking 2750+ test teams)
-  - Eliminated hundreds of "No games found" warnings during test runs
-- **Makefile Fix**: `make test-ui` now properly activates Python virtual environment
+- Major test fixture consolidation eliminating duplication (~30% performance improvement)
+- Achieved 100% pass rate across all test types
+- Reduced season stats processing overhead by 95%
+- Fixed `make test-ui` to properly activate Python virtual environment
 
 v0.4.14
 -------
 
 ### Features
-- **Player Portraits**: Added comprehensive player portrait upload and display system
-  - Portrait upload functionality on player detail pages (authenticated users only)
-  - Automatic image resizing to 250x250 max dimensions while preserving aspect ratio
-  - Portrait display in player index pages, game detail box scores, and player cards
-  - Support for JPG, PNG, and WebP image formats with 5MB size limit
-  - Portrait deletion functionality with confirmation
-  - Responsive design with different portrait sizes for different contexts (120px, 64px, 32px)
+- Added comprehensive player portrait upload and display system
 
 ### Code Quality Improvements
-- **Template Helper Consolidation**: Refactored template helpers to eliminate code duplication
-  - Consolidated team logo and player portrait helpers using generic `_get_entity_image_url()` function
-  - Reduced code duplication by 60% through entity-agnostic design
-  - Maintained backward compatibility with existing helper functions
-  - Introduced `ImageEntityType` literal type for better type safety
-- **Enhanced Error Handling**: Improved API error responses with structured error information
-  - Added specific error codes (`PLAYER_NOT_FOUND`, `INVALID_FILE_TYPE`, `FILE_TOO_LARGE`, etc.)
-  - Changed validation errors from 400 to 422 status codes for better semantic meaning
-  - Enhanced error messages with contextual information and suggested actions
-  - Improved file size validation with graceful handling of mock objects in tests
+- Refactored template helpers to eliminate code duplication
+- Enhanced API error handling with structured error information
 
 ### Refactoring / Enhancement
-- **Image Processing Service**: Refactored to support both team logos and player portraits using DRY/SOLID principles
-  - Introduced generic `ImageType` enum for different image types
-  - Consolidated image processing logic with configurable dimensions, subdirectories, and file prefixes
-  - Maintained backward compatibility with existing team logo functionality
-  - Added new template helper functions for player portrait URL generation with caching
+- Refactored Image Processing Service to support both team logos and player portraits
 
 ### API Enhancements
-- Added `POST /v1/players/{player_id}/portrait` endpoint for portrait uploads with enhanced error handling
-- Added `DELETE /v1/players/{player_id}/portrait` endpoint for portrait deletion with detailed response metadata
-- Maintained backward compatibility with legacy `upload-image` endpoint
-- Enhanced all portrait endpoints with structured error responses and automatic cache invalidation
+- Added `POST /v1/players/{player_id}/portrait` and `DELETE /v1/players/{player_id}/portrait` endpoints
 
 ### Testing
-- Added comprehensive unit tests for player portrait functionality in image processing service
-- Added unit tests for portrait API endpoints with mock validation
-- Added integration tests for complete portrait upload/delete workflows
-- Added UI tests for portrait display and upload functionality across different pages
-- Added template helper function tests with caching validation
+- Added comprehensive tests for player portrait functionality
 
 v0.4.13
 -------
 
 ### Features
 - Added Cloud Storage support for persistent file uploads in production
-- Configured Cloud Storage FUSE volume mount in Cloud Run for team logos
 
 ### Infrastructure
 - Added Google Cloud Storage bucket resource in Terraform configuration
-- **Improved**: Terraform now manages all Cloud service account IAM permissions automatically (no more manual scripts needed)
-- Configured storage bucket with CORS settings for web uploads and versioning for data protection
-- Migrated Terraform Cloud service account permission management from manual script to Infrastructure as Code
+- Terraform now manages all Cloud service account IAM permissions automatically
 
 ### Bug Fixes
 - Fixed team logo uploads being deleted on each deployment
 - Fixed Pydantic validation errors in Settings class
-- **Critical: Fixed dashboard/homepage loading error** - Removed broken SQLAlchemy User relationship from Team model that was causing dashboard page to crash
-- Fixed SQLAlchemy relationship error that prevented model loading
-- **Fixed team logo 404 errors** - Template logo function and JavaScript now check database first before attempting to load images, preventing 404 errors for teams without logos
+- Fixed dashboard/homepage loading error
+- Fixed team logo 404 errors
 
 ### Testing
 - Added comprehensive UI tests for dashboard data display functionality
-- Added tests for Recent Games and Players sections on dashboard
-- Added tests to verify dashboard handles empty data gracefully
-- Added unit tests for database-aware team logo URL generation
-- Added UI tests to prevent team logo 404 errors and verify fallback icons
 
 ### Refactoring / Optimization
-- Moved uploads directory outside application code directory for better separation
-- Updated all upload URLs from `/static/uploads/` to `/uploads/` for consistency
-- Added dedicated `/uploads` mount point in FastAPI for serving uploaded files
-- Optimized the Dockerfile to cache dependencies more effectively
-- Cleaned up unnecessary TYPE_CHECKING imports in models
+- Moved uploads directory outside application code directory
+- Updated upload URLs for consistency
+- Optimized Dockerfile dependency caching
 
 v0.4.12
 -------
 
 ### Bug Fixes
-- **Critical: Fixed tests overwriting real uploaded team logos** - Tests now use configurable UPLOAD_DIR and proper mocking to prevent writing to production upload directories
-- Made upload directory configurable via UPLOAD_DIR environment variable to support different environments
-- Added test fixtures for image creation to reduce inline test image generation
+- Fixed tests overwriting real uploaded team logos
+- Made upload directory configurable via UPLOAD_DIR environment variable
+- Added test fixtures for image creation
 
 
 v0.4.11
@@ -674,274 +377,214 @@ v0.4.11
 - Enhanced team logo processing and display functionality
 
 ### Refactoring / Optimization
-- Refactored duplicated listing logic in CLI commands by extracting common CSV/table formatting into reusable helper functions
-- Consolidated banner CSS styles into main.css (removed duplicate component files)
+- Refactored duplicated listing logic in CLI commands
+- Consolidated banner CSS styles into main.css
 - Improved test client setup for integration tests
 
 ### Bug Fixes
-- Preserve jersey number string format in CSV parser (prevents "0" vs "00" issues)
-- Fixed authentication cookie security settings for local development environments
+- Preserve jersey number string format in CSV parser
+- Fixed authentication cookie security settings for local development
 - Fixed admin session authentication in UI validation tests
-- Fix Box Score table display on game detail page - regression
-- Fixed UI validation tests in CI by adding database migrations step and required environment variables
+- Fixed Box Score table display on game detail page
+- Fixed UI validation tests in CI
 
 v0.4.10
 -------
 
 ### Added
 - Team logo upload functionality with automatic image resizing
-- Unit tests for team logo image processing service
-- Unit tests for team logo API endpoints
-- Unit tests for team logo template helpers
+- Unit tests for team logo functionality
 
 ### Refactoring / Optimization
-- Eliminated inline CSS styles across 18+ templates by consolidating into dedicated component files (team-logos.css)
-- Removed 328 lines of inline CSS from games/detail.html and organized into component files (game-detail.css, box-score.css)
+- Eliminated inline CSS styles across 18+ templates
+- Organized CSS into dedicated component files
 
 ### Bug Fixes
-- Fix 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column (applied pending database migration)
-- Fix team logo upload not overwriting existing logos (ensure all sizes are deleted before creating new ones)
-- Fix team logo image format preservation (maintain original format PNG/JPG/WebP instead of converting all to JPEG)
-- Fix team logo resizing to preserve aspect ratios instead of cropping to exact dimensions (prevents distortion of non-square images)
+- Fixed 500 errors on /v1/games and /v1/teams endpoints due to missing logo_filename column
+- Fixed team logo upload issues
+- Fixed team logo image format preservation
+- Fixed team logo resizing to preserve aspect ratios
 
 v0.4.9
 ------
 
 ### Added
-- Comprehensive template duplication analysis documenting reusable patterns across HTML templates
-- Template component system with reusable partials for modals, forms, tables, and stats cards
-- Form field macros for consistent input styling and validation
-- JavaScript modules for API interactions, CRUD operations, and form validation
+- Template component system with reusable partials
+- Form field macros for consistent input styling
+- JavaScript modules for API interactions and CRUD operations
 
 ### Refactoring / Optimization
-- Consolidated 4 responsive CSS files into single mobile-first main.css file (50-70% code reduction)
-- Created component-based CSS architecture with separate files for buttons, tables, forms, and modals
-- Standardized mobile table behavior across all pages for consistent user experience
-- Extracted template partials to eliminate duplication of modal, form, and table structures
-- Implemented mobile-first responsive design with consistent breakpoints and touch targets
-- Remove redundant CI workflow steps to reduce github action consumption
+- Consolidated 4 responsive CSS files into single mobile-first main.css file
+- Created component-based CSS architecture
+- Standardized mobile table behavior across all pages
+- Extracted template partials to eliminate duplication
+- Removed redundant CI workflow steps
 
 ### Bug Fixes
-- Fix CI unit tests failing due to missing DATABASE_URL environment variable (set to sqlite:///test.db for unit tests)
-- Fix JavaScript scoping issue in CRUD module retry button onclick handler (use proper event listener binding)
-- Fix dashboard "Players of the Week" styling inconsistency with game detail "Game Leaders" (moved shared CSS to main.css, removed all conflicting desktop/mobile overrides, and created reusable component)
-- Fix team roster table hiding columns on desktop that should only be hidden on mobile (wrapped column hiding CSS in mobile media query)
-- Fix player detail page recent games table not matching dashboard/games list styling (created reusable recent_games component and updated player detail to use consistent game cards/table format)
-- Fix teams table styling to match players table responsive behavior (updated teams table to use mobile-table-view class and added CSS rules to hide Display Name and Players columns on mobile)
-- Fix player detail page recent games showing incorrect/missing data (updated player stats API to include team scores and game results, simplified JavaScript to remove unused data transformation)
-- Create unified games list component to consolidate duplicated games display code across dashboard, team detail, and player detail pages (replaced 3 different implementations with single reusable component)
-- Add safety checks for query results in player stats API to prevent potential AttributeError exceptions (added hasattr() validation for total_points field)
+- Fixed CI unit tests failing due to missing DATABASE_URL environment variable
+- Fixed JavaScript scoping issue in CRUD module
+- Fixed dashboard "Players of the Week" styling inconsistency
+- Fixed team roster table column hiding behavior
+- Fixed player detail page recent games styling and data issues
+- Created unified games list component
+- Added safety checks for query results in player stats API
 
 ### Architecture Improvements
-- Established template partial system with components/, includes/, and macros/ directories
-- Created JavaScript module structure for better code organization and reusability
-- Unified responsive table strategies to provide consistent mobile experience
-- Standardized CSS naming conventions and utility classes
+- Established template partial system with organized directory structure
+- Created JavaScript module structure for better code organization
+- Unified responsive table strategies
+- Standardized CSS naming conventions
 
 v0.4.8
 ------
 ### Features
-* Add game editing functionality - users can now edit games after they've been entered
-* Add Edit button to games list (visible only to authenticated users)
-* Implement shot notation conversion service to convert stored stats back to scorebook format
-* Add GET /v1/games/{game_id}/scorebook-format API endpoint for retrieving game data in editable format
-* Enhanced scorebook save endpoint to support both creating new games and updating existing ones
-* Pre-populate scorebook form with existing game data when editing
+- Added game editing functionality
+- Added shot notation conversion service
+- Added GET /v1/games/{game_id}/scorebook-format API endpoint
 
 ### UI Improvements
-* Added 2 additional players to the "Game Leaders" section on the game detail page (now shows top 2 players from each team)
-* Implemented responsive design: desktop displays vertically stacked, mobile displays in 2x2 grid layout
+- Added 2 additional players to "Game Leaders" section
+- Implemented responsive design for game leaders
 
 ### API Enhancements
-* Added `top_players` field to TeamStats schema for enhanced Game Leaders functionality
-* Enhanced scorebook endpoint with update mode detection via game_id parameter
+- Added `top_players` field to TeamStats schema
+- Enhanced scorebook endpoint with update mode detection
 
 ### Security
-* Proper authentication and authorization for game editing (admin or team member access only)
-* Access control checks prevent unauthorized game modifications
+- Added proper authentication and authorization for game editing
 
 ### Bug Fixes
-* Fixed UnboundLocalError in scorebook game creation when `scheduled_game_info` was not initialized in update path
+- Fixed UnboundLocalError in scorebook game creation
 
 ### Testing
-* Comprehensive unit test coverage for ShotNotationService and game scorebook API endpoints
-* Fixed database session management issues in API endpoint tests
-* All unit tests passing (571 tests)
+- Added comprehensive unit test coverage for ShotNotationService
 
 v0.4.7
 ------
 
 ### UI improvements
-* Improve mobile device view of team detail and player list pages
-* Refactor CSS: Move duplicated mobile table view styles to main stylesheet
-* Replace fragile nth-child selectors with semantic utility classes for column hiding
-* Add missing display:none rule for desktop-only tables on mobile devices
-* Fix players list on mobile to display as compact table instead of cards
-* Hide Position column on mobile views for cleaner display
-* Fix CSS specificity issue preventing column hiding on mobile devices
+- Improved mobile device view of team detail and player list pages
+- Refactored CSS mobile table view styles
+- Fixed players list display on mobile
+- Fixed CSS specificity issues preventing column hiding on mobile
 
 v0.4.5
 ------
 
+### Features
+- Added comprehensive game schedule feature with CRUD operations
+- Implemented ScheduledGame model with status tracking
+
 ### Bug Fixes
-* Fixed team standings showing 0-0 in production game detail pages by reusing the team detail page approach for getting season stats
-* Fix JavaScript errors on game creation page - added null checks for DOM elements
-* Fix scheduled games table missing locally - migrations not applied
-* Fix scheduled game creation API error - wrong method signature for find_matching_game
-* Add proper Bearer token authorization to scheduled game creation request
-* Fix scheduled games not appearing in games list - modified /v1/games endpoint to include scheduled games
-* Fix 404 error when clicking View on scheduled games - removed View button since there's no detail page for scheduled games
-* Fix failing unit test for ScheduleService.test_create_scheduled_game - corrected mocked method name from find_matching_game to find_matching_game_by_ids
-* Confirmed all integration tests pass (64/78 passed, 14 skipped) - no outstanding test failures
+- Fixed team standings showing 0-0 in production game detail pages
+- Fixed JavaScript errors on game creation page
+- Fixed scheduled games table and API issues
+- Fixed failing unit tests
 
 ### UI Improvements
-* Replace browser alert dialogs with HTML banners for game scheduling success/error messages
-* Add auto-dismissing success banners that redirect to games page after scheduling
-* Improve user experience with inline error messages using styled HTML banners
-* Show scheduled games in main games list with "Scheduled" status instead of scores
-* Use negative IDs for scheduled games to distinguish them from completed games
-* Update game list UI to properly handle and display scheduled games
-
-### Features
-* Add comprehensive game schedule feature with CRUD operations
-* Implement ScheduledGame model with status tracking (scheduled, completed, cancelled, postponed)
-* Add schedule management API endpoints at /v1/games/scheduled/*
-* Automatic matching of CSV imports with scheduled games
-* CSV import integration that links completed games to their scheduled entries
-* Database migration for scheduled_games table with proper indexing
-* ScheduleService for business logic and intelligent game matching
-* Update "Schedule Game" functionality to use existing create game page instead of modal
-* Simplify UI by removing redundant "Create New Game" button and modal interface
-* Create game page now creates scheduled games instead of regular games with 0-0 scores
-* Authentication-protected UI elements that only show for logged-in users
-
-### Fixes
-* Fix integration test environment setup for JWT_SECRET_KEY configuration
-* Add find_matching_game_by_ids method to handle team ID based matching
+- Replaced browser alert dialogs with HTML banners
+- Added auto-dismissing success banners
+- Updated game list UI to handle scheduled games
 
 ### Tests
-* Add comprehensive unit tests for ScheduleService (13 tests)
-* Add unit tests for CRUDScheduledGame operations (9 tests)
-* Add integration tests for scheduled games API endpoints (9 tests)
-* Add UI tests for create game page functionality (9 tests) - moved to test_ui_validation.py
-* Fix time conversion issues in CRUD operations (string to time object conversion)
-* Fix integration test database session management for proper test isolation
-* Fix API route ordering issue - moved /scheduled routes before /{game_id} to prevent route conflicts
-* Add integration tests for authentication flow and authenticated endpoints (10 tests)
-* Move create game UI tests to proper UI test suite location in test_ui_validation.py
+- Added comprehensive unit and integration tests for scheduling functionality
 
 v0.4.4
 ------
 
 ### Authentication Improvements
-* Fix login authentication not persisting - added HTTP-only secure cookies to /auth/token endpoint
-* Update authentication dependencies to support both Bearer tokens and cookies
-* Fix logout to properly clear authentication cookies
-* Add comprehensive integration tests for cookie-based authentication
-* Fix admin role check in template context to use proper enum comparison
+- Fixed login authentication not persisting
+- Updated authentication dependencies to support both Bearer tokens and cookies
+- Fixed logout to properly clear authentication cookies
+- Added comprehensive integration tests for cookie-based authentication
 
 v0.4.3
 ------
 
 ### Features
-* Add mobile-friendly hamburger menu for navigation on small screens
-* Enhanced smartphone portrait mode (≤480px) with comprehensive mobile menu implementation
-* Added aria-expanded attributes for better accessibility
-* Implemented body scroll lock when mobile menu is open
-* Improved touch targets and mobile-specific styling
-* Add responsive table design for mobile devices with data-label attributes
-* Implement compact game card layout for mobile devices showing scores and teams
-* Display team win-loss records on game detail page instead of home/away labels
-* Add responsive mobile layout for game detail scoreboard with centered scores and team info
+- Added mobile-friendly hamburger menu for navigation
+- Enhanced smartphone portrait mode with comprehensive mobile menu implementation
+- Added responsive table design for mobile devices
+- Implemented compact game card layout for mobile devices
 
 ### Fixes
-* Fix issue with user authentication not being properly checked in templates
-* Fix hamburger button styling to look like standard mobile menu icon with proper positioning
-* Fix menu toggle functionality by removing conflicting 767px media query rules
-* Add hamburger menu support to smartphone landscape mode (481-767px)
-* Ensure mobile menu button only shows on mobile devices (≤767px)
-* Fix hamburger button alignment - now properly centered vertically with header
-* Fix games tables to display properly on mobile portrait view using card-based layout
-* Replace responsive table design with compact game cards for better mobile UX
-* Fix Players of the Week layout on mobile portrait to stack cards vertically instead of cramming horizontally
+- Fixed user authentication checking in templates
+- Fixed hamburger button styling and alignment
+- Fixed menu toggle functionality
+- Fixed games tables display on mobile
+- Fixed Players of the Week layout on mobile
 
 v0.4.2
 ------
 
 ### Code Quality Improvements
-* Fix all ruff lint validation errors and warnings across the app folder
-* Add B008 to ruff ignore list for valid FastAPI Depends() patterns
-* Fix B904 errors - add proper exception chaining with 'from e' or 'from None'
-* Fix E712 errors - replace `== True` comparisons with direct boolean checks
-* Fix line length violations and simplify code patterns
+- Fixed all ruff lint validation errors and warnings
+- Added proper exception chaining
+- Fixed boolean comparison patterns
 
 ### Bug Fixes
-* Fix player stats API endpoint to return season_stats when no active season exists
-* Update player stats endpoint to fall back to most recent season stats if no active season
-* Fix missing `get_db_session` import in web UI dependencies module causing test failures
-* Fix integration test authentication setup to properly mock auth dependencies
+- Fixed player stats API endpoint to return season_stats when no active season exists
+- Fixed missing `get_db_session` import causing test failures
+- Fixed integration test authentication setup
 
 ### Authentication Fixes
-- Revert admin page authentication approach - HTML pages use client-side auth checking rather than server-side dependencies
-- Admin API endpoints still enforce proper role-based authentication
-- Update tests to reflect correct authentication behavior (client-side for HTML, server-side for API)
+- Reverted admin page authentication approach to client-side checking
+- Updated tests to reflect correct authentication behavior
 
 ### Test Improvements
-- Fix integration test authentication mocking for consistent test behavior
-- Skip problematic security integration tests pending team-based access control implementation
-- Update OAuth integration tests to handle proper dependency injection
+- Fixed integration test authentication mocking
+- Updated OAuth integration tests
 
 v0.4.1
 ------
 
 ### Fixes
-* Logging out now actually logs out the user
-* Fix player season stats endpoint to use active season instead of hardcoded "2024-2025"
-* Fix inconsistency between player and team season stats - both now use SeasonStatsService with proper season lookup
-* Fix SeasonStatsService to use actual Season table date ranges instead of hardcoded date calculations
-* Fix linting issues in tests and main app
+- Fixed logout functionality
+- Fixed player season stats endpoint to use active season
+- Fixed inconsistency between player and team season stats
+- Fixed SeasonStatsService to use actual Season table date ranges
+- Fixed linting issues
 
 v0.4.0
 ------
 ### Features
-* Add team statistics and team season statistics
+- Added team statistics and team season statistics
 
 ### API Improvements
-* Replace generic dict[str, Any] response models with explicit Pydantic schemas in teams router for better type safety and API documentation
-* Add TeamBasicResponse, RosterPlayer, TeamWithRosterResponse, and DeletedTeamResponse schemas
+- Replaced generic dict response models with explicit Pydantic schemas
+- Added TeamBasicResponse, RosterPlayer, TeamWithRosterResponse, and DeletedTeamResponse schemas
 
 ### Security Fixes
-* Fix missing authentication on admin pages - added require_admin dependency to /admin/users and /admin/seasons endpoints
+- Fixed missing authentication on admin pages
 
 ### Test Infrastructure Improvements
-* Fix circular import issues and resolve 18 failing unit tests
-* Improve test pass rate from 96% to 100% (516 passed, 5 skipped)
+- Fixed circular import issues and resolved 18 failing unit tests
+- Improved test pass rate from 96% to 100%
 
 
 v0.3.0
 ------
 
 ### Features
-* Introduce user authentication and authorization with JWT tokens
-* Add Google OAuth 2.0 integration for user login
-* Implement role-based access control (Admin, User)
-* Add team-based data access restrictions
-* Create user management and account pages
-* Create a default admin using a secure password from env
+- Introduced user authentication and authorization with JWT tokens
+- Added Google OAuth 2.0 integration for user login
+- Implemented role-based access control (Admin, User)
+- Added team-based data access restrictions
+- Created user management and account pages
 
 ### Changes
-* Enhance security with mandatory JWT secret key validation
-* Add OAuth provider fields to user model
-* Implement comprehensive authentication middleware
-* Github action now just uploads and reloads the app/image, no longer overrides terraform configs
+- Enhanced security with mandatory JWT secret key validation
+- Added OAuth provider fields to user model
+- Implemented comprehensive authentication middleware
+- Github action now just uploads and reloads the app/image
 
 ### Fixes
-* Fix test command to fail fast instead of continuing on errors
+- Fixed test command to fail fast instead of continuing on errors
 
 ### Documentation / Tests
-* Add comprehensive authentication test suite
-* Create security integration tests
-* Add FastAPI startup validation tests
+- Added comprehensive authentication test suite
+- Created security integration tests
+- Added FastAPI startup validation tests
 
 v0.2.0
 ------

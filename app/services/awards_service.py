@@ -196,10 +196,10 @@ def _calculate_week_winners(
                 award_type="player_of_the_week",
                 week_date=week_start,
                 points_scored=max_points,
+                game_id=player_best_games[player_id]["game_id"],
             )
 
             if award:
-                award.game_id = player_best_games[player_id]["game_id"]
                 winners.append(player_id)
                 logger.debug(
                     f"Awarded Player of the Week to {player.name} (ID: {player_id}) "
@@ -741,10 +741,10 @@ def _calculate_per_game_stat_award(
                     award_type=award_type,
                     week_date=week_start,
                     points_scored=None,
+                    game_id=player_best_stats[player_id]["game_id"],
                 )
                 if award:
                     award.stat_value = float(max_stat)
-                    award.game_id = player_best_stats[player_id]["game_id"]
                     logger.debug(
                         f"Awarded {award_type} to player {player_id} with {max_stat} {stat_name} in single game"
                     )
@@ -837,10 +837,10 @@ def _calculate_hot_hand_winners(
             award_type=WEEKLY_AWARD_TYPES["hot_hand_weekly"],
             week_date=week_start,
             points_scored=None,
+            game_id=player_best_fg_pct[player_id]["game_id"],
         )
         if award:
             award.stat_value = max_percentage
-            award.game_id = player_best_fg_pct[player_id]["game_id"]
             logger.debug(f"Awarded Human Cheat Code to player {player_id} with {max_percentage:.1%} FG% in single game")
 
     session.flush()
@@ -1094,10 +1094,10 @@ def _calculate_marksman_winners(
             award_type=WEEKLY_AWARD_TYPES["marksman_award"],
             week_date=week_start,
             points_scored=None,
+            game_id=player_best_fg_pct[player_id]["game_id"],
         )
         if award:
             award.stat_value = max_percentage
-            award.game_id = player_best_fg_pct[player_id]["game_id"]
             logger.debug(f"Awarded Marksman to player {player_id} with {max_percentage:.1%} FG% in single game")
 
     session.flush()
@@ -1133,10 +1133,10 @@ def _calculate_perfect_performance_winners(
                         award_type=WEEKLY_AWARD_TYPES["perfect_performance"],
                         week_date=week_start,
                         points_scored=None,
+                        game_id=game.id,
                     )
                     if award:
                         award.stat_value = float(total_makes)
-                        award.game_id = game.id
                         winners.append(player_id)
                         logger.debug(
                             f"Awarded Perfect Performance to player {player_id} with {total_makes} perfect makes"
@@ -1257,10 +1257,10 @@ def _calculate_breakout_performance_winners(
             award_type=WEEKLY_AWARD_TYPES["breakout_performance"],
             week_date=week_start,
             points_scored=data["game_points"],
+            game_id=data["game_id"],
         )
         if award:
             award.stat_value = data["score"]
-            award.game_id = data["game_id"]
             logger.debug(
                 f"Awarded Breakout Performance to player {player_id} - "
                 f"{data['game_points']} pts vs {data['avg_ppg']:.1f} avg ({data['score']:.1%} improvement)"
