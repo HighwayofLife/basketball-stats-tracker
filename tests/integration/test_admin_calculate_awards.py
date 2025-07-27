@@ -8,14 +8,13 @@ These tests verify the complete end-to-end flow that the admin UI button trigger
 from datetime import date
 from unittest.mock import Mock, patch
 
-from app.services.awards_service import calculate_all_weekly_awards
-from app.services.season_awards_service import calculate_season_awards
+from app.services.awards_service import calculate_all_season_awards, calculate_all_weekly_awards
 
 
 class TestAdminCalculateAwards:
     """Integration tests for admin calculate awards button functionality."""
 
-    def test_calculate_season_awards_button_flow(self):
+    def test_calculate_all_season_awards_button_flow(self):
         """Test the complete flow when admin clicks 'calculate current season' button."""
         mock_session = Mock()
 
@@ -53,9 +52,9 @@ class TestAdminCalculateAwards:
         mock_player.name = "Test Player"
 
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
-            patch("app.services.season_awards_service.create_player_award_safe") as mock_create_award,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.create_player_award_safe") as mock_create_award,
             patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_awards,
         ):
             mock_get_games.return_value = [mock_game]
@@ -64,14 +63,15 @@ class TestAdminCalculateAwards:
             mock_create_award.return_value = Mock()  # Successful creation
 
             # This is what the admin button calls
-            result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+            result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
             # Should complete without AttributeError
             assert isinstance(result, dict)
-            assert len(result) == 8  # All 8 season awards
+            assert len(result) == 9  # All 9 season awards (including Rick Barry)
 
             # Verify all expected awards are calculated
             expected_awards = [
+                "rick_barry_award",
                 "top_scorer",
                 "sharpshooter",
                 "efficiency_expert",
@@ -129,7 +129,7 @@ class TestAdminCalculateAwards:
 
             # Should complete without AttributeError
             assert isinstance(result, dict)
-            assert len(result) == 8  # All 8 weekly awards
+            assert len(result) == 12  # All 12 weekly awards
 
             # Verify all expected weekly awards are calculated
             expected_weekly_awards = [
@@ -141,6 +141,10 @@ class TestAdminCalculateAwards:
                 "trigger_finger",
                 "weekly_whiffer",
                 "human_howitzer",
+                "dub_club",
+                "marksman_award",
+                "perfect_performance",
+                "breakout_performance",
             ]
             for award_type in expected_weekly_awards:
                 assert award_type in result
@@ -249,9 +253,9 @@ class TestAdminCalculateAwards:
 
         # Test both season and weekly awards in sequence (like admin UI does)
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games_season,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
-            patch("app.services.season_awards_service.create_player_award_safe") as mock_create_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games_season,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.create_player_award_safe") as mock_create_season,
             patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_season_awards,
             patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games_weekly,
             patch("app.services.awards_service.crud_player.get_player_by_id") as mock_get_player,
@@ -271,7 +275,7 @@ class TestAdminCalculateAwards:
             mock_delete.return_value = 0
 
             # Calculate season awards (what admin button does first)
-            season_result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+            season_result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
             # Calculate weekly awards (what admin button might do second)
             weekly_result = calculate_all_weekly_awards(mock_session, season="2024", recalculate=False)
@@ -279,7 +283,7 @@ class TestAdminCalculateAwards:
             # Both should complete without errors
             assert isinstance(season_result, dict)
             assert isinstance(weekly_result, dict)
-            assert len(season_result) == 8  # 8 season awards
-            assert len(weekly_result) == 8  # 8 weekly awards
+            assert len(season_result) == 9  # 9 season awards (including Rick Barry)
+            assert len(weekly_result) == 12  # 12 weekly awards
 
             # No AttributeError should be raised during this flow

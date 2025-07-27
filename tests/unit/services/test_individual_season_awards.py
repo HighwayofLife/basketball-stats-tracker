@@ -7,7 +7,7 @@ Individual unit tests for each season award calculation function.
 from datetime import date
 from unittest.mock import Mock, patch
 
-from app.services.season_awards_service import (
+from app.services.awards_service import (
     calculate_air_assault,
     calculate_air_ball_artist,
     calculate_charity_stripe_regular,
@@ -57,9 +57,9 @@ class TestIndividualSeasonAwards:
         self.mock_game2.date = date(2024, 2, 15)
         self.mock_game2.player_game_stats = [self.mock_stat2]
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_top_scorer(self, mock_create_award, mock_get_season, mock_get_games):
         """Test top scorer award calculation."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -75,9 +75,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "top_scorer"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_sharpshooter(self, mock_create_award, mock_get_season, mock_get_games):
         """Test sharpshooter award calculation (best 3pt%)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -93,9 +93,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "sharpshooter"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_efficiency_expert(self, mock_create_award, mock_get_season, mock_get_games):
         """Test efficiency expert award calculation (best FG%)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -112,9 +112,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "efficiency_expert"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_charity_stripe_regular(self, mock_create_award, mock_get_season, mock_get_games):
         """Test charity stripe regular award calculation (most FT made)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -130,9 +130,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "charity_stripe_regular"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_human_highlight_reel(self, mock_create_award, mock_get_season, mock_get_games):
         """Test human highlight reel award calculation (most FG made)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -148,9 +148,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "human_highlight_reel"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_defensive_tackle(self, mock_create_award, mock_get_season, mock_get_games):
         """Test defensive tackle award calculation (most fouls)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -166,9 +166,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 2
         assert call_args["award_type"] == "defensive_tackle"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_air_ball_artist(self, mock_create_award, mock_get_season, mock_get_games):
         """Test air ball artist award calculation (most 3pt misses)."""
         # Fix test data to have different 3pt miss counts
@@ -188,9 +188,9 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "air_ball_artist"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_air_assault(self, mock_create_award, mock_get_season, mock_get_games):
         """Test air assault award calculation (most shot attempts)."""
         mock_get_games.return_value = [self.mock_game1, self.mock_game2]
@@ -206,8 +206,8 @@ class TestIndividualSeasonAwards:
         assert call_args["player_id"] == 1
         assert call_args["award_type"] == "air_assault"
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
     def test_no_awards_when_no_data(self, mock_get_season, mock_get_games):
         """Test that no awards are given when there's no game data."""
         mock_get_games.return_value = []
@@ -216,9 +216,9 @@ class TestIndividualSeasonAwards:
         result = calculate_top_scorer(self.mock_session, self.season, recalculate=False)
         assert result == 0  # No awards given
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_award_handles_ties(self, mock_create_award, mock_get_season, mock_get_games):
         """Test that awards handle ties correctly by giving awards to all tied players."""
         # Create identical stats for tie scenario

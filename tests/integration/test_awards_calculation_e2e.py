@@ -10,8 +10,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from app.services.awards_service import calculate_player_of_the_week
-from app.services.season_awards_service import calculate_season_awards
+from app.services.awards_service import calculate_all_season_awards, calculate_player_of_the_week
 
 
 class TestAwardsCalculationEndToEnd:
@@ -92,10 +91,10 @@ class TestAwardsCalculationEndToEnd:
         mock_session = Mock()
 
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
             patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_awards,
-            patch("app.services.season_awards_service.create_player_award_safe") as mock_create_award,
+            patch("app.services.awards_service.create_player_award_safe") as mock_create_award,
         ):
             mock_get_games.return_value = [mock_game]
             mock_get_season.return_value = "2024"
@@ -104,7 +103,7 @@ class TestAwardsCalculationEndToEnd:
 
             # This should not raise any AttributeError
             try:
-                result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+                result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
                 assert isinstance(result, dict)
                 print(f"✅ Season awards calculation completed: {result}")
             except AttributeError as e:
@@ -136,10 +135,10 @@ class TestAwardsCalculationEndToEnd:
 
             # 2. Calculate season awards
             with (
-                patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-                patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+                patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+                patch("app.services.awards_service.get_season_from_date") as mock_get_season,
                 patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_awards,
-                patch("app.services.season_awards_service.create_player_award_safe") as mock_create_award,
+                patch("app.services.awards_service.create_player_award_safe") as mock_create_award,
             ):
                 # Mock minimal data for season calculation
                 mock_get_games.return_value = []
@@ -147,7 +146,7 @@ class TestAwardsCalculationEndToEnd:
                 mock_get_awards.return_value = []
                 mock_create_award.return_value = Mock()
 
-                season_result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+                season_result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
             # Both should complete without errors
             assert isinstance(weekly_result, dict)
@@ -159,8 +158,8 @@ class TestAwardsCalculationEndToEnd:
         except Exception as e:
             pytest.fail(f"❌ Unexpected error in comprehensive awards flow: {e}")
 
-    def test_calculate_season_awards_full_integration(self):
-        """Test complete calculate_season_awards function integration."""
+    def test_calculate_all_season_awards_full_integration(self):
+        """Test complete calculate_all_season_awards function integration."""
         # Create comprehensive mock data for all 8 season awards
         mock_stat1 = Mock()
         mock_stat1.player_id = 1
@@ -193,10 +192,10 @@ class TestAwardsCalculationEndToEnd:
         mock_session = Mock()
 
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
             patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_awards,
-            patch("app.services.season_awards_service.create_player_award_safe") as mock_create_award,
+            patch("app.services.awards_service.create_player_award_safe") as mock_create_award,
         ):
             mock_get_games.return_value = [mock_game1, mock_game2]
             mock_get_season.return_value = "2024"
@@ -204,10 +203,11 @@ class TestAwardsCalculationEndToEnd:
             mock_create_award.return_value = Mock()  # Successful creation
 
             # Test the full integration
-            result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+            result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
-            # Verify all 8 season awards were calculated
+            # Verify all 9 season awards were calculated
             expected_awards = [
+                "rick_barry_award",
                 "top_scorer",
                 "sharpshooter",
                 "efficiency_expert",
@@ -221,10 +221,10 @@ class TestAwardsCalculationEndToEnd:
             assert isinstance(result, dict)
             for award_type in expected_awards:
                 assert award_type in result, f"Missing award type: {award_type}"
-                assert result[award_type] >= 0, f"Invalid count for {award_type}: {result[award_type]}"
+                assert isinstance(result[award_type], dict), f"Expected dict for {award_type}: {result[award_type]}"
 
-            # Verify create_player_award_safe was called for each award (may be more than 8 due to ties)
-            assert mock_create_award.call_count >= 8
+            # Verify create_player_award_safe was called for each award (may be more than 9 due to ties)
+            assert mock_create_award.call_count >= 9
 
             print(f"✅ Season awards integration test passed: {result}")
 

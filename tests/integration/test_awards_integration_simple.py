@@ -11,8 +11,7 @@ from unittest.mock import Mock, patch
 from typer.testing import CliRunner
 
 from app.cli import cli
-from app.services.awards_service import calculate_dub_club, calculate_player_of_the_week
-from app.services.season_awards_service import calculate_season_awards
+from app.services.awards_service import calculate_all_season_awards, calculate_dub_club, calculate_player_of_the_week
 
 
 class TestAwardsIntegrationSimple:
@@ -62,7 +61,7 @@ class TestAwardsIntegrationSimple:
             # Verify the award was attempted to be created
             mock_create_award.assert_called_once()
 
-    def test_calculate_season_awards_with_mock_data(self):
+    def test_calculate_all_season_awards_with_mock_data(self):
         """Test season awards calculation with mocked database data."""
         mock_session = Mock()
 
@@ -82,10 +81,10 @@ class TestAwardsIntegrationSimple:
         mock_game.player_game_stats = [mock_game_stat]
 
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
             patch("app.data_access.crud.crud_player_award.get_season_awards") as mock_get_awards,
-            patch("app.services.season_awards_service.create_player_award_safe") as mock_create_award,
+            patch("app.services.awards_service.create_player_award_safe") as mock_create_award,
         ):
             mock_get_games.return_value = [mock_game]
             mock_get_season.return_value = "2024"
@@ -93,7 +92,7 @@ class TestAwardsIntegrationSimple:
             mock_create_award.return_value = Mock()  # Successful creation
 
             # Should complete without errors
-            result = calculate_season_awards(mock_session, season="2024", recalculate=False)
+            result = calculate_all_season_awards(mock_session, season="2024", recalculate=False)
 
             assert isinstance(result, dict)
             # Should have calculated all 8 season awards

@@ -454,7 +454,7 @@ class TestCalculateMarksmanAward:
     @patch("app.services.awards_service.create_player_award_safe")
     @patch("app.services.awards_service.get_awards_by_week")
     def test_calculate_marksman_award_basic(self, mock_get_awards, mock_create_award, mock_get_games):
-        """Test basic Marksman Award calculation - most efficient shooter with 4-7 FGA."""
+        """Test basic Marksman Award calculation - most efficient shooter with 4-8 FGA."""
         session = Mock()
 
         # Create mock games with stats
@@ -489,14 +489,14 @@ class TestCalculateMarksmanAward:
         stat3.total_3pa = 0
         # FGA = 3, doesn't qualify
 
-        # Player 4: 8 FGA (doesn't qualify - too many attempts)
+        # Player 4: 8 FGA, 8 made = 100% (qualifies and should win)
         stat4 = Mock()
         stat4.player_id = 4
         stat4.total_2pm = 6
         stat4.total_3pm = 2
         stat4.total_2pa = 6
         stat4.total_3pa = 2
-        # FGA = 8, doesn't qualify
+        # FGA = 8, FGM = 8, FG% = 100%
 
         game1.player_game_stats = [stat1, stat2, stat3, stat4]
         mock_get_games.return_value = [game1]
@@ -509,9 +509,9 @@ class TestCalculateMarksmanAward:
 
         results = calculate_marksman_award(session, season=None, recalculate=False)
 
-        # Should create award for player 1 only (highest FG% among qualifiers)
+        # Should create award for player 4 only (highest FG% among qualifiers: 100% vs 80% vs 50%)
         assert mock_create_award.call_count == 1
-        assert mock_create_award.call_args.kwargs["player_id"] == 1
+        assert mock_create_award.call_args.kwargs["player_id"] == 4
         assert mock_create_award.call_args.kwargs["award_type"] == "marksman_award"
         assert results == {"2024": 1}
 
