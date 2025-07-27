@@ -417,25 +417,51 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createPlayerGamesHtml(games, teamName) {
+        // Helper function to calculate percentages
+        function calculatePercentages(game) {
+            const fgm = (game.fg2m || 0) + (game.fg3m || 0);
+            const fga = (game.fg2a || 0) + (game.fg3a || 0);
+            const fgPercent = fga > 0 ? Math.round((fgm / fga) * 100) : 0;
+            
+            const fg3Percent = (game.fg3a || 0) > 0 ? Math.round(((game.fg3m || 0) / (game.fg3a || 0)) * 100) : 0;
+            const ftPercent = (game.fta || 0) > 0 ? Math.round(((game.ftm || 0) / (game.fta || 0)) * 100) : 0;
+            
+            // Calculate eFG%
+            const efgPercent = fga > 0 ? Math.round(((fgm + 0.5 * (game.fg3m || 0)) / fga) * 100) : 0;
+            
+            return { fgm, fga, fgPercent, fg3Percent, ftPercent, efgPercent };
+        }
+
         // Create both desktop table and mobile cards
         let html = `
             <!-- Desktop Table -->
-            <table class="data-table games-table desktop-only-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Opponent</th>
-                        <th>Score</th>
-                        <th class="text-center">Result</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>`;
+            <div class="table-responsive">
+                <table class="data-table games-table desktop-only-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Opponent</th>
+                            <th>Score</th>
+                            <th class="text-center">Result</th>
+                            <th class="text-center">Pts</th>
+                            <th class="text-center">FG</th>
+                            <th class="text-center">FG%</th>
+                            <th class="text-center">3PT</th>
+                            <th class="text-center">3PT%</th>
+                            <th class="text-center">FT</th>
+                            <th class="text-center">FT%</th>
+                            <th class="text-center">eFG%</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
         games.forEach(game => {
             const gameDate = new Date(game.date);
             const dateStr = gameDate.toLocaleDateString();
             const isWin = game.win || false;
+            
+            const { fgm, fga, fgPercent, fg3Percent, ftPercent, efgPercent } = calculatePercentages(game);
             
             html += `
                     <tr>
@@ -445,6 +471,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         <td data-label="Result" class="text-center">
                             ${game.team_score ? `<span class="badge bg-${isWin ? 'success' : 'danger'}">${isWin ? 'W' : 'L'}</span>` : '-'}
                         </td>
+                        <td data-label="Points" class="text-center">${game.points || 0}</td>
+                        <td data-label="FG" class="text-center">${fgm}/${fga}</td>
+                        <td data-label="FG%" class="text-center">${fgPercent}%</td>
+                        <td data-label="3PT" class="text-center">${game.fg3m || 0}/${game.fg3a || 0}</td>
+                        <td data-label="3PT%" class="text-center">${fg3Percent}%</td>
+                        <td data-label="FT" class="text-center">${game.ftm || 0}/${game.fta || 0}</td>
+                        <td data-label="FT%" class="text-center">${ftPercent}%</td>
+                        <td data-label="eFG%" class="text-center">${efgPercent}%</td>
                         <td data-label="Actions">
                             <a href="/games/${game.game_id}" class="btn btn-sm">View</a>
                         </td>
@@ -454,6 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
         html += `
                 </tbody>
             </table>
+            </div>
 
             <!-- Mobile Cards -->
             <div class="mobile-games-list">`;
@@ -465,6 +500,8 @@ document.addEventListener('DOMContentLoaded', function() {
             const teamWon = game.win || false;
             const teamScore = game.team_score || 0;
             const oppScore = game.opponent_score || 0;
+
+            const { fgm, fga, fgPercent, fg3Percent, ftPercent, efgPercent } = calculatePercentages(game);
 
             html += `
                 <div class="mobile-game-card">
@@ -487,6 +524,32 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="date">${shortDate}</div>
                             </div>
                             <a href="/games/${game.game_id}" class="btn btn-sm btn-view-details">View</a>
+                        </div>
+                    </div>
+                    <div class="game-card-stats mt-2">
+                        <div class="row text-center small">
+                            <div class="col-3">
+                                <div class="fw-bold">${game.points || 0}</div>
+                                <div class="text-muted">PTS</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold">${fgm}/${fga}</div>
+                                <div class="text-muted">FG (${fgPercent}%)</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold">${game.fg3m || 0}/${game.fg3a || 0}</div>
+                                <div class="text-muted">3PT (${fg3Percent}%)</div>
+                            </div>
+                            <div class="col-3">
+                                <div class="fw-bold">${game.ftm || 0}/${game.fta || 0}</div>
+                                <div class="text-muted">FT (${ftPercent}%)</div>
+                            </div>
+                        </div>
+                        <div class="row text-center small mt-2">
+                            <div class="col-6">
+                                <div class="fw-bold">${efgPercent}%</div>
+                                <div class="text-muted">eFG%</div>
+                            </div>
                         </div>
                     </div>
                 </div>`;
