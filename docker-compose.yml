@@ -10,7 +10,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U basketball"]
+      test: ["CMD-SHELL", "pg_isready -U basketball -d basketball_stats"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -32,6 +32,7 @@ services:
       - JWT_SECRET_KEY=your-super-secret-key-change-in-production
       - DEFAULT_ADMIN_PASSWORD=TestAdminPassword123!
       - UPLOAD_DIR=/data/uploads
+      - LOG_LEVEL=DEBUG
     volumes:
       # Mount for development to allow code changes without rebuilding
       - .:/app

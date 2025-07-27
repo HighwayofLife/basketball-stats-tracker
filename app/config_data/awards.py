@@ -14,58 +14,86 @@ WEEKLY_AWARDS = {
     "player_of_the_week": {
         "name": "The Offensive Onslaught",
         "icon": "🏀",
-        "desc": "Most points scored in a week (FG% tie-breaker)",
+        "desc": "Best single-game scoring performance (FG% tie-breaker)",
         "format_stat": None,  # Uses points_scored instead
         "format_points": True,
     },
     "quarterly_firepower": {
         "name": "Quarter Pounder",
         "icon": "🔥",
-        "desc": "Highest points in any single quarter during the week",
+        "desc": "Highest points in any single quarter",
         "format_stat": "pts",
         "format_points": False,
     },
     "weekly_ft_king": {
         "name": "Freethrow Merchant",
         "icon": "👑",
-        "desc": "Most free throws made during the week",
+        "desc": "Most free throws made in a single game",
         "format_stat": "FTM",
         "format_points": False,
     },
     "hot_hand_weekly": {
         "name": "The Human Cheat Code",
         "icon": "🎯",
-        "desc": "Highest field goal percentage with minimum 10 attempts",
+        "desc": "Highest FG% in a single game (minimum 10 attempts)",
         "format_stat": "percentage",
         "format_points": False,
     },
     "clutch_man": {
         "name": "The Final Boss",
         "icon": "⏰",
-        "desc": "Most shots made in 4th quarter during the week",
+        "desc": "Most shots made in 4th quarter of a single game",
         "format_stat": "Q4 makes",
         "format_points": False,
     },
     "trigger_finger": {
         "name": "Trigger Finger",
         "icon": "🎪",
-        "desc": "Most shot attempts during the week",
+        "desc": "Most shot attempts in a single game",
         "format_stat": "attempts",
         "format_points": False,
     },
     "weekly_whiffer": {
         "name": "Weekly Whiffer",
         "icon": "😅",
-        "desc": "Most missed shots during the week",
+        "desc": "Most missed shots in a single game",
         "format_stat": "misses",
         "format_points": False,
     },
     "human_howitzer": {
         "name": "Human Howitzer",
         "icon": "🚀",
-        "desc": "Most 3-point shots made during the week",
+        "desc": "Most 3-point shots made in a single game",
         "format_stat": "3PM",
         "format_points": False,
+    },
+    "dub_club": {
+        "name": "Dub Club",
+        "icon": "🎖️",
+        "desc": "Scored 20 or more points in a single game",
+        "format_stat": None,
+        "format_points": True,
+    },
+    "marksman_award": {
+        "name": "The Marksman",
+        "icon": "🎯",
+        "desc": "Most efficient shooter with 4-8 field goal attempts in a single game",
+        "format_stat": "percentage",
+        "format_points": False,
+    },
+    "perfect_performance": {
+        "name": "Perfect Performance",
+        "icon": "💯",
+        "desc": "Made 100% of shots (minimum 3 makes) in a single game",
+        "format_stat": "makes",
+        "format_points": False,
+    },
+    "breakout_performance": {
+        "name": "Breakout Performance",
+        "icon": "🚀",
+        "desc": "Biggest scoring improvement over season average in a single game",
+        "format_stat": "percentage",
+        "format_points": True,
     },
 }
 
@@ -110,6 +138,13 @@ SEASON_AWARDS = {
         "name": "Air Assault",
         "icon": "⚔️",
         "desc": "Most total shot attempts in the season",
+    },
+    "rick_barry_award": {
+        "name": "The Rick Barry Award",
+        "icon": "⭐",
+        "desc": "Highest free-throw percentage in a season (minimum 10 free throw attempts)",
+        "format_stat": "percentage",
+        "format_points": False,
     },
 }
 
@@ -167,7 +202,12 @@ def format_award_stat(award_type: str, stat_value: float) -> str:
         return ""
 
     if info["format_stat"] == "percentage":
-        return f"{stat_value * 100:.1f}% FG"
+        if award_type == "breakout_performance":
+            return f"{stat_value * 100:.0f}% improvement"
+        else:
+            return f"{stat_value * 100:.1f}% FG"
+    elif info["format_stat"] == "makes":
+        return f"{int(stat_value)} makes"
     else:
         # Format as integer for counts (shots made, points, attempts, etc.)
         return f"{int(stat_value)} {info['format_stat']}"

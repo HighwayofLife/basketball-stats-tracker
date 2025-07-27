@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from app.services.season_awards_service import _get_season_player_stats
+from app.services.awards_service import _get_season_player_stats
 
 
 class TestPlayerSeasonStats:
@@ -59,8 +59,8 @@ class TestPlayerSeasonStats:
 
         # Mock the crud calls and functions
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
         ):
             mock_get_games.return_value = [mock_game1, mock_game2]
             mock_get_season.side_effect = lambda d: "2024"  # All games are in 2024
@@ -92,7 +92,7 @@ class TestPlayerSeasonStats:
     def test_get_player_season_stats_empty_input(self):
         """Test that empty game stats return empty result."""
         mock_session = Mock()
-        with patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games:
+        with patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games:
             mock_get_games.return_value = []
             result = _get_season_player_stats(mock_session, "2024")
             assert result == {}
@@ -115,8 +115,8 @@ class TestPlayerSeasonStats:
 
         mock_session = Mock()
         with (
-            patch("app.services.season_awards_service.crud_game.get_all_games") as mock_get_games,
-            patch("app.services.season_awards_service.get_season_from_date") as mock_get_season,
+            patch("app.services.awards_service.crud_game.get_all_games") as mock_get_games,
+            patch("app.services.awards_service.get_season_from_date") as mock_get_season,
         ):
             mock_get_games.return_value = [mock_game]
             mock_get_season.return_value = "2024"
@@ -137,12 +137,12 @@ class TestPlayerSeasonStats:
 class TestSeasonAwardsEndToEnd:
     """End-to-end tests for season awards calculation to catch attribute errors."""
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_top_scorer_uses_correct_attributes(self, mock_create_award, mock_get_season, mock_get_games):
         """Test that calculate_top_scorer uses correct PlayerGameStats attributes."""
-        from app.services.season_awards_service import calculate_top_scorer
+        from app.services.awards_service import calculate_top_scorer
 
         # Create mock PlayerGameStats with correct attributes
         mock_stat = Mock()
@@ -177,14 +177,14 @@ class TestSeasonAwardsEndToEnd:
             else:
                 raise
 
-    @patch("app.services.season_awards_service.crud_game.get_all_games")
-    @patch("app.services.season_awards_service.get_season_from_date")
-    @patch("app.services.season_awards_service.create_player_award_safe")
+    @patch("app.services.awards_service.crud_game.get_all_games")
+    @patch("app.services.awards_service.get_season_from_date")
+    @patch("app.services.awards_service.create_player_award_safe")
     def test_calculate_defensive_tackle_uses_correct_attributes(
         self, mock_create_award, mock_get_season, mock_get_games
     ):
         """Test that calculate_defensive_tackle uses correct fouls attribute."""
-        from app.services.season_awards_service import calculate_defensive_tackle
+        from app.services.awards_service import calculate_defensive_tackle
 
         # Create mock PlayerGameStats with correct attributes
         mock_stat1 = Mock()

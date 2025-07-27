@@ -1,3 +1,42 @@
+v0.5.2
+------
+
+### Features
+- **New Awards System**: Added four new per-game awards
+  - **"Dub Club" Award**: Players scoring 20+ points in a single game (🎖️)
+  - **"The Marksman" Award**: Most efficient shooter with 4-7 field goal attempts (🎯)
+  - **"Perfect Performance" Award**: 100% shooting with minimum 3 makes (💯)
+  - **"Breakout Performance" Award**: Biggest scoring improvement over season average (🚀)
+  - All awards automatically display on dashboard and player profiles
+
+### Performance Improvements
+- **Optimized Award Calculations**: Fixed performance issue causing calculation hangs
+  - Breakout Performance Award now uses single optimized database query instead of O(n²) queries
+  - Reduced calculation time from minutes/hanging to sub-second completion
+  - Improved from O(n³) to O(n) complexity for season average calculations
+- **Per-Game Award Logic**: Fixed all weekly awards to be based on best single-game performance
+  - **Player of the Week**: Now awards best single-game scoring performance (not weekly total)
+  - **Freethrow Merchant**: Most FTs made in a single game (not weekly total)
+  - **The Human Cheat Code**: Highest FG% in a single game with 10+ attempts
+  - **The Final Boss**: Most Q4 makes in a single game (not weekly total)
+  - **Trigger Finger**: Most shot attempts in a single game (not weekly total)
+  - **Weekly Whiffer**: Most missed shots in a single game (not weekly total)
+  - **Human Howitzer**: Most 3PM in a single game (not weekly total)
+  - Prevents unfair advantage for players who play multiple games per week
+- **Centralized Award Configuration**: Moved award names, icons, and descriptions to backend
+  - Added `/api/awards/config` endpoint for frontend to fetch award configuration
+  - Player detail page now dynamically loads award info from API
+  - Eliminates duplicate award definitions between frontend and backend
+
+- **New Season Award**: Added "The Rick Barry Award" for highest free-throw percentage in a season (⭐)
+  - Requires a minimum of 10 free throw attempts to qualify.
+
+### CLI Enhancements
+- **Updated `calculate-season-awards` command**: Now uses the new season award calculation logic, including "The Rick Barry Award".
+- **Updated `calculate-all-awards` command**: Includes the calculation of all season awards.
+
+### Bug Fixes
+
 v0.5.1
 ------
 

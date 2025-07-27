@@ -525,11 +525,6 @@ def calculate_season_awards(
     recalculate: bool = typer.Option(
         False, "--recalculate", help="Reset existing awards and recalculate from scratch."
     ),
-    award_type: str = typer.Option(
-        None,
-        "--type",
-        help="Calculate specific award type only (e.g., 'top_scorer')",
-    ),
 ):
     """
     Calculate season awards (Top Scorer, Sharpshooter, etc.).
@@ -537,11 +532,11 @@ def calculate_season_awards(
     Examples:
         basketball-stats calculate-season-awards                        # Calculate current season
         basketball-stats calculate-season-awards --season 2024         # Calculate 2024 season
-        basketball-stats calculate-season-awards --type top_scorer     # Calculate only Top Scorer
         basketball-stats calculate-season-awards --recalculate         # Reset and recalculate
     """
+    from app.config_data.awards import SEASON_AWARDS
     from app.dependencies import get_db
-    from app.services.season_awards_service import calculate_season_awards, get_current_season
+    from app.services.awards_service import calculate_all_season_awards, get_current_season
 
     db_session = next(get_db())
 
@@ -558,31 +553,17 @@ def calculate_season_awards(
         target_season = season or current_season
         typer.echo(f"🏆 Calculating season awards for {target_season}...")
 
-        if award_type:
-            typer.echo(f"🎯 Calculating only: {award_type}")
-
-        results = calculate_season_awards(db_session, season=target_season, recalculate=recalculate)
+        results = calculate_all_season_awards(db_session, season=target_season, recalculate=recalculate)
 
         if results:
             typer.echo("✅ Season awards calculated successfully!")
             typer.echo(f"\n📊 Awards given for season {target_season}:")
 
-            award_names = {
-                "top_scorer": "🥇 Top Scorer",
-                "sharpshooter": "🎯 Sharpshooter",
-                "efficiency_expert": "📈 Efficiency Expert",
-                "charity_stripe_regular": "🎰 Charity Stripe Regular",
-                "human_highlight_reel": "🎬 Human Highlight Reel",
-                "defensive_tackle": "🛡️  Defensive Tackle",
-                "air_ball_artist": "🎨 Air Ball Artist",
-                "air_assault": "⚔️  Air Assault",
-            }
+            for award_key, season_results in results.items():
+                display_name = SEASON_AWARDS.get(award_key, {}).get("name", award_key)
+                typer.echo(f"   {display_name}: {season_results.get(target_season, 0)} awards")
 
-            for award_key, count in results.items():
-                display_name = award_names.get(award_key, award_key)
-                typer.echo(f"   {display_name}: {count} awards")
-
-            total_awards = sum(results.values())
+            total_awards = sum(sum(season_data.values()) for season_data in results.values())
             typer.echo(f"\n🏆 Total season awards given: {total_awards}")
         else:
             typer.echo("ℹ️  No awards were given (no games found or no player stats)")
@@ -699,9 +680,9 @@ def calculate_all_awards(
         basketball-stats calculate-all-awards --season 2024     # Calculate all awards for 2024
         basketball-stats calculate-all-awards --recalculate     # Reset and recalculate all
     """
+    from app.config_data.awards import SEASON_AWARDS, WEEKLY_AWARDS
     from app.dependencies import get_db
-    from app.services.awards_service import calculate_all_weekly_awards, get_current_season
-    from app.services.season_awards_service import calculate_season_awards
+    from app.services.awards_service import calculate_all_season_awards, calculate_all_weekly_awards, get_current_season
 
     db_session = next(get_db())
 
@@ -721,7 +702,7 @@ def calculate_all_awards(
         # Calculate season awards
         season_target = season or current_season
         typer.echo(f"\n🏆 Calculating season awards for {season_target}...")
-        season_results = calculate_season_awards(db_session, season=season_target, recalculate=recalculate)
+        season_results = calculate_all_season_awards(db_session, season=season_target, recalculate=recalculate)
 
         # Calculate weekly awards
         weekly_target = season  # None means all seasons for weekly
@@ -731,17 +712,31 @@ def calculate_all_awards(
         # Display results
         typer.echo("\n✅ All awards calculated successfully!")
 
+        # Display season awards
         if season_results:
             typer.echo(f"\n🏆 Season awards for {season_target}:")
-            season_total = sum(season_results.values())
+            season_total = 0
+            for award_type, season_data in season_results.items():
+                display_name = SEASON_AWARDS.get(award_type, {}).get("name", award_type)
+                count = season_data.get(season_target, 0)
+                season_total += count
+                typer.echo(f"   {display_name}: {count} awards")
             typer.echo(f"   Total: {season_total} season awards")
 
+        # Display weekly awards
         if weekly_results:
             typer.echo(f"\n📅 Weekly awards for {weekly_target or 'all seasons'}:")
-            weekly_total = sum(sum(season_data.values()) for season_data in weekly_results.values())
+            weekly_total = 0
+            for award_type, season_data in weekly_results.items():
+                display_name = WEEKLY_AWARDS.get(award_type, {}).get("name", award_type)
+                count = sum(season_data.values())  # Sum across all weeks for this award type
+                weekly_total += count
+                typer.echo(f"   {display_name}: {count} awards")
             typer.echo(f"   Total: {weekly_total} weekly awards")
 
-        grand_total = sum(season_results.values()) + sum(sum(s.values()) for s in weekly_results.values())
+        grand_total = sum(sum(s.values()) for s in season_results.values()) + sum(
+            sum(s.values()) for s in weekly_results.values()
+        )
         typer.echo(f"\n🎉 Grand total: {grand_total} awards given!")
 
     except Exception as e:
