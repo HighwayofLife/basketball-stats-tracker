@@ -1,0 +1,1009 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+.playoffs-container {
+    margin-top: 2rem;
+    background-color: #f0f2f5;
+    padding: 2rem;
+    border-radius: 8px;
+}
+
+.bracket-container {
+    display: flex;
+    overflow-x: auto;
+    padding-bottom: 1.5rem;
+}
+
+.bracket {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 3rem; /* Reduced gap for better alignment */
+    align-items: flex-start;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2rem; /* Reduced space between matchups */
+    min-width: 240px; /* Match matchup width */
+    position: relative;
+}
+
+.bracket-round-title {
+    text-align: center;
+    font-weight: bold;
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: #333;
+    text-transform: uppercase;
+}
+
+.matchup {
+    background: #fff;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    position: relative;
+    transition: all 0.3s ease;
+    width: 240px;
+}
+
+.matchup:hover {
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+    transform: translateY(-1px);
+}
+
+.matchup-series-note {
+    font-size: 0.7rem;
+    color: #007bff;
+    font-weight: 600;
+    padding: 0.4rem 0.8rem;
+    border-bottom: 1px solid #eee;
+}
+
+.team {
+    padding: 0.5rem 0.8rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.team:not(:last-child) {
+    border-bottom: 1px solid #eee;
+}
+
+.team.winner .team-name, .team.winner .team-score {
+    font-weight: bold;
+}
+
+.team-details {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.team-seed {
+    font-size: 0.8rem;
+    font-weight: bold;
+    color: #666;
+    width: 1.2rem;
+    text-align: center;
+}
+
+.team-logo {
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
+    border-radius: 2px;
+}
+
+.team-name {
+    flex: 1;
+    font-size: 0.9rem;
+}
+
+.team-score {
+    font-size: 1rem;
+    font-weight: bold;
+    color: #111;
+    min-width: 2.5rem;
+    text-align: right;
+}
+
+.tbd-team .team-name {
+    color: #888;
+    font-style: italic;
+}
+
+/* Connector lines */
+.bracket-round:not(:last-child) .matchup::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: -1.5rem;
+    width: 1.5rem;
+    height: 2px;
+    background-color: #ccc;
+    z-index: 1;
+}
+
+/* Vertical connectors for multiple matchups in a round */
+.bracket-round:not(:last-child) .matchup:not(:only-child)::before {
+    content: '';
+    position: absolute;
+    right: -1.5rem;
+    width: 2px;
+    background-color: #ccc;
+    z-index: 1;
+}
+
+/* First matchup - vertical line goes down from center */
+.bracket-round:not(:last-child) .matchup:first-child:not(:only-child)::before {
+    top: 50%;
+    height: calc(1rem + 50%); /* Half height + gap to next matchup */
+}
+
+/* Last matchup - vertical line goes up from center */
+.bracket-round:not(:last-child) .matchup:last-child:not(:only-child)::before {
+    bottom: 50%;
+    height: calc(1rem + 50%); /* Half height + gap to previous matchup */
+}
+
+/* Middle matchups - full vertical line */
+.bracket-round:not(:last-child) .matchup:not(:first-child):not(:last-child)::before {
+    top: calc(-1rem - 50%);
+    height: calc(2rem + 100%); /* Full height + gaps */
+}
+
+.champion-section {
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.champion-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.final-matchup-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.championship-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.championship-location {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 1rem;
+}
+
+.champion-banner {
+    background-color: #003366;
+    color: white;
+    padding: 1.5rem 3rem;
+    border-radius: 8px;
+    text-align: center;
+    margin-top: -2rem; /* Overlap with the final matchup */
+    position: relative;
+    z-index: 5;
+    border: 4px solid #f0f2f5;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.champion-banner-year {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.champion-banner-title {
+    font-size: 2rem;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.no-games {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: #666;
+}
+
+.loading {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 3rem;
+    height: 3rem;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-spinner {
+    display: inline-block;
+    width: 3rem;
+    height: 3rem;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 992px) {
+    .bracket {
+        gap: 2rem;
+    }
+    .bracket-round {
+        min-width: 220px;
+    }
+    .bracket-round:not(:last-child) .matchup::after {
+        width: 1rem;
+        right: -1rem;
+    }
+    .bracket-round:not(:last-child) .matchup:not(:only-child)::before {
+        right: -1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .bracket-container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+    .bracket {
+        gap: 1.5rem;
+    }
+    .bracket-round {
+        min-width: 200px;
+        gap: 1.5rem;
+    }
+    .bracket-round:not(:last-child) .matchup::after,
+    .bracket-round:not(:last-child) .matchup:not(:only-child)::before {
+        display: none; /* Hide connectors on small screens for simplicity */
+    }
+}
+
+/* Ensure modal proper z-index stacking and interaction */
+.modal {
+    z-index: 1055 !important;
+}
+
+.modal-backdrop {
+    z-index: 1050 !important;
+}
+
+.modal-dialog {
+    z-index: 1060 !important;
+    position: relative;
+    pointer-events: auto;
+}
+
+.modal-content {
+    z-index: 1065 !important;
+    position: relative;
+    pointer-events: auto;
+    background-color: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+/* Ensure modal forms and inputs are clickable */
+.modal-content * {
+    pointer-events: auto;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center">
+    <h2>Playoff Bracket</h2>
+    {% if is_authenticated and user_role == 'admin' %}
+    <div class="admin-controls">
+        <button class="btn btn-warning me-2" onclick="openConfigModal()">
+            <i class="fas fa-cogs me-1"></i>Configure Playoffs
+        </button>
+        <button class="btn btn-info" onclick="openSeedModal()">
+            <i class="fas fa-sort-numeric-down me-1"></i>Manage Seeds
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Notification Banner -->
+<div id="notification-banner" class="alert alert-dismissible fade" role="alert" style="display: none;">
+    <span id="notification-message"></span>
+    <button type="button" class="btn-close" onclick="hideNotification()" aria-label="Close"></button>
+</div>
+
+<div class="playoffs-container">
+    <div id="loading" class="loading">
+        <div class="loading-spinner"></div>
+        <p>Loading playoff bracket...</p>
+    </div>
+
+    <div id="bracket-content" style="display: none;">
+        <div id="bracket-container" class="bracket-container">
+            <div id="bracket" class="bracket">
+                <!-- Rounds will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <div id="champion-section" class="champion-section" style="display: none;">
+            <!-- Champion display will be here -->
+        </div>
+    </div>
+
+    <div id="no-games" class="no-games" style="display: none;">
+        <i class="fas fa-trophy fa-4x mb-3" style="color: #ddd;"></i>
+        <h3>No Playoff Games Yet</h3>
+        <p>The playoff bracket will appear here once playoff games have been scheduled.</p>
+    </div>
+</div>
+
+<!-- Playoff Configuration Modal -->
+<div class="modal fade" id="configModal" data-bs-backdrop="true" data-bs-keyboard="true" tabindex="-1" aria-labelledby="configModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="configModalLabel">
+                    <i class="fas fa-cogs me-2"></i>Configure Playoffs
+                </h5>
+                <button type="button" class="btn-close" onclick="closeConfigModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="configForm">
+                    <div class="mb-3">
+                        <label for="season" class="form-label">Season</label>
+                        <input type="text" class="form-control" id="season" value="2025" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label for="numTeams" class="form-label">Number of Teams</label>
+                        <select class="form-select" id="numTeams">
+                            <option value="4">4 Teams (Semi-Finals → Finals)</option>
+                            <option value="8" selected>8 Teams (Quarter-Finals → Semi-Finals → Finals)</option>
+                            <option value="16">16 Teams (Round of 16 → Quarter-Finals → Semi-Finals → Finals)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="bracketType" class="form-label">Bracket Type</label>
+                        <select class="form-select" id="bracketType">
+                            <option value="single_elimination" selected>Single Elimination</option>
+                            <option value="double_elimination">Double Elimination</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeConfigModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveConfig()">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Seed Management Modal -->
+<div class="modal fade" id="seedModal" data-bs-backdrop="true" data-bs-keyboard="true" tabindex="-1" aria-labelledby="seedModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="seedModalLabel">
+                    <i class="fas fa-sort-numeric-down me-2"></i>Manage Team Seeds
+                </h5>
+                <button type="button" class="btn-close" onclick="closeSeedModal()" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Drag and drop teams to reorder their seeds, or use the dropdown to assign specific seed numbers.
+                </div>
+                <div id="seedManagement">
+                    <!-- Team seed list will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeSeedModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveSeeds()">Save Seeds</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Fetch and display playoff bracket data
+async function loadPlayoffBracket() {
+    try {
+        const response = await fetch('/v1/playoffs/bracket');
+        if (!response.ok) {
+            throw new Error('Failed to load playoff data');
+        }
+
+        const data = await response.json();
+        displayBracket(data);
+    } catch (error) {
+        console.error('Error loading playoff bracket:', error);
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('no-games').innerHTML = `
+            <i class="fas fa-exclamation-triangle fa-4x mb-3" style="color: #dc3545;"></i>
+            <h3>Error Loading Bracket</h3>
+            <p>Unable to load playoff bracket data. Please try again later.</p>
+        `;
+        document.getElementById('no-games').style.display = 'block';
+    }
+}
+
+// Display the bracket data
+function displayBracket(data) {
+    document.getElementById('loading').style.display = 'none';
+
+    // Check if there are any games
+    const hasGames = data.finals ||
+                    (data.semi_finals && data.semi_finals.length > 0) ||
+                    (data.quarter_finals && data.quarter_finals.length > 0) ||
+                    (data.round_of_16 && data.round_of_16.length > 0);
+
+    if (!hasGames) {
+        document.getElementById('no-games').style.display = 'block';
+        return;
+    }
+
+    document.getElementById('bracket-content').style.display = 'block';
+
+    const bracket = document.getElementById('bracket');
+    bracket.innerHTML = '';
+
+    // Display round of 16 (if exists)
+    if (data.round_of_16 && data.round_of_16.length > 0) {
+        const roundOf16 = document.createElement('div');
+        roundOf16.className = 'bracket-round';
+
+        const title = document.createElement('div');
+        title.className = 'bracket-round-title';
+        title.textContent = 'Round of 16';
+        roundOf16.appendChild(title);
+
+        data.round_of_16.forEach(round => {
+            roundOf16.appendChild(createMatchupElement(round.matchup));
+        });
+
+        bracket.appendChild(roundOf16);
+    }
+
+    // Display quarter-finals (if exists)
+    if (data.quarter_finals && data.quarter_finals.length > 0) {
+        const quarterFinals = document.createElement('div');
+        quarterFinals.className = 'bracket-round';
+
+        const title = document.createElement('div');
+        title.className = 'bracket-round-title';
+        title.textContent = 'Quarter-Finals';
+        quarterFinals.appendChild(title);
+
+        data.quarter_finals.forEach(quarter => {
+            quarterFinals.appendChild(createMatchupElement(quarter.matchup));
+        });
+
+        bracket.appendChild(quarterFinals);
+    }
+
+    // Display semi-finals
+    if (data.semi_finals && data.semi_finals.length > 0) {
+        const semiFinals = document.createElement('div');
+        semiFinals.className = 'bracket-round';
+
+        const title = document.createElement('div');
+        title.className = 'bracket-round-title';
+        title.textContent = 'Semi-Finals';
+        semiFinals.appendChild(title);
+
+        data.semi_finals.forEach(semi => {
+            semiFinals.appendChild(createMatchupElement(semi.matchup));
+        });
+
+        bracket.appendChild(semiFinals);
+    }
+
+    // Display finals
+    if (data.finals) {
+        const finals = document.createElement('div');
+        finals.className = 'bracket-round';
+
+        const title = document.createElement('div');
+        title.className = 'bracket-round-title';
+        title.textContent = 'Finals';
+        finals.appendChild(title);
+
+        finals.appendChild(createMatchupElement(data.finals.matchup));
+        bracket.appendChild(finals);
+    }
+
+    // Display champion if exists
+    const championSection = document.getElementById('champion-section');
+    championSection.innerHTML = '';
+
+    if (data.champion) {
+        championSection.style.display = 'block';
+        const championContainer = document.createElement('div');
+        championContainer.className = 'champion-container';
+
+        const banner = document.createElement('div');
+        banner.className = 'champion-banner';
+        banner.innerHTML = `
+            <div class="champion-banner-year">2024-25</div>
+            <div class="champion-banner-title">World Champions</div>
+        `;
+
+        const championName = document.createElement('div');
+        championName.textContent = data.champion.team_name;
+        championName.style.cssText = 'font-size: 1.5rem; font-weight: bold; margin: 0.5rem 0;';
+        banner.appendChild(championName);
+
+        championContainer.appendChild(banner);
+        championSection.appendChild(championContainer);
+    }
+}
+
+// Create a matchup element
+function createMatchupElement(matchup, isFinal = false) {
+    const div = document.createElement('div');
+    div.className = 'matchup';
+
+    if (isFinal) {
+        div.style.width = '350px'; // Wider for the final
+    }
+
+    // Check if game is completed, scheduled, or TBD
+    const isCompleted = matchup.status === 'completed';
+    const isScheduled = matchup.status === 'scheduled';
+    const isTBD = matchup.status === 'tbd';
+
+    if (isCompleted) {
+        div.classList.add('completed');
+    } else if (isScheduled) {
+        div.classList.add('scheduled');
+    } else if (isTBD) {
+        div.classList.add('tbd');
+    }
+
+    let team1Winner = false;
+    let team2Winner = false;
+    if (isCompleted && matchup.team1.score !== null && matchup.team2.score !== null) {
+        if (matchup.team1.score > matchup.team2.score) team1Winner = true;
+        else if (matchup.team2.score > matchup.team1.score) team2Winner = true;
+    }
+
+    const team1 = createTeamElement(matchup.team1, team1Winner);
+    const team2 = createTeamElement(matchup.team2, team2Winner);
+
+    div.appendChild(team1);
+    div.appendChild(team2);
+
+    // Add status indicator for scheduled games
+    if (isScheduled) {
+        const statusDiv = document.createElement('div');
+        statusDiv.className = 'matchup-status';
+        statusDiv.innerHTML = `
+            <small class="text-muted">
+                <i class="fas fa-calendar-alt me-1"></i>
+                Scheduled for ${new Date(matchup.date).toLocaleDateString()}
+            </small>
+        `;
+        statusDiv.style.cssText = 'padding: 0.5rem 1rem; background: #f8f9fa; border-top: 1px solid #eee; text-align: center;';
+        div.appendChild(statusDiv);
+    }
+
+    if (matchup.status !== 'tbd' && matchup.game_id) {
+        div.style.cursor = 'pointer';
+        div.addEventListener('click', () => {
+            if (matchup.status === 'completed') {
+                window.location.href = `/games/${matchup.game_id}`;
+            } else if (matchup.status === 'scheduled') {
+                const scheduledGameId = matchup.game_id.replace('scheduled-', '');
+                window.location.href = `/scheduled-games/${scheduledGameId}/matchup`;
+            }
+        });
+    }
+
+    return div;
+}
+
+// Create a team element
+function createTeamElement(team, isWinner) {
+    const div = document.createElement('div');
+    div.className = 'team';
+    if (isWinner) {
+        div.classList.add('winner');
+    }
+
+    const teamDetails = document.createElement('div');
+    teamDetails.className = 'team-details';
+
+    // Only show seed if it exists in the data
+    if (team.seed) {
+        const seedSpan = document.createElement('span');
+        seedSpan.className = 'team-seed';
+        seedSpan.textContent = team.seed;
+        teamDetails.appendChild(seedSpan);
+    }
+
+    // Add team logo if team exists
+    if (team.team_name && team.team_name !== 'TBD') {
+        const logoImg = document.createElement('img');
+        logoImg.className = 'team-logo';
+        logoImg.src = `/static/img/team_logos/${team.team_name.toLowerCase().replace(/\s+/g, '_')}.png`;
+        logoImg.alt = team.team_name;
+        logoImg.onerror = function() {
+            this.style.display = 'none';
+        };
+        teamDetails.appendChild(logoImg);
+    }
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'team-name';
+    nameSpan.textContent = team.team_name || 'TBD';
+    if (!team.team_name) {
+        div.classList.add('tbd-team');
+    }
+
+    teamDetails.appendChild(nameSpan);
+
+    const scoreSpan = document.createElement('span');
+    scoreSpan.className = 'team-score';
+
+    if (!team.team_name) {
+        scoreSpan.innerHTML = '<i class="fas fa-question text-muted"></i>';
+    } else if (team.score !== null && team.score !== undefined) {
+        scoreSpan.textContent = team.score;
+    } else {
+        scoreSpan.innerHTML = '<i class="fas fa-clock text-muted"></i>';
+    }
+
+    div.appendChild(teamDetails);
+    div.appendChild(scoreSpan);
+
+    return div;
+}
+
+// Modal functions - create fresh instances each time
+function openConfigModal() {
+    console.log('openConfigModal called');
+
+    // Clean up any existing modal artifacts first
+    cleanupModalArtifacts();
+
+    const configModalEl = document.getElementById('configModal');
+    console.log('configModalEl:', configModalEl);
+
+    // Dispose of existing modal instance if it exists
+    const existingInstance = bootstrap.Modal.getInstance(configModalEl);
+    if (existingInstance) {
+        console.log('Disposing existing config modal instance');
+        existingInstance.dispose();
+    }
+
+    // Create a fresh modal instance
+    const configModal = new bootstrap.Modal(configModalEl, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+
+    console.log('Created new config modal instance');
+
+    // Add event listener to prevent immediate closing
+    configModalEl.addEventListener('show.bs.modal', function(e) {
+        console.log('Config modal is showing');
+    });
+
+    configModalEl.addEventListener('hide.bs.modal', function(e) {
+        console.log('Config modal is hiding');
+    });
+
+    // Load config and show modal
+    loadCurrentConfig();
+    console.log('Showing config modal');
+    configModal.show();
+}
+
+function openSeedModal() {
+    console.log('openSeedModal called');
+
+    // Clean up any existing modal artifacts first
+    cleanupModalArtifacts();
+
+    const seedModalEl = document.getElementById('seedModal');
+    console.log('seedModalEl:', seedModalEl);
+
+    // Dispose of existing modal instance if it exists
+    const existingInstance = bootstrap.Modal.getInstance(seedModalEl);
+    if (existingInstance) {
+        console.log('Disposing existing seed modal instance');
+        existingInstance.dispose();
+    }
+
+    // Create a fresh modal instance
+    const seedModal = new bootstrap.Modal(seedModalEl, {
+        backdrop: true,
+        keyboard: true,
+        focus: true
+    });
+
+    console.log('Created new seed modal instance');
+
+    // Add event listener to prevent immediate closing
+    seedModalEl.addEventListener('show.bs.modal', function(e) {
+        console.log('Seed modal is showing');
+    });
+
+    seedModalEl.addEventListener('hide.bs.modal', function(e) {
+        console.log('Seed modal is hiding');
+    });
+
+    // Load seeds and show modal
+    loadTeamSeeds();
+    console.log('Showing seed modal');
+    seedModal.show();
+}
+
+// Close modal functions
+function closeConfigModal() {
+    console.log('closeConfigModal called');
+    const configModalEl = document.getElementById('configModal');
+    const configModal = bootstrap.Modal.getInstance(configModalEl);
+    if (configModal) {
+        configModal.hide();
+    }
+    setTimeout(cleanupModalArtifacts, 100);
+}
+
+function closeSeedModal() {
+    console.log('closeSeedModal called');
+    const seedModalEl = document.getElementById('seedModal');
+    const seedModal = bootstrap.Modal.getInstance(seedModalEl);
+    if (seedModal) {
+        seedModal.hide();
+    }
+    setTimeout(cleanupModalArtifacts, 100);
+}
+
+async function loadCurrentConfig() {
+    try {
+        const response = await fetch('/v1/playoffs/config');
+        if (response.ok) {
+            const config = await response.json();
+            document.getElementById('season').value = config.season || '2025';
+            document.getElementById('numTeams').value = config.num_teams || 8;
+            document.getElementById('bracketType').value = config.bracket_type || 'single_elimination';
+        }
+    } catch (error) {
+        console.error('Error loading config:', error);
+    }
+}
+
+async function saveConfig() {
+    try {
+        const config = {
+            season: document.getElementById('season').value,
+            num_teams: parseInt(document.getElementById('numTeams').value),
+            bracket_type: document.getElementById('bracketType').value
+        };
+
+        const response = await fetch('/v1/playoffs/config', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
+
+        if (response.ok) {
+            // Get the modal instance and hide it
+            const configModalEl = document.getElementById('configModal');
+            const configModal = bootstrap.Modal.getInstance(configModalEl);
+            if (configModal) {
+                configModal.hide();
+            }
+            // Clean up modal artifacts after hiding
+            setTimeout(cleanupModalArtifacts, 100);
+            loadPlayoffBracket(); // Reload bracket with new config
+            showNotification('Playoff configuration saved successfully!', 'success');
+        } else {
+            showNotification('Error saving configuration', 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving config:', error);
+        showNotification('Error saving configuration', 'danger');
+    }
+}
+
+async function loadTeamSeeds() {
+    try {
+        const response = await fetch('/v1/playoffs/seeds');
+        if (response.ok) {
+            const teams = await response.json();
+            displayTeamSeeds(teams);
+        }
+    } catch (error) {
+        console.error('Error loading seeds:', error);
+    }
+}
+
+function displayTeamSeeds(teams) {
+    const container = document.getElementById('seedManagement');
+    container.innerHTML = '';
+
+    const seedList = document.createElement('div');
+    seedList.className = 'seed-list';
+
+    teams.forEach((team, index) => {
+        const seedItem = document.createElement('div');
+        seedItem.className = 'seed-item d-flex align-items-center mb-2 p-2 border rounded';
+        seedItem.innerHTML = `
+            <div class="seed-number me-3">
+                <select class="form-select form-select-sm" style="width: 80px;" onchange="updateSeed(${team.id}, this.value)">
+                    ${Array.from({length: 16}, (_, i) => `<option value="${i+1}" ${team.seed === i+1 ? 'selected' : ''}>${i+1}</option>`).join('')}
+                </select>
+            </div>
+            <div class="team-info flex-grow-1">
+                <strong>${team.name}</strong>
+                <small class="text-muted d-block">Current Record: ${team.record || 'N/A'}</small>
+            </div>
+            <div class="drag-handle">
+                <i class="fas fa-grip-vertical text-muted"></i>
+            </div>
+        `;
+        seedList.appendChild(seedItem);
+    });
+
+    container.appendChild(seedList);
+}
+
+function updateSeed(teamId, seed) {
+    // Store the seed change for saving later
+    if (!window.seedChanges) {
+        window.seedChanges = {};
+    }
+    window.seedChanges[teamId] = parseInt(seed);
+}
+
+async function saveSeeds() {
+    try {
+        if (!window.seedChanges || Object.keys(window.seedChanges).length === 0) {
+            // Get the modal instance and hide it
+            const seedModalEl = document.getElementById('seedModal');
+            const seedModal = bootstrap.Modal.getInstance(seedModalEl);
+            if (seedModal) {
+                seedModal.hide();
+            }
+            setTimeout(cleanupModalArtifacts, 100);
+            return;
+        }
+
+        const response = await fetch('/v1/playoffs/seeds', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(window.seedChanges)
+        });
+
+        if (response.ok) {
+            // Get the modal instance and hide it
+            const seedModalEl = document.getElementById('seedModal');
+            const seedModal = bootstrap.Modal.getInstance(seedModalEl);
+            if (seedModal) {
+                seedModal.hide();
+            }
+            // Clean up modal artifacts after hiding
+            setTimeout(cleanupModalArtifacts, 100);
+            window.seedChanges = {};
+            showNotification('Team seeds saved successfully!', 'success');
+        } else {
+            showNotification('Error saving seeds', 'danger');
+        }
+    } catch (error) {
+        console.error('Error saving seeds:', error);
+        showNotification('Error saving seeds', 'danger');
+    }
+}
+
+// Notification functions
+function showNotification(message, type = 'success') {
+    const banner = document.getElementById('notification-banner');
+    const messageEl = document.getElementById('notification-message');
+
+    // Set message
+    messageEl.textContent = message;
+
+    // Set type (success, danger, warning, info)
+    banner.className = `alert alert-${type} alert-dismissible fade show`;
+
+    // Show banner
+    banner.style.display = 'block';
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        hideNotification();
+    }, 5000);
+}
+
+function hideNotification() {
+    const banner = document.getElementById('notification-banner');
+    banner.classList.remove('show');
+    setTimeout(() => {
+        banner.style.display = 'none';
+    }, 150);
+}
+
+// Function to clean up modal artifacts
+function cleanupModalArtifacts() {
+    // Remove any lingering modal backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(el => {
+        el.remove();
+    });
+
+    // Remove modal-open class from body
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+
+    // Ensure modals are properly hidden and dispose of instances
+    document.querySelectorAll('.modal').forEach(modal => {
+        // Dispose of existing Bootstrap modal instance
+        const instance = bootstrap.Modal.getInstance(modal);
+        if (instance) {
+            instance.dispose();
+        }
+
+        // Reset modal state
+        modal.classList.remove('show');
+        modal.style.display = 'none';
+        modal.setAttribute('aria-hidden', 'true');
+        modal.removeAttribute('aria-modal');
+        modal.removeAttribute('role');
+    });
+}
+
+// Load bracket on page load
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - initializing playoffs page');
+
+    // Clean up any modal artifacts that might be present
+    cleanupModalArtifacts();
+
+    // Load the playoff bracket
+    loadPlayoffBracket();
+
+    // Note: Removed global backdrop click handler since we're using backdrop: 'static'
+
+    console.log('DOMContentLoaded - page initialization complete');
+});
+</script>
+{% endblock %}

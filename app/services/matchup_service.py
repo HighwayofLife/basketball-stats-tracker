@@ -90,6 +90,15 @@ class MatchupService:
             "head_to_head": self._format_head_to_head_history(matchup_data["head_to_head"]),
         }
 
+        # Add playoff round information if it's a playoff game
+        scheduled_game = matchup_data["scheduled_game"]
+        if scheduled_game.is_playoff_game:
+            from app.services.playoffs_service import PlayoffsService
+
+            playoffs_service = PlayoffsService(self.db)
+            playoff_round = playoffs_service.determine_playoff_round(f"scheduled-{scheduled_game.id}")
+            formatted_data["playoff_round"] = playoff_round
+
         return formatted_data
 
     def _format_team_data(self, team_data: dict[str, Any]) -> dict[str, Any]:

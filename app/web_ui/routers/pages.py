@@ -642,3 +642,10 @@ async def get_weekly_awards_api(week_date: str):
     except Exception as e:
         logger.error(f"Error getting weekly awards for {week_date}: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Error retrieving weekly awards") from e
+
+
+@router.get("/playoffs", response_class=HTMLResponse)
+async def playoffs_page(auth_context: dict = Depends(get_template_auth_context)):
+    """Render the playoffs bracket page."""
+    context = {**auth_context, "title": "Playoffs"}
+    return templates.TemplateResponse("playoffs/index.html", context)

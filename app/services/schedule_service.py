@@ -21,6 +21,7 @@ class ScheduleService:
         season_id: int | None = None,
         location: str | None = None,
         notes: str | None = None,
+        is_playoff_game: bool = False,
     ) -> ScheduledGame:
         """Create a new scheduled game."""
         if home_team_id == away_team_id:
@@ -40,6 +41,7 @@ class ScheduleService:
             season_id=season_id,
             location=location,
             notes=notes,
+            is_playoff_game=is_playoff_game,
         )
 
     def get_scheduled_game(self, db: Session, scheduled_game_id: int) -> ScheduledGame | None:

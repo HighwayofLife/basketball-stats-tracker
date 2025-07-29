@@ -11,12 +11,15 @@
 
 <div class="page-header">
     <h2>Basketball Games</h2>
-    {% if is_authenticated %}
     <div class="header-actions">
+        <a href="/playoffs" class="btn btn-secondary">
+            <i class="fas fa-trophy"></i> Playoffs
+        </a>
+        {% if is_authenticated %}
         <a href="/games/create" class="btn btn-secondary">Schedule Game</a>
         <a href="/scorebook" class="btn btn-primary">Scorebook Entry</a>
+        {% endif %}
     </div>
-    {% endif %}
 </div>
 
 <div class="card">

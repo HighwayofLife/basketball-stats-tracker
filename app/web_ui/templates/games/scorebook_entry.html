@@ -95,6 +95,22 @@
                             </div>
                         </div>
                     </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="mb-3">
+                                <div class="form-check" style="display: inline-block; width: auto;">
+                                    <input type="checkbox" class="form-check-input" id="isPlayoffGame">
+                                    <label class="form-check-label" for="isPlayoffGame">
+                                        <i class="fas fa-trophy text-warning me-1"></i>
+                                        This is a playoff game
+                                    </label>
+                                </div>
+                                <div>
+                                    <small class="form-text text-muted">Check this box if this game is part of the playoffs</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -966,6 +982,7 @@ async function saveGame() {
             location: document.getElementById('location').value || null,
             notes: document.getElementById('notes').value || null,
             season_id: document.getElementById('season').value || null,
+            is_playoff_game: document.getElementById('isPlayoffGame').checked,
             player_stats: playerStats
         };
         

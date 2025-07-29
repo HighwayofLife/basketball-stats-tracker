@@ -185,6 +185,7 @@ async def get_scheduled_games(upcoming_only: bool = False, limit: int | None = N
                     season_id=sg.season_id,
                     location=sg.location,
                     notes=sg.notes,
+                    is_playoff_game=sg.is_playoff_game,
                     created_at=sg.created_at.isoformat(),
                     updated_at=sg.updated_at.isoformat(),
                 )
@@ -216,6 +217,7 @@ async def get_next_scheduled_games(count: int = 3):
                     season_id=sg.season_id,
                     location=sg.location,
                     notes=sg.notes,
+                    is_playoff_game=sg.is_playoff_game,
                     created_at=sg.created_at.isoformat(),
                     updated_at=sg.updated_at.isoformat(),
                 )
@@ -258,6 +260,7 @@ async def create_scheduled_game(
                 season_id=scheduled_game_data.season_id,
                 location=scheduled_game_data.location,
                 notes=scheduled_game_data.notes,
+                is_playoff_game=scheduled_game_data.is_playoff_game,
             )
 
             return ScheduledGameResponse(
@@ -275,6 +278,7 @@ async def create_scheduled_game(
                 season_id=scheduled_game.season_id,
                 location=scheduled_game.location,
                 notes=scheduled_game.notes,
+                is_playoff_game=scheduled_game.is_playoff_game,
                 created_at=scheduled_game.created_at.isoformat(),
                 updated_at=scheduled_game.updated_at.isoformat(),
             )
@@ -310,6 +314,7 @@ async def get_scheduled_game(scheduled_game_id: int):
                 season_id=scheduled_game.season_id,
                 location=scheduled_game.location,
                 notes=scheduled_game.notes,
+                is_playoff_game=scheduled_game.is_playoff_game,
                 created_at=scheduled_game.created_at.isoformat(),
                 updated_at=scheduled_game.updated_at.isoformat(),
             )
@@ -345,7 +350,7 @@ async def update_scheduled_game(
                     raise HTTPException(status_code=400, detail="Invalid time format. Use HH:MM") from exc
 
             # Add other fields
-            for field in ["home_team_id", "away_team_id", "season_id", "location", "notes", "status"]:
+            for field in ["home_team_id", "away_team_id", "season_id", "location", "notes", "status", "is_playoff_game"]:
                 value = getattr(update_data, field)
                 if value is not None:
                     if field == "status":
@@ -375,6 +380,7 @@ async def update_scheduled_game(
                 season_id=scheduled_game.season_id,
                 location=scheduled_game.location,
                 notes=scheduled_game.notes,
+                is_playoff_game=scheduled_game.is_playoff_game,
                 created_at=scheduled_game.created_at.isoformat(),
                 updated_at=scheduled_game.updated_at.isoformat(),
             )
@@ -1119,6 +1125,7 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                     location=scorebook_data.get("location") or (scheduled_game.location if scheduled_game else None),
                     notes=scorebook_data.get("notes") or (scheduled_game.notes if scheduled_game else None),
                     season_id=season.id if season else None,
+                    is_playoff_game=scorebook_data.get("is_playoff_game", False) or (scheduled_game.is_playoff_game if scheduled_game else False),
                 )
 
                 # Link the game to the scheduled game if found

@@ -37,6 +37,7 @@ class GameStateService:
         scheduled_time: str | None = None,
         notes: str | None = None,
         season_id: int | None = None,
+        is_playoff_game: bool = False,
     ) -> Game:
         """Create a new game.
 
@@ -47,6 +48,8 @@ class GameStateService:
             location: Game location (optional)
             scheduled_time: Scheduled time in HH:MM format (optional)
             notes: Additional notes (optional)
+            season_id: Season ID (optional)
+            is_playoff_game: Whether this is a playoff game (optional)
 
         Returns:
             Created Game object
@@ -59,6 +62,7 @@ class GameStateService:
             scheduled_time=datetime.strptime(scheduled_time, "%H:%M").time() if scheduled_time else None,
             notes=notes,
             season_id=season_id,
+            is_playoff_game=is_playoff_game,
         )
         self.session.add(game)
         self.session.flush()

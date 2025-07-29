@@ -84,6 +84,7 @@ class GameCreateRequest(BaseModel):
     scheduled_time: str | None = Field(None, description="Scheduled time in HH:MM format")
     notes: str | None = None
     season_id: int | None = Field(None, description="Season ID (auto-determined from date if not provided)")
+    is_playoff_game: bool = Field(False, description="Whether this is a playoff game")
 
 
 class GameStartRequest(BaseModel):
@@ -480,6 +481,7 @@ class ScheduledGameCreateRequest(BaseModel):
     season_id: int | None = None
     location: str | None = None
     notes: str | None = None
+    is_playoff_game: bool = Field(False, description="Whether this is a playoff game")
 
 
 class ScheduledGameUpdateRequest(BaseModel):
@@ -493,6 +495,7 @@ class ScheduledGameUpdateRequest(BaseModel):
     location: str | None = None
     notes: str | None = None
     status: str | None = Field(None, pattern="^(scheduled|completed|cancelled|postponed)$")
+    is_playoff_game: bool | None = Field(None, description="Whether this is a playoff game")
 
 
 class ScheduledGameResponse(BaseModel):
@@ -510,6 +513,7 @@ class ScheduledGameResponse(BaseModel):
     season_id: int | None = None
     location: str | None = None
     notes: str | None = None
+    is_playoff_game: bool = False
     created_at: str
     updated_at: str
 
