@@ -1,3 +1,16 @@
+v0.6.0
+------
+
+### Features
+- Added playoffs feature with bracket visualization
+- Added is_playoff_game field to Game and ScheduledGame models
+- Created /playoffs page showing tournament bracket
+- Added playoffs navigation from dashboard and games page
+- Implemented playoff bracket API endpoint
+- Added playoff checkbox to game scheduling and scorebook entry forms
+- Updated all tests to ensure playoff functionality works correctly
+
+
 v0.5.5
 ------
 

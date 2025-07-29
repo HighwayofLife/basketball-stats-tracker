@@ -106,6 +106,7 @@ class TestScheduledGamesAPI:
             "away_team_id": away_team.id,
             "location": "Test Arena",
             "notes": "Test game",
+            "is_playoff_game": False,
         }
 
         response = test_client.post("/v1/games/scheduled", json=scheduled_game_data)
@@ -120,6 +121,42 @@ class TestScheduledGamesAPI:
         assert data["location"] == "Test Arena"
         assert data["notes"] == "Test game"
         assert data["status"] == "scheduled"
+        assert data["is_playoff_game"] is False
+
+    def test_create_playoff_scheduled_game(self, test_client, test_db_file_session):
+        """Test creating a playoff scheduled game via API."""
+        import uuid
+
+        unique_suffix = str(uuid.uuid4())[:8]
+
+        # Create teams first
+        home_team_name = f"PlayoffHome_{unique_suffix}"
+        away_team_name = f"PlayoffAway_{unique_suffix}"
+        home_team = Team(name=home_team_name)
+        away_team = Team(name=away_team_name)
+        test_db_file_session.add(home_team)
+        test_db_file_session.add(away_team)
+        test_db_file_session.commit()
+
+        # Create playoff scheduled game
+        scheduled_game_data = {
+            "scheduled_date": "2025-06-15",
+            "scheduled_time": "19:30",
+            "home_team_id": home_team.id,
+            "away_team_id": away_team.id,
+            "location": "Championship Arena",
+            "notes": "Playoff game",
+            "is_playoff_game": True,
+        }
+
+        response = test_client.post("/v1/games/scheduled", json=scheduled_game_data)
+
+        # Assert
+        assert response.status_code == 200
+        data = response.json()
+        assert data["is_playoff_game"] is True
+        assert data["location"] == "Championship Arena"
+        assert data["notes"] == "Playoff game"
 
     def test_create_scheduled_game_validation(self, test_client):
         """Test validation when creating scheduled game."""
@@ -245,6 +282,7 @@ class TestScheduledGamesAPI:
             "home_team_id": team1.id,
             "away_team_id": team3.id,  # Changed opponent
             "location": "New Arena",
+            "is_playoff_game": True,
         }
 
         response = test_client.put(f"/v1/games/scheduled/{game.id}", json=update_data)
@@ -256,6 +294,7 @@ class TestScheduledGamesAPI:
         assert data["scheduled_time"] == "20:00"
         assert data["away_team_id"] == team3.id
         assert data["location"] == "New Arena"
+        assert data["is_playoff_game"] is True
 
     def test_cancel_scheduled_game(self, test_client, test_db_file_session):
         """Test canceling a scheduled game."""

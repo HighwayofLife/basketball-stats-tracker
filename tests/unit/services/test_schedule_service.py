@@ -65,6 +65,7 @@ class TestScheduleService:
             scheduled_time=scheduled_time,
             location=location,
             notes=notes,
+            is_playoff_game=False,
         )
 
         # Assert
@@ -72,6 +73,41 @@ class TestScheduleService:
         mock_crud_scheduled_game.find_matching_game_by_ids.assert_called_once_with(
             mock_db_session, scheduled_date, home_team_id, away_team_id
         )
+        mock_crud_scheduled_game.create.assert_called_once()
+
+    def test_create_scheduled_game_playoff(self, schedule_service, mock_db_session, mock_crud_scheduled_game):
+        """Test creating a playoff scheduled game."""
+        # Arrange
+        home_team_id = 1
+        away_team_id = 2
+        scheduled_date = date(2025, 6, 15)
+        is_playoff_game = True
+
+        mock_crud_scheduled_game.find_matching_game_by_ids.return_value = None
+
+        expected_game = ScheduledGame(
+            id=1,
+            scheduled_date=scheduled_date,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            is_playoff_game=is_playoff_game,
+            status=ScheduledGameStatus.SCHEDULED,
+        )
+
+        mock_crud_scheduled_game.create.return_value = expected_game
+
+        # Act
+        result = schedule_service.create_scheduled_game(
+            db=mock_db_session,
+            home_team_id=home_team_id,
+            away_team_id=away_team_id,
+            scheduled_date=scheduled_date,
+            is_playoff_game=is_playoff_game,
+        )
+
+        # Assert
+        assert result == expected_game
+        assert result.is_playoff_game is True
         mock_crud_scheduled_game.create.assert_called_once()
 
     def test_create_scheduled_game_same_teams(self, schedule_service, mock_db_session):
