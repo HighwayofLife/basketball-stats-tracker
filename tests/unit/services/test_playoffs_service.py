@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Game, ScheduledGame, Team
-from app.services.playoffs_service import PlayoffsService
+from app.services.playoffs_service import PlayoffsService, GameNotFoundError
 
 
 @pytest.fixture
@@ -31,6 +31,9 @@ class TestPlayoffsService:
         mock_query = MagicMock()
         mock_query.scalars.return_value.all.return_value = []
         mock_db_session.execute.return_value = mock_query
+
+        # Mock playoff config query to return None (no config found)
+        mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         result = playoffs_service.get_playoff_bracket()
 
@@ -103,17 +106,17 @@ class TestPlayoffsService:
         # Mock query results - first call returns completed games, second returns empty scheduled games
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = [final_game, semi1, semi2]
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = []
-        
+
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
         result = playoffs_service.get_playoff_bracket()
 
         # Verify both queries were executed
         assert mock_db_session.execute.call_count == 2
-        
+
         # Verify structure
         assert result["season"] == "2025"
         assert result["champion"] == {"team_id": 1, "team_name": "Team A"}
@@ -133,6 +136,9 @@ class TestPlayoffsService:
         mock_query = MagicMock()
         mock_query.scalars.return_value.all.return_value = []
         mock_db_session.execute.return_value = mock_query
+
+        # Mock playoff config query to return None (no config found)
+        mock_db_session.query.return_value.filter.return_value.first.return_value = None
 
         result = playoffs_service.get_playoff_bracket(season="2024")
 
@@ -156,7 +162,7 @@ class TestPlayoffsService:
         """Test marking non-existent game as playoff."""
         mock_db_session.get.return_value = None
 
-        with pytest.raises(ValueError, match="Game with ID 999 not found"):
+        with pytest.raises(GameNotFoundError, match="Game with ID 999 not found"):
             playoffs_service.mark_game_as_playoff(999)
 
     def test_unmark_game_as_playoff(self, playoffs_service, mock_db_session):
@@ -175,7 +181,7 @@ class TestPlayoffsService:
         """Test unmarking non-existent game as playoff."""
         mock_db_session.get.return_value = None
 
-        with pytest.raises(ValueError, match="Game with ID 999 not found"):
+        with pytest.raises(GameNotFoundError, match="Game with ID 999 not found"):
             playoffs_service.unmark_game_as_playoff(999)
 
     def test_format_game_data(self, playoffs_service):
@@ -235,10 +241,10 @@ class TestPlayoffsService:
         # Mock query results - first call returns completed games, second returns empty scheduled games
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = [final_game]
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = []
-        
+
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
         result = playoffs_service.get_playoff_bracket()
@@ -274,17 +280,17 @@ class TestPlayoffsService:
         # Mock query results - first call returns empty completed games, second returns scheduled games
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = []
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = [scheduled_game]
-        
+
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
         result = playoffs_service.get_playoff_bracket()
 
         # Verify both queries were executed
         assert mock_db_session.execute.call_count == 2
-        
+
         # Verify structure - now we always have 2 semi-finals slots, even if empty
         assert result["season"] == "2025"
         assert result["champion"] is None  # No champion for scheduled game
@@ -300,7 +306,7 @@ class TestPlayoffsService:
         assert finals["team1"]["score"] is None
         assert finals["team2"]["team_name"] == "Team B"
         assert finals["team2"]["score"] is None
-        
+
         # Verify TBD semi-finals slots were added
         assert result["semi_finals"][0]["matchup"]["status"] == "tbd"
         assert result["semi_finals"][1]["matchup"]["status"] == "tbd"
@@ -331,10 +337,10 @@ class TestPlayoffsService:
         # Mock query results
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = [final_game]
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = []
-        
+
         # Mock both calls for determine_playoff_round (it calls get_playoff_bracket which makes 2 queries)
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
@@ -382,10 +388,10 @@ class TestPlayoffsService:
         # Mock query results
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = [final_game, semi_game]
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = []
-        
+
         # Mock both calls for determine_playoff_round (it calls get_playoff_bracket which makes 2 queries)
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
@@ -416,10 +422,10 @@ class TestPlayoffsService:
         # Mock query results - empty completed games, scheduled game as finals
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = []
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = [scheduled_game]
-        
+
         # Mock both calls for determine_playoff_round (it calls get_playoff_bracket which makes 2 queries)
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
@@ -431,10 +437,10 @@ class TestPlayoffsService:
         # Mock empty query results
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = []
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = []
-        
+
         # Mock both calls for determine_playoff_round (it calls get_playoff_bracket which makes 2 queries)
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
@@ -481,19 +487,19 @@ class TestPlayoffsService:
         # Mock query results - empty completed games, two scheduled games on same date
         completed_games_query = MagicMock()
         completed_games_query.scalars.return_value.all.return_value = []
-        
+
         scheduled_games_query = MagicMock()
         scheduled_games_query.scalars.return_value.all.return_value = [scheduled_game1, scheduled_game2]
-        
+
         # Mock both calls for determine_playoff_round (it calls get_playoff_bracket which makes 2 queries)
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
 
         # Both games should be semi-finals, not one finals and one semi-finals
         result1 = playoffs_service.determine_playoff_round("scheduled-201")
-        
+
         # Reset side effect for second call
         mock_db_session.execute.side_effect = [completed_games_query, scheduled_games_query]
         result2 = playoffs_service.determine_playoff_round("scheduled-202")
-        
+
         assert result1 == "Semi-Finals"
         assert result2 == "Semi-Finals"

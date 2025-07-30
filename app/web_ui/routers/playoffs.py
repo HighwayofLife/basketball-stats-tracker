@@ -4,13 +4,14 @@ from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
+from typing import Literal
 
 from app.auth.dependencies import require_admin
 from app.auth.models import User
 from app.dependencies import get_db
-from app.services.playoffs_service import PlayoffsService
+from app.services.playoffs_service import PlayoffsService, GameNotFoundError, InvalidSeasonError
 
 router = APIRouter(prefix="/v1/playoffs", tags=["playoffs"])
 
@@ -18,13 +19,22 @@ router = APIRouter(prefix="/v1/playoffs", tags=["playoffs"])
 # Pydantic models for request/response
 class PlayoffConfigRequest(BaseModel):
     """Request model for playoff configuration."""
-    season: str
-    num_teams: int
-    bracket_type: str
+
+    season: str = Field(..., pattern=r"^20[0-9]{2}$", description="Season year (e.g., '2025')")
+    num_teams: int = Field(..., ge=2, le=64, description="Number of teams (2-64)")
+    bracket_type: Literal["single_elimination", "double_elimination"] = Field(..., description="Bracket type")
+    
+    @validator('num_teams')
+    def validate_power_of_two(cls, v):
+        """Ensure number of teams is a power of 2."""
+        if v & (v - 1) != 0:
+            raise ValueError('Number of teams must be a power of 2')
+        return v
 
 
 class PlayoffConfigResponse(BaseModel):
     """Response model for playoff configuration."""
+
     season: str
     num_teams: int
     bracket_type: str
@@ -34,12 +44,14 @@ class PlayoffConfigResponse(BaseModel):
 
 class TeamSeedUpdate(BaseModel):
     """Model for team seed updates."""
+
     team_id: int
     seed: int
 
 
 class TeamSeedResponse(BaseModel):
     """Response model for team with seed."""
+
     id: int
     name: str
     seed: int | None
@@ -60,14 +72,20 @@ def get_playoff_bracket(
     Returns:
         Playoff bracket structure with teams and scores
     """
-    service = PlayoffsService(db)
-    return service.get_playoff_bracket(season=season)
+    try:
+        service = PlayoffsService(db)
+        return service.get_playoff_bracket(season=season)
+    except InvalidSeasonError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.post("/games/{game_id}/mark-playoff")
 def mark_game_as_playoff(
     game_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ) -> dict[str, Any]:
     """Mark a game as a playoff game.
 
@@ -86,10 +104,39 @@ def mark_game_as_playoff(
             "message": f"Game {game_id} marked as playoff game",
             "game_id": game.id,
         }
-    except ValueError as e:
+    except GameNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
+@router.delete("/games/{game_id}/mark-playoff")
+def unmark_game_as_playoff(
+    game_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+) -> dict[str, Any]:
+    """Unmark a game as a playoff game.
+
+    Args:
+        game_id: ID of the game to unmark as playoff
+        db: Database session
+
+    Returns:
+        Success message with game ID
+    """
+    try:
+        service = PlayoffsService(db)
+        game = service.unmark_game_as_playoff(game_id)
+        return {
+            "success": True,
+            "message": f"Game {game_id} no longer marked as playoff game",
+            "game_id": game.id,
+        }
+    except GameNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="Internal server error") from e
 
 
 @router.get("/config", response_model=PlayoffConfigResponse)
@@ -110,19 +157,12 @@ def get_playoff_config(
     """
     from app.data_access.models import PlayoffConfig
 
-    config = db.query(PlayoffConfig).filter(
-        PlayoffConfig.season == season,
-        PlayoffConfig.is_active == True
-    ).first()
+    config = db.query(PlayoffConfig).filter(PlayoffConfig.season == season, PlayoffConfig.is_active).first()
 
     if not config:
         # Return default configuration
         return PlayoffConfigResponse(
-            season=season,
-            num_teams=8,
-            bracket_type="single_elimination",
-            num_rounds=3,
-            is_active=True
+            season=season, num_teams=8, bracket_type="single_elimination", num_rounds=3, is_active=True
         )
 
     return PlayoffConfigResponse(
@@ -130,7 +170,7 @@ def get_playoff_config(
         num_teams=config.num_teams,
         bracket_type=config.bracket_type,
         num_rounds=config.num_rounds,
-        is_active=config.is_active
+        is_active=config.is_active,
     )
 
 
@@ -160,10 +200,9 @@ def save_playoff_config(
         num_rounds += 1
 
     # Check if there's an existing active config for this season
-    existing_config = db.query(PlayoffConfig).filter(
-        PlayoffConfig.season == config_data.season,
-        PlayoffConfig.is_active == True
-    ).first()
+    existing_config = (
+        db.query(PlayoffConfig).filter(PlayoffConfig.season == config_data.season, PlayoffConfig.is_active).first()
+    )
 
     if existing_config:
         # Update the existing config instead of creating a new one
@@ -179,7 +218,7 @@ def save_playoff_config(
             num_teams=config_data.num_teams,
             num_rounds=num_rounds,
             bracket_type=config_data.bracket_type,
-            is_active=True
+            is_active=True,
         )
         db.add(config)
 
@@ -191,7 +230,7 @@ def save_playoff_config(
         num_teams=config.num_teams,
         bracket_type=config.bracket_type,
         num_rounds=config.num_rounds,
-        is_active=config.is_active
+        is_active=config.is_active,
     )
 
 
@@ -220,7 +259,7 @@ def get_team_seeds(
             id=team.id,
             name=team.name,
             seed=team.playoff_seed,
-            record=f"{getattr(team, 'wins', 0)}-{getattr(team, 'losses', 0)}" if hasattr(team, 'wins') else None
+            record=f"{getattr(team, 'wins', 0)}-{getattr(team, 'losses', 0)}" if hasattr(team, "wins") else None,
         )
         for team in teams
     ]
@@ -249,15 +288,11 @@ def save_team_seeds(
     for team_id_str, seed in seed_changes.items():
         team_id = int(team_id_str)
         team = db.query(Team).filter(Team.id == team_id).first()
-        
+
         if team:
             team.playoff_seed = seed
             updated_count += 1
 
     db.commit()
 
-    return {
-        "success": True,
-        "message": f"Updated seeds for {updated_count} teams",
-        "updated_count": updated_count
-    }
+    return {"success": True, "message": f"Updated seeds for {updated_count} teams", "updated_count": updated_count}

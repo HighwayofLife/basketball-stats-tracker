@@ -351,7 +351,9 @@
                 <form id="configForm">
                     <div class="mb-3">
                         <label for="season" class="form-label">Season</label>
-                        <input type="text" class="form-control" id="season" value="2025" readonly>
+                        <select class="form-select" id="season">
+                            <option value="">Loading seasons...</option>
+                        </select>
                     </div>
                     <div class="mb-3">
                         <label for="numTeams" class="form-label">Number of Teams</label>
@@ -526,10 +528,18 @@ function displayBracket(data) {
 
         const banner = document.createElement('div');
         banner.className = 'champion-banner';
-        banner.innerHTML = `
-            <div class="champion-banner-year">2024-25</div>
-            <div class="champion-banner-title">World Champions</div>
-        `;
+        // Create elements safely to prevent hardcoded values and XSS
+        const yearDiv = document.createElement('div');
+        yearDiv.className = 'champion-banner-year';
+        const currentYear = new Date().getFullYear();
+        yearDiv.textContent = `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+        
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'champion-banner-title';
+        titleDiv.textContent = 'World Champions';
+        
+        banner.appendChild(yearDiv);
+        banner.appendChild(titleDiv);
 
         const championName = document.createElement('div');
         championName.textContent = data.champion.team_name;
@@ -616,15 +626,7 @@ function createTeamElement(team, isWinner) {
     const teamDetails = document.createElement('div');
     teamDetails.className = 'team-details';
 
-    // Only show seed if it exists in the data
-    if (team.seed) {
-        const seedSpan = document.createElement('span');
-        seedSpan.className = 'team-seed';
-        seedSpan.textContent = team.seed;
-        teamDetails.appendChild(seedSpan);
-    }
-
-    // Add team logo if team exists
+    // Add team logo first if team exists
     if (team.team_name && team.team_name !== 'TBD') {
         const logoImg = document.createElement('img');
         logoImg.className = 'team-logo';
@@ -634,6 +636,14 @@ function createTeamElement(team, isWinner) {
             this.style.display = 'none';
         };
         teamDetails.appendChild(logoImg);
+    }
+
+    // Add seed number if it exists in the data
+    if (team.seed) {
+        const seedSpan = document.createElement('span');
+        seedSpan.className = 'team-seed';
+        seedSpan.textContent = team.seed;
+        teamDetails.appendChild(seedSpan);
     }
 
     const nameSpan = document.createElement('span');
@@ -666,6 +676,10 @@ function createTeamElement(team, isWinner) {
 
 async function loadCurrentConfig() {
     try {
+        // First load available seasons
+        await loadAvailableSeasons();
+        
+        // Then load current config
         const response = await fetch('/v1/playoffs/config');
         if (response.ok) {
             const config = await response.json();
@@ -675,6 +689,40 @@ async function loadCurrentConfig() {
         }
     } catch (error) {
         console.error('Error loading config:', error);
+    }
+}
+
+async function loadAvailableSeasons() {
+    try {
+        const response = await fetch('/v1/seasons/list');
+        if (response.ok) {
+            const seasons = await response.json();
+            const seasonSelect = document.getElementById('season');
+            
+            // Clear existing options
+            seasonSelect.innerHTML = '';
+            
+            // Add seasons to dropdown
+            seasons.forEach(season => {
+                const option = document.createElement('option');
+                option.value = season.year;
+                option.textContent = season.year;
+                seasonSelect.appendChild(option);
+            });
+            
+            // If no seasons available, add a default option
+            if (seasons.length === 0) {
+                const option = document.createElement('option');
+                option.value = '2025';
+                option.textContent = '2025';
+                seasonSelect.appendChild(option);
+            }
+        }
+    } catch (error) {
+        console.error('Error loading seasons:', error);
+        // Fallback to default season
+        const seasonSelect = document.getElementById('season');
+        seasonSelect.innerHTML = '<option value="2025">2025</option>';
     }
 }
 
@@ -733,20 +781,48 @@ function displayTeamSeeds(teams) {
     teams.forEach((team, index) => {
         const seedItem = document.createElement('div');
         seedItem.className = 'seed-item d-flex align-items-center mb-2 p-2 border rounded';
-        seedItem.innerHTML = `
-            <div class="seed-number me-3">
-                <select class="form-select form-select-sm" style="width: 80px;" onchange="updateSeed(${team.id}, this.value)">
-                    ${Array.from({length: 16}, (_, i) => `<option value="${i+1}" ${team.seed === i+1 ? 'selected' : ''}>${i+1}</option>`).join('')}
-                </select>
-            </div>
-            <div class="team-info flex-grow-1">
-                <strong>${team.name}</strong>
-                <small class="text-muted d-block">Current Record: ${team.record || 'N/A'}</small>
-            </div>
-            <div class="drag-handle">
-                <i class="fas fa-grip-vertical text-muted"></i>
-            </div>
-        `;
+        // Create elements safely to prevent XSS
+        const seedNumberDiv = document.createElement('div');
+        seedNumberDiv.className = 'seed-number me-3';
+        
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+        select.style.width = '80px';
+        select.setAttribute('onchange', `updateSeed(${team.id}, this.value)`);
+        
+        // Create options safely
+        for (let i = 1; i <= 16; i++) {
+            const option = document.createElement('option');
+            option.value = i;
+            option.textContent = i;
+            if (team.seed === i) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        }
+        seedNumberDiv.appendChild(select);
+        
+        const teamInfoDiv = document.createElement('div');
+        teamInfoDiv.className = 'team-info flex-grow-1';
+        
+        const strongEl = document.createElement('strong');
+        strongEl.textContent = team.name; // Safe text content
+        teamInfoDiv.appendChild(strongEl);
+        
+        const smallEl = document.createElement('small');
+        smallEl.className = 'text-muted d-block';
+        smallEl.textContent = `Current Record: ${team.record || 'N/A'}`; // Safe text content
+        teamInfoDiv.appendChild(smallEl);
+        
+        const dragHandleDiv = document.createElement('div');
+        dragHandleDiv.className = 'drag-handle';
+        const icon = document.createElement('i');
+        icon.className = 'fas fa-grip-vertical text-muted';
+        dragHandleDiv.appendChild(icon);
+        
+        seedItem.appendChild(seedNumberDiv);
+        seedItem.appendChild(teamInfoDiv);
+        seedItem.appendChild(dragHandleDiv);
         seedList.appendChild(seedItem);
     });
 

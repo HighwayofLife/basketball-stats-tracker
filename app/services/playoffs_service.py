@@ -9,6 +9,21 @@ from sqlalchemy.orm import Session, joinedload
 from app.data_access.models import Game, ScheduledGame, ScheduledGameStatus
 
 
+class GameNotFoundError(Exception):
+    """Raised when a game is not found."""
+    pass
+
+
+class InvalidPlayoffGameError(Exception):
+    """Raised when a game cannot be marked as playoff."""
+    pass
+
+
+class InvalidSeasonError(Exception):
+    """Raised when season validation fails."""
+    pass
+
+
 class PlayoffsService:
     """Service for managing playoff bracket data and operations."""
 
@@ -19,6 +34,16 @@ class PlayoffsService:
             db_session: SQLAlchemy database session
         """
         self.db = db_session
+
+    def _validate_season(self, season: str) -> int:
+        """Validate and sanitize season input."""
+        try:
+            year = int(season)
+            if year < 2000 or year > 2100:
+                raise InvalidSeasonError("Season year must be between 2000 and 2100")
+            return year
+        except (ValueError, TypeError) as e:
+            raise InvalidSeasonError(f"Invalid season format: {season}") from e
 
     def get_playoff_bracket(self, season: str | None = None) -> dict[str, Any]:
         """Get playoff bracket data for display.
@@ -56,9 +81,10 @@ class PlayoffsService:
         )
 
         if season:
-            # Filter by season year in the date
-            start_date = date(int(season), 1, 1)
-            end_date = date(int(season), 12, 31)
+            # Validate and filter by season year in the date
+            validated_year = self._validate_season(season)
+            start_date = date(validated_year, 1, 1)
+            end_date = date(validated_year, 12, 31)
             completed_games_query = completed_games_query.where(and_(Game.date >= start_date, Game.date <= end_date))
             scheduled_games_query = scheduled_games_query.where(
                 and_(ScheduledGame.scheduled_date >= start_date, ScheduledGame.scheduled_date <= end_date)
@@ -302,7 +328,7 @@ class PlayoffsService:
         """
         game = self.db.get(Game, game_id)
         if not game:
-            raise ValueError(f"Game with ID {game_id} not found")
+            raise GameNotFoundError(f"Game with ID {game_id} not found")
 
         game.is_playoff_game = True
         self.db.commit()
@@ -319,7 +345,7 @@ class PlayoffsService:
         """
         game = self.db.get(Game, game_id)
         if not game:
-            raise ValueError(f"Game with ID {game_id} not found")
+            raise GameNotFoundError(f"Game with ID {game_id} not found")
 
         game.is_playoff_game = False
         self.db.commit()
@@ -373,107 +399,112 @@ class PlayoffsService:
 
     def _get_playoff_config(self, season: str | None) -> dict[str, Any]:
         """Get playoff configuration for the given season.
-        
+
         Args:
             season: Season year (e.g., "2025")
-            
+
         Returns:
             Dictionary with playoff configuration
         """
         from app.data_access.models import PlayoffConfig
-        
-        current_season = season or str(date.today().year)
-        
-        config = self.db.query(PlayoffConfig).filter(
-            PlayoffConfig.season == current_season,
-            PlayoffConfig.is_active == True
-        ).first()
-        
+
+        if season:
+            # Validate season if provided
+            validated_year = self._validate_season(season)
+            current_season = str(validated_year)
+        else:
+            current_season = str(date.today().year)
+
+        config = (
+            self.db.query(PlayoffConfig).filter(PlayoffConfig.season == current_season, PlayoffConfig.is_active).first()
+        )
+
         if not config:
             # Return default configuration for 8 teams
-            return {
-                "season": current_season,
-                "num_teams": 8,
-                "num_rounds": 3,
-                "bracket_type": "single_elimination"
-            }
-        
+            return {"season": current_season, "num_teams": 8, "num_rounds": 3, "bracket_type": "single_elimination"}
+
         return {
             "season": config.season,
             "num_teams": config.num_teams,
             "num_rounds": config.num_rounds,
-            "bracket_type": config.bracket_type
+            "bracket_type": config.bracket_type,
         }
 
     def _create_empty_bracket(self, config: dict[str, Any]) -> dict[str, Any]:
         """Create an empty bracket structure based on configuration.
-        
+
         Args:
             config: Playoff configuration dictionary
-            
+
         Returns:
             Empty bracket structure with TBD placeholders
         """
         num_teams = config["num_teams"]
         season = config["season"]
-        
+
         bracket = {
             "season": season,
             "champion": None,
             "finals": None,
         }
-        
+
         # Create rounds based on number of teams
         if num_teams == 4:
             # 4 teams: Semi-Finals (2 games) → Finals (1 game)
-            bracket.update({
-                "finals": self._create_tbd_matchup("Finals"),
-                "semi_finals": [
-                    self._create_tbd_matchup("Semi-Finals Game 1"),
-                    self._create_tbd_matchup("Semi-Finals Game 2"),
-                ],
-            })
+            bracket.update(
+                {
+                    "finals": self._create_tbd_matchup("Finals"),
+                    "semi_finals": [
+                        self._create_tbd_matchup("Semi-Finals Game 1"),
+                        self._create_tbd_matchup("Semi-Finals Game 2"),
+                    ],
+                }
+            )
         elif num_teams == 8:
-            # 8 teams: Quarter-Finals (4 games) → Semi-Finals (2 games) → Finals (1 game)  
-            bracket.update({
-                "finals": self._create_tbd_matchup("Finals"),
-                "semi_finals": [
-                    self._create_tbd_matchup("Semi-Finals Game 1"),
-                    self._create_tbd_matchup("Semi-Finals Game 2"),
-                ],
-                "quarter_finals": [
-                    self._create_tbd_matchup("Quarter-Finals Game 1"),
-                    self._create_tbd_matchup("Quarter-Finals Game 2"),
-                    self._create_tbd_matchup("Quarter-Finals Game 3"),
-                    self._create_tbd_matchup("Quarter-Finals Game 4"),
-                ],
-            })
+            # 8 teams: Quarter-Finals (4 games) → Semi-Finals (2 games) → Finals (1 game)
+            bracket.update(
+                {
+                    "finals": self._create_tbd_matchup("Finals"),
+                    "semi_finals": [
+                        self._create_tbd_matchup("Semi-Finals Game 1"),
+                        self._create_tbd_matchup("Semi-Finals Game 2"),
+                    ],
+                    "quarter_finals": [
+                        self._create_tbd_matchup("Quarter-Finals Game 1"),
+                        self._create_tbd_matchup("Quarter-Finals Game 2"),
+                        self._create_tbd_matchup("Quarter-Finals Game 3"),
+                        self._create_tbd_matchup("Quarter-Finals Game 4"),
+                    ],
+                }
+            )
         elif num_teams == 16:
             # 16 teams: Round of 16 → Quarter-Finals → Semi-Finals → Finals
-            bracket.update({
-                "finals": self._create_tbd_matchup("Finals"),
-                "semi_finals": [
-                    self._create_tbd_matchup("Semi-Finals Game 1"),
-                    self._create_tbd_matchup("Semi-Finals Game 2"),
-                ],
-                "quarter_finals": [
-                    self._create_tbd_matchup("Quarter-Finals Game 1"),
-                    self._create_tbd_matchup("Quarter-Finals Game 2"),
-                    self._create_tbd_matchup("Quarter-Finals Game 3"),
-                    self._create_tbd_matchup("Quarter-Finals Game 4"),
-                ],
-                "round_of_16": [
-                    self._create_tbd_matchup(f"Round of 16 Game {i}") for i in range(1, 9)
-                ],
-            })
+            bracket.update(
+                {
+                    "finals": self._create_tbd_matchup("Finals"),
+                    "semi_finals": [
+                        self._create_tbd_matchup("Semi-Finals Game 1"),
+                        self._create_tbd_matchup("Semi-Finals Game 2"),
+                    ],
+                    "quarter_finals": [
+                        self._create_tbd_matchup("Quarter-Finals Game 1"),
+                        self._create_tbd_matchup("Quarter-Finals Game 2"),
+                        self._create_tbd_matchup("Quarter-Finals Game 3"),
+                        self._create_tbd_matchup("Quarter-Finals Game 4"),
+                    ],
+                    "round_of_16": [self._create_tbd_matchup(f"Round of 16 Game {i}") for i in range(1, 9)],
+                }
+            )
         else:
             # Default to semi-finals structure for other team counts
-            bracket.update({
-                "finals": self._create_tbd_matchup("Finals"),
-                "semi_finals": [
-                    self._create_tbd_matchup("Semi-Finals Game 1"),
-                    self._create_tbd_matchup("Semi-Finals Game 2"),
-                ],
-            })
-            
+            bracket.update(
+                {
+                    "finals": self._create_tbd_matchup("Finals"),
+                    "semi_finals": [
+                        self._create_tbd_matchup("Semi-Finals Game 1"),
+                        self._create_tbd_matchup("Semi-Finals Game 2"),
+                    ],
+                }
+            )
+
         return bracket
