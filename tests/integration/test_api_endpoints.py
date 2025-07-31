@@ -1586,6 +1586,23 @@ class TestAPIEndpoints:
         data = response.json()
         assert "seasons" in data
 
+    def test_get_seasons_list_requires_admin(self, client):
+        """Test that getting seasons list for dropdowns requires admin authentication."""
+        # Make request to seasons list endpoint
+        response = client.get("/v1/seasons/list")
+
+        # Assertions - should succeed because our mock user is admin
+        assert response.status_code == 200
+        data = response.json()
+
+        # Should return a list of dictionaries with year keys
+        assert isinstance(data, list)
+        # If there are seasons, each should have a year key
+        for season in data:
+            assert "year" in season
+            assert isinstance(season["year"], str)
+            assert len(season["year"]) == 4  # Should be a 4-digit year
+
     def test_create_season_requires_admin(self, client):
         """Test that creating a season requires admin authentication."""
         import time

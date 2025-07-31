@@ -11,16 +11,19 @@ from app.data_access.models import Game, ScheduledGame, ScheduledGameStatus
 
 class GameNotFoundError(Exception):
     """Raised when a game is not found."""
+
     pass
 
 
 class InvalidPlayoffGameError(Exception):
     """Raised when a game cannot be marked as playoff."""
+
     pass
 
 
 class InvalidSeasonError(Exception):
     """Raised when season validation fails."""
+
     pass
 
 

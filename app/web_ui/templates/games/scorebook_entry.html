@@ -493,6 +493,7 @@ async function loadGameForEdit(gameId) {
         document.getElementById('awayTeam').value = gameData.game_info.away_team_id;
         document.getElementById('location').value = gameData.game_info.location || '';
         document.getElementById('notes').value = gameData.game_info.notes || '';
+        document.getElementById('isPlayoffGame').checked = gameData.game_info.is_playoff_game || false;
         
         // Clear existing player rows
         document.getElementById('playerStatsBody').innerHTML = '';

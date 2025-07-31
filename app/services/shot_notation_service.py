@@ -115,6 +115,7 @@ class ShotNotationService:
                 "away_team_id": game.opponent_team_id,
                 "location": game.location or "",
                 "notes": game.notes or "",
+                "is_playoff_game": game.is_playoff_game,
             },
             "player_stats": [
                 ShotNotationService.player_game_stats_to_scorebook_format(

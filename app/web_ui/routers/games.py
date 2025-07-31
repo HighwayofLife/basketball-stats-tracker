@@ -13,7 +13,6 @@ from app.dependencies import get_db
 from app.reports import ReportGenerator
 from app.services.game_state_service import GameStateService
 from app.services.schedule_service import schedule_service
-from app.services.season_service import SeasonService
 from app.services.season_stats_service import SeasonStatsService
 from app.utils import stats_calculator
 from app.web_ui.cache import invalidate_cache_after
@@ -1107,6 +1106,7 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                 game.opponent_team_id = scorebook_data["away_team_id"]
                 game.location = scorebook_data.get("location")
                 game.notes = scorebook_data.get("notes")
+                game.is_playoff_game = scorebook_data.get("is_playoff_game", game.is_playoff_game)
             else:
                 # Check for matching scheduled game
                 scheduled_game = schedule_service.find_matching_scheduled_game(
@@ -1133,8 +1133,9 @@ async def create_game_from_scorebook(scorebook_data: dict, current_user: User = 
                     location=scorebook_data.get("location") or (scheduled_game.location if scheduled_game else None),
                     notes=scorebook_data.get("notes") or (scheduled_game.notes if scheduled_game else None),
                     season_id=season.id if season else None,
-                    is_playoff_game=scorebook_data.get("is_playoff_game", False)
-                    or (scheduled_game.is_playoff_game if scheduled_game else False),
+                    is_playoff_game=scorebook_data.get(
+                        "is_playoff_game", scheduled_game.is_playoff_game if scheduled_game else False
+                    ),
                 )
 
                 # Link the game to the scheduled game if found
@@ -1302,16 +1303,3 @@ async def get_game_scorebook_format(
     except Exception as e:
         logger.error(f"Error getting game in scorebook format: {e}")
         raise HTTPException(status_code=500, detail="Failed to retrieve game data") from e
-
-
-@router.get("/v1/seasons/list")
-async def list_seasons(current_user: User = Depends(get_current_user)):
-    """Get all seasons for use in dropdowns and selection."""
-    try:
-        with get_db_session() as session:
-            season_service = SeasonService(session)
-            seasons = season_service.list_seasons(include_inactive=True)
-            return seasons
-    except Exception as e:
-        logger.error(f"Error getting seasons: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get seasons") from e

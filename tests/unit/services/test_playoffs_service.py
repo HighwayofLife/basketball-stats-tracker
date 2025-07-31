@@ -7,7 +7,7 @@ import pytest
 from sqlalchemy.orm import Session
 
 from app.data_access.models import Game, ScheduledGame, Team
-from app.services.playoffs_service import PlayoffsService, GameNotFoundError
+from app.services.playoffs_service import GameNotFoundError, PlayoffsService
 
 
 @pytest.fixture

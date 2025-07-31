@@ -18,16 +18,23 @@
 .bracket {
     display: flex;
     flex-wrap: nowrap;
-    gap: 3rem; /* Reduced gap for better alignment */
-    align-items: flex-start;
+    gap: 4rem; /* Increased gap for connectors */
+    align-items: center; /* Key change for vertical alignment */
 }
 
 .bracket-round {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 2rem; /* Reduced space between matchups */
+    gap: 4rem; /* Gap between matchup pairs */
     min-width: 240px; /* Match matchup width */
+    position: relative;
+}
+
+.matchup-pair {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem; /* Gap between matchups within a pair */
     position: relative;
 }
 
@@ -117,45 +124,56 @@
     font-style: italic;
 }
 
-/* Connector lines */
-.bracket-round:not(:last-child) .matchup::after {
+/* --- New Connector Logic --- */
+
+/* Horizontal line from each matchup to the vertical connector */
+.matchup-pair .matchup::after {
     content: '';
     position: absolute;
     top: 50%;
-    right: -1.5rem;
-    width: 1.5rem;
+    left: 100%;
+    width: 2rem; /* Half of the main bracket gap */
     height: 2px;
     background-color: #ccc;
-    z-index: 1;
 }
 
-/* Vertical connectors for multiple matchups in a round */
-.bracket-round:not(:last-child) .matchup:not(:only-child)::before {
+/* Vertical connector bar for a pair */
+.matchup-pair::before {
     content: '';
     position: absolute;
-    right: -1.5rem;
+    left: calc(100% + 2rem);
     width: 2px;
     background-color: #ccc;
-    z-index: 1;
+    top: 25%; /* Approximation, works well with centered alignment */
+    height: 50%;
 }
 
-/* First matchup - vertical line goes down from center */
-.bracket-round:not(:last-child) .matchup:first-child:not(:only-child)::before {
+/* Horizontal line from the vertical bar to the next round's matchup */
+.matchup-pair::after {
+    content: '';
+    position: absolute;
     top: 50%;
-    height: calc(1rem + 50%); /* Half height + gap to next matchup */
+    left: calc(100% + 2rem);
+    width: 2rem;
+    height: 2px;
+    background-color: #ccc;
 }
 
-/* Last matchup - vertical line goes up from center */
-.bracket-round:not(:last-child) .matchup:last-child:not(:only-child)::before {
-    bottom: 50%;
-    height: calc(1rem + 50%); /* Half height + gap to previous matchup */
+/* Hide connectors for the last round (Finals) */
+.bracket-round:last-child .matchup-pair::before,
+.bracket-round:last-child .matchup-pair::after,
+.bracket-round:last-child .matchup::after {
+    display: none;
 }
 
-/* Middle matchups - full vertical line */
-.bracket-round:not(:last-child) .matchup:not(:first-child):not(:last-child)::before {
-    top: calc(-1rem - 50%);
-    height: calc(2rem + 100%); /* Full height + gaps */
+/* Hide connectors for rounds with a single advancing team */
+.matchup-pair:only-child::before,
+.matchup-pair:only-child::after {
+    display: none;
 }
+
+/* --- End New Connector Logic --- */
+
 
 .champion-section {
     text-align: center;
@@ -452,58 +470,44 @@ function displayBracket(data) {
     const bracket = document.getElementById('bracket');
     bracket.innerHTML = '';
 
+    // Helper to create a round with paired matchups
+    const createRound = (title, matchups) => {
+        const roundEl = document.createElement('div');
+        roundEl.className = 'bracket-round';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'bracket-round-title';
+        titleEl.textContent = title;
+        roundEl.appendChild(titleEl);
+
+        // Wrap matchups in pairs
+        for (let i = 0; i < matchups.length; i += 2) {
+            const pairEl = document.createElement('div');
+            pairEl.className = 'matchup-pair';
+            pairEl.appendChild(createMatchupElement(matchups[i].matchup));
+            if (matchups[i + 1]) {
+                pairEl.appendChild(createMatchupElement(matchups[i + 1].matchup));
+            }
+            roundEl.appendChild(pairEl);
+        }
+        return roundEl;
+    };
+
     // Display round of 16 (if exists)
     if (data.round_of_16 && data.round_of_16.length > 0) {
-        const roundOf16 = document.createElement('div');
-        roundOf16.className = 'bracket-round';
-
-        const title = document.createElement('div');
-        title.className = 'bracket-round-title';
-        title.textContent = 'Round of 16';
-        roundOf16.appendChild(title);
-
-        data.round_of_16.forEach(round => {
-            roundOf16.appendChild(createMatchupElement(round.matchup));
-        });
-
-        bracket.appendChild(roundOf16);
+        bracket.appendChild(createRound('Round of 16', data.round_of_16));
     }
 
     // Display quarter-finals (if exists)
     if (data.quarter_finals && data.quarter_finals.length > 0) {
-        const quarterFinals = document.createElement('div');
-        quarterFinals.className = 'bracket-round';
-
-        const title = document.createElement('div');
-        title.className = 'bracket-round-title';
-        title.textContent = 'Quarter-Finals';
-        quarterFinals.appendChild(title);
-
-        data.quarter_finals.forEach(quarter => {
-            quarterFinals.appendChild(createMatchupElement(quarter.matchup));
-        });
-
-        bracket.appendChild(quarterFinals);
+        bracket.appendChild(createRound('Quarter-Finals', data.quarter_finals));
     }
 
     // Display semi-finals
     if (data.semi_finals && data.semi_finals.length > 0) {
-        const semiFinals = document.createElement('div');
-        semiFinals.className = 'bracket-round';
-
-        const title = document.createElement('div');
-        title.className = 'bracket-round-title';
-        title.textContent = 'Semi-Finals';
-        semiFinals.appendChild(title);
-
-        data.semi_finals.forEach(semi => {
-            semiFinals.appendChild(createMatchupElement(semi.matchup));
-        });
-
-        bracket.appendChild(semiFinals);
+        bracket.appendChild(createRound('Semi-Finals', data.semi_finals));
     }
 
-    // Display finals
+    // Display finals (no pairing)
     if (data.finals) {
         const finals = document.createElement('div');
         finals.className = 'bracket-round';
@@ -513,7 +517,10 @@ function displayBracket(data) {
         title.textContent = 'Finals';
         finals.appendChild(title);
 
-        finals.appendChild(createMatchupElement(data.finals.matchup));
+        // The final matchup doesn't get paired
+        const finalMatchup = createMatchupElement(data.finals.matchup);
+        finals.appendChild(finalMatchup);
+        
         bracket.appendChild(finals);
     }
 

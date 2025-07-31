@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from app.web_ui.api import app
 from app.auth.dependencies import require_admin
+from app.web_ui.api import app
 
 
 @pytest.fixture
@@ -99,7 +99,7 @@ class TestPlayoffsRouter:
             admin.username = "admin"
             admin.role = "admin"
             return admin
-        
+
         app.dependency_overrides[require_admin] = mock_admin_user
 
         # Mock service instance and game
@@ -132,20 +132,21 @@ class TestPlayoffsRouter:
         # Mock database session
         mock_db = MagicMock()
         mock_get_db.return_value = mock_db
-        
+
         # Mock admin user using dependency override
         def mock_admin_user():
             admin = MagicMock()
             admin.username = "admin"
             admin.role = "admin"
             return admin
-        
+
         app.dependency_overrides[require_admin] = mock_admin_user
 
         # Mock service instance to raise GameNotFoundError
         mock_service = MagicMock()
         mock_service_class.return_value = mock_service
         from app.services.playoffs_service import GameNotFoundError
+
         mock_service.mark_game_as_playoff.side_effect = GameNotFoundError("Game with ID 999 not found")
 
         try:
@@ -165,14 +166,14 @@ class TestPlayoffsRouter:
         # Mock database session
         mock_db = MagicMock()
         mock_get_db.return_value = mock_db
-        
+
         # Mock admin user using dependency override
         def mock_admin_user():
             admin = MagicMock()
             admin.username = "admin"
             admin.role = "admin"
             return admin
-        
+
         app.dependency_overrides[require_admin] = mock_admin_user
 
         # Mock service instance and game
@@ -205,20 +206,21 @@ class TestPlayoffsRouter:
         # Mock database session
         mock_db = MagicMock()
         mock_get_db.return_value = mock_db
-        
+
         # Mock admin user using dependency override
         def mock_admin_user():
             admin = MagicMock()
             admin.username = "admin"
             admin.role = "admin"
             return admin
-        
+
         app.dependency_overrides[require_admin] = mock_admin_user
 
         # Mock service instance to raise GameNotFoundError
         mock_service = MagicMock()
         mock_service_class.return_value = mock_service
         from app.services.playoffs_service import GameNotFoundError
+
         mock_service.unmark_game_as_playoff.side_effect = GameNotFoundError("Game with ID 999 not found")
 
         try:

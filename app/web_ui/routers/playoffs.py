@@ -1,17 +1,16 @@
 """API endpoints for playoff bracket functionality."""
 
 from datetime import datetime
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field, validator
 from sqlalchemy.orm import Session
-from typing import Literal
 
 from app.auth.dependencies import require_admin
 from app.auth.models import User
 from app.dependencies import get_db
-from app.services.playoffs_service import PlayoffsService, GameNotFoundError, InvalidSeasonError
+from app.services.playoffs_service import GameNotFoundError, InvalidSeasonError, PlayoffsService
 
 router = APIRouter(prefix="/v1/playoffs", tags=["playoffs"])
 
@@ -23,12 +22,12 @@ class PlayoffConfigRequest(BaseModel):
     season: str = Field(..., pattern=r"^20[0-9]{2}$", description="Season year (e.g., '2025')")
     num_teams: int = Field(..., ge=2, le=64, description="Number of teams (2-64)")
     bracket_type: Literal["single_elimination", "double_elimination"] = Field(..., description="Bracket type")
-    
-    @validator('num_teams')
+
+    @validator("num_teams")
     def validate_power_of_two(cls, v):
         """Ensure number of teams is a power of 2."""
         if v & (v - 1) != 0:
-            raise ValueError('Number of teams must be a power of 2')
+            raise ValueError("Number of teams must be a power of 2")
         return v
 
 
