@@ -27,6 +27,7 @@ class TestCRUDScheduledGame:
             scheduled_time="19:30",
             location="Test Arena",
             notes="Test game",
+            is_playoff_game=False,
         )
 
         # Assert
@@ -39,6 +40,35 @@ class TestCRUDScheduledGame:
         assert scheduled_game.notes == "Test game"
         assert scheduled_game.status == ScheduledGameStatus.SCHEDULED
         assert scheduled_game.game_id is None
+        assert scheduled_game.is_playoff_game is False
+
+    def test_create_playoff_scheduled_game(self, test_db_file_session):
+        """Test creating a playoff scheduled game."""
+        # Create teams first
+        home_team = Team(name="Home Team")
+        away_team = Team(name="Away Team")
+        test_db_file_session.add(home_team)
+        test_db_file_session.add(away_team)
+        test_db_file_session.commit()
+
+        # Create playoff scheduled game
+        scheduled_game = crud_scheduled_game.create(
+            test_db_file_session,
+            home_team_id=home_team.id,
+            away_team_id=away_team.id,
+            scheduled_date=date(2025, 6, 15),
+            scheduled_time="19:30",
+            location="Championship Arena",
+            notes="Playoff game",
+            is_playoff_game=True,
+        )
+
+        # Assert
+        assert scheduled_game.id is not None
+        assert scheduled_game.is_playoff_game is True
+        assert scheduled_game.location == "Championship Arena"
+        assert scheduled_game.notes == "Playoff game"
+        assert scheduled_game.status == ScheduledGameStatus.SCHEDULED
 
     def test_find_matching_game(self, test_db_file_session):
         """Test finding a scheduled game by date and teams."""
@@ -365,6 +395,7 @@ class TestCRUDScheduledGame:
             scheduled_time="20:00",
             away_team_id=team3.id,
             location="New Arena",
+            is_playoff_game=True,
         )
 
         # Assert
@@ -373,6 +404,7 @@ class TestCRUDScheduledGame:
         assert updated_game.away_team_id == team3.id
         assert updated_game.location == "New Arena"
         assert updated_game.home_team_id == team1.id  # Unchanged
+        assert updated_game.is_playoff_game is True
 
     def test_delete(self, test_db_file_session):
         """Test soft deleting a scheduled game."""

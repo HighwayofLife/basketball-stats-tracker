@@ -1,3 +1,29 @@
+v0.6.0
+------
+
+### Added
+- Playoff bracket visualization with tournament tree
+- Playoff configuration for teams and rounds
+- Team playoff seeding functionality
+- Mark games as playoff games
+- Dedicated /playoffs page with bracket display
+- API endpoints for playoff operations
+- PlayoffConfig model for tournament settings
+- playoff_seed field to Team model
+- is_playoff_game field to Game/ScheduledGame models
+
+### Changed
+- Enhanced game forms with playoff checkbox
+- Updated navigation with playoffs link
+- Improved modal handling in playoff templates
+
+### Fixed
+- Fixed hardcoded year display in playoffs template to use API season data
+- Removed unimplemented double elimination bracket type option
+- Added race condition protection for playoff config updates
+- Added validation for team IDs and seeds in save_team_seeds endpoint
+
+
 v0.5.5
 ------
 

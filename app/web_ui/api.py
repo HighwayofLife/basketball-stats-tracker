@@ -27,6 +27,7 @@ from .routers import (
     teams_router,
 )
 from .routers.awards_config import router as awards_config_router
+from .routers.playoffs import router as playoffs_router
 
 # Configure logging
 log_level = os.getenv("LOG_LEVEL", "INFO").upper()
@@ -207,3 +208,4 @@ app.include_router(players_router)
 app.include_router(admin_router)
 app.include_router(reports_router)
 app.include_router(awards_config_router)
+app.include_router(playoffs_router)

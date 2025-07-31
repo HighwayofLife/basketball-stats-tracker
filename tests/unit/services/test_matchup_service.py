@@ -430,3 +430,35 @@ class TestMatchupService:
         result = service.get_formatted_matchup_data(999)
 
         assert result is None
+
+    def test_get_formatted_matchup_data_playoff_round(self, db_session):
+        """Test formatted matchup data includes playoff round for playoff games."""
+        # Create test teams
+        home_team = Team(id=1, name="home_team", display_name="Home Team")
+        away_team = Team(id=2, name="away_team", display_name="Away Team")
+        db_session.add_all([home_team, away_team])
+
+        # Create playoff scheduled game
+        scheduled_game = ScheduledGame(
+            id=1,
+            home_team_id=1,
+            away_team_id=2,
+            scheduled_date=date(2024, 3, 15),
+            season_id=1,
+            status=ScheduledGameStatus.SCHEDULED,
+            is_playoff_game=True,
+        )
+        db_session.add(scheduled_game)
+        db_session.commit()
+
+        # Test the service
+        service = MatchupService(db_session)
+        result = service.get_formatted_matchup_data(1)
+
+        assert result is not None
+        assert result["scheduled_game"].id == 1
+        assert result["scheduled_game"].is_playoff_game is True
+        # The playoff round should be determined by the PlayoffsService
+        # Since this is the only playoff game, it should be "Finals"
+        assert "playoff_round" in result
+        assert result["playoff_round"] == "Finals"

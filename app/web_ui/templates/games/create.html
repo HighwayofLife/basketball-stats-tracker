@@ -55,6 +55,18 @@
             <textarea class="form-control" id="notes" rows="3">{% if is_edit and scheduled_game.notes %}{{ scheduled_game.notes }}{% endif %}</textarea>
         </div>
 
+        <div class="form-group">
+            <div class="form-check" style="display: inline-block; width: auto;">
+                <input type="checkbox" class="form-check-input" id="is-playoff-game"{% if is_edit and scheduled_game.is_playoff_game %} checked{% endif %}>
+                <label class="form-check-label" for="is-playoff-game">
+                    <i class="fas fa-trophy text-warning"></i> This is a playoff game
+                </label>
+            </div>
+            <div>
+                <small class="text-muted">Check this box if this game is part of the playoffs</small>
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary">{% if is_edit %}Update Game{% else %}Schedule Game{% endif %}</button>
         <a href="/games" class="btn btn-secondary">Cancel</a>
     </form>
@@ -135,6 +147,25 @@
     font-size: 0.875rem;
     margin-top: 0.25rem;
     display: block;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.form-check-input {
+    margin-right: 0.5rem;
+}
+
+.form-check-label {
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.text-warning {
+    color: #ffc107 !important;
 }
 
 </style>
@@ -284,7 +315,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             season_id: seasonId,
             scheduled_time: document.getElementById('game-time').value || null,
             location: document.getElementById('location').value || null,
-            notes: document.getElementById('notes').value || null
+            notes: document.getElementById('notes').value || null,
+            is_playoff_game: document.getElementById('is-playoff-game').checked
         };
 
         try {

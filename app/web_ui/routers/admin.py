@@ -225,6 +225,20 @@ async def get_seasons(current_user: User = Depends(require_admin)):
         raise HTTPException(status_code=500, detail="Failed to get seasons") from e
 
 
+@router.get("/seasons/list")
+async def list_seasons(current_user: User = Depends(require_admin)):
+    """Get all seasons for use in dropdowns and selection."""
+    try:
+        with get_db_session() as session:
+            season_service = SeasonService(session)
+            seasons = season_service.list_seasons(include_inactive=True)
+            # Extract year from start_date for dropdown display
+            return [{"year": season["start_date"][:4]} for season in seasons]
+    except Exception as e:
+        logger.error(f"Error getting seasons list: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get seasons") from e
+
+
 @router.post("/seasons")
 async def create_season(data: dict, current_user: User = Depends(require_admin)):
     """Create a new season."""

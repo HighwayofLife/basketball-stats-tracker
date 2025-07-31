@@ -335,6 +335,8 @@
         const requiresAuth = typeof url === 'string' && (
             url.includes('/auth/') ||
             url.includes('/admin/') ||
+            url.includes('/v1/seasons/') ||
+            url.includes('/v1/playoffs/') ||
             url.includes('/v1/players/new') ||
             url.includes('/v1/players/') && (args[1]?.method === 'PUT' || args[1]?.method === 'DELETE') ||
             url.includes('/v1/teams/new') ||

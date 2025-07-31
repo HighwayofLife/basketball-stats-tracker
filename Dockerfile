@@ -22,6 +22,9 @@ FROM dependencies AS development
 # Install all dependencies including dev
 RUN pip install --no-cache-dir -e ".[dev]"
 
+# Install playwright browsers for UI testing
+RUN playwright install --with-deps chromium
+
 # Copy all application code
 COPY . .
 

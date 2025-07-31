@@ -21,6 +21,7 @@ class CRUDScheduledGame:
         season_id: int | None = None,
         location: str | None = None,
         notes: str | None = None,
+        is_playoff_game: bool = False,
     ) -> ScheduledGame:
         """Create a new scheduled game."""
         # Convert string time to time object if needed
@@ -38,6 +39,7 @@ class CRUDScheduledGame:
             season_id=season_id,
             location=location,
             notes=notes,
+            is_playoff_game=is_playoff_game,
             status=ScheduledGameStatus.SCHEDULED,
             created_at=datetime.utcnow(),
             updated_at=datetime.utcnow(),

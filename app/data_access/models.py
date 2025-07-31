@@ -74,6 +74,7 @@ class Team(Base, SoftDeleteMixin):
     name: Mapped[str] = mapped_column(String, unique=True, nullable=False)
     display_name: Mapped[str | None] = mapped_column(String, nullable=True)
     logo_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)  # Path to team logo image
+    playoff_seed: Mapped[int | None] = mapped_column(Integer, nullable=True)  # Playoff seed for bracket placement
 
     players: Mapped[list[Player]] = relationship("Player", back_populates="team", cascade="all, delete-orphan")
     home_games: Mapped[list[Game]] = relationship(
@@ -154,6 +155,7 @@ class Game(Base, SoftDeleteMixin):
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_playoff_game: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     season: Mapped[Season | None] = relationship("Season", back_populates="games")
     playing_team: Mapped[Team] = relationship("Team", back_populates="home_games", foreign_keys=[playing_team_id])
@@ -201,6 +203,7 @@ class ScheduledGame(Base, SoftDeleteMixin):
     season_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("seasons.id"), nullable=True)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    is_playoff_game: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow
@@ -538,3 +541,24 @@ class PlayerAward(Base):
         return (
             f"<PlayerAward(player_id={self.player_id}, type='{self.award_type}', season='{self.season}', {week_info})>"
         )
+
+
+class PlayoffConfig(Base):
+    """Model for playoff configuration settings per season."""
+
+    __tablename__ = "playoff_configs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    season: Mapped[str] = mapped_column(String(10), nullable=False)  # e.g., "2024-2025"
+    num_teams: Mapped[int] = mapped_column(Integer, nullable=False, default=8)  # Total teams in playoffs
+    num_rounds: Mapped[int] = mapped_column(Integer, nullable=False, default=3)  # Number of rounds (QF, SF, F)
+    bracket_type: Mapped[str] = mapped_column(String(20), nullable=False, default="single_elimination")
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Unique constraint to ensure one active config per season
+    __table_args__ = (UniqueConstraint("season", "is_active", name="unique_active_season_config"),)
+
+    def __repr__(self) -> str:
+        return f"<PlayoffConfig(season='{self.season}', teams={self.num_teams}, rounds={self.num_rounds})>"

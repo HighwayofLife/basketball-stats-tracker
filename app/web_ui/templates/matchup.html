@@ -56,6 +56,18 @@
                     {% if scheduled_game.location %}
                     <p class="text-muted small mb-0">{{ scheduled_game.location }}</p>
                     {% endif %}
+                    {% if scheduled_game.is_playoff_game %}
+                    <div class="mt-2">
+                        <span class="badge bg-warning text-dark">
+                            <i class="fas fa-trophy me-1"></i>
+                            {% if playoff_round %}
+                                {{ playoff_round }}
+                            {% else %}
+                                Playoff Game
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
                 </div>
                 <div class="col-md-5">
                     <div class="d-flex align-items-center justify-content-center">
