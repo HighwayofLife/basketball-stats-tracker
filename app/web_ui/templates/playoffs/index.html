@@ -385,7 +385,6 @@
                         <label for="bracketType" class="form-label">Bracket Type</label>
                         <select class="form-select" id="bracketType">
                             <option value="single_elimination" selected>Single Elimination</option>
-                            <option value="double_elimination">Double Elimination</option>
                         </select>
                     </div>
                 </form>
@@ -538,8 +537,8 @@ function displayBracket(data) {
         // Create elements safely to prevent hardcoded values and XSS
         const yearDiv = document.createElement('div');
         yearDiv.className = 'champion-banner-year';
-        const currentYear = new Date().getFullYear();
-        yearDiv.textContent = `${currentYear}-${(currentYear + 1).toString().slice(-2)}`;
+        const season = data.season || 'Unknown Season';
+        yearDiv.textContent = season;
         
         const titleDiv = document.createElement('div');
         titleDiv.className = 'champion-banner-title';

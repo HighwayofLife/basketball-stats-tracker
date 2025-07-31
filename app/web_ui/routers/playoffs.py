@@ -21,7 +21,7 @@ class PlayoffConfigRequest(BaseModel):
 
     season: str = Field(..., pattern=r"^20[0-9]{2}$", description="Season year (e.g., '2025')")
     num_teams: int = Field(..., ge=2, le=64, description="Number of teams (2-64)")
-    bracket_type: Literal["single_elimination", "double_elimination"] = Field(..., description="Bracket type")
+    bracket_type: Literal["single_elimination"] = Field(..., description="Bracket type")
 
     @validator("num_teams")
     def validate_power_of_two(cls, v):
@@ -189,6 +189,8 @@ def save_playoff_config(
     Returns:
         Saved configuration
     """
+    from sqlalchemy.exc import IntegrityError
+
     from app.data_access.models import PlayoffConfig
 
     # Calculate number of rounds based on number of teams
@@ -198,9 +200,12 @@ def save_playoff_config(
         teams //= 2
         num_rounds += 1
 
-    # Check if there's an existing active config for this season
+    # Use a query with FOR UPDATE to lock the row during the transaction
     existing_config = (
-        db.query(PlayoffConfig).filter(PlayoffConfig.season == config_data.season, PlayoffConfig.is_active).first()
+        db.query(PlayoffConfig)
+        .filter(PlayoffConfig.season == config_data.season, PlayoffConfig.is_active)
+        .with_for_update()
+        .first()
     )
 
     if existing_config:
@@ -221,8 +226,26 @@ def save_playoff_config(
         )
         db.add(config)
 
-    db.commit()
-    db.refresh(config)
+    try:
+        db.commit()
+        db.refresh(config)
+    except IntegrityError:
+        db.rollback()
+        # Handle race condition where another request created the config
+        # Retry by fetching the existing config
+        existing_config = (
+            db.query(PlayoffConfig).filter(PlayoffConfig.season == config_data.season, PlayoffConfig.is_active).first()
+        )
+        if existing_config:
+            existing_config.num_teams = config_data.num_teams
+            existing_config.num_rounds = num_rounds
+            existing_config.bracket_type = config_data.bracket_type
+            existing_config.updated_at = datetime.utcnow()
+            config = existing_config
+            db.commit()
+            db.refresh(config)
+        else:
+            raise HTTPException(status_code=500, detail="Failed to save playoff configuration") from None
 
     return PlayoffConfigResponse(
         season=config.season,
@@ -283,14 +306,41 @@ def save_team_seeds(
     from app.data_access.models import Team
 
     updated_count = 0
+    errors = []
 
+    # Validate all inputs first
     for team_id_str, seed in seed_changes.items():
-        team_id = int(team_id_str)
-        team = db.query(Team).filter(Team.id == team_id).first()
+        try:
+            team_id = int(team_id_str)
+        except ValueError:
+            errors.append(f"Invalid team ID: {team_id_str}")
+            continue
 
-        if team:
-            team.playoff_seed = seed
-            updated_count += 1
+        # Validate seed number (should be positive)
+        if seed < 1:
+            errors.append(f"Invalid seed number {seed} for team ID {team_id_str}. Seed must be positive.")
+            continue
+
+    if errors:
+        raise HTTPException(status_code=400, detail={"errors": errors})
+
+    # Process valid updates
+    for team_id_str, seed in seed_changes.items():
+        try:
+            team_id = int(team_id_str)
+            team = db.query(Team).filter(Team.id == team_id).first()
+
+            if team:
+                team.playoff_seed = seed
+                updated_count += 1
+            else:
+                errors.append(f"Team with ID {team_id} not found")
+        except Exception as e:
+            errors.append(f"Error updating team {team_id_str}: {str(e)}")
+
+    if errors:
+        db.rollback()
+        raise HTTPException(status_code=400, detail={"errors": errors})
 
     db.commit()
 
