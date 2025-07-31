@@ -17,6 +17,12 @@ v0.6.0
 - Updated navigation with playoffs link
 - Improved modal handling in playoff templates
 
+### Fixed
+- Fixed hardcoded year display in playoffs template to use API season data
+- Removed unimplemented double elimination bracket type option
+- Added race condition protection for playoff config updates
+- Added validation for team IDs and seeds in save_team_seeds endpoint
+
 
 v0.5.5
 ------

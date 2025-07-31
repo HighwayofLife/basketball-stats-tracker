@@ -9,9 +9,9 @@ A comprehensive basketball statistics management system designed for small leagu
 
 | Metric | Value |
 |--------|-------|
-| **Tests** | 40 total (39 ✅ passed, 1 ⚠️ errors) |
+| **Tests** | 1050 total (992 ✅ passed, 2 ❌ failed, 29 ⏭️ skipped, 27 ⚠️ errors) |
 | **Test Files** | 112 files (74 unit, 32 integration, 6 functional) |
-| **Code Coverage** | 54% (5,158 / 9,589 executable lines) |
+| **Code Coverage** | 54% (5,175 / 9,622 executable lines) |
 | **Source Code** | 102 Python files (24k total LOC) |
 | **Dependencies** | 41 total (core + dev/test) |
 | **Python Version** | 3.11+ |
