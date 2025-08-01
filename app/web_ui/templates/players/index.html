@@ -16,6 +16,9 @@
 <div class="tab-navigation">
     <button class="tab-button {% if active_tab == 'players' %}active{% endif %}" onclick="switchTab(event, 'players')">Players</button>
     <button class="tab-button {% if active_tab == 'statistics' %}active{% endif %}" onclick="switchTab(event, 'statistics')">Player Statistics</button>
+    <a href="/awards" class="tab-button awards-link" title="View Awards Showcase">
+        <i class="fas fa-trophy me-1"></i>Awards
+    </a>
 </div>
 
 <!-- Players Management Tab -->
@@ -251,17 +254,29 @@
     color: #666;
     border-bottom: 2px solid transparent;
     transition: all 0.3s ease;
+    text-decoration: none;
 }
 
 .tab-button:hover {
     color: #333;
     background-color: #f8f9fa;
+    text-decoration: none;
 }
 
 .tab-button.active {
     color: #007bff;
     border-bottom-color: #007bff;
     font-weight: bold;
+}
+
+.tab-button.awards-link {
+    color: #ffc107;
+    margin-left: auto;
+}
+
+.tab-button.awards-link:hover {
+    color: #ff9800;
+    background-color: #fff3cd;
 }
 
 .tab-content {
