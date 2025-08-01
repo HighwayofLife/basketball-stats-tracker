@@ -1,0 +1,543 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="awards-showcase">
+    <!-- Header with Season Filter -->
+    <div class="awards-header mb-4">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+            <div>
+                <h2 class="h3 mb-1">
+                    <i class="fas fa-trophy text-warning me-2"></i>Awards Showcase
+                </h2>
+                <p class="text-muted mb-0">Hall of fame for season and weekly honors</p>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="season-filter" class="form-label mb-0 text-nowrap">Season:</label>
+                <select id="season-filter" class="form-select" style="width: auto; min-width: 150px;">
+                    <option value="all">All Seasons</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="awards-loading" class="text-center py-5" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading awards...</span>
+        </div>
+        <p class="mt-3 text-muted">Loading awards data...</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="awards-error" class="alert alert-danger" style="display: none;">
+        <h5><i class="fas fa-exclamation-triangle me-2"></i>Error Loading Awards</h5>
+        <p class="mb-2">There was an error loading the awards data. Please try again.</p>
+        <button class="btn btn-outline-danger btn-sm" onclick="loadAwardsData()">
+            <i class="fas fa-redo me-1"></i>Retry
+        </button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div class="awards-tabs mb-4" id="awards-content" style="display: none;">
+        <ul class="nav nav-tabs" id="awards-nav-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="season-tab" data-bs-toggle="tab" data-bs-target="#season-awards-pane" type="button" role="tab">
+                    <i class="fas fa-medal me-2"></i>Season Awards (<span id="season-count">0</span>)
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="weekly-tab" data-bs-toggle="tab" data-bs-target="#weekly-awards-pane" type="button" role="tab">
+                    <i class="fas fa-calendar-week me-2"></i>Weekly Awards (<span id="weekly-count">0</span>)
+                </button>
+            </li>
+        </ul>
+
+        <!-- Tab Content -->
+        <div class="tab-content" id="awards-tab-content">
+            <!-- Season Awards Tab -->
+            <div class="tab-pane fade show active" id="season-awards-pane" role="tabpanel">
+                <div class="awards-section mt-4">
+                    <div id="season-awards-empty" class="text-center py-5 text-muted" style="display: none;">
+                        <i class="fas fa-trophy fa-3x mb-3 opacity-50"></i>
+                        <p>No season awards found for the selected filter.</p>
+                    </div>
+                    <div id="season-awards-content"></div>
+                </div>
+            </div>
+
+            <!-- Weekly Awards Tab -->
+            <div class="tab-pane fade" id="weekly-awards-pane" role="tabpanel">
+                <div class="awards-section mt-4">
+                    <div id="weekly-awards-empty" class="text-center py-5 text-muted" style="display: none;">
+                        <i class="fas fa-calendar-week fa-3x mb-3 opacity-50"></i>
+                        <p>No weekly awards found for the selected filter.</p>
+                    </div>
+                    <div id="weekly-awards-content"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Awards Summary (only shown when viewing all seasons) -->
+    <div id="awards-summary" class="mt-5" style="display: none;">
+        <h4><i class="fas fa-chart-bar me-2"></i>Awards Summary</h4>
+        <div class="row" id="summary-cards">
+            <!-- Summary cards will be populated by JavaScript -->
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+.awards-showcase {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.award-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid #dee2e6;
+    background: #fff;
+}
+
+.award-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.award-icon {
+    font-size: 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffd700, #ffed4e);
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+}
+
+.award-info {
+    flex: 1;
+}
+
+.award-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 0.25rem;
+}
+
+.award-winner {
+    font-size: 1rem;
+    font-weight: 500;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.award-winner:hover {
+    color: #0056b3;
+    text-decoration: underline;
+}
+
+.award-meta {
+    font-size: 0.875rem;
+    color: #6c757d;
+}
+
+.award-stat {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #28a745;
+    background: #f8f9fa;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    display: inline-block;
+}
+
+.season-group {
+    border: 1px solid #dee2e6;
+    border-radius: 0.5rem;
+    background: #f8f9fa;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.season-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 0.5rem;
+}
+
+.week-group {
+    border: 1px solid #e9ecef;
+    border-radius: 0.375rem;
+    background: #fff;
+    margin-bottom: 1.5rem;
+}
+
+.week-header {
+    background: #f1f3f4;
+    padding: 1rem;
+    border-bottom: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.week-header:hover {
+    background: #e9ecef;
+}
+
+.week-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #495057;
+    margin: 0;
+}
+
+.week-content {
+    padding: 1rem;
+}
+
+.summary-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.summary-number {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.summary-label {
+    font-size: 0.875rem;
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .award-card {
+        margin-bottom: 1rem;
+    }
+    
+    .award-icon {
+        width: 50px;
+        height: 50px;
+        font-size: 2rem;
+    }
+    
+    .season-group {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+let currentAwardsData = null;
+let currentSeason = 'all';
+
+document.addEventListener('DOMContentLoaded', function() {
+    loadAwardsData();
+    
+    // Season filter change handler
+    document.getElementById('season-filter').addEventListener('change', function() {
+        currentSeason = this.value;
+        loadAwardsData();
+    });
+});
+
+async function loadAwardsData() {
+    const loadingEl = document.getElementById('awards-loading');
+    const errorEl = document.getElementById('awards-error');
+    const contentEl = document.getElementById('awards-content');
+    
+    // Show loading state
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+    contentEl.style.display = 'none';
+    
+    try {
+        let url = '/v1/awards';
+        if (currentSeason && currentSeason !== 'all') {
+            url += `?season=${currentSeason}`;
+        }
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!response.ok || !data.success) {
+            throw new Error(data.error || 'Failed to load awards data');
+        }
+        
+        currentAwardsData = data;
+        populateSeasonFilter(data.available_seasons);
+        renderAwards(data);
+        
+        // Show summary only when viewing all seasons
+        if (currentSeason === 'all') {
+            loadAwardsSummary();
+        } else {
+            document.getElementById('awards-summary').style.display = 'none';
+        }
+        
+        // Hide loading and show content
+        loadingEl.style.display = 'none';
+        contentEl.style.display = 'block';
+        
+    } catch (error) {
+        console.error('Error loading awards:', error);
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.querySelector('p').textContent = error.message;
+    }
+}
+
+function populateSeasonFilter(seasons) {
+    const select = document.getElementById('season-filter');
+    const currentValue = select.value;
+    
+    // Clear existing options except "All Seasons"
+    select.innerHTML = '<option value="all">All Seasons</option>';
+    
+    // Add season options
+    seasons.forEach(season => {
+        const option = document.createElement('option');
+        option.value = season;
+        option.textContent = `${season} Season`;
+        select.appendChild(option);
+    });
+    
+    // Restore selection
+    select.value = currentValue;
+}
+
+function renderAwards(data) {
+    const seasonCount = Object.values(data.season_awards).reduce((sum, season) => {
+        return sum + Object.values(season).reduce((total, awards) => total + awards.length, 0);
+    }, 0);
+    
+    const weeklyCount = Object.values(data.weekly_awards).reduce((sum, season) => {
+        return sum + Object.values(season).reduce((total, awards) => total + awards.length, 0);
+    }, 0);
+    
+    // Update counts in tabs
+    document.getElementById('season-count').textContent = seasonCount;
+    document.getElementById('weekly-count').textContent = weeklyCount;
+    
+    // Render season awards
+    renderSeasonAwards(data.season_awards);
+    
+    // Render weekly awards
+    renderWeeklyAwards(data.weekly_awards);
+}
+
+function renderSeasonAwards(seasonAwards) {
+    const container = document.getElementById('season-awards-content');
+    const emptyEl = document.getElementById('season-awards-empty');
+    
+    if (Object.keys(seasonAwards).length === 0) {
+        container.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    
+    emptyEl.style.display = 'none';
+    let html = '';
+    
+    Object.keys(seasonAwards).sort().reverse().forEach(season => {
+        const awards = seasonAwards[season];
+        
+        html += `
+            <div class="season-group">
+                <h3 class="season-title">
+                    <i class="fas fa-calendar-alt me-2"></i>${season} Season
+                </h3>
+                <div class="row">
+        `;
+        
+        Object.keys(awards).forEach(awardType => {
+            awards[awardType].forEach(award => {
+                html += createAwardCard(award);
+            });
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function renderWeeklyAwards(weeklyAwards) {
+    const container = document.getElementById('weekly-awards-content');
+    const emptyEl = document.getElementById('weekly-awards-empty');
+    
+    if (Object.keys(weeklyAwards).length === 0) {
+        container.innerHTML = '';
+        emptyEl.style.display = 'block';
+        return;
+    }
+    
+    emptyEl.style.display = 'none';
+    let html = '';
+    
+    Object.keys(weeklyAwards).sort().reverse().forEach(season => {
+        const seasonAwards = weeklyAwards[season];
+        
+        html += `
+            <div class="season-group">
+                <h3 class="season-title">
+                    <i class="fas fa-calendar-alt me-2"></i>${season} Season
+                </h3>
+        `;
+        
+        // Group by weeks
+        const weekMap = {};
+        Object.keys(seasonAwards).forEach(awardType => {
+            seasonAwards[awardType].forEach(award => {
+                const weekKey = award.week_date || 'unknown';
+                if (!weekMap[weekKey]) {
+                    weekMap[weekKey] = [];
+                }
+                weekMap[weekKey].push(award);
+            });
+        });
+        
+        // Sort weeks in descending order
+        Object.keys(weekMap).sort().reverse().forEach(weekDate => {
+            const weekAwards = weekMap[weekDate];
+            const weekLabel = weekDate === 'unknown' ? 'Unknown Week' : formatWeekDate(weekDate);
+            
+            html += `
+                <div class="week-group">
+                    <div class="week-header" onclick="toggleWeekContent('week-${weekDate}')">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="week-title">
+                                <i class="fas fa-calendar-week me-2"></i>${weekLabel}
+                            </h4>
+                            <div class="d-flex align-items-center">
+                                <span class="badge bg-primary me-2">${weekAwards.length} awards</span>
+                                <i class="fas fa-chevron-down transition-transform" id="chevron-week-${weekDate}"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="week-content collapse" id="week-${weekDate}">
+                        <div class="row">
+            `;
+            
+            weekAwards.forEach(award => {
+                html += createAwardCard(award);
+            });
+            
+            html += `
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `</div>`;
+    });
+    
+    container.innerHTML = html;
+}
+
+function createAwardCard(award) {
+    return `
+        <div class="col-lg-6 col-xl-4 mb-3">
+            <div class="card award-card h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="award-icon me-3">
+                        ${award.award_icon}
+                    </div>
+                    <div class="award-info">
+                        <div class="award-title">${award.award_name}</div>
+                        <a href="/players/${award.player_id}" class="award-winner">
+                            ${award.player_name}
+                        </a>
+                        <div class="award-meta mt-1">
+                            <span class="team-name">${award.team_name}</span>
+                            ${award.week_date ? `• Week of ${formatWeekDate(award.week_date)}` : ''}
+                        </div>
+                        ${award.formatted_stat ? `<div class="award-stat mt-2">${award.formatted_stat}</div>` : ''}
+                        ${award.show_points && award.points_scored ? `<div class="award-stat mt-2">${award.points_scored} pts</div>` : ''}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+function formatWeekDate(dateString) {
+    if (!dateString) return 'Unknown Date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric', 
+        year: 'numeric' 
+    });
+}
+
+function toggleWeekContent(weekId) {
+    const contentEl = document.getElementById(weekId);
+    const chevronEl = document.getElementById(`chevron-${weekId}`);
+    
+    if (contentEl.classList.contains('show')) {
+        contentEl.classList.remove('show');
+        chevronEl.style.transform = 'rotate(0deg)';
+    } else {
+        contentEl.classList.add('show');
+        chevronEl.style.transform = 'rotate(180deg)';
+    }
+}
+
+async function loadAwardsSummary() {
+    try {
+        const response = await fetch('/v1/awards/stats/summary');
+        const data = await response.json();
+        
+        if (response.ok && data.success) {
+            renderAwardsSummary(data);
+            document.getElementById('awards-summary').style.display = 'block';
+        }
+    } catch (error) {
+        console.error('Error loading awards summary:', error);
+    }
+}
+
+function renderAwardsSummary(data) {
+    const container = document.getElementById('summary-cards');
+    
+    const summaryItems = [
+        { label: 'Total Awards', value: data.total_awards, icon: 'fa-trophy' },
+        { label: 'Seasons', value: Object.keys(data.awards_by_season).length, icon: 'fa-calendar' },
+        { label: 'Award Types', value: Object.keys(data.awards_by_type).length, icon: 'fa-medal' },
+        { label: 'Players with Awards', value: data.unique_players_with_awards, icon: 'fa-users' }
+    ];
+    
+    let html = '';
+    summaryItems.forEach(item => {
+        html += `
+            <div class="col-md-3 col-sm-6 mb-3">
+                <div class="summary-card">
+                    <i class="fas ${item.icon} mb-2" style="font-size: 1.5rem;"></i>
+                    <div class="summary-number">${item.value}</div>
+                    <div class="summary-label">${item.label}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+</script>
+{% endblock %}

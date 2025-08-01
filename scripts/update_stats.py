@@ -29,7 +29,7 @@ def get_test_stats():
     # Run the same comprehensive test suite as 'make test' but capture stats
     print("📊 Running comprehensive test suite (like 'make test')...")
 
-    # Step 1: Container tests (unit + integration except UI validation)
+    # Step 1: Container tests (unit + integration + UI tests, except UI validation)
     print("📊 Step 1: Container tests...")
     exclude_args = (
         "--ignore=tests/functional/test_overtime_ui_display.py --ignore=tests/integration/test_ui_validation.py"
