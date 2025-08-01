@@ -1,3 +1,15 @@
+v0.6.1
+------
+
+### Added
+- New season awards: Curry Wannabe (most 3-pointers made)
+- New award: Hack-a-Shaq (most free-throws missed)
+
+### Changed
+- The Final Boss award now tracks most points scored in 4th quarter (instead of most shots made)
+- Weekly Whiffer award now excludes free-throw misses (only counts field goal misses)
+- Defensive Tackle award now uses fouls-per-game average with minimum 10 total fouls (instead of most total fouls)
+
 v0.6.0
 ------
 

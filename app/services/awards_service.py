@@ -48,6 +48,8 @@ SEASON_AWARD_TYPES = [
     "defensive_tackle",
     "air_ball_artist",
     "air_assault",
+    "curry_wannabe",
+    "hack_a_shaq",
 ]
 
 
@@ -416,6 +418,14 @@ def calculate_all_season_awards(
     assault_count = calculate_air_assault(session, season, recalculate)
     results["air_assault"] = {season: assault_count} if season else {}
 
+    logger.info("🏹 Calculating Curry Wannabe...")
+    curry_count = calculate_curry_wannabe_award(session, season, recalculate)
+    results["curry_wannabe"] = {season: curry_count} if season else {}
+
+    logger.info("🚫 Calculating Hack-a-Shaq...")
+    hack_count = calculate_hack_a_shaq_award(session, season, recalculate)
+    results["hack_a_shaq"] = {season: hack_count} if season else {}
+
     logger.info("✅ ALL season awards calculation completed!")
     return results
 
@@ -552,7 +562,7 @@ def calculate_trigger_finger(session: Session, season: str | None = None, recalc
 
 def calculate_weekly_whiffer(session: Session, season: str | None = None, recalculate: bool = False) -> dict[str, int]:
     """
-    Calculate Weekly Whiffer awards - most total missed shots in a single game.
+    Calculate Weekly Whiffer awards - most field goal missed shots in a single game.
     """
     award_type = WEEKLY_AWARD_TYPES["weekly_whiffer"]
     return _calculate_per_game_stat_award(
@@ -560,9 +570,7 @@ def calculate_weekly_whiffer(session: Session, season: str | None = None, recalc
         award_type,
         season,
         recalculate,
-        lambda stats: (stats.total_2pa - stats.total_2pm)
-        + (stats.total_3pa - stats.total_3pm)
-        + (stats.total_fta - stats.total_ftm),
+        lambda stats: (stats.total_2pa - stats.total_2pm) + (stats.total_3pa - stats.total_3pm),
         "missed shots",
     )
 
@@ -850,24 +858,24 @@ def _calculate_hot_hand_winners(
 def _calculate_clutch_man_winners(
     session: Session, weekly_games: list, week_start: date, season: str, recalculate: bool = False
 ) -> list[int]:
-    """Calculate winners for Clutch-man award (most shots made in Q4)."""
-    player_q4_makes = defaultdict(int)
+    """Calculate winners for Clutch-man award (most points scored in Q4)."""
+    player_q4_points = defaultdict(int)
 
-    # Calculate Q4 makes for each player
+    # Calculate Q4 points for each player
     for game in weekly_games:
         for stat in game.player_game_stats:
             # Find Q4 stats
             for quarter_stat in stat.quarter_stats:
                 if quarter_stat.quarter_number == 4:  # Q4
-                    q4_makes = quarter_stat.fg2m + quarter_stat.fg3m + quarter_stat.ftm
-                    player_q4_makes[stat.player_id] += q4_makes
+                    q4_points = (quarter_stat.fg2m * 2) + (quarter_stat.fg3m * 3) + quarter_stat.ftm
+                    player_q4_points[stat.player_id] += q4_points
 
-    if not player_q4_makes:
+    if not player_q4_points:
         return []
 
     # Find winner(s)
-    max_q4_makes = max(player_q4_makes.values())
-    winners = [pid for pid, makes in player_q4_makes.items() if makes == max_q4_makes]
+    max_q4_points = max(player_q4_points.values())
+    winners = [pid for pid, points in player_q4_points.items() if points == max_q4_points]
 
     # Create awards
     for player_id in winners:
@@ -880,7 +888,7 @@ def _calculate_clutch_man_winners(
             points_scored=None,
         )
         if award:
-            award.stat_value = float(max_q4_makes)
+            award.stat_value = float(max_q4_points)
 
     session.flush()
     return winners
@@ -1431,7 +1439,7 @@ def calculate_charity_stripe_regular(session: Session, season: str, recalculate:
 
 def calculate_defensive_tackle(session: Session, season: str, recalculate: bool = False) -> int:
     """
-    Calculate Defensive Tackle award - most fouls for the season.
+    Calculate Defensive Tackle award - highest fouls-per-game average (minimum 10 total fouls).
     """
     logger.info(f"Starting Defensive Tackle calculation for season: {season}, recalculate: {recalculate}")
 
@@ -1447,18 +1455,39 @@ def calculate_defensive_tackle(session: Session, season: str, recalculate: bool 
         logger.info(f"No games found for season {season}")
         return 0
 
-    # Calculate total fouls for each player
-    player_fouls = defaultdict(int)
+    # Calculate total fouls and games played for each player
+    player_stats = defaultdict(lambda: {"fouls": 0, "games": 0})
     for game in season_games:
         for stat in game.player_game_stats:
-            player_fouls[stat.player_id] += stat.fouls
+            player_stats[stat.player_id]["fouls"] += stat.fouls
+            player_stats[stat.player_id]["games"] += 1
 
-    if not player_fouls:
+    if not player_stats:
         return 0
 
-    # Find winner(s)
-    max_fouls = max(player_fouls.values())
-    winners = [pid for pid, fouls in player_fouls.items() if fouls == max_fouls]
+    # Filter players with minimum 10 total fouls and calculate fouls per game
+    qualified_players = {}
+    for player_id, stats in player_stats.items():
+        if stats["fouls"] >= 10:  # Minimum 10 total fouls
+            fouls_per_game = stats["fouls"] / stats["games"] if stats["games"] > 0 else 0.0
+            qualified_players[player_id] = {"fouls_per_game": fouls_per_game, "total_fouls": stats["fouls"]}
+
+    if not qualified_players:
+        logger.info(f"No players qualified for Defensive Tackle (min 10 fouls) in season {season}")
+        return 0
+
+    # Find winner(s) - players with the highest fouls per game
+    max_fouls_per_game = max(data["fouls_per_game"] for data in qualified_players.values())
+    # Apply tie-breaker: if same average, award goes to player with more total fouls
+    winners = []
+    tied_players = [pid for pid, data in qualified_players.items() if data["fouls_per_game"] == max_fouls_per_game]
+
+    if len(tied_players) > 1:
+        # Tie-breaker: highest total fouls among tied players
+        max_total_fouls = max(qualified_players[pid]["total_fouls"] for pid in tied_players)
+        winners = [pid for pid in tied_players if qualified_players[pid]["total_fouls"] == max_total_fouls]
+    else:
+        winners = tied_players
 
     # Create awards
     awards_given = 0
@@ -1472,9 +1501,9 @@ def calculate_defensive_tackle(session: Session, season: str, recalculate: bool 
             points_scored=None,
         )
         if award:
-            award.stat_value = float(max_fouls)
+            award.stat_value = max_fouls_per_game
             awards_given += 1
-            logger.debug(f"Awarded Defensive Tackle to player {player_id} with {max_fouls} fouls")
+            logger.debug(f"Awarded Defensive Tackle to player {player_id} with {max_fouls_per_game:.2f} fouls per game")
 
     session.commit()
     return awards_given
@@ -1738,6 +1767,109 @@ def calculate_top_scorer(session: Session, season: str, recalculate: bool = Fals
             award.stat_value = float(max_points)
             awards_given += 1
             logger.debug(f"Awarded Top Scorer to player {player_id} with {max_points} points")
+
+    session.commit()
+    return awards_given
+
+
+def calculate_curry_wannabe_award(session: Session, season: str, recalculate: bool = False) -> int:
+    """
+    Calculate Curry Wannabe award - most 3-point field goals made in the season.
+    """
+    logger.info(f"Starting Curry Wannabe calculation for season: {season}, recalculate: {recalculate}")
+
+    if recalculate:
+        delete_awards_by_season_and_type(session, "curry_wannabe", season)
+        session.commit()
+
+    # Get all games for the season
+    games = crud_game.get_all_games(session)
+    season_games = [g for g in games if get_season_from_date(g.date) == season]
+
+    if not season_games:
+        logger.info(f"No games found for season {season}")
+        return 0
+
+    # Calculate total 3PM for each player
+    player_3pm = defaultdict(int)
+    for game in season_games:
+        for stat in game.player_game_stats:
+            player_3pm[stat.player_id] += stat.total_3pm
+
+    if not player_3pm:
+        return 0
+
+    # Find winner(s)
+    max_3pm = max(player_3pm.values())
+    winners = [pid for pid, threes in player_3pm.items() if threes == max_3pm]
+
+    # Create awards
+    awards_given = 0
+    for player_id in winners:
+        award = create_player_award_safe(
+            session=session,
+            player_id=player_id,
+            season=season,
+            award_type="curry_wannabe",
+            week_date=None,
+            points_scored=None,
+        )
+        if award:
+            award.stat_value = float(max_3pm)
+            awards_given += 1
+            logger.debug(f"Awarded Curry Wannabe to player {player_id} with {max_3pm} 3PM")
+
+    session.commit()
+    return awards_given
+
+
+def calculate_hack_a_shaq_award(session: Session, season: str, recalculate: bool = False) -> int:
+    """
+    Calculate Hack-a-Shaq award - most free-throws missed in the season.
+    """
+    logger.info(f"Starting Hack-a-Shaq calculation for season: {season}, recalculate: {recalculate}")
+
+    if recalculate:
+        delete_awards_by_season_and_type(session, "hack_a_shaq", season)
+        session.commit()
+
+    # Get all games for the season
+    games = crud_game.get_all_games(session)
+    season_games = [g for g in games if get_season_from_date(g.date) == season]
+
+    if not season_games:
+        logger.info(f"No games found for season {season}")
+        return 0
+
+    # Calculate total FT misses for each player
+    player_ft_misses = defaultdict(int)
+    for game in season_games:
+        for stat in game.player_game_stats:
+            ft_misses = stat.total_fta - stat.total_ftm
+            player_ft_misses[stat.player_id] += ft_misses
+
+    if not player_ft_misses:
+        return 0
+
+    # Find winner(s)
+    max_ft_misses = max(player_ft_misses.values())
+    winners = [pid for pid, misses in player_ft_misses.items() if misses == max_ft_misses]
+
+    # Create awards
+    awards_given = 0
+    for player_id in winners:
+        award = create_player_award_safe(
+            session=session,
+            player_id=player_id,
+            season=season,
+            award_type="hack_a_shaq",
+            week_date=None,
+            points_scored=None,
+        )
+        if award:
+            award.stat_value = float(max_ft_misses)
+            awards_given += 1
+            logger.debug(f"Awarded Hack-a-Shaq to player {player_id} with {max_ft_misses} FT misses")
 
     session.commit()
     return awards_given

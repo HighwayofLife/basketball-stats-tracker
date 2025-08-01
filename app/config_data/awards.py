@@ -42,8 +42,8 @@ WEEKLY_AWARDS = {
     "clutch_man": {
         "name": "The Final Boss",
         "icon": "⏰",
-        "desc": "Most shots made in 4th quarter of a single game",
-        "format_stat": "Q4 makes",
+        "desc": "Most points scored in the 4th quarter of a single game",
+        "format_stat": "Q4 points",
         "format_points": False,
     },
     "trigger_finger": {
@@ -56,7 +56,7 @@ WEEKLY_AWARDS = {
     "weekly_whiffer": {
         "name": "Weekly Whiffer",
         "icon": "😅",
-        "desc": "Most missed shots in a single game",
+        "desc": "Most missed field goal shots in a single game",
         "format_stat": "misses",
         "format_points": False,
     },
@@ -127,7 +127,7 @@ SEASON_AWARDS = {
     "defensive_tackle": {
         "name": "Defensive Tackle",
         "icon": "🛡️",
-        "desc": "Most fouls committed in the season",
+        "desc": "Highest fouls-per-game average (minimum 10 total fouls)",
     },
     "air_ball_artist": {
         "name": "Air Ball Artist",
@@ -145,6 +145,16 @@ SEASON_AWARDS = {
         "desc": "Highest free-throw percentage in a season (minimum 10 free throw attempts)",
         "format_stat": "percentage",
         "format_points": False,
+    },
+    "curry_wannabe": {
+        "name": "Curry Wannabe",
+        "icon": "🏹",
+        "desc": "Most 3-point field goals made in the season",
+    },
+    "hack_a_shaq": {
+        "name": "Hack-a-Shaq",
+        "icon": "🚫",
+        "desc": "Most free-throws missed in the season",
     },
 }
 

@@ -67,7 +67,7 @@ class TestAdminCalculateAwards:
 
             # Should complete without AttributeError
             assert isinstance(result, dict)
-            assert len(result) == 9  # All 9 season awards (including Rick Barry)
+            assert len(result) == 11  # All 11 season awards (including new ones)
 
             # Verify all expected awards are calculated
             expected_awards = [
@@ -80,6 +80,8 @@ class TestAdminCalculateAwards:
                 "defensive_tackle",
                 "air_ball_artist",
                 "air_assault",
+                "curry_wannabe",
+                "hack_a_shaq",
             ]
             for award_type in expected_awards:
                 assert award_type in result
@@ -286,7 +288,7 @@ class TestAdminCalculateAwards:
             # Both should complete without errors
             assert isinstance(season_result, dict)
             assert isinstance(weekly_result, dict)
-            assert len(season_result) == 9  # 9 season awards (including Rick Barry)
+            assert len(season_result) == 11  # 11 season awards (including new ones)
             assert len(weekly_result) == 12  # 12 weekly awards
 
             # No AttributeError should be raised during this flow
