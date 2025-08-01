@@ -1,3 +1,22 @@
+v0.6.2
+------
+
+### Added
+- Awards Showcase page with comprehensive awards display
+- Season filter dropdown for viewing awards by specific season
+- Awards summary statistics showing total awards and unique players
+- Awards link in main navigation menu
+- Awards button in Players tab for quick access
+
+### API Enhancements
+- Added `/awards` page endpoint for awards showcase
+- Added `/v1/awards` endpoint with season filtering support
+- Added `/v1/awards/{season}` endpoint for season-specific awards
+- Added `/v1/awards/stats/summary` endpoint for awards statistics
+
+### Testing
+- Added comprehensive unit tests for awards router endpoints
+
 v0.6.1
 ------
 
